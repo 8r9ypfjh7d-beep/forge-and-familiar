@@ -65,6 +65,14 @@ export interface Improvement {
   featId?: string
 }
 
+/** A spell the character knows or has prepared, from the content library (src/content). */
+export interface KnownSpell {
+  /** Library spell id, e.g. "fireball". The same id names the spell in both rules editions. */
+  id: string
+  /** The class it was learned through; multiclass casters keep separate lists. */
+  classId: string
+}
+
 export const CHARACTER_SCHEMA_VERSION = 1
 
 /** A person using the app. Local profile for now; maps to an auth account once a backend exists. */
@@ -112,6 +120,10 @@ export interface Character {
   inventory: InventoryEntry[]
   coins: { cp: number; sp: number; gp: number }
   notes: string
+  /** Known or prepared spells (src/spellbook). Missing on older saves: none chosen. */
+  spells?: KnownSpell[]
+  /** Rules edition for spell lists and counts: '2024' uses the SRD 5.2. Missing means 2014 (SRD 5.1). */
+  spellEdition?: '2014' | '2024'
   /** Spells, attacks and resources pinned to the sheet's quick-cast bar, in display order. */
   quickCast?: QuickCastEntry[]
   state: CharacterState

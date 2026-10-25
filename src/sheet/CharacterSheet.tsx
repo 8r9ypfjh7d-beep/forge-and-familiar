@@ -15,6 +15,7 @@ import { HitPoints } from './components/HitPoints'
 import { Resources } from './components/Resources'
 import { Rests } from './components/Rests'
 import { SpellSlots } from './components/SpellSlots'
+import { Spellbook } from '../spellbook'
 import { Supplies } from '../supplies/Supplies'
 import { TurnChecklist } from '../turn'
 import type { Apply } from './types'
@@ -70,6 +71,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack }: {
       case 'turn': return <TurnChecklist key={s} character={character} />
       case 'reactions': return <ReactionReminders key={s} {...p} />
       case 'slots': return <SpellSlots key={s} {...p} />
+      case 'spells': return <Spellbook key={s} {...p} />
       case 'resources': return <Resources key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
       case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
