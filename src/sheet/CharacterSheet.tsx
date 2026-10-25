@@ -5,6 +5,7 @@ import type { Character } from '../model/character'
 import { QuickCastBar } from '../quickcast'
 import { derive, formatMod } from '../rules'
 import { ReactionReminders } from '../reactions'
+import { Attacks } from './components/Attacks'
 import { Attunement } from './components/Attunement'
 import { DEFAULT_THEME_ID, ThemePicker, useCharacterTheme } from '../themes'
 import { Clock } from './components/Clock'
@@ -51,6 +52,7 @@ export function CharacterSheet({ characterId, onBack }: { characterId: string; o
           <StatsCard character={character} />
         </div>
         <div className="col">
+          <Attacks character={character} />
           <TurnChecklist character={character} />
           <ReactionReminders character={character} apply={apply} />
           <SpellSlots character={character} apply={apply} />

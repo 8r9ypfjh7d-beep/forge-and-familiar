@@ -608,6 +608,19 @@ const messages: Messages = {
   'clock.log.dawns': '; {n} שחרים',
   'sheet.tracker.preset': 'חפץ SRD עם מטענים יומיים (רשות)',
   'sheet.tracker.presetPick': 'בחרו שרביט, מטה או טבעת…',
+  'sheet.attacks.title': 'התקפות',
+  'sheet.attacks.hint': 'הקישו כדי להטיל פגיעה ונזק',
+  'sheet.attacks.mode': 'יתרון להתקפה הזו',
+  'sheet.attacks.ownAdv': 'המצבים שלכם נותנים יתרון בהתקפות.',
+  'sheet.attacks.ownDis': 'המצבים שלכם נותנים חיסרון בהתקפות.',
+  'sheet.attacks.critRange': 'פגיעה קריטית ב־{n}–20',
+  'sheet.attacks.raging': 'בזעם ({damage} נזק)',
+  'sheet.attacks.sneak': '{name} ({damage}, פעם בתור)',
+  'sheet.attacks.toHit': '{bonus} לפגיעה',
+  'sheet.attacks.rollLabel': 'הטלת {name}: {bonus} לפגיעה, {damage} נזק',
+  'sheet.attacks.math': 'חישוב',
+  'sheet.attacks.twoHanded': 'בשתי ידיים',
+  'sheet.attacks.miss': '1 טבעי: החטאה אוטומטית, אין נזק.',
 }
 
 const terms: Terms = {

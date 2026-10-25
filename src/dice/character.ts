@@ -1,6 +1,7 @@
 // Rolls driven by a character's derived stats. Read-only: callers apply results to CharacterState.
 import type { HitDie } from '../model/character'
 import { SKILLS } from '../rules/data/skills'
+import type { DamageRider } from '../rules/attackRiders'
 import type { Attack, DerivedStats } from '../rules/derive'
 import { autoFailsSave, getRollMode, type RollKind as ConditionRollKind } from '../rules/rollMode'
 import { ABILITY_NAMES, type Ability, type SkillId } from '../rules/types'
@@ -37,8 +38,11 @@ export function rollInitiative(stats: DerivedStats, opts: RollOptions = {}): Rol
   return rollD20(stats.initiative, prepare(opts, 'Initiative', 'check', 'dex'), 'initiative')
 }
 
-export function rollAttack(attack: Pick<Attack, 'name' | 'bonus'>, opts: RollOptions = {}): RollResult {
-  return rollD20(attack.bonus, prepare(opts, `${attack.name} attack`, 'attack'), 'attack')
+/** critRange: lowest natural roll that crits (rules getCritRange, 19 for a Champion). */
+export function rollAttack(attack: Pick<Attack, 'name' | 'bonus'>, opts: RollOptions & { critRange?: number } = {}): RollResult {
+  const r = rollD20(attack.bonus, prepare(opts, `${attack.name} attack`, 'attack'), 'attack')
+  if (opts.critRange && r.d20 && r.d20.natural >= opts.critRange) r.d20.crit = true
+  return r
 }
 
 /** Damage for an attack. Pass crit (usually attackResult.d20.crit) to double the dice. */
@@ -50,6 +54,34 @@ export function rollDamage(
   const notation = opts.crit ? critNotation(base) : base
   const label = `${attack.name} ${attack.damageType}${opts.crit ? ' (crit)' : ''}`
   return roll(notation, { ...opts, label: opts.label ?? label }, 'damage')
+}
+
+export interface AttackOutcome {
+  attack: RollResult
+  /** Missing on a natural 1, which always misses. */
+  damage?: RollResult
+}
+
+/**
+ * One tap: the attack roll, then its damage with every rider the player turned on.
+ * A crit doubles all the damage dice (riders too); a natural 1 rolls no damage.
+ */
+export function rollAttackWithDamage(
+  attack: Pick<Attack, 'name' | 'bonus' | 'damage' | 'damageType' | 'versatile'>,
+  opts: RollOptions & { critRange?: number; twoHanded?: boolean; riders?: Pick<DamageRider, 'name' | 'damage'>[] } = {},
+): AttackOutcome {
+  const { label, riders = [], twoHanded, critRange, ...rest } = opts
+  const hit = rollAttack(attack, { ...rest, critRange, label })
+  if (hit.d20?.fumble) return { attack: hit }
+  const base = twoHanded && attack.versatile ? attack.versatile : attack.damage
+  const notation = [base, ...riders.map(r => r.damage)]
+    .map((n, i) => (i === 0 || /^[+\-−]/.test(n) ? n : `+${n}`)).join('')
+  const crit = !!hit.d20?.crit
+  const extras = riders.length ? ` + ${riders.map(r => r.name).join(', ')}` : ''
+  const damage = rollDamage({ ...attack, damage: notation }, {
+    ...rest, crit, label: `${attack.name} ${attack.damageType}${extras}${crit ? ' (crit)' : ''}`,
+  })
+  return { attack: hit, damage }
 }
 
 /** One hit die on a short rest: die + CON, at least 0 HP regained (SRD). */
