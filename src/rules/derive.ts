@@ -28,6 +28,12 @@ export const totalLevel = (c: Character) => c.classes.reduce((n, cl) => n + cl.l
 
 export const proficiencyBonus = (level: number) => 2 + Math.floor((Math.max(1, level) - 1) / 4)
 
+/** SRD experience points needed to reach each level (index 0 = level 1). */
+export const XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000]
+
+/** XP needed for the next level, or undefined at level 20. */
+export const xpForNextLevel = (level: number): number | undefined => XP_THRESHOLDS[Math.max(1, level)]
+
 // ---------- Hit points ----------
 
 /** Max HP before exhaustion: max die at 1st level, fixed average after, plus CON and racial extras. */
@@ -205,6 +211,12 @@ export interface Attack {
   properties?: string[]
   /** Extra damage on every hit from the item, e.g. "1d6 fire". */
   extraDamage?: string
+  /** The weapon's item id; missing for an unarmed strike. */
+  itemId?: string
+  /** Melee reach in feet (10 with the reach property). Missing for ranged weapons. */
+  reach?: number
+  /** Normal/long range in feet for ranged and thrown weapons, e.g. "20/60". */
+  range?: string
 }
 
 const martialArtsDie = (monkLevel: number) =>
@@ -255,6 +267,9 @@ export function getAttacks(c: Character): Attack[] {
       versatile: item.versatile ? withMod(item.versatile, dmgMod) : undefined,
       properties: item.properties,
       ...(entry.extraDamage ? { extraDamage: entry.extraDamage } : {}),
+      itemId: item.id,
+      ...(ranged ? {} : { reach: item.properties.includes('reach') ? 10 : 5 }),
+      ...(item.range ? { range: item.range } : {}),
     })
   }
 
@@ -268,6 +283,7 @@ export function getAttacks(c: Character): Attack[] {
     proficient: true,
     notes: [],
     properties: [],
+    reach: 5,
   })
   return out
 }
