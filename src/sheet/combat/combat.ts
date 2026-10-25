@@ -1,0 +1,179 @@
+// Pure helpers for the combat page: spells as attack rows, action groups, toggled effects, weapon mastery.
+import type { Feature, Spell } from '../../content'
+import type { Character } from '../../model/character'
+import { getDamageRiders, type DerivedStats } from '../../rules'
+import type { Ability } from '../../rules/types'
+import { spellDamage } from '../../quickcast/quickcast'
+import type { SpellEntry } from '../../quickcast/types'
+import { toQuickCast } from '../../spellbook/spellbook'
+
+export type ActionKind = 'action' | 'bonus' | 'reaction' | 'free'
+export const ACTION_KINDS: ActionKind[] = ['action', 'bonus', 'reaction', 'free']
+
+/** Things every creature can do, listed under their kind. Names and details are i18n keys `cs.std.<id>`. */
+export const STANDARD_ACTIONS: Record<ActionKind, string[]> = {
+  action: ['attack', 'castSpell', 'dash', 'disengage', 'dodge', 'help', 'hide', 'ready', 'search', 'useObject', 'grapple', 'shove'],
+  bonus: ['twoWeapon'],
+  reaction: ['opportunity', 'readied'],
+  free: ['interact', 'talk', 'drop'],
+}
+
+/** "1 bonus action" → bonus. Spells cast in a minute or more are left out (undefined). */
+export function castingKind(castingTime: string): ActionKind | undefined {
+  const t = castingTime.toLowerCase()
+  if (t.includes('bonus action')) return 'bonus'
+  if (t.includes('reaction')) return 'reaction'
+  if (/\baction\b/.test(t)) return 'action'
+  return undefined
+}
+
+/** Reads a feature's rules text for how it is used. Features that are always on return undefined. */
+export function featureKind(description: string): ActionKind | undefined {
+  const t = description.toLowerCase()
+  if (/\b(as a|use a|use your|take a) bonus action\b/.test(t)) return 'bonus'
+  if (/\b(use|uses|using) (your|its|a) reaction\b|\bas a reaction\b/.test(t)) return 'reaction'
+  if (/\b(as an|use an|use your|take the) (magic )?action\b|\bas a magic action\b/.test(t)) return 'action'
+  return undefined
+}
+
+/** One spell shown in the attacks table. */
+export interface SpellAttackRow {
+  name: string
+  level: number
+  /** Library range text ("120 feet", "Touch"), or blank for a typed-in spell. */
+  range: string
+  kind: 'attack' | 'save'
+  /** Spell attack bonus, or the save DC. */
+  value: number
+  save?: Ability
+  /** Damage or healing at the base level, cantrips scaled to the character. */
+  damage?: string
+  damageType?: string
+  entry: Omit<SpellEntry, 'id' | 'kind'>
+}
+
+/**
+ * Spells that attack or force a save: the character's known library spells first, then spells
+ * typed into the quick-cast bar that aren't in the library (homebrew, other books).
+ */
+export function spellAttackRows(c: Character, stats: DerivedStats, library: Spell[]): SpellAttackRow[] {
+  const sc = stats.spellcasting
+  if (!sc) return []
+  const byId = new Map(library.map(s => [s.id, s]))
+  const known = (c.spells ?? []).map(k => byId.get(k.id)).filter((s): s is Spell => !!s)
+  const out: SpellAttackRow[] = []
+  const seen = new Set<string>()
+  const push = (entry: Omit<SpellEntry, 'id' | 'kind'>, range: string) => {
+    const key = entry.name.toLowerCase()
+    if (seen.has(key) || entry.roll === 'none') return
+    seen.add(key)
+    const damage = spellDamage({ ...entry, id: '', kind: 'spell' }, entry.level, stats.level, stats.mods[sc.ability])
+    out.push({
+      name: entry.name, level: entry.level, range, kind: entry.roll,
+      value: entry.roll === 'attack' ? sc.attackBonus : sc.saveDc,
+      ...(entry.save ? { save: entry.save } : {}),
+      ...(damage ? { damage } : {}),
+      ...(entry.damageType ? { damageType: entry.damageType } : {}),
+      entry,
+    })
+  }
+  for (const s of known) push(toQuickCast(withRollFromText(s)), s.range)
+  for (const q of c.quickCast ?? []) if (q.kind === 'spell') push(q, byName(library, q.name)?.range ?? '')
+  return out.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+}
+
+const ABILITY_WORDS: Record<string, Ability> = { strength: 'str', dexterity: 'dex', constitution: 'con', intelligence: 'int', wisdom: 'wis', charisma: 'cha' }
+
+/** Some library spells (2024 Charm Person) have no structured attack or save: read it from the text. */
+export function withRollFromText(s: Spell): Spell {
+  if (s.attack || s.save) return s
+  const attack = /\b(melee|ranged) spell attack\b/i.exec(s.description)
+  if (attack) return { ...s, attack: attack[1].toLowerCase() as 'melee' | 'ranged' }
+  const save = /\b(strength|dexterity|constitution|intelligence|wisdom|charisma) saving throw\b/i.exec(s.description)
+  return save ? { ...s, save: { ability: ABILITY_WORDS[save[1].toLowerCase()], onSuccess: 'other' } } : s
+}
+
+const byName = (spells: Spell[], name: string) => spells.find(s => s.name.toLowerCase() === name.toLowerCase())
+
+/** One line under Actions, Bonus Actions, Reactions or Free Actions. */
+export interface ActionLine {
+  /** 'std' lines are translated by id; the others carry their own name and text. */
+  source: 'std' | 'feature' | 'spell'
+  id: string
+  name: string
+  description?: string
+}
+
+/** Standard actions, then the character's features and spells, grouped by how they are used. */
+export function actionGroups(c: Character, stats: DerivedStats, spells: Spell[], features: Feature[]): Record<ActionKind, ActionLine[]> {
+  const out = Object.fromEntries(ACTION_KINDS.map(k => [k, STANDARD_ACTIONS[k].map(id => ({ source: 'std' as const, id, name: id }))])) as Record<ActionKind, ActionLine[]>
+  for (const f of stats.features) {
+    const lib = matchFeature(features, f.name, f.className)
+    const kind = lib && featureKind(lib.description)
+    if (kind && !out[kind].some(l => l.name === f.name)) out[kind].push({ source: 'feature', id: lib.id, name: f.name, description: lib.description })
+  }
+  const byId = new Map(spells.map(s => [s.id, s]))
+  for (const k of c.spells ?? []) {
+    const s = byId.get(k.id)
+    const kind = s && castingKind(s.castingTime)
+    // Plain one-action spells are covered by "Cast a Spell"; list the quicker ones.
+    if (s && kind && kind !== 'action' && !out[kind].some(l => l.id === s.id)) {
+      out[kind].push({ source: 'spell', id: s.id, name: s.name, description: s.description })
+    }
+  }
+  return out
+}
+
+/** The library entry for one of derive()'s features: same name, the class's own entry first. */
+export function matchFeature(features: Feature[], name: string, className: string): Feature | undefined {
+  const n = name.toLowerCase()
+  const same = features.filter(f => f.name.toLowerCase() === n)
+  return same.find(f => f.classId === className.toLowerCase()) ?? same[0]
+}
+
+/** Damage a toggled effect adds to each hit. */
+export interface EffectToggle {
+  id: string
+  /** Feature or spell name. */
+  name: string
+  damage: string
+  damageType?: string
+  /** Weapon attacks only (Rage, Sneak Attack); spell effects also ride on spell attacks. */
+  weaponOnly?: boolean
+  oncePerTurn?: boolean
+}
+
+/** Spells whose ongoing effect adds damage to the caster's hits (SRD 5.1 and 5.2). */
+const SPELL_EFFECTS: Record<string, { damage: string; damageType?: string }> = {
+  hex: { damage: '1d6', damageType: 'necrotic' },
+  'hunters-mark': { damage: '1d6' },
+  'divine-favor': { damage: '1d4', damageType: 'radiant' },
+}
+
+const slug = (name: string) => name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+/** Effects the player can switch on: Rage and Sneak Attack from features, Hex-like spells they know or pinned. */
+export function effectToggles(c: Character, stats: DerivedStats, spellNames: Record<string, string> = {}): EffectToggle[] {
+  const out: EffectToggle[] = []
+  for (const a of stats.attacks) {
+    for (const r of getDamageRiders(c, a)) {
+      if (!out.some(e => e.id === r.id)) out.push({ id: r.id, name: r.name, damage: r.damage, weaponOnly: true, ...(r.oncePerTurn ? { oncePerTurn: true } : {}) })
+    }
+  }
+  const ids = new Set([...(c.spells ?? []).map(s => s.id), ...(c.quickCast ?? []).flatMap(q => (q.kind === 'spell' ? [slug(q.name)] : []))])
+  for (const [id, fx] of Object.entries(SPELL_EFFECTS)) {
+    if (ids.has(id)) out.push({ id, name: spellNames[id] ?? id, ...fx })
+  }
+  return out
+}
+
+/** Weapon Mastery (SRD 5.2): how many weapons' mastery properties the character can use. 0 without the feature. */
+export function masteryLimit(c: Pick<Character, 'classes' | 'spellEdition'>): number {
+  if (c.spellEdition !== '2024') return 0
+  const per = (id: string, level: number) => {
+    if (id === 'fighter') return level >= 16 ? 6 : level >= 10 ? 5 : level >= 4 ? 4 : 3
+    if (id === 'barbarian') return level >= 10 ? 4 : level >= 4 ? 3 : 2
+    return ['paladin', 'ranger', 'rogue'].includes(id) ? 2 : 0
+  }
+  return Math.max(0, ...c.classes.map(cl => per(cl.classId, cl.level)))
+}

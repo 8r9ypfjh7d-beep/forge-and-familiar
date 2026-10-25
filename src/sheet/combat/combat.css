@@ -1,0 +1,165 @@
+/* Combat page (Roll20-style layout). Scoped inside .ff-sheet, uses the sheet's tokens. Logical properties for RTL. */
+
+/* Page grid: summary on top, skills rail beside the tabbed panel. */
+.ff-sheet.mode-combat .sheet-grid { margin-top: 16px; }
+@media (min-width: 820px) {
+  .ff-sheet.mode-combat .sheet-grid { grid-template-columns: minmax(220px, 260px) 1fr; }
+}
+.ff-sheet.mode-combat { max-width: 1280px; }
+
+.cs-summary { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 820px) {
+  .cs-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cs-summary .cs-hero, .cs-summary .cs-vitals { grid-column: span 2; }
+  .cs-summary .cs-abilities { grid-column: span 3; }
+  .cs-summary .cs-acspeed { grid-column: span 1; }
+}
+.cs-summary > .card, .cs-vitals > .card { min-width: 0; }
+
+/* Hero: portrait with level badge, who, buttons */
+.cs-hero { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: start; }
+.cs-portrait { position: relative; inline-size: 96px; block-size: 104px; }
+.cs-portrait img, .cs-portrait .placeholder {
+  inline-size: 96px; block-size: 96px; border-radius: 8px; object-fit: cover; border: 2px solid var(--s-accent);
+}
+.cs-portrait .placeholder { display: grid; place-items: center; font-size: 2.5rem; font-weight: 800; background: var(--s-bg); color: var(--s-accent); }
+.cs-level {
+  position: absolute; inset-block-end: 0; inset-inline-start: 50%; translate: -50% 0;
+  inline-size: 36px; block-size: 36px; display: grid; place-items: center;
+  background: var(--s-accent); color: #fff; font-weight: 800; font-size: 1.1rem;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+[dir="rtl"] .cs-level { translate: 50% 0; }
+.cs-who { min-width: 0; }
+.cs-who h1 { color: var(--s-accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: .02em; }
+.cs-who p { margin: 2px 0 0; color: var(--s-muted); font-size: .9rem; }
+.cs-who .cs-class { color: var(--s-ink); font-weight: 600; }
+.cs-badge .show-math { font-weight: 700; padding: 0 6px; border-radius: 4px; background: var(--s-bg); }
+.cs-hero-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.cs-hero-actions .btn { flex: 1 1 120px; }
+.cs-inspiration.on { border-color: var(--s-accent); color: var(--s-accent); }
+.cs-init { font-size: 1rem; }
+.cs-hero .cs-last { grid-column: 1 / -1; }
+.cs-last { margin-top: 8px; display: grid; gap: 6px; }
+
+/* Vitals: the sheet's own HP and rest cards, side by side when there's room */
+.cs-vitals { display: grid; gap: 16px; grid-template-columns: 1fr; min-width: 0; }
+@media (min-width: 560px) { .cs-vitals { grid-template-columns: 1.4fr 1fr; } }
+@media (min-width: 820px) { .cs-vitals { align-content: start; } }
+
+/* Abilities: six columns of score, Mod and Save */
+.cs-ability-row { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; }
+@media (min-width: 560px) { .cs-ability-row { grid-template-columns: repeat(6, 1fr); } }
+.cs-ability { display: grid; gap: 6px; justify-items: center; padding-inline: 4px; border-inline-end: 1px solid var(--s-line); }
+.cs-ability:last-child { border-inline-end: 0; }
+.cs-ability-head { display: flex; align-items: center; gap: 6px; }
+.cs-ability .abbr { font-weight: 800; }
+.cs-score .show-math { min-inline-size: 34px; padding: 2px 6px; border: 1px solid var(--s-line); border-radius: 6px; font-weight: 700; }
+.cs-ability-rolls { display: flex; gap: 4px; }
+.cs-roll {
+  position: relative; display: grid; justify-items: center; gap: 2px;
+  min-inline-size: 44px; min-block-size: 52px; padding: 6px 4px 4px;
+  border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg); color: var(--s-ink);
+  font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer;
+}
+.cs-roll small { font-size: .65rem; font-weight: 600; color: var(--s-muted); }
+.cs-roll:hover { border-color: var(--s-muted); }
+.cs-roll.save.prof { border-color: var(--s-accent); background: color-mix(in srgb, var(--s-accent) 18%, var(--s-panel)); }
+.ff-sheet .dot {
+  display: inline-block; inline-size: 10px; block-size: 10px; border-radius: 50%;
+  border: 1px dashed var(--s-muted); background: transparent;
+}
+.ff-sheet .prof .dot, .ff-sheet .prof > .dot { border: 1px solid var(--s-accent); background: var(--s-accent); }
+
+/* AC / speed */
+.cs-acspeed dl { margin: 0; display: grid; gap: 8px; }
+.cs-acspeed dl > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-block: 6px; border-block-end: 1px solid var(--s-line); }
+.cs-acspeed dl > div:last-child { border-block-end: 0; }
+.cs-acspeed dt { font-weight: 700; font-size: .85rem; text-transform: uppercase; }
+.cs-acspeed dd { margin: 0; font-size: 1.4rem; font-weight: 800; }
+.cs-shield .show-math, .cs-hex .show-math {
+  display: grid; place-items: center; inline-size: 48px; block-size: 52px; border: 2px solid var(--s-ink); background: var(--s-bg);
+}
+.cs-shield .show-math { border-radius: 6px 6px 50% 50% / 6px 6px 40% 40%; }
+.cs-hex .show-math { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); border: 0; background: var(--s-line); }
+
+/* Skills rail */
+.cs-skills ul { list-style: none; margin: 0; padding: 0; }
+.cs-skills li button {
+  display: grid; grid-template-columns: 1fr auto 3.2em 14px; align-items: center; gap: 6px;
+  inline-size: 100%; min-block-size: 36px; padding: 4px 6px; border: 0; border-radius: 6px;
+  background: transparent; color: var(--s-ink); font: inherit; text-align: start; cursor: pointer;
+}
+.cs-skills li button:hover { background: var(--s-bg); }
+.cs-skills .name { font-weight: 600; font-size: .9rem; }
+.cs-skills .abbr { font-size: .65rem; font-weight: 700; color: var(--s-muted); padding: 2px 4px; border-radius: 4px; background: var(--s-bg); }
+.cs-skills .bonus { text-align: center; font-weight: 800; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--s-line); }
+.cs-skills .prof .bonus { border-color: var(--s-accent); background: color-mix(in srgb, var(--s-accent) 18%, var(--s-panel)); }
+.cs-tools-title { margin-top: 16px !important; padding-top: 12px; border-top: 1px solid var(--s-line); }
+.cs-tools li { padding: 4px 6px; font-weight: 600; }
+
+/* Tabs */
+.cs-tabs { min-width: 0; }
+.cs-tablist { display: flex; gap: 4px; overflow-x: auto; border-block-end: 2px solid var(--s-line); margin-block-end: 12px; scrollbar-width: thin; }
+.cs-tablist button {
+  flex: 0 0 auto; min-block-size: 40px; padding: 0 12px; border: 0; background: transparent; color: var(--s-muted);
+  font: inherit; font-weight: 700; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; cursor: pointer;
+  border-block-end: 3px solid transparent; margin-block-end: -2px;
+}
+.cs-tablist button.on { color: var(--s-ink); border-block-end-color: var(--s-accent); }
+.cs-tabpanel { display: flex; flex-direction: column; gap: 16px; }
+
+/* Attacks table */
+.cs-fight .card-head { flex-wrap: wrap; align-items: center; }
+.cs-fight .segmented { min-inline-size: 200px; }
+.cs-table-head, .cs-attack { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px; align-items: center; }
+.cs-table-head { margin-top: 8px; padding: 6px 8px; font-size: .7rem; font-weight: 700; text-transform: uppercase; color: var(--s-muted); border-block-end: 1px solid var(--s-line); }
+.cs-attack-list { list-style: none; margin: 0; padding: 0; }
+.cs-attack-list li { border-block-end: 1px solid var(--s-line); }
+.cs-attack {
+  inline-size: 100%; min-block-size: 48px; padding: 6px 8px; border: 0; background: transparent; color: var(--s-ink);
+  font: inherit; font-size: .9rem; text-align: start; cursor: pointer;
+}
+.cs-attack:hover { background: var(--s-bg); }
+.cs-attack .name { font-weight: 700; display: grid; }
+.cs-attack .name small { font-weight: 500; color: var(--s-muted); font-size: .75rem; }
+.cs-attack .range { color: var(--s-muted); font-size: .85rem; }
+.cs-attack .hit { font-weight: 800; color: var(--s-accent); }
+.cs-attack .dmg { font-weight: 700; color: var(--s-bad); }
+.cs-attack-list .rider { display: flex; gap: 6px; align-items: center; padding: 0 8px 6px; font-size: .85rem; }
+.cs-out { margin-top: 8px; padding: 8px; border-radius: 8px; background: var(--s-bg); }
+
+.cs-sub {
+  margin: 20px 0 6px; padding-block-end: 4px; border-block-end: 1px solid var(--s-line);
+  font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--s-ink); display: flex; gap: 8px; align-items: baseline;
+}
+.cs-count { font-size: .7rem; color: var(--s-muted); padding: 1px 6px; border: 1px solid var(--s-line); border-radius: 4px; }
+.cs-rows { list-style: none; margin: 0; padding: 0; }
+.cs-rows > li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 4px; border-block-end: 1px solid var(--s-line); flex-wrap: wrap; }
+.cs-effects .dmg { font-weight: 800; color: var(--s-bad); }
+.cs-switch { display: inline-flex; gap: 8px; align-items: center; font-weight: 700; cursor: pointer; }
+.cs-switch input { inline-size: 20px; block-size: 20px; accent-color: var(--s-accent); min-block-size: 0; }
+
+/* Action and feature rows */
+.cs-action { display: block !important; }
+.cs-action details summary::-webkit-details-marker { display: none; }
+.cs-action details summary { list-style: none; }
+.cs-action details summary::after { content: '⌄'; color: var(--s-muted); margin-inline-start: auto; }
+.cs-action details[open] summary::after { content: '⌃'; }
+.cs-action details summary { cursor: pointer; font-weight: 700; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; min-block-size: 32px; }
+.cs-action details summary .hint { margin: 0; font-weight: 500; }
+.cs-action details p, .cs-desc { margin: 6px 0 4px; color: var(--s-muted); font-size: .9rem; }
+[dir="rtl"] .cs-desc { text-align: left; }
+.cs-attribution { font-size: .75rem; }
+
+@media (max-width: 559px) {
+  .cs-table-head { display: none; }
+  .cs-attack { grid-template-columns: 1fr auto; grid-template-areas: 'name hit' 'range dmg'; row-gap: 2px; }
+  .cs-attack .name { grid-area: name; }
+  .cs-attack .hit { grid-area: hit; justify-self: end; }
+  .cs-attack .range { grid-area: range; }
+  .cs-attack .dmg { grid-area: dmg; justify-self: end; }
+  .cs-portrait, .cs-portrait img, .cs-portrait .placeholder { inline-size: 72px; }
+  .cs-portrait img, .cs-portrait .placeholder { block-size: 72px; }
+  .cs-portrait { block-size: 82px; }
+}

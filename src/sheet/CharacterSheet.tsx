@@ -23,6 +23,7 @@ import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
 import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './mode'
 import { Identity, Notes, SocialSkills } from './components/Story'
+import { CombatSummary, CombatTabs, FeaturesTraits, Fight, SkillsPanel } from './combat/CombatPage'
 import './sheet.css'
 
 export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
@@ -78,11 +79,16 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'resources': return <Resources key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
       case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
+      case 'summary': return <CombatSummary key={s} {...p} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />
+      case 'skills': return <SkillsPanel key={s} character={character} />
+      case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} /> : null
+      case 'fight': return <Fight key={s} {...p} />
+      case 'features': return <FeaturesTraits key={s} character={character} />
     }
   }
   return (
     <div className={`ff-sheet mode-${mode}`}>
-      <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} />
+      <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} compact={mode === 'combat'} />
       <ModeSwitch mode={mode} onChange={setMode} />
       {layout.top.map(section)}
       <div className="sheet-grid">
@@ -109,27 +115,27 @@ function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMo
   )
 }
 
-function Header({ character, apply, onBack, onEdit }: { character: Character; apply: Apply; onBack: () => void; onEdit?: () => void }) {
+/** In combat mode the summary card shows who the character is, so the header keeps only navigation. */
+function Header({ character, apply, onBack, onEdit, compact }: { character: Character; apply: Apply; onBack: () => void; onEdit?: () => void; compact?: boolean }) {
   const stats = derive(character)
   const { t, classLine } = useI18n()
   const classes = classLine(character.classes)
   return (
     <header className="sheet-header">
       <button type="button" className="btn ghost" onClick={onBack} aria-label={t('common.backToCharacters')}>{t('common.backArrow')}</button>
-      {character.portrait
+      {!compact && (character.portrait
         ? <img className="portrait" src={character.portrait} alt="" />
-        : <div className="portrait placeholder" aria-hidden="true">{character.name.slice(0, 1)}</div>}
+        : <div className="portrait placeholder" aria-hidden="true">{character.name.slice(0, 1)}</div>)}
       <div className="who">
-        <h1>{character.name}</h1>
-        <p>{classes}</p>
+        {compact ? <span className="sr-only">{character.name}</span> : <><h1>{character.name}</h1><p>{classes}</p></>}
       </div>
       {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
-      <dl className="quick-stats">
+      {!compact && <dl className="quick-stats">
         <div><dt>{t('stat.ac')}</dt><dd><ShowMath character={character} stat="ac">{stats.armorClass.value}</ShowMath></dd></div>
         <div><dt>{t('stat.init')}</dt><dd><ShowMath character={character} stat="initiative">{formatMod(stats.initiative)}</ShowMath></dd></div>
         <div><dt>{t('stat.speed')}</dt><dd><ShowMath character={character} stat="speed">{stats.speed}</ShowMath></dd></div>
         <div><dt>{t('stat.prof')}</dt><dd><ShowMath character={character} stat="proficiency">{formatMod(stats.proficiencyBonus)}</ShowMath></dd></div>
-      </dl>
+      </dl>}
       <ThemePicker
         value={character.theme}
         classId={character.classes[0]?.classId}
