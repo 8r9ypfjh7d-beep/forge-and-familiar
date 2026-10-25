@@ -2,7 +2,7 @@
 // Pure: reads a Character and the rules engine, never changes anything.
 // SRD 5.1 only: Opportunity Attack, class features and the SRD reaction spells.
 import type { Character } from '../model/character'
-import { getAbilityMods, getAbilityScores, getArmorClass, getAttacks, getSpellSlots, itemById, type ConditionId } from '../rules'
+import { entryItem, getAbilityMods, getAbilityScores, getArmorClass, getAttacks, getSpellSlots, type ConditionId } from '../rules'
 
 export type ReactionCost =
   | { kind: 'slot'; level: number }
@@ -93,7 +93,7 @@ function maxSlotLevel(c: Character): number {
 
 function opportunityAttack(c: Character): Reaction {
   const meleeNames = new Set(c.inventory.flatMap(e => {
-    const item = e.equipped ? itemById(e.itemId) : undefined
+    const item = e.equipped ? entryItem(e) : undefined
     return item?.kind === 'weapon' && !item.properties.includes('ranged') ? [item.name] : []
   }))
   const melee = getAttacks(c).filter(a => meleeNames.has(a.name) || a.name === 'Unarmed Strike')

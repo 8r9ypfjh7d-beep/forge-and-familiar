@@ -1,4 +1,4 @@
-import type { Item } from '../types'
+import type { InventoryEntry, Item } from '../types'
 
 // SRD 5.1 weapons, armor and a little adventuring gear.
 export const ITEMS: Item[] = [
@@ -107,3 +107,9 @@ export function registerHomebrewItems(items: Item[]): void {
 }
 
 export const itemById = (id: string): Item | undefined => ITEMS.find(i => i.id === id) ?? homebrew.get(id)
+
+/** The item an inventory entry holds: its embedded item (library or custom) or the SRD one, under the player's name for it. */
+export function entryItem(e: InventoryEntry): Item | undefined {
+  const item = e.item ?? itemById(e.itemId)
+  return item && e.name ? { ...item, name: e.name } : item
+}

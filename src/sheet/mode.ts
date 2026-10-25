@@ -7,7 +7,7 @@ export type SheetMode = 'story' | 'combat'
 export type SheetSection =
   | 'quickcast' | 'identity' | 'social' | 'notes' | 'inspiration'
   | 'hp' | 'death' | 'rests' | 'clock' | 'exhaustion' | 'stats' | 'attacks'
-  | 'turn' | 'reactions' | 'slots' | 'spells' | 'resources' | 'supplies' | 'history'
+  | 'turn' | 'reactions' | 'slots' | 'spells' | 'inventory' | 'resources' | 'supplies' | 'history'
 
 export interface SheetLayout {
   /** Full-width strip above the columns. */
@@ -26,7 +26,7 @@ export function sheetLayout(mode: SheetMode, { dying }: { dying: boolean }): She
       top: ['quickcast'],
       columns: [
         ['hp', ...(dying ? ['death' as const] : []), 'turn', 'stats'],
-        ['attacks', 'slots', 'spells', 'resources', 'reactions', 'supplies', 'exhaustion', 'rests', 'history'],
+        ['attacks', 'slots', 'spells', 'resources', 'reactions', 'supplies', 'inventory', 'exhaustion', 'rests', 'history'],
       ],
     }
   }
@@ -34,7 +34,7 @@ export function sheetLayout(mode: SheetMode, { dying }: { dying: boolean }): She
     top: [],
     columns: [
       dying ? ['hp', 'death', 'identity', 'social', 'notes'] : ['identity', 'hp', 'social', 'notes'],
-      ['inspiration', 'rests', 'clock', 'stats', 'attacks', 'slots', 'spells', 'resources', 'supplies', 'exhaustion', 'history'],
+      ['inspiration', 'rests', 'clock', 'stats', 'attacks', 'inventory', 'slots', 'spells', 'resources', 'supplies', 'exhaustion', 'history'],
     ],
   }
 }

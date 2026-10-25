@@ -12,7 +12,7 @@ export { BACKGROUNDS, ALIGNMENTS, CUSTOM_BACKGROUND, backgroundById, getBackgrou
 export { SUBCLASSES, registerHomebrewSubclasses, subclassById, subclassesFor, type SubclassDef } from './data/subclasses'
 export { FEATS, allFeats, featById, registerHomebrewFeats } from './data/feats'
 export { LANGUAGES, STANDARD_LANGUAGES, EXOTIC_LANGUAGES, TOOLS, ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS, OTHER_TOOLS } from './data/proficiencies'
-export { ITEMS, itemById, registerHomebrewItems } from './data/items'
+export { ITEMS, entryItem, itemById, registerHomebrewItems } from './data/items'
 export { SKILLS, ALL_SKILLS } from './data/skills'
 export * from './multiclass'
 export { MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES } from './data/multiclass'

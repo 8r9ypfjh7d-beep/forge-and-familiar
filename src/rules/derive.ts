@@ -3,13 +3,13 @@ import { getAbilityMods, getAbilityScores } from './abilities'
 import { featBonus, getFeats, getLanguages, getTools } from './choices'
 import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
-import { itemById } from './data/items'
+import { entryItem } from './data/items'
 import { NON_STACKING_RESOURCES } from './data/multiclass'
 import { raceById } from './data/races'
 import { subclassById, type SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
-import { ABILITIES, type Abilities, type Ability, type ClassDef, type Item, type RestType, type SkillId } from './types'
+import { ABILITIES, type Abilities, type Ability, type ClassDef, type InventoryEntry, type Item, type RestType, type SkillId } from './types'
 
 type Weapon = Extract<Item, { kind: 'weapon' }>
 type Armor = Extract<Item, { kind: 'armor' }>
@@ -123,16 +123,24 @@ function isWeaponProficient(c: Character, w: Weapon) {
 
 const isArmorProficient = (c: Character, a: Armor) => getProficiencies(c).armor.has(a.category)
 
-function equippedItems(c: Character): Item[] {
-  return c.inventory.filter(e => e.equipped).flatMap(e => {
-    const item = itemById(e.itemId)
-    return item ? [item] : []
+function equippedEntries(c: Character): { entry: InventoryEntry; item: Item }[] {
+  return c.inventory.filter(e => e.equipped).flatMap(entry => {
+    const item = entryItem(entry)
+    return item ? [{ entry, item }] : []
   })
 }
 
+/** Equipped body armor and shield, each with its magic bonus. */
+function equippedArmor(c: Character) {
+  const armors = equippedEntries(c).filter((x): x is { entry: InventoryEntry; item: Armor } => x.item.kind === 'armor')
+  const body = armors.find(x => x.item.category !== 'shield')
+  const shield = armors.find(x => x.item.category === 'shield')
+  return { body, shield, bonus: (body?.entry.magicBonus ?? 0) + (shield?.entry.magicBonus ?? 0) }
+}
+
 export function getEquippedArmor(c: Character): { armor?: Armor; shield?: Armor } {
-  const armors = equippedItems(c).filter((i): i is Armor => i.kind === 'armor')
-  return { armor: armors.find(a => a.category !== 'shield'), shield: armors.find(a => a.category === 'shield') }
+  const { body, shield } = equippedArmor(c)
+  return { armor: body?.item, shield: shield?.item }
 }
 
 export function getArmorClass(c: Character): { value: number; source: string } {
@@ -174,6 +182,11 @@ export function getArmorClass(c: Character): { value: number; source: string } {
     value += shield.baseAc
     source += ' + Shield'
   }
+  const magic = equippedArmor(c).bonus
+  if (magic) {
+    value += magic
+    source += ` + ${magic} magic`
+  }
   return { value, source }
 }
 
@@ -189,6 +202,8 @@ export interface Attack {
   versatile?: string
   /** Weapon properties (finesse, ranged...); empty for an unarmed strike. */
   properties?: string[]
+  /** Extra damage on every hit from the item, e.g. "1d6 fire". */
+  extraDamage?: string
 }
 
 const martialArtsDie = (monkLevel: number) =>
@@ -205,30 +220,40 @@ export function getAttacks(c: Character): Attack[] {
   const out: Attack[] = []
   const seen = new Set<string>()
 
-  for (const item of equippedItems(c)) {
-    if (item.kind !== 'weapon' || seen.has(item.id)) continue
-    seen.add(item.id)
+  for (const { entry, item } of equippedEntries(c)) {
+    // Two of the same plain weapon make one attack line; renamed or magic copies get their own.
+    const key = `${item.id}|${item.name}|${entry.magicBonus ?? 0}|${entry.pact ? 1 : 0}`
+    if (item.kind !== 'weapon' || seen.has(key)) continue
+    seen.add(key)
     const ranged = item.properties.includes('ranged')
     let ability: Ability = ranged ? 'dex' : 'str'
     if (item.properties.includes('finesse')) ability = mods.dex > mods.str ? 'dex' : 'str'
     const monkWeapon = martialArts && !item.properties.includes('heavy') && !item.properties.includes('two-handed') &&
       (item.id === 'shortsword' || (item.category === 'simple' && !ranged))
     if (monkWeapon && mods.dex > mods[ability]) ability = 'dex'
-    const proficient = isWeaponProficient(c, item)
+    // Pact of the Blade: proficient with the pact weapon; the 2024 rules let it use Charisma.
+    if (entry.pact && c.spellEdition === '2024' && mods.cha > mods[ability]) ability = 'cha'
+    const proficient = entry.pact || isWeaponProficient(c, item)
+    const magic = entry.magicBonus ?? 0
+    const dmgMod = mods[ability] + magic
     const notes: string[] = []
+    if (entry.pact) notes.push('pact weapon')
+    if (magic || entry.pact) notes.push('magical')
+    if (entry.extraDamage) notes.push(`+${entry.extraDamage}`)
     if (item.range) notes.push(`range ${item.range}`)
-    if (item.versatile) notes.push(`two-handed ${withMod(item.versatile, mods[ability])}`)
+    if (item.versatile) notes.push(`two-handed ${withMod(item.versatile, dmgMod)}`)
     if (!proficient) notes.push('not proficient')
     out.push({
       name: item.name,
-      bonus: mods[ability] + (proficient ? prof : 0),
-      damage: withMod(item.damage, mods[ability]),
+      bonus: mods[ability] + magic + (proficient ? prof : 0),
+      damage: withMod(item.damage, dmgMod),
       damageType: item.damageType,
       ability,
       proficient,
       notes,
-      versatile: item.versatile ? withMod(item.versatile, mods[ability]) : undefined,
+      versatile: item.versatile ? withMod(item.versatile, dmgMod) : undefined,
       properties: item.properties,
+      ...(entry.extraDamage ? { extraDamage: entry.extraDamage } : {}),
     })
   }
 
@@ -334,7 +359,7 @@ export function derive(c: Character): DerivedStats {
 
   const caster = classes.find(x => x.def.spellAbility)
   const spellAbility = caster?.def.spellAbility
-  const carriedWeight = c.inventory.reduce((w, e) => w + (itemById(e.itemId)?.weight ?? 0) * e.qty, 0)
+  const carriedWeight = c.inventory.reduce((w, e) => w + (entryItem(e)?.weight ?? 0) * e.qty, 0)
   const carryingCapacity = abilities.str * 15
   if (carriedWeight > carryingCapacity) warnings.push('Carrying more than your capacity.')
   warnings.push(...multiclassWarnings(c))

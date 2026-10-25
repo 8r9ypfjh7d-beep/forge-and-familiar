@@ -188,6 +188,17 @@ export interface InventoryEntry {
   itemId: string
   qty: number
   equipped: boolean
+  /** The item itself when the engine's ITEMS don't have it: library items (src/content) and custom story items. */
+  item?: Item
+  /** The player's name for it ("Soulreaver"); the item's own name otherwise. */
+  name?: string
+  notes?: string
+  /** +1 to +3 magic weapon or armor: added to attack and damage rolls, or to AC. */
+  magicBonus?: number
+  /** Warlock pact weapon: always proficient; in 2024 rules it may use Charisma for attack and damage. */
+  pact?: boolean
+  /** Extra damage on every hit, e.g. "1d6 fire" (Flame Tongue). */
+  extraDamage?: string
 }
 
 export type ConditionId =

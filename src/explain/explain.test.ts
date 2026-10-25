@@ -34,6 +34,15 @@ const CASES: [string, Character][] = [
   ['exhausted (4)', make({ classes: [{ classId: 'rogue', level: 5 }] }, [], 4)],
   ['exhausted (5)', make({}, [], 5)],
   ['multiclass fighter/wizard', makeCharacter()],
+  ['magic gear and a 2024 pact weapon', (() => {
+    const c = make({ classes: [{ classId: 'warlock', level: 7 }], baseAbilities: { str: 10, dex: 14, con: 12, int: 8, wis: 10, cha: 18 } })
+    c.spellEdition = '2024'
+    c.inventory = [
+      { uid: 'a', itemId: 'greatsword', qty: 1, equipped: true, name: 'Oathbreaker', magicBonus: 1, pact: true },
+      { uid: 'b', itemId: 'leather', qty: 1, equipped: true, magicBonus: 1 },
+    ]
+    return c
+  })()],
 ]
 
 function keysFor(c: Character): StatKey[] {
