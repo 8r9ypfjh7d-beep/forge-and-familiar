@@ -19,3 +19,4 @@ Per-turn checklist on the live sheet: action, bonus action, reaction and movemen
 - Grappled or restrained: no movement. Incapacitated, paralyzed, petrified, stunned, unconscious or 0 HP: no actions, reactions or movement.
 - Dash does not tick a slot by itself, because rogues may pay for it with a bonus action.
 - Reaction options and their triggers live in `src/reactions`; this card only tracks whether the reaction is spent.
+- UI text goes through `t()` under `turn.*` (English and Hebrew); condition and feature names through `term()`, so `bonusOptions` returns plain SRD feature names.

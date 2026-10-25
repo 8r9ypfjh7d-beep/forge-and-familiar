@@ -356,6 +356,28 @@ export const en = {
   'rulesqa.hideFull': 'Hide full section',
   'rulesqa.backToBest': 'Back to best answer',
   'rulesqa.related': 'Also relevant',
+  // Turn checklist (src/turn)
+  'turn.title': 'Turn',
+  'turn.round': '· round {n}',
+  'turn.endCombat': 'End combat',
+  'turn.next': 'Next turn',
+  'turn.action': 'Action',
+  'turn.bonus': 'Bonus action',
+  'turn.reaction': 'Reaction',
+  'turn.used': 'Used',
+  'turn.ready': 'Ready',
+  'turn.unavailable': 'Unavailable',
+  'turn.movement': 'Movement',
+  'turn.left': '{left} / {total} ft left',
+  'turn.ft': '{n} ft',
+  'turn.moveAria': 'Move {n} feet',
+  'turn.backAria': 'Take back {n} feet',
+  'turn.dash': 'Dash (+{n} ft)',
+  'turn.speedZeroCondition': 'Speed is 0 while {condition}.',
+  'turn.speedZeroExhaustion': 'Speed is 0 from exhaustion.',
+  'turn.dashed': 'Dashed {n}×. Tick the action or bonus action you spent on it.',
+  'turn.noActions': 'No actions or reactions while {condition}.',
+  'turn.bonusOptions': 'Bonus actions',
 } as const
 
 export type MessageKey = keyof typeof en

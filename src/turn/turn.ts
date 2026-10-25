@@ -48,15 +48,15 @@ export function limits(c: Character): { noActions?: ConditionId; noMovement?: Co
   return { noActions: has(NO_ACTIONS), noMovement: has(NO_MOVEMENT) }
 }
 
-/** SRD class features that use a bonus action, as reminders. Reactions have their own card (src/reactions). */
+/** SRD class feature names (English, for term()) that use a bonus action, as reminders. Reactions have their own card (src/reactions). */
 export function bonusOptions(c: Character): string[] {
   const level = (id: string) => c.classes.find(cl => cl.classId === id)?.level ?? 0
   const bonus: string[] = []
   if (level('barbarian') >= 1) bonus.push('Rage')
   if (level('fighter') >= 1) bonus.push('Second Wind')
-  if (level('monk') >= 1) bonus.push('Martial Arts strike')
-  if (level('monk') >= 2) bonus.push('Flurry of Blows, Patient Defense, Step of the Wind')
-  if (level('rogue') >= 2) bonus.push('Cunning Action (Dash, Disengage, Hide)')
+  if (level('monk') >= 1) bonus.push('Martial Arts')
+  if (level('monk') >= 2) bonus.push('Flurry of Blows', 'Patient Defense', 'Step of the Wind')
+  if (level('rogue') >= 2) bonus.push('Cunning Action')
   if (level('bard') >= 1) bonus.push('Bardic Inspiration')
   return bonus
 }

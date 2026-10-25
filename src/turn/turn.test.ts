@@ -48,6 +48,6 @@ describe('turn checklist', () => {
   it('lists class bonus actions by level', () => {
     expect(bonusOptions(makeCharacter())).toContain('Second Wind')
     expect(bonusOptions(makeCharacter({ classes: [{ classId: 'rogue', level: 1 }] }))).toEqual([])
-    expect(bonusOptions(makeCharacter({ classes: [{ classId: 'rogue', level: 2 }] }))).toEqual(['Cunning Action (Dash, Disengage, Hide)'])
+    expect(bonusOptions(makeCharacter({ classes: [{ classId: 'rogue', level: 2 }] }))).toEqual(['Cunning Action'])
   })
 })
