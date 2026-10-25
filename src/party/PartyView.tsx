@@ -8,6 +8,7 @@ import { vitals } from '../sheet/engine'
 import { getCharacter, listCharacters, listProfiles, onCharactersChanged } from '../storage'
 import { formatCode } from './code'
 import { PartyStash } from './PartyStash'
+import { RollFeed } from './RollFeed'
 import { chooseCharacter, createParty, getParty, joinParty, leaveParty, listParties, onPartiesChanged } from './store'
 import type { Party, PartyMember } from './types'
 import './party.css'
@@ -182,6 +183,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
         ))}
       </div>
 
+      <RollFeed party={party} nameOf={nameOf} />
       <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
       <PartyStash party={party} userId={userId} nameOf={nameOf} />
       <Handouts party={party} userId={userId} nameOf={nameOf} />

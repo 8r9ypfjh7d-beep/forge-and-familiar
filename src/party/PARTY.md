@@ -11,9 +11,12 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `store.ts` | Async party store (localStorage today), `onPartiesChanged` |
 | `stash.ts` | Shared inventory and gold: pure `applyStash(party, userId, action)`, coin maths, even split |
 | `PartyView.tsx` | Party list, create/join forms, read-only party table |
+| `feed.ts` | Party roll feed: merges members' dice histories (`mergePartyRolls`), live via `onMemberRollsChanged` |
+| `RollFeed.tsx` | "Party rolls" panel under the party table |
 | `PartyStash.tsx` | Stash panel under the party table: coins, items, change log |
 | `party.css` | Styles scoped to `.ff-party` |
 | `party.test.ts` | Code and membership tests |
+| `feed.test.ts` | Roll feed merge and filter tests |
 | `stash.test.ts` | Stash actions, coin conversion and splitting |
 
 ## How it works
@@ -22,6 +25,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 - Codes: 6 chars from `CODE_ALPHABET` (no 0/O/1/I/L), shown as `ABC-234`, typed loosely (case, spaces, dash ignored).
 - If the DM leaves, the longest-standing member becomes DM; the last member leaving deletes the party.
 - The table is read-only: HP bar with temp HP and dying/stable/dead, AC, initiative, speed, passive Perception, spell DC, conditions, exhaustion. Stats come from `derive()`; nothing derived is stored on the party.
+- Party rolls: the 50 newest rolls across members, read from each player's own dice history (`ff.rolls.v1.<userId>`), nothing copied. A roll shows when it is tagged with the character that member brings and made after they joined. Watchers' rolls (the DM's) never show, and secret rolls never enter that history. Free rolls from the Dice tab carry no character, so only sheet rolls appear.
 - Secret rolls: below the table, players roll a skill, check or save that only the DM sees; the DM gets the log. Lives in `src/dice` (`secret.ts`, `ui/SecretRolls.tsx`).
 - Updates live via `onPartiesChanged` and `onCharactersChanged`, including other tabs.
 
