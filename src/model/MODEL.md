@@ -16,6 +16,7 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
 - `classes` is an array to leave room for multiclassing; the builder creates one entry.
 - `state` is owned by the live sheet; the builder only initialises it (`rules/factory.ts`).
 - `quickCast` (optional) lists the entries pinned to the sheet's quick-cast bar; see `src/quickcast/QUICKCAST.md`.
+- `spells` (optional) lists known or prepared spells as `{ id, classId }`, ids from the content library; `spellEdition` (optional, `'2024'` or missing for 2014) picks which SRD's spell lists and counts apply. See `src/spellbook/SPELLBOOK.md`.
 - `schemaVersion` lets storage migrate old saves.
 - `state.inspiration` and `state.attuned` (max 3 item names) are optional; `normalize()` in `sheet/engine.ts` fills them for old saves.
 - `state.counters` with `recharge: 'dawn'` are magic item charges; `regain` is dice notation rolled at dawn (blank refills all). Rests never touch them; `dawn()` in `sheet/engine.ts` does.

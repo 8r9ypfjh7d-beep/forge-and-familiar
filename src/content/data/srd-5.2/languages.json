@@ -1,0 +1,21 @@
+{"format":"ff-content","version":1,"source":{"id":"srd-5.2","title":"System Reference Document 5.2","edition":"2024","license":"CC-BY-4.0","attribution":"This work includes material from the System Reference Document 5.2 (\"SRD 5.2\") by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode. Data via the 5e-bits/5e-database project (https://github.com/5e-bits/5e-database)."},"kind":"languages","entries":[
+{"id":"abyssal","name":"Abyssal","source":"srd-5.2","edition":"2024","speakers":[],"type":"rare"},
+{"id":"celestial","name":"Celestial","source":"srd-5.2","edition":"2024","speakers":[],"type":"rare"},
+{"id":"common","name":"Common","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"common-sign-language","name":"Common Sign Language","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"deep-speech","name":"Deep Speech","source":"srd-5.2","edition":"2024","speakers":[],"type":"rare"},
+{"id":"draconic","name":"Draconic","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"druidic","name":"Druidic","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"dwarvish","name":"Dwarvish","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"elvish","name":"Elvish","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"giant","name":"Giant","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"gnomish","name":"Gnomish","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"goblin","name":"Goblin","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"halfling","name":"Halfling","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"infernal","name":"Infernal","source":"srd-5.2","edition":"2024","speakers":[],"type":"rare"},
+{"id":"orc","name":"Orc","source":"srd-5.2","edition":"2024","speakers":[],"type":"standard"},
+{"id":"primordial","name":"Primordial","source":"srd-5.2","edition":"2024","speakers":[],"type":"rare","description":"Primordial includes the Aquan, Auran, Ignan, and Terran dialects. Creatures that know one of these dialects can communicate with those that know a different one."},
+{"id":"sylvan","name":"Sylvan","source":"srd-5.2","edition":"2024","speakers":[],"type":"rare"},
+{"id":"thieves-cant","name":"Thieves' Cant","source":"srd-5.2","edition":"2024","speakers":[],"type":"rare"},
+{"id":"undercommon","name":"Undercommon","source":"srd-5.2","edition":"2024","speakers":[],"type":"rare"}
+]}
