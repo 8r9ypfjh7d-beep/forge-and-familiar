@@ -11,6 +11,8 @@ export interface TurnState {
   moved: number
   /** Times Dash was taken this turn; each adds your speed again. */
   dashes: number
+  /** Which reaction was taken, when the Reactions card recorded one. */
+  reactionName?: string
 }
 
 export const FRESH_TURN: TurnState = { round: 1, used: { action: false, bonus: false, reaction: false }, moved: 0, dashes: 0 }
@@ -21,7 +23,15 @@ export function nextTurn(t: TurnState): TurnState {
 }
 
 export function toggle(t: TurnState, slot: Slot): TurnState {
-  return { ...t, used: { ...t.used, [slot]: !t.used[slot] } }
+  const next = { ...t, used: { ...t.used, [slot]: !t.used[slot] } }
+  if (slot === 'reaction') delete next.reactionName
+  return next
+}
+
+/** Spends the reaction on a named reaction (from src/reactions), or gives it back with null. */
+export function takeReaction(t: TurnState, name: string | null): TurnState {
+  const { reactionName: _, ...rest } = t
+  return name ? { ...rest, used: { ...t.used, reaction: true }, reactionName: name } : { ...rest, used: { ...t.used, reaction: false } }
 }
 
 export function movementTotal(t: TurnState, speed: number): number {
@@ -48,15 +58,15 @@ export function limits(c: Character): { noActions?: ConditionId; noMovement?: Co
   return { noActions: has(NO_ACTIONS), noMovement: has(NO_MOVEMENT) }
 }
 
-/** SRD class features that use a bonus action, as reminders. Reactions have their own card (src/reactions). */
+/** SRD class feature names (English, for term()) that use a bonus action, as reminders. Reactions have their own card (src/reactions). */
 export function bonusOptions(c: Character): string[] {
   const level = (id: string) => c.classes.find(cl => cl.classId === id)?.level ?? 0
   const bonus: string[] = []
   if (level('barbarian') >= 1) bonus.push('Rage')
   if (level('fighter') >= 1) bonus.push('Second Wind')
-  if (level('monk') >= 1) bonus.push('Martial Arts strike')
-  if (level('monk') >= 2) bonus.push('Flurry of Blows, Patient Defense, Step of the Wind')
-  if (level('rogue') >= 2) bonus.push('Cunning Action (Dash, Disengage, Hide)')
+  if (level('monk') >= 1) bonus.push('Martial Arts')
+  if (level('monk') >= 2) bonus.push('Flurry of Blows', 'Patient Defense', 'Step of the Wind')
+  if (level('rogue') >= 2) bonus.push('Cunning Action')
   if (level('bard') >= 1) bonus.push('Bardic Inspiration')
   return bonus
 }

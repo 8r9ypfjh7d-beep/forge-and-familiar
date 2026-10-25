@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeCharacter } from '../sheet/fixtures'
-import { dash, FRESH_TURN, limits, move, movementTotal, nextTurn, toggle, bonusOptions } from './turn'
+import { dash, FRESH_TURN, limits, move, movementTotal, nextTurn, toggle, bonusOptions, takeReaction } from './turn'
 
 describe('turn checklist', () => {
   it('ticks and unticks an action', () => {
@@ -48,6 +48,17 @@ describe('turn checklist', () => {
   it('lists class bonus actions by level', () => {
     expect(bonusOptions(makeCharacter())).toContain('Second Wind')
     expect(bonusOptions(makeCharacter({ classes: [{ classId: 'rogue', level: 1 }] }))).toEqual([])
-    expect(bonusOptions(makeCharacter({ classes: [{ classId: 'rogue', level: 2 }] }))).toEqual(['Cunning Action (Dash, Disengage, Hide)'])
+    expect(bonusOptions(makeCharacter({ classes: [{ classId: 'rogue', level: 2 }] }))).toEqual(['Cunning Action'])
+  })
+
+  it('records a named reaction and gives it back', () => {
+    const t = takeReaction(FRESH_TURN, 'Shield')
+    expect(t.used.reaction).toBe(true)
+    expect(t.reactionName).toBe('Shield')
+    const back = takeReaction(t, null)
+    expect(back.used.reaction).toBe(false)
+    expect(back.reactionName).toBeUndefined()
+    expect(toggle(t, 'reaction').reactionName).toBeUndefined()
+    expect(nextTurn(t).reactionName).toBeUndefined()
   })
 })
