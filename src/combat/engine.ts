@@ -4,7 +4,8 @@
 // Rules follow SRD 5.1: Initiative, Concentration, Durations (1 round = 6 seconds).
 import type { Character } from '../model/character'
 import type { ConditionId } from '../rules/types'
-import { CONDITIONS, ENCOUNTER_SCHEMA_VERSION, type Combatant, type Effect, type Encounter } from './types'
+import type { MessageKey } from '../i18n/locales/en'
+import { CONDITIONS, ENCOUNTER_SCHEMA_VERSION, type Combatant, type Effect, type Encounter, type LogLine } from './types'
 
 const MAX_LOG = 60
 
@@ -20,15 +21,17 @@ export type Party = Record<string, Character | undefined>
 /** Conditions that leave a creature incapacitated, which ends its concentration (SRD). */
 const INCAPACITATING: ConditionId[] = ['incapacitated', 'paralyzed', 'petrified', 'stunned', 'unconscious']
 
-function log(enc: Encounter, ...lines: string[]): Encounter {
+const line = (key: MessageKey, vars?: Record<string, string | number>): LogLine => ({ key, vars })
+
+function log(enc: Encounter, ...lines: LogLine[]): Encounter {
   return lines.length ? { ...enc, log: [...lines.reverse(), ...enc.log].slice(0, MAX_LOG) } : enc
 }
 
 /** Adds a line to the encounter log, e.g. damage dealt to a party member through the sheet engine. */
-export const addLog = (enc: Encounter, line: string): Encounter => log(enc, line)
+export const addLog = (enc: Encounter, key: MessageKey, vars?: Record<string, string | number>): Encounter => log(enc, line(key, vars))
 
 const byId = (enc: Encounter, id: string | null | undefined) => enc.combatants.find(c => c.id === id)
-const nameOf = (enc: Encounter, id: string | undefined) => byId(enc, id)?.name ?? 'Someone'
+const nameOf = (enc: Encounter, id: string | undefined) => byId(enc, id)?.name ?? '?'
 
 export function createEncounter(id: string, ownerId: string, name: string, now = new Date().toISOString()): Encounter {
   return {
@@ -39,11 +42,8 @@ export function createEncounter(id: string, ownerId: string, name: string, now =
 
 export const inCombat = (enc: Encounter) => enc.round > 0
 
-/** Elapsed game time, e.g. round 11 → "1 min 0 s". */
-export function elapsed(round: number): string {
-  const s = Math.max(0, round - 1) * 6
-  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`
-}
+/** Elapsed game time in seconds at the start of a round (6 seconds each). */
+export const elapsedSeconds = (round: number) => Math.max(0, round - 1) * 6
 
 // ---- Order ----
 
@@ -56,7 +56,7 @@ export function sortOrder(list: Combatant[]): Combatant[] {
 export function addCombatant(enc: Encounter, input: Omit<Combatant, 'conditions'> & { conditions?: ConditionId[] }): Encounter {
   const c: Combatant = { ...input, conditions: input.conditions ?? [] }
   const next = { ...enc, combatants: sortOrder([...enc.combatants, c]) }
-  return inCombat(enc) ? log(next, `${c.name} joins the fight`) : next
+  return inCombat(enc) ? log(next, line('combat.log.joins', { name: c.name })) : next
 }
 
 /** Removes a combatant and every effect they were the source of. */
@@ -76,7 +76,7 @@ export function removeCombatant(enc: Encounter, id: string): Encounter {
     pendingChecks: next.pendingChecks.filter(p => p.combatantId !== id),
     activeId: next.activeId === id ? null : next.activeId,
   }
-  return log(next, `${gone.name} leaves the fight`)
+  return log(next, line('combat.log.leaves', { name: gone.name }))
 }
 
 export function setInitiative(enc: Encounter, id: string, initiative: number | null): Encounter {
@@ -122,12 +122,12 @@ export const isDefeated = (c: Combatant) => c.kind === 'npc' && (c.hp?.current ?
 // ---- Turns and timers ----
 
 function tick(enc: Encounter, matches: (e: Effect) => boolean, phase: 'start' | 'end' | 'round'): Encounter {
-  const expired: string[] = []
+  const expired: LogLine[] = []
   const effects: Effect[] = []
   for (const e of enc.effects) {
     if (!matches(e) || e.remaining === null) effects.push(e)
     else if (phase === 'end' && !e.armed) effects.push({ ...e, armed: true })
-    else if (e.remaining <= 1) expired.push(`${e.name} ends`)
+    else if (e.remaining <= 1) expired.push(line('combat.log.ends', { effect: e.name }))
     else effects.push({ ...e, remaining: e.remaining - 1 })
   }
   return log({ ...enc, effects }, ...expired)
@@ -140,7 +140,7 @@ const sourceTick = (enc: Encounter, id: string, at: 'start' | 'end') =>
 export function startCombat(enc: Encounter): Encounter {
   const first = enc.combatants.find(c => !isDefeated(c))
   if (!first || enc.combatants.some(c => c.initiative === null)) return enc
-  const started = log({ ...enc, round: 1, activeId: first.id, combatants: sortOrder(enc.combatants) }, 'Round 1', `${first.name}'s turn`)
+  const started = log({ ...enc, round: 1, activeId: first.id, combatants: sortOrder(enc.combatants) }, line('combat.log.round', { round: 1 }), line('combat.log.turn', { name: first.name }))
   return sourceTick(started, first.id, 'start')
 }
 
@@ -158,11 +158,11 @@ export function nextTurn(enc: Encounter): Encounter {
     const i = (from + step) % order.length
     if (from + step === order.length) {
       // Wrapped past the bottom of the order: a new round.
-      next = tick(log({ ...next, round: next.round + 1 }, `Round ${next.round + 1}`), e => !e.sourceId, 'round')
+      next = tick(log({ ...next, round: next.round + 1 }, line('combat.log.round', { round: next.round + 1 })), e => !e.sourceId, 'round')
     }
     const c = order[i]
     if (isDefeated(c)) continue
-    next = log({ ...next, activeId: c.id }, `${c.name}'s turn`)
+    next = log({ ...next, activeId: c.id }, line('combat.log.turn', { name: c.name }))
     return sourceTick(next, c.id, 'start')
   }
   return next
@@ -170,7 +170,7 @@ export function nextTurn(enc: Encounter): Encounter {
 
 /** Ends combat: the round counter resets and every effect ends, which lifts its conditions. */
 export function endCombat(enc: Encounter): Encounter {
-  return log({ ...enc, round: 0, activeId: null, effects: [], pendingChecks: [] }, 'Combat ends')
+  return log({ ...enc, round: 0, activeId: null, effects: [], pendingChecks: [] }, line('combat.log.combatEnds'))
 }
 
 // ---- Effects ----
@@ -181,17 +181,23 @@ export type EffectInput = Omit<Effect, 'armed'>
 export function addEffect(enc: Encounter, input: EffectInput): Encounter {
   let next = enc
   const held = input.concentration && input.sourceId ? concentrationOf(enc, input.sourceId) : undefined
-  if (held) next = endEffect(next, held.id, `${nameOf(enc, input.sourceId)} drops ${held.name}`)
+  if (held) next = endEffect(next, held.id, line('combat.log.drops', { name: nameOf(enc, input.sourceId), effect: held.name }))
   const armed = !(input.tick === 'end' && input.sourceId === enc.activeId && inCombat(enc))
   const effect: Effect = { ...input, armed, remaining: input.remaining === null ? null : Math.max(1, Math.floor(input.remaining)) }
   const targets = effect.targetIds.map(t => nameOf(enc, t)).join(', ')
-  return log({ ...next, effects: [...next.effects, effect] }, `${effect.name}${targets ? ` on ${targets}` : ''}`)
+  return log({ ...next, effects: [...next.effects, effect] }, targets ? line('combat.log.effectOn', { effect: effect.name, targets }) : line('combat.log.effect', { effect: effect.name }))
 }
 
-export function endEffect(enc: Encounter, effectId: string, reason?: string): Encounter {
+export function endEffect(enc: Encounter, effectId: string, reason?: LogLine): Encounter {
   const e = enc.effects.find(x => x.id === effectId)
   if (!e) return enc
-  return log({ ...enc, effects: enc.effects.filter(x => x.id !== effectId) }, reason ?? `${e.name} ends`)
+  return log({ ...enc, effects: enc.effects.filter(x => x.id !== effectId) }, reason ?? line('combat.log.ends', { effect: e.name }))
+}
+
+/** Ends a combatant's concentration by choice. */
+export function dropConcentration(enc: Encounter, id: string): Encounter {
+  const held = concentrationOf(enc, id)
+  return held ? endEffect(enc, held.id, line('combat.log.drops', { name: nameOf(enc, id), effect: held.name })) : enc
 }
 
 export const concentrationOf = (enc: Encounter, id: string): Effect | undefined =>
@@ -215,14 +221,14 @@ export function damageNpc(enc: Encounter, id: string, amount: number, checkId: s
   const absorbed = Math.min(c.hp.temp, amount)
   const current = Math.max(0, c.hp.current - (amount - absorbed))
   let next = updateCombatant(enc, id, { hp: { ...c.hp, temp: c.hp.temp - absorbed, current } })
-  next = log(next, `${c.name} takes ${amount}${current === 0 ? ' and drops' : ''}`)
+  next = log(next, line(current === 0 ? 'combat.log.takesDown' : 'combat.log.takes', { name: c.name, amount }))
   return noteDamage(next, id, amount, checkId)
 }
 
 export function healNpc(enc: Encounter, id: string, amount: number): Encounter {
   const c = byId(enc, id)
   if (!c?.hp || amount <= 0) return enc
-  return log(updateCombatant(enc, id, { hp: { ...c.hp, current: Math.min(c.hp.max, c.hp.current + amount) } }), `${c.name} heals ${amount}`)
+  return log(updateCombatant(enc, id, { hp: { ...c.hp, current: Math.min(c.hp.max, c.hp.current + amount) } }), line('combat.log.heals', { name: c.name, amount }))
 }
 
 /** Applies a rolled concentration save. A failure (or an automatic one) ends the effect. */
@@ -233,8 +239,10 @@ export function resolveCheck(enc: Encounter, checkId: string, total: number, aut
   const held = concentrationOf(next, check.combatantId)
   const who = nameOf(enc, check.combatantId)
   if (!held) return next
-  if (!autoFail && total >= check.dc) return log(next, `${who} keeps ${held.name} (${total} vs DC ${check.dc})`)
-  return endEffect(next, held.id, `${who} loses ${held.name} (${autoFail ? 'auto-fail' : total} vs DC ${check.dc})`)
+  if (!autoFail && total >= check.dc) return log(next, line('combat.log.keeps', { name: who, effect: held.name, total, dc: check.dc }))
+  return endEffect(next, held.id, autoFail
+    ? line('combat.log.losesFailed', { name: who, effect: held.name, dc: check.dc })
+    : line('combat.log.loses', { name: who, effect: held.name, total, dc: check.dc }))
 }
 
 export const dismissCheck = (enc: Encounter, checkId: string): Encounter =>
@@ -248,7 +256,7 @@ export function breakConcentration(enc: Encounter, party: Party): Encounter {
     if (!held) continue
     const s = statusOf(next, c, party)
     if (s.hp <= 0 || s.conditions.some(x => INCAPACITATING.includes(x))) {
-      next = endEffect(next, held.id, `${c.name} loses ${held.name} (${s.hp <= 0 ? '0 HP' : 'incapacitated'})`)
+      next = endEffect(next, held.id, line(s.hp <= 0 ? 'combat.log.losesDown' : 'combat.log.losesIncapacitated', { name: c.name, effect: held.name }))
       next = { ...next, pendingChecks: next.pendingChecks.filter(p => p.combatantId !== c.id) }
     }
   }

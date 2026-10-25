@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { makeCharacter } from '../sheet/fixtures'
 import {
   addCombatant, addEffect, breakConcentration, concentrationDc, concentrationOf, createEncounter, damageNpc,
-  effectConditions, elapsed, endCombat, nextTurn, removeCombatant, resolveCheck, setInitiative, startCombat,
+  effectConditions, elapsedSeconds, endCombat, nextTurn, removeCombatant, resolveCheck, setInitiative, startCombat,
   statusOf, syncPartyConditions,
 } from './engine'
 import type { Encounter } from './types'
@@ -60,8 +60,8 @@ describe('initiative order', () => {
   })
 
   it('shows elapsed time in 6 second rounds', () => {
-    expect(elapsed(1)).toBe('0 s')
-    expect(elapsed(11)).toBe('1 min 0 s')
+    expect(elapsedSeconds(1)).toBe(0)
+    expect(elapsedSeconds(11)).toBe(60)
   })
 })
 
@@ -78,7 +78,7 @@ describe('timers', () => {
     e = nextTurn(e) // wizard's turn, round 11
     expect([e.round, e.activeId]).toEqual([11, 'wizard'])
     expect(e.effects).toHaveLength(0)
-    expect(e.log).toContain('Bless ends')
+    expect(e.log).toContainEqual({ key: 'combat.log.ends', vars: { effect: 'Bless' } })
   })
 
   it('"until the end of your next turn" skips the end of the turn it was cast on', () => {

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { createEncounter, elapsed, endCombat, inCombat, nextTurn, startCombat, setInitiative } from '../engine'
+import { useI18n } from '../../i18n'
+import type { Translate } from '../../i18n/translate'
+import { createEncounter, elapsedSeconds, endCombat, inCombat, nextTurn, startCombat, setInitiative } from '../engine'
 import { deleteEncounter, listEncounters, saveEncounter } from '../storage'
 import type { Encounter } from '../types'
 import { AddCombatants } from './AddCombatants'
@@ -12,29 +14,34 @@ import './combat.css'
 
 const newId = () => crypto.randomUUID()
 
+function elapsedText(seconds: number, t: Translate): string {
+  return seconds < 60 ? t('combat.elapsedS', { s: seconds }) : t('combat.elapsedMin', { m: Math.floor(seconds / 60), s: seconds % 60 })
+}
+
 /** Encounter list, and the open encounter. Each player profile keeps its own encounters. */
 export function CombatTracker({ ownerId }: { ownerId: string }) {
   const [list, setList] = useState<Encounter[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
+  const { t } = useI18n()
   const refresh = useCallback(() => { listEncounters(ownerId).then(setList) }, [ownerId])
   useEffect(refresh, [refresh])
 
   if (openId) return <EncounterView key={openId} encounterId={openId} onBack={() => { setOpenId(null); refresh() }} />
 
   const create = async () => {
-    const e = await saveEncounter(createEncounter(newId(), ownerId, `Encounter ${(list?.length ?? 0) + 1}`))
+    const e = await saveEncounter(createEncounter(newId(), ownerId, t('combat.defaultName', { n: (list?.length ?? 0) + 1 })))
     setOpenId(e.id)
   }
   return (
     <section className="ff-combat">
       <div className="row spread">
-        <h2>Combat tracker</h2>
-        <button className="btn primary" onClick={create}>+ New encounter</button>
+        <h2>{t('combat.title')}</h2>
+        <button className="btn primary" onClick={create}>{t('combat.new')}</button>
       </div>
       {list && list.length === 0 && (
         <div className="panel empty">
-          <p>Track initiative, concentration and spell timers for a fight.</p>
-          <button className="btn primary" onClick={create}>Start an encounter</button>
+          <p>{t('combat.emptyIntro')}</p>
+          <button className="btn primary" onClick={create}>{t('combat.startFirst')}</button>
         </div>
       )}
       <ul className="plain encounter-list">
@@ -43,14 +50,14 @@ export function CombatTracker({ ownerId }: { ownerId: string }) {
             <div>
               <h3>{e.name}</h3>
               <p className="muted small">
-                {e.combatants.length} combatants · {inCombat(e) ? `round ${e.round}` : 'not started'}
+                {t('combat.combatants', { count: e.combatants.length })} · {inCombat(e) ? t('combat.roundN', { round: e.round }) : t('combat.notStarted')}
               </p>
             </div>
             <div className="row">
-              <button className="btn primary small" onClick={() => setOpenId(e.id)}>Open</button>
+              <button className="btn primary small" onClick={() => setOpenId(e.id)}>{t('combat.open')}</button>
               <button className="btn ghost small" onClick={async () => {
-                if (confirm(`Delete ${e.name}?`)) { await deleteEncounter(e.id); refresh() }
-              }}>Delete</button>
+                if (confirm(t('combat.deleteConfirm', { name: e.name }))) { await deleteEncounter(e.id); refresh() }
+              }}>{t('common.delete')}</button>
             </div>
           </li>
         ))}
@@ -62,10 +69,11 @@ export function CombatTracker({ ownerId }: { ownerId: string }) {
 function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: () => void }) {
   const { encounter: enc, party, act, undo, canUndo } = useEncounter(encounterId)
   const rolls = useCombatRolls()
+  const { t } = useI18n()
   const [editingName, setEditingName] = useState(false)
 
-  if (enc === undefined) return <p className="muted">Loading…</p>
-  if (enc === null) return <p>This encounter could not be found. <button className="btn" onClick={onBack}>Back</button></p>
+  if (enc === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (enc === null) return <p>{t('combat.notFound')} <button className="btn" onClick={onBack}>{t('common.back')}</button></p>
 
   const fighting = inCombat(enc)
   const unrolled = enc.combatants.filter(c => c.initiative === null)
@@ -82,27 +90,27 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
   return (
     <section className="ff-combat">
       <header className="combat-head">
-        <button className="btn ghost" onClick={onBack} aria-label="Back to encounters">←</button>
+        <button className="btn ghost" onClick={onBack} aria-label={t('combat.backToList')}>{t('common.backArrow')}</button>
         {editingName ? (
-          <input autoFocus defaultValue={enc.name} aria-label="Encounter name"
+          <input autoFocus defaultValue={enc.name} aria-label={t('combat.nameLabel')}
             onBlur={ev => { const name = ev.target.value.trim(); if (name) act(e => ({ ...e, name })); setEditingName(false) }}
             onKeyDown={ev => { if (ev.key === 'Enter') ev.currentTarget.blur() }} />
         ) : (
-          <h2><button className="title-btn" onClick={() => setEditingName(true)} title="Rename">{enc.name}</button></h2>
+          <h2><button className="title-btn" onClick={() => setEditingName(true)} title={t('combat.rename')}>{enc.name}</button></h2>
         )}
         <div className="round" aria-live="polite">
-          {fighting ? <><strong>Round {enc.round}</strong><span className="muted small">{elapsed(enc.round)}</span></> : <span className="muted">Not started</span>}
+          {fighting ? <><strong>{t('combat.roundN', { round: enc.round })}</strong><span className="muted small">{elapsedText(elapsedSeconds(enc.round), t)}</span></> : <span className="muted">{t('combat.notStarted')}</span>}
         </div>
       </header>
 
       <div className="combat-actions row">
-        {unrolled.length > 0 && <button className="btn" onClick={rollMissing}>Roll initiative ({unrolled.length})</button>}
+        {unrolled.length > 0 && <button className="btn" onClick={rollMissing}>{t('combat.rollInit', { count: unrolled.length })}</button>}
         {fighting
-          ? <button className="btn primary next" onClick={() => act(nextTurn)}>Next turn →</button>
+          ? <button className="btn primary next" onClick={() => act(nextTurn)}>{t('combat.next')}</button>
           : <button className="btn primary next" disabled={!enc.combatants.length || unrolled.length > 0} onClick={() => act(startCombat)}
-              title={unrolled.length ? 'Everyone needs an initiative first' : undefined}>Start combat</button>}
-        {fighting && <button className="btn" onClick={() => confirm('End combat? Every effect ends.') && act(endCombat)}>End combat</button>}
-        <button className="btn ghost" disabled={!canUndo} onClick={undo}>Undo</button>
+              title={unrolled.length ? t('combat.needInit') : undefined}>{t('combat.start')}</button>}
+        {fighting && <button className="btn" onClick={() => confirm(t('combat.endConfirm')) && act(endCombat)}>{t('combat.end')}</button>}
+        <button className="btn ghost" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
       </div>
 
       <PendingChecks enc={enc} act={act} />
@@ -110,9 +118,9 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
       <div className="combat-grid">
         <div>
           {enc.combatants.length === 0
-            ? <div className="panel empty"><p>Add the party and the monsters to begin.</p></div>
+            ? <div className="panel empty"><p>{t('combat.emptyOrder')}</p></div>
             : (
-              <ol className="plain order" aria-label="Initiative order">
+              <ol className="plain order" aria-label={t('combat.order')}>
                 {enc.combatants.map((c, i) => (
                   <CombatantRow key={c.id} enc={enc} combatant={c} party={party} act={act}
                     first={i === 0} last={i === enc.combatants.length - 1} />
@@ -124,10 +132,10 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
         <div>
           <Effects enc={enc} act={act} />
           <section className="panel">
-            <h3>Log</h3>
+            <h3>{t('combat.log')}</h3>
             {enc.log.length === 0
-              ? <p className="muted small">Turns, timers and saves show here.</p>
-              : <ol className="plain combat-log">{enc.log.map((l, i) => <li key={i}>{l}</li>)}</ol>}
+              ? <p className="muted small">{t('combat.logEmpty')}</p>
+              : <ol className="plain combat-log">{enc.log.map((l, i) => <li key={i}>{typeof l === 'string' ? l : t(l.key, l.vars)}</li>)}</ol>}
           </section>
         </div>
       </div>
