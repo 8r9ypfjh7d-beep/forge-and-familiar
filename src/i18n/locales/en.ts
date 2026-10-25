@@ -31,7 +31,6 @@ export const en = {
   // App shell
   'app.language': 'Language',
   'app.party': 'Party',
-  'app.dice': 'Dice',
   'app.player': 'Player',
   'app.newPlayerPrompt': "New player's name",
   'app.addPlayer': '+ Add player…',
@@ -321,6 +320,8 @@ export const en = {
   'sheet.pactHint': 'Pact slots come back on a short rest.',
 
   // Dice
+  'dice.open': 'Open dice roller',
+  'dice.close': 'Close dice roller',
   'dice.roller': 'Dice roller',
   'dice.addDie': 'Add a d{sides}',
   'dice.mod': 'Mod',

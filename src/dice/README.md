@@ -25,6 +25,7 @@ Up to 100 dice and 1000 sides per term.
 - `useDice()` returns `{ record, roll, history }`. The sheet does `record(rollSave(stats, 'dex', { character: c }))`.
 - `useRollHistory(characterId?)` gives the live list. `<RollView roll>` shows one roll.
 - `<SecretRolls party userId character? nameOf>` sits on the party page: a player picks a skill, check or save and rolls it for the DM; the DM sees the results log.
+- `<DiceFab open onOpenChange character?>` is the floating dice button App.tsx puts on every screen (there is no dice page). It opens a small window with the `DiceTray`; the `D` shortcut and Escape toggle it. On a character's screen, free rolls are tagged with that character.
 - `<DiceTray character? showAll?>` is the full roller: d4 to d100 buttons, a modifier, an Adv/Dis toggle for a lone d20, a notation box and the history.
 
 Every `RollResult` is plain JSON with `roller`, so Campaign Mode can broadcast the rolls to the DM later.

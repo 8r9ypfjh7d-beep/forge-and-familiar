@@ -1,4 +1,5 @@
 export { DiceProvider, useDice, useRollHistory } from './DiceProvider'
 export { DiceTray } from './DiceTray'
+export { DiceFab } from './DiceFab'
 export { RollView } from './RollView'
 export { SecretRolls } from './SecretRolls'
