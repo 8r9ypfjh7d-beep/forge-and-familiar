@@ -3,7 +3,7 @@
 // total), and explain.test.ts checks each total against derive() so the two never drift.
 import type { Character } from '../model/character'
 import {
-  entryItem,
+  applyItemAbilities, entryItem, itemBonuses,
   ABILITY_NAMES, SKILLS, abilityMod, getBackground, classById, derive, getAbilityMods, getAbilityScores,
   getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, totalLevel,
   type Ability, type ClassDef, type SkillId,
@@ -29,6 +29,10 @@ export type StatKey =
   | `ability:${Ability}` | `mod:${Ability}` | `save:${Ability}` | `skill:${SkillId}` | `attack:${number}`
 
 const ABBR = (a: Ability) => a.toUpperCase()
+
+/** One line per worn item that adds to this kind of number. */
+const itemLines = (...args: Parameters<typeof itemBonuses>): MathLine[] =>
+  itemBonuses(...args).map(b => ({ label: b.source, value: b.value }))
 
 function classesOf(c: Character): { def: ClassDef; level: number }[] {
   return c.classes.flatMap(cl => {
@@ -62,6 +66,8 @@ function abilityScore(c: Character, a: Ability): StatMath {
   }
   const raw = lines.reduce((n, l) => n + l.value, 0)
   if (raw > 20) lines.push({ label: 'Capped at 20', value: 20 - raw })
+  const before = getAbilityScores({ ...c, inventory: [] })
+  for (const l of applyItemAbilities(c, before).lines[a]) lines.push({ label: l.source, value: l.value })
   return make(ABILITY_NAMES[a], lines)
 }
 
@@ -75,6 +81,7 @@ function save(c: Character, a: Ability): StatMath {
   const proficient = !!first?.savingThrows.includes(a)
   const lines = [{ label: `${ABBR(a)} modifier`, value: getAbilityMods(getAbilityScores(c))[a] }]
   if (proficient) lines.push({ ...profLine(c), label: `Proficiency (${first.name})` })
+  lines.push(...itemLines(c, 'saves'))
   const notes = classesOf(c).length > 1 ? ['Saving throw proficiencies come from your first class only.'] : []
   return make(`${ABILITY_NAMES[a]} save`, lines, { signed: true, notes })
 }
@@ -94,6 +101,7 @@ function skill(c: Character, s: SkillId): StatMath {
   const lines = [{ label: `${ABBR(ability)} modifier`, value: getAbilityMods(getAbilityScores(c))[ability] }]
   if (getSkillProficiencies(c).has(s)) lines.push({ ...profLine(c), label: `Proficiency (${skillSources(c, s).join(', ')})` })
   else if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
+  lines.push(...itemLines(c, 'checks'))
   return make(SKILLS[s].name, lines, { signed: true })
 }
 
@@ -121,12 +129,14 @@ function armorClass(c: Character): StatMath {
   if (shield) lines.push({ label: shield.name, value: shield.baseAc })
   const magic = c.inventory.filter(e => e.equipped && e.magicBonus && entryItem(e)?.kind === 'armor').reduce((n, e) => n + (e.magicBonus ?? 0), 0)
   if (magic) lines.push({ label: 'Magic armor and shield', value: magic })
+  lines.push(...itemLines(c, 'ac', !armor && !shield))
   return make('Armor class', lines, { notes })
 }
 
 function initiative(c: Character): StatMath {
   const lines = [{ label: 'DEX modifier', value: getAbilityMods(getAbilityScores(c)).dex }]
   if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
+  lines.push(...itemLines(c, 'checks'))
   return make('Initiative', lines, { signed: true })
 }
 
@@ -146,6 +156,7 @@ function speed(c: Character): StatMath {
   }
   const barb = classesOf(c).find(x => x.def.id === 'barbarian')
   if (barb && barb.level >= 5 && armor?.category !== 'heavy') lines.push({ label: 'Fast Movement (Barbarian)', value: 10 })
+  lines.push(...itemLines(c, 'speed'))
   const sum = lines.reduce((n, l) => n + l.value, 0)
   if (c.state.exhaustion >= 5) lines.push({ label: `Exhaustion ${c.state.exhaustion}: speed 0`, value: -sum })
   else if (c.state.exhaustion >= 2) lines.push({ label: `Exhaustion ${c.state.exhaustion}: speed halved`, value: Math.floor(sum / 2) - sum })
@@ -205,6 +216,7 @@ function spellcasting(c: Character, kind: 'spellDc' | 'spellAttack'): StatMath |
     ...(kind === 'spellDc' ? [{ label: 'Base', value: 8 }] : []),
     profLine(c),
     { label: `${ABBR(a)} modifier (${caster.def.name} spellcasting)`, value: getAbilityMods(getAbilityScores(c))[a] },
+    ...itemLines(c, kind),
   ]
   return kind === 'spellDc' ? make('Spell save DC', lines) : make('Spell attack', lines, { signed: true })
 }

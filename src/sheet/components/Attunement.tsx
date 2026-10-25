@@ -1,10 +1,16 @@
 import { useState } from 'react'
 import type { Character } from '../../model/character'
+import { attunementKey, entryItem } from '../../rules'
 import { ATTUNEMENT_LIMIT, attune, endAttunement, setInspiration } from '../engine'
 import type { Apply } from '../types'
 
 export function Attunement({ character, apply }: { character: Character; apply: Apply }) {
-  const { inspiration = false, attuned = [] } = character.state
+  const { inspiration = false } = character.state
+  // Items attuned from the inventory are stored by uid; show their current name.
+  const attuned = (character.state.attuned ?? []).map(k => {
+    const e = character.inventory.find(x => attunementKey(x.uid) === k)
+    return e ? entryItem(e)?.name ?? e.itemId : k
+  })
   const [item, setItem] = useState('')
   const full = attuned.length >= ATTUNEMENT_LIMIT
 
