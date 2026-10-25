@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useI18n } from '../../i18n'
+import type { MessageKey } from '../../i18n/locales/en'
 import type { ConditionId } from '../../rules/types'
 import { addEffect, endEffect } from '../engine'
 import { CONDITIONS, type Effect, type Encounter } from '../types'
@@ -7,37 +9,39 @@ import type { Act } from './useEncounter'
 const newId = () => crypto.randomUUID()
 
 /** SRD durations in rounds (6 seconds each). */
-const DURATIONS: { label: string; rounds: number | null; tick?: Effect['tick'] }[] = [
-  { label: 'Until the end of its next turn', rounds: 1, tick: 'end' },
-  { label: '1 round', rounds: 1 },
-  { label: '1 minute (10 rounds)', rounds: 10 },
-  { label: '10 minutes', rounds: 100 },
-  { label: '1 hour', rounds: 600 },
-  { label: 'Until ended', rounds: null },
-  { label: 'Custom rounds…', rounds: -1 },
+const DURATIONS: { label: MessageKey; rounds: number | null; tick?: Effect['tick'] }[] = [
+  { label: 'combat.dur.endNext', rounds: 1, tick: 'end' },
+  { label: 'combat.dur.round', rounds: 1 },
+  { label: 'combat.dur.minute', rounds: 10 },
+  { label: 'combat.dur.tenMin', rounds: 100 },
+  { label: 'combat.dur.hour', rounds: 600 },
+  { label: 'combat.dur.untilEnded', rounds: null },
+  { label: 'combat.dur.custom', rounds: -1 },
 ]
 
 /** Active effects with time left, and the form to add one. */
 export function Effects({ enc, act }: { enc: Encounter; act: Act }) {
+  const { t, term } = useI18n()
   const name = (id?: string) => enc.combatants.find(c => c.id === id)?.name
   return (
     <section className="panel effects">
-      <h3>Spells and effects</h3>
+      <h3>{t('combat.effects')}</h3>
       {enc.effects.length === 0
-        ? <p className="muted small">Add a spell or condition with a duration and it ends on its own.</p>
+        ? <p className="muted small">{t('combat.effectsEmpty')}</p>
         : (
           <ul className="plain">
             {enc.effects.map(e => (
               <li key={e.id} className="effect">
                 <div>
-                  <strong>{e.name}</strong>{e.concentration && <span className="tag" title="Concentration">◎</span>}
+                  <strong>{e.name}</strong>{e.concentration && <span className="tag" title={t('combat.concentration')}>◎</span>}
                   <div className="muted small">
-                    {[name(e.sourceId) && `from ${name(e.sourceId)}`, e.targetIds.length > 0 && `on ${e.targetIds.map(name).join(', ')}`,
-                      e.condition].filter(Boolean).join(' · ')}
+                    {[name(e.sourceId) && t('combat.fromLower', { name: name(e.sourceId) ?? '' }),
+                      e.targetIds.length > 0 && t('combat.onLower', { names: e.targetIds.map(name).join(', ') }),
+                      e.condition && term('condition', e.condition, e.condition)].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                <span className="left">{e.remaining === null ? '∞' : `${e.remaining} rd${e.remaining === 1 ? '' : 's'}`}</span>
-                <button className="icon" onClick={() => act(x => endEffect(x, e.id))} aria-label={`End ${e.name}`}>✕</button>
+                <span className="left">{e.remaining === null ? '∞' : t('combat.rounds', { count: e.remaining })}</span>
+                <button className="icon" onClick={() => act(x => endEffect(x, e.id))} aria-label={t('combat.endEffect', { name: e.name })}>✕</button>
               </li>
             ))}
           </ul>
@@ -48,6 +52,7 @@ export function Effects({ enc, act }: { enc: Encounter; act: Act }) {
 }
 
 function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
+  const { t, term } = useI18n()
   const [open, setOpen] = useState(false)
   const [effectName, setName] = useState('')
   const [sourceId, setSource] = useState(enc.activeId ?? '')
@@ -57,7 +62,7 @@ function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
   const [condition, setCondition] = useState<ConditionId | ''>('')
   const [concentration, setConcentration] = useState(false)
 
-  if (!open) return <button className="btn small" onClick={() => { setSource(enc.activeId ?? ''); setOpen(true) }}>+ Add effect</button>
+  if (!open) return <button className="btn small" onClick={() => { setSource(enc.activeId ?? ''); setOpen(true) }}>{t('combat.addEffect')}</button>
 
   const d = DURATIONS[duration]
   const submit = (ev: React.FormEvent) => {
@@ -72,15 +77,15 @@ function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
 
   return (
     <form className="effect-form" onSubmit={submit}>
-      <label>Name<input autoFocus required value={effectName} onChange={e => setName(e.target.value)} placeholder="Hold Person" /></label>
-      <label>Cast by
+      <label>{t('combat.effectName')}<input autoFocus required value={effectName} onChange={e => setName(e.target.value)} placeholder={t('combat.effectPh')} /></label>
+      <label>{t('combat.castBy')}
         <select value={sourceId} onChange={e => setSource(e.target.value)}>
-          <option value="">No one (ticks each round)</option>
+          <option value="">{t('combat.noSource')}</option>
           {enc.combatants.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </label>
       <fieldset>
-        <legend>Targets</legend>
+        <legend>{t('combat.targets')}</legend>
         {enc.combatants.map(c => (
           <label key={c.id} className="check">
             <input type="checkbox" checked={targets.includes(c.id)}
@@ -89,25 +94,25 @@ function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
           </label>
         ))}
       </fieldset>
-      <label>Duration
+      <label>{t('combat.duration')}
         <select value={duration} onChange={e => setDuration(Number(e.target.value))}>
-          {DURATIONS.map((x, i) => <option key={x.label} value={i}>{x.label}</option>)}
+          {DURATIONS.map((x, i) => <option key={x.label} value={i}>{t(x.label)}</option>)}
         </select>
       </label>
-      {d.rounds === -1 && <label>Rounds<input inputMode="numeric" value={custom} onChange={e => setCustom(e.target.value)} /></label>}
-      <label>Applies condition
+      {d.rounds === -1 && <label>{t('combat.roundsLabel')}<input inputMode="numeric" value={custom} onChange={e => setCustom(e.target.value)} /></label>}
+      <label>{t('combat.appliesCondition')}
         <select value={condition} onChange={e => setCondition(e.target.value as ConditionId | '')}>
-          <option value="">None</option>
-          {CONDITIONS.map(x => <option key={x} value={x}>{x}</option>)}
+          <option value="">{t('common.none')}</option>
+          {CONDITIONS.map(x => <option key={x} value={x}>{term('condition', x, x)}</option>)}
         </select>
       </label>
       <label className="check">
         <input type="checkbox" checked={concentration} disabled={!sourceId} onChange={e => setConcentration(e.target.checked)} />
-        Concentration
+        {t('combat.concentration')}
       </label>
       <div className="row">
-        <button className="btn primary" disabled={!effectName.trim()}>Add effect</button>
-        <button type="button" className="btn ghost" onClick={() => setOpen(false)}>Cancel</button>
+        <button className="btn primary" disabled={!effectName.trim()}>{t('combat.addEffectSubmit')}</button>
+        <button type="button" className="btn ghost" onClick={() => setOpen(false)}>{t('common.cancel')}</button>
       </div>
     </form>
   )

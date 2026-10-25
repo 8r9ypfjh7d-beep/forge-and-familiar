@@ -1,5 +1,6 @@
 // Saved encounter shape. Party members link to a Character, whose HP and conditions stay on
 // the character (the sheet owns them). Monsters and NPCs keep their own HP here.
+import type { MessageKey } from '../i18n/locales/en'
 import type { ConditionId } from '../rules/types'
 
 export const ENCOUNTER_SCHEMA_VERSION = 1
@@ -41,6 +42,9 @@ export interface Effect {
   armed: boolean
 }
 
+/** A log line, translated when shown. Plain strings come from saves made before translation. */
+export type LogLine = string | { key: MessageKey; vars?: Record<string, string | number> }
+
 /** A concentration save the table still has to roll. */
 export interface PendingCheck {
   id: string
@@ -62,7 +66,7 @@ export interface Encounter {
   effects: Effect[]
   pendingChecks: PendingCheck[]
   /** Newest first. */
-  log: string[]
+  log: LogLine[]
   createdAt: string
   updatedAt: string
 }

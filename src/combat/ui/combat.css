@@ -9,7 +9,7 @@
 .ff-combat .icon { font: inherit; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
 .ff-combat .icon:hover:not(:disabled) { color: var(--ink); background: var(--accent-soft); }
 .ff-combat .icon:disabled { opacity: .3; cursor: default; }
-.ff-combat .tag { margin-left: 0; background: none; font-size: .72rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.ff-combat .tag { margin-inline-start: 0; background: none; font-size: .72rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
 .ff-combat .tag.bad { color: var(--bad); border-color: var(--bad); }
 .ff-combat .check { display: flex; gap: 6px; align-items: center; font-size: .9rem; }
 
@@ -19,8 +19,8 @@
 
 .combat-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .combat-head h2 { margin: 0; flex: 1; min-width: 0; }
-.title-btn { font: inherit; background: none; border: 0; color: inherit; padding: 0; cursor: text; text-align: left; }
-.combat-head .round { display: grid; text-align: right; line-height: 1.2; }
+.title-btn { font: inherit; background: none; border: 0; color: inherit; padding: 0; cursor: text; text-align: start; }
+.combat-head .round { display: grid; text-align: end; line-height: 1.2; }
 .combat-head .round strong { font-size: 1.2rem; }
 .combat-actions { margin: 12px 0; }
 .combat-actions .next { min-width: 150px; }
@@ -34,8 +34,8 @@
 @media (max-width: 860px) { .combat-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .order { display: grid; gap: 8px; }
-.combatant { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: center; border-left: 4px solid transparent; }
-.combatant.active { border-left-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+.combatant { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: center; border-inline-start: 4px solid transparent; }
+.combatant.active { border-inline-start-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
 .combatant.out { opacity: .55; }
 .combatant .init { display: flex; align-items: center; gap: 2px; }
 .combatant .init input { width: 44px; text-align: center; font-size: 1.15rem; font-weight: 700; padding: 6px 2px; }
@@ -73,7 +73,8 @@
 
 .effects ul { display: grid; gap: 6px; margin-bottom: 10px; }
 .effect { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.effect .tag { margin-left: 6px; }
+.effect .tag { margin-inline-start: 6px; }
 .effect .left { font-weight: 700; }
 .combat-log { max-height: 260px; overflow: auto; font-size: .85rem; }
 .combat-log li { border-bottom: 1px dashed var(--line); padding: 3px 0; }
+[dir='rtl'] .ff-combat .init input, [dir='rtl'] .ff-combat .controls input { direction: ltr; unicode-bidi: isolate; }

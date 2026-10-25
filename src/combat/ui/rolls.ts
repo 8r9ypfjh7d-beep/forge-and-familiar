@@ -16,8 +16,7 @@ export function useCombatRolls() {
       if (c.kind === 'pc') return ch && record(rollInitiative(derive(ch), { character: ch }))
       return record(rollD20(c.initBonus, { label: 'Initiative', roller: roller(c) }, 'initiative'))
     },
-    concentration(c: Combatant, party: Party, dc: number): RollResult | undefined {
-      const label = `Concentration (DC ${dc})`
+    concentration(c: Combatant, party: Party, label: string): RollResult | undefined {
       const ch = c.characterId ? party[c.characterId] : undefined
       if (c.kind === 'pc') return ch && record(rollSave(derive(ch), 'con', { character: ch, label }))
       return record(rollD20(c.conSave ?? 0, { label, roller: roller(c) }, 'save'))

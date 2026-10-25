@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { roll } from '../../dice'
+import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
 import { derive } from '../../rules'
 import { listCharacters, listProfiles } from '../../storage'
@@ -11,6 +12,7 @@ const newId = () => crypto.randomUUID()
 
 /** Adds party members (any player's character on this device) and monsters or NPCs. */
 export function AddCombatants({ enc, act }: { enc: Encounter; act: Act }) {
+  const { t } = useI18n()
   const [characters, setCharacters] = useState<{ owner: string; c: Character }[]>([])
   useEffect(() => {
     listProfiles().then(async ps => {
@@ -26,15 +28,15 @@ export function AddCombatants({ enc, act }: { enc: Encounter; act: Act }) {
 
   return (
     <section className="panel add">
-      <h3>Add to the fight</h3>
+      <h3>{t('combat.addTitle')}</h3>
       <div className="row">
-        <select aria-label="Add a party member" value="" disabled={!available.length}
+        <select aria-label={t('combat.addParty')} value="" disabled={!available.length}
           onChange={ev => { const x = available.find(a => a.c.id === ev.target.value); if (x) addPc(x.c) }}>
-          <option value="">{available.length ? '+ Party member…' : 'No more characters'}</option>
+          <option value="">{available.length ? t('combat.addPartyOption') : t('combat.noMoreChars')}</option>
           {available.map(({ owner, c }) => <option key={c.id} value={c.id}>{c.name} ({owner})</option>)}
         </select>
         {available.length > 1 && (
-          <button className="btn small" onClick={() => available.forEach(x => addPc(x.c))}>Add everyone</button>
+          <button className="btn small" onClick={() => available.forEach(x => addPc(x.c))}>{t('combat.addEveryone')}</button>
         )}
       </div>
       <MonsterForm act={act} />
@@ -43,6 +45,7 @@ export function AddCombatants({ enc, act }: { enc: Encounter; act: Act }) {
 }
 
 function MonsterForm({ act }: { act: Act }) {
+  const { t } = useI18n()
   const [f, setF] = useState({ name: '', count: '1', hp: '', ac: '', init: '0', con: '0' })
   const [error, setError] = useState('')
   const set = (k: keyof typeof f) => (ev: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: ev.target.value })
@@ -57,7 +60,7 @@ function MonsterForm({ act }: { act: Act }) {
     try {
       hps = Array.from({ length: count }, () => (/^\d+$/.test(hpText) ? Number(hpText) : Math.max(1, roll(hpText).total)))
     } catch {
-      setError('HP must be a number or dice like 2d6+2.')
+      setError(t('combat.hpError'))
       return
     }
     setError('')
@@ -71,13 +74,13 @@ function MonsterForm({ act }: { act: Act }) {
 
   return (
     <form className="monster-form" onSubmit={submit}>
-      <label>Monster or NPC<input required value={f.name} onChange={set('name')} placeholder="Goblin" /></label>
-      <label>How many<input inputMode="numeric" value={f.count} onChange={set('count')} /></label>
-      <label>HP<input value={f.hp} onChange={set('hp')} placeholder="7 or 2d6" /></label>
-      <label>AC<input inputMode="numeric" value={f.ac} onChange={set('ac')} placeholder="15" /></label>
-      <label>Init mod<input inputMode="numeric" value={f.init} onChange={set('init')} /></label>
-      <label>CON save<input inputMode="numeric" value={f.con} onChange={set('con')} /></label>
-      <button className="btn primary" disabled={!f.name.trim()}>Add</button>
+      <label>{t('combat.monster')}<input required value={f.name} onChange={set('name')} placeholder={t('combat.monsterPh')} /></label>
+      <label>{t('combat.count')}<input inputMode="numeric" value={f.count} onChange={set('count')} /></label>
+      <label>{t('stat.hp')}<input dir="ltr" value={f.hp} onChange={set('hp')} placeholder={t('combat.hpPh')} /></label>
+      <label>{t('stat.ac')}<input inputMode="numeric" value={f.ac} onChange={set('ac')} placeholder="15" /></label>
+      <label>{t('combat.initMod')}<input inputMode="numeric" value={f.init} onChange={set('init')} /></label>
+      <label>{t('combat.conSave')}<input inputMode="numeric" value={f.con} onChange={set('con')} /></label>
+      <button className="btn primary" disabled={!f.name.trim()}>{t('common.add')}</button>
       {error && <p className="bad small" role="alert">{error}</p>}
     </form>
   )
