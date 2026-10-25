@@ -20,7 +20,7 @@ import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
 import './sheet.css'
 
-export function CharacterSheet({ characterId, onBack }: { characterId: string; onBack: () => void }) {
+export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
   const { character, apply, undo, undoTo, redo, canRedo, log } = useLiveCharacter(characterId)
   useCharacterTheme(character?.theme)
   const { t } = useI18n()
@@ -38,7 +38,7 @@ export function CharacterSheet({ characterId, onBack }: { characterId: string; o
   const showDeath = character.state.currentHp === 0
   return (
     <div className="ff-sheet">
-      <Header character={character} apply={apply} onBack={onBack} />
+      <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} />
       <QuickCastBar character={character} apply={apply} />
       <div className="sheet-grid">
         <div className="col">
@@ -63,7 +63,7 @@ export function CharacterSheet({ characterId, onBack }: { characterId: string; o
   )
 }
 
-function Header({ character, apply, onBack }: { character: Character; apply: Apply; onBack: () => void }) {
+function Header({ character, apply, onBack, onEdit }: { character: Character; apply: Apply; onBack: () => void; onEdit?: () => void }) {
   const stats = derive(character)
   const { t, classLine } = useI18n()
   const classes = classLine(character.classes)
@@ -77,6 +77,7 @@ function Header({ character, apply, onBack }: { character: Character; apply: App
         <h1>{character.name}</h1>
         <p>{classes}</p>
       </div>
+      {onEdit && <button type="button" className="btn ghost small" onClick={onEdit}>{t('sheet.edit')}</button>}
       <dl className="quick-stats">
         <div><dt>{t('stat.ac')}</dt><dd><ShowMath character={character} stat="ac">{stats.armorClass.value}</ShowMath></dd></div>
         <div><dt>{t('stat.init')}</dt><dd><ShowMath character={character} stat="initiative">{formatMod(stats.initiative)}</ShowMath></dd></div>
