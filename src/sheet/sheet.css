@@ -166,3 +166,34 @@ form.inline input { width: 84px; }
 .clock-custom { margin-top: 8px; }
 form.inline.clock-custom input { width: 140px; }
 .add-counter .hint { grid-column: 1 / -1; }
+
+/* Story / combat mode switch */
+.mode-switch-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: -4px 0 16px; }
+.mode-switch-row .hint { margin: 0; }
+.mode-switch { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid var(--s-line); border-radius: 10px; background: var(--s-panel); }
+.mode-btn {
+  font: inherit; font-weight: 700; font-size: .9rem; min-height: 40px; padding: 0 16px;
+  border: 0; border-radius: 8px; background: transparent; color: var(--s-muted); cursor: pointer;
+}
+.mode-btn.on { background: var(--s-accent); color: #fff; }
+
+/* Story mode */
+.story-facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; }
+.story-facts div { display: contents; }
+.story-facts dt { color: var(--s-muted); font-size: .875rem; }
+.story-facts dd { margin: 0; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.story-feature { margin: 12px 0 0; }
+.story-more { margin-top: 12px; }
+.story-more summary { cursor: pointer; font-weight: 600; }
+.story-tags { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 8px 0 0; }
+.story-tags li { padding: 2px 10px; border: 1px solid var(--s-line); border-radius: 99px; font-size: .85rem; }
+.story-skill-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; list-style: none; padding: 0; margin: 0; }
+.story-skill-list li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--s-line); }
+.story-skill-list li.prof span:first-child { font-weight: 700; }
+.story-skill-list li.prof span:first-child::before { content: '● '; color: var(--s-accent); }
+@media (max-width: 420px) { .story-skill-list { grid-template-columns: 1fr; } }
+.story-notes h2 label { cursor: text; }
+.story-notes textarea {
+  font: inherit; inline-size: 100%; min-block-size: 8em; padding: 10px; resize: vertical;
+  border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink);
+}
