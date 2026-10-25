@@ -6,8 +6,8 @@ Per-turn checklist on the live sheet: action, bonus action, reaction and movemen
 
 | File | Purpose |
 |------|---------|
-| `turn.ts` | Pure `TurnState` updates (`toggle`, `move`, `dash`, `nextTurn`), condition `limits`, class `bonusOptions` |
-| `useTurn.ts` | Hook holding one character's turn, persisted to `sessionStorage` key `ff-turn:<id>` |
+| `turn.ts` | Pure `TurnState` updates (`toggle`, `takeReaction`, `move`, `dash`, `nextTurn`), condition `limits`, class `bonusOptions` |
+| `useTurn.ts` | Shared store + hook for one character's turn, persisted to `sessionStorage` key `ff-turn:<id>` |
 | `TurnChecklist.tsx` | The card; rendered by `sheet/CharacterSheet.tsx` |
 | `turn.css` | Styles; relies on the sheet's `--s-*` tokens, so it must sit inside `.ff-sheet` |
 | `turn.test.ts` | Rules tests |
@@ -18,5 +18,5 @@ Per-turn checklist on the live sheet: action, bonus action, reaction and movemen
 - Movement is clamped to `speed × (1 + dashes)`. Speed comes from `derive()`, so exhaustion and armor are already applied.
 - Grappled or restrained: no movement. Incapacitated, paralyzed, petrified, stunned, unconscious or 0 HP: no actions, reactions or movement.
 - Dash does not tick a slot by itself, because rogues may pay for it with a bonus action.
-- Reaction options and their triggers live in `src/reactions`; this card only tracks whether the reaction is spent.
+- Reaction options and their triggers live in `src/reactions`. Both cards share one store in `useTurn`, so using a reaction there ticks the box here (`takeReaction`), and either reset clears both.
 - UI text goes through `t()` under `turn.*` (English and Hebrew); condition and feature names through `term()`, so `bonusOptions` returns plain SRD feature names.

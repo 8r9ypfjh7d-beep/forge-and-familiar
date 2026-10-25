@@ -11,6 +11,8 @@ export interface TurnState {
   moved: number
   /** Times Dash was taken this turn; each adds your speed again. */
   dashes: number
+  /** Which reaction was taken, when the Reactions card recorded one. */
+  reactionName?: string
 }
 
 export const FRESH_TURN: TurnState = { round: 1, used: { action: false, bonus: false, reaction: false }, moved: 0, dashes: 0 }
@@ -21,7 +23,15 @@ export function nextTurn(t: TurnState): TurnState {
 }
 
 export function toggle(t: TurnState, slot: Slot): TurnState {
-  return { ...t, used: { ...t.used, [slot]: !t.used[slot] } }
+  const next = { ...t, used: { ...t.used, [slot]: !t.used[slot] } }
+  if (slot === 'reaction') delete next.reactionName
+  return next
+}
+
+/** Spends the reaction on a named reaction (from src/reactions), or gives it back with null. */
+export function takeReaction(t: TurnState, name: string | null): TurnState {
+  const { reactionName: _, ...rest } = t
+  return name ? { ...rest, used: { ...t.used, reaction: true }, reactionName: name } : { ...rest, used: { ...t.used, reaction: false } }
 }
 
 export function movementTotal(t: TurnState, speed: number): number {

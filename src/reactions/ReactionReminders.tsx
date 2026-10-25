@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import type { Character } from '../model/character'
 import { setPactUsed, setSlotUsed } from '../sheet/engine'
 import type { Apply } from '../sheet/types'
+import { takeReaction, useTurn } from '../turn'
 import { getReactions, lowestFreeSlot, reactionBlocker, type Reaction } from './reactions'
 import './reactions.css'
 
@@ -18,13 +18,12 @@ function spendSlot(c: Character, level: number): Character {
 
 /**
  * Reminds the player which reactions they have and when each triggers.
- * "Reaction used" is per round and not saved: it resets with New round or on leaving the sheet.
+ * "Reaction used" is shared with the turn checklist (src/turn): not saved, kept for this tab, reset by New round or Next turn.
  */
 export function ReactionReminders({ character, apply }: { character: Character; apply: Apply }) {
-  // Keyed by character so switching sheets starts with the reaction ready.
-  const [spent, setSpent] = useState<{ characterId: string; name: string } | null>(null)
-  const used = spent?.characterId === character.id ? spent.name : null
-  const setUsed = (name: string | null) => setSpent(name ? { characterId: character.id, name } : null)
+  const { turn, update } = useTurn(character.id)
+  const used = turn.used.reaction ? (turn.reactionName ?? 'Reaction') : null
+  const setUsed = (name: string | null) => update(t => takeReaction(t, name))
 
   const blocker = reactionBlocker(character)
   const reactions = getReactions(character)
