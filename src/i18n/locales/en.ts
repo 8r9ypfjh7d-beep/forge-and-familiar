@@ -31,7 +31,6 @@ export const en = {
   // App shell
   'app.language': 'Language',
   'app.party': 'Party',
-  'app.dice': 'Dice',
   'app.player': 'Player',
   'app.newPlayerPrompt': "New player's name",
   'app.addPlayer': '+ Add player…',
@@ -202,6 +201,19 @@ export const en = {
   'summary.carrying': 'Carrying {weight} / {capacity} lb',
 
   // Live sheet
+  'sheet.mode': 'Sheet mode',
+  'sheet.mode.story': 'Story',
+  'sheet.mode.combat': 'Combat',
+  'sheet.mode.storyHint': 'Roleplay first: background, social skills and notes',
+  'sheet.mode.combatHint': 'Fight first: HP, your turn, attacks, slots and resources',
+  'sheet.story.identity': 'Who you are',
+  'sheet.story.race': 'Race',
+  'sheet.story.bgFeature': 'Background feature:',
+  'sheet.story.traitsFeatures': 'Traits and features',
+  'sheet.story.skills': 'Social and exploration skills',
+  'sheet.story.notes': 'Notes',
+  'sheet.story.notesPlaceholder': 'Personality, ideals, bonds, flaws, backstory, names to remember…',
+  'sheet.story.notesSaved': 'Edited notes',
   'sheet.session': 'This session',
   'sheet.undo': 'Undo',
   'sheet.undoWhat': 'Undo: {what}',
@@ -308,6 +320,8 @@ export const en = {
   'sheet.pactHint': 'Pact slots come back on a short rest.',
 
   // Dice
+  'dice.open': 'Open dice roller',
+  'dice.close': 'Close dice roller',
   'dice.roller': 'Dice roller',
   'dice.addDie': 'Add a d{sides}',
   'dice.mod': 'Mod',
