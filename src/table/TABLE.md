@@ -11,5 +11,5 @@ Opened from the "Table mode" button on a character card (`view.kind === 'table'`
 
 Rules:
 - No state of its own. Every change goes through `sheet/engine.ts` via `useLiveCharacter`, so undo, saving and the full sheet stay in sync.
-- Rolls go through `dice` (`useDice().record`) so they land in the shared roll history. A crit on an attack makes that attack's next damage roll a crit.
+- Rolls go through `dice` (`useDice().record`) so they land in the shared roll history. Tapping an attack rolls to-hit and damage together (`rollAttackWithDamage`), with crit range and doubled dice on a crit; Dmg rolls extra plain damage.
 - Turn order and encounter timers belong to `src/combat`; table mode does not track turns.

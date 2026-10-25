@@ -185,6 +185,10 @@ export interface Attack {
   ability: Ability
   proficient: boolean
   notes: string[]
+  /** Two-handed damage of a versatile weapon, ability mod included. */
+  versatile?: string
+  /** Weapon properties (finesse, ranged...); empty for an unarmed strike. */
+  properties?: string[]
 }
 
 const martialArtsDie = (monkLevel: number) =>
@@ -223,6 +227,8 @@ export function getAttacks(c: Character): Attack[] {
       ability,
       proficient,
       notes,
+      versatile: item.versatile ? withMod(item.versatile, mods[ability]) : undefined,
+      properties: item.properties,
     })
   }
 
@@ -235,6 +241,7 @@ export function getAttacks(c: Character): Attack[] {
     ability: unarmedAbility,
     proficient: true,
     notes: [],
+    properties: [],
   })
   return out
 }

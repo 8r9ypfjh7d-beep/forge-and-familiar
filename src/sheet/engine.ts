@@ -284,3 +284,8 @@ export function advanceTime(c: Character, minutes: number, rolledPerDawn: Record
 export function setClock(c: Character, t: number): Character {
   return withState(c, { clock: Math.max(0, Math.round(t)) })
 }
+
+/** The free-text notes on the character (backstory, personality, reminders). */
+export function setNotes(c: Character, notes: string): Character {
+  return c.notes === notes ? c : { ...c, notes }
+}
