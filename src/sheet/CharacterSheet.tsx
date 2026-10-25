@@ -5,6 +5,7 @@ import type { Character } from '../model/character'
 import { QuickCastBar } from '../quickcast'
 import { derive, formatMod } from '../rules'
 import { ReactionReminders } from '../reactions'
+import { Attacks } from './components/Attacks'
 import { Attunement } from './components/Attunement'
 import { DEFAULT_THEME_ID, ThemePicker, useCharacterTheme } from '../themes'
 import { Clock } from './components/Clock'
@@ -14,10 +15,13 @@ import { HitPoints } from './components/HitPoints'
 import { Resources } from './components/Resources'
 import { Rests } from './components/Rests'
 import { SpellSlots } from './components/SpellSlots'
+import { Spellbook } from '../spellbook'
 import { Supplies } from '../supplies/Supplies'
 import { TurnChecklist } from '../turn'
 import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
+import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './mode'
+import { Identity, Notes, SocialSkills } from './components/Story'
 import './sheet.css'
 
 export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
@@ -35,30 +39,70 @@ export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: s
     )
   }
 
-  const showDeath = character.state.currentHp === 0
+  return <Sheet character={character} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} />
+}
+
+function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
+  character: Character
+  apply: Apply
+  undo: () => void
+  undoTo: (id: number) => void
+  redo?: () => void
+  log: LogEntry[]
+  onBack: () => void
+  onEdit?: () => void
+}) {
+  const [mode, setMode] = useSheetMode(character.id)
+  const layout = sheetLayout(mode, { dying: character.state.currentHp === 0 })
+  const p = { character, apply }
+  const section = (s: SheetSection) => {
+    switch (s) {
+      case 'quickcast': return <QuickCastBar key={s} {...p} />
+      case 'identity': return <Identity key={s} character={character} />
+      case 'social': return <SocialSkills key={s} character={character} />
+      case 'notes': return <Notes key={s} {...p} />
+      case 'inspiration': return <Attunement key={s} {...p} />
+      case 'hp': return <HitPoints key={s} {...p} />
+      case 'death': return <DeathSaves key={s} {...p} />
+      case 'rests': return <Rests key={s} {...p} />
+      case 'clock': return <Clock key={s} {...p} />
+      case 'exhaustion': return <Exhaustion key={s} {...p} />
+      case 'stats': return <StatsCard key={s} character={character} />
+      case 'attacks': return <Attacks key={s} character={character} />
+      case 'turn': return <TurnChecklist key={s} character={character} />
+      case 'reactions': return <ReactionReminders key={s} {...p} />
+      case 'slots': return <SpellSlots key={s} {...p} />
+      case 'spells': return <Spellbook key={s} {...p} />
+      case 'resources': return <Resources key={s} {...p} />
+      case 'supplies': return <Supplies key={s} {...p} />
+      case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
+    }
+  }
   return (
-    <div className="ff-sheet">
+    <div className={`ff-sheet mode-${mode}`}>
       <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} />
-      <QuickCastBar character={character} apply={apply} />
+      <ModeSwitch mode={mode} onChange={setMode} />
+      {layout.top.map(section)}
       <div className="sheet-grid">
-        <div className="col">
-          <HitPoints character={character} apply={apply} />
-          {showDeath && <DeathSaves character={character} apply={apply} />}
-          <Rests character={character} apply={apply} />
-          <Clock character={character} apply={apply} />
-          <Exhaustion character={character} apply={apply} />
-          <Attunement character={character} apply={apply} />
-          <StatsCard character={character} />
-        </div>
-        <div className="col">
-          <TurnChecklist character={character} />
-          <ReactionReminders character={character} apply={apply} />
-          <SpellSlots character={character} apply={apply} />
-          <Resources character={character} apply={apply} />
-          <Supplies character={character} apply={apply} />
-          <History log={log} onUndo={undo} onUndoTo={undoTo} onRedo={canRedo ? redo : undefined} />
-        </div>
+        <div className="col">{layout.columns[0].map(section)}</div>
+        <div className="col">{layout.columns[1].map(section)}</div>
       </div>
+    </div>
+  )
+}
+
+function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMode) => void }) {
+  const { t } = useI18n()
+  return (
+    <div className="mode-switch-row">
+      <div className="mode-switch" role="group" aria-label={t('sheet.mode')}>
+        {(['story', 'combat'] as const).map(m => (
+          <button key={m} type="button" className={`mode-btn${mode === m ? ' on' : ''}`} aria-pressed={mode === m} onClick={() => onChange(m)}>
+            <span aria-hidden="true">{m === 'story' ? '📜' : '⚔️'}</span> {t(`sheet.mode.${m}`)}
+          </button>
+        ))}
+      </div>
+      <span className="hint">{t(mode === 'story' ? 'sheet.mode.storyHint' : 'sheet.mode.combatHint')}</span>
     </div>
   )
 }
@@ -77,7 +121,7 @@ function Header({ character, apply, onBack, onEdit }: { character: Character; ap
         <h1>{character.name}</h1>
         <p>{classes}</p>
       </div>
-      {onEdit && <button type="button" className="btn ghost small" onClick={onEdit}>{t('sheet.edit')}</button>}
+      {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
       <dl className="quick-stats">
         <div><dt>{t('stat.ac')}</dt><dd><ShowMath character={character} stat="ac">{stats.armorClass.value}</ShowMath></dd></div>
         <div><dt>{t('stat.init')}</dt><dd><ShowMath character={character} stat="initiative">{formatMod(stats.initiative)}</ShowMath></dd></div>

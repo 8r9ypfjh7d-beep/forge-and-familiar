@@ -76,7 +76,6 @@
 .tm-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .tm-damage { background: var(--bad); border-color: var(--bad); color: var(--panel); }
 .tm-heal { background: var(--good); border-color: var(--good); color: var(--panel); }
-.tm-crit { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 
 /* Short phones: tighten the keypad so the info area keeps some room. */
 @media (max-height: 700px) {

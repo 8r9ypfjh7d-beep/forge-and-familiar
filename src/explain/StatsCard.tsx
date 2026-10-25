@@ -2,7 +2,7 @@ import type { Character } from '../model/character'
 import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod } from '../rules'
 import { ShowMath } from './ShowMath'
 
-/** Abilities, saves, skills, attacks and spellcasting. Every number opens its breakdown. */
+/** Abilities, saves, skills and spellcasting (attacks have their own card). Every number opens its breakdown. */
 export function StatsCard({ character }: { character: Character }) {
   const d = derive(character)
   const m = (stat: Parameters<typeof ShowMath>[0]['stat'], text: string | number) =>
@@ -36,21 +36,6 @@ export function StatsCard({ character }: { character: Character }) {
         </>}
         <div><dt>Carrying</dt><dd>{d.carriedWeight} / {m('carryingCapacity', d.carryingCapacity)} lb</dd></div>
       </dl>
-
-      {d.attacks.length > 0 && (
-        <>
-          <h3 className="sub">Attacks</h3>
-          <ul className="attack-list">
-            {d.attacks.map((atk, i) => (
-              <li key={atk.name}>
-                <span className="name">{atk.name}</span>
-                <span>{m(`attack:${i}`, formatMod(atk.bonus))} to hit</span>
-                <span className="dmg">{atk.damage} {atk.damageType}</span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
 
       <details className="skills">
         <summary>Skills</summary>
