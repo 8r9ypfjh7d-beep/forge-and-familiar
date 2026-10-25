@@ -337,6 +337,21 @@ const messages: Messages = {
   'levels.confirmDelete': 'למחוק את תמונת המצב "{label}"?',
   'levels.deleted': 'תמונת המצב נמחקה.',
   'levels.footnote': 'החזרה משחזרת גזע, רקע, מקצועות, דרגות, נק"נ, ערכי יכולות ומיומנויות. שם, הערות, תמונה, ציוד ומטבעות נשארים כמו עכשיו.',
+  'rulesqa.title': 'שאלות על החוקים',
+  'rulesqa.intro': 'שאלו במילים שלכם. התשובות מצוטטות ישירות מטקסט החוקים של SRD 5.1, עם הסעיף שממנו הן לקוחות.',
+  'rulesqa.englishOnly': 'טקסט החוקים באנגלית בלבד, לכן יש לשאול באנגלית.',
+  'rulesqa.question': 'שאלה על החוקים',
+  'rulesqa.placeholder': 'למשל: Can I move after I attack?',
+  'rulesqa.ask': 'שאלה',
+  'rulesqa.examples': 'שאלות לדוגמה',
+  'rulesqa.notCovered': 'ה-SRD לא מכסה את זה.',
+  'rulesqa.notCoveredHint': 'נסו מילים אחרות, או את שם הפעולה, המצב או החוק (באנגלית).',
+  'rulesqa.flanking': 'איגוף (Flanking) הוא חוק רשות ממדריך שליט המבוך ואינו חלק מה-SRD.',
+  'rulesqa.weak': 'אין סעיף שעונה על זה ישירות. זו ההתאמה הקרובה ביותר, כדאי לבדוק שהיא מתאימה.',
+  'rulesqa.readFull': 'קריאת הסעיף המלא',
+  'rulesqa.hideFull': 'הסתרת הסעיף המלא',
+  'rulesqa.backToBest': 'חזרה לתשובה הטובה ביותר',
+  'rulesqa.related': 'רלוונטי גם',
 }
 
 const terms: Terms = {

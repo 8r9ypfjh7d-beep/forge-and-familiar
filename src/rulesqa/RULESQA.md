@@ -29,3 +29,7 @@ Ask a rules question in plain words and get the answer quoted from the SRD 5.1, 
 - **A question gets the wrong section**: add a case to `rulesqa.test.ts`, then add a synonym or adjust the weights in `search.ts`.
 - **Refresh the SRD text**: `node src/rulesqa/data/build.mjs` (needs network).
 - **Licence**: the SRD 5.1 is CC-BY-4.0. Keep `corpus.source` visible on the screen.
+
+## Translations
+
+UI strings are `rulesqa.*` keys in `src/i18n/locales`. The SRD text, example questions and breadcrumbs stay English and are marked `lang="en" dir="ltr"`; the Hebrew screen tells people to ask in English because the search only matches English words.
