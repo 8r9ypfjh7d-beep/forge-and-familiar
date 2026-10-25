@@ -1,10 +1,10 @@
 // The sheet's quick-cast bar: one tap to attack, cast a pinned spell (spending the slot) or use a resource.
 // Rolls go to the shared dice history; slot and resource spending goes through apply, so Undo works.
 import { useState } from 'react'
-import { critNotation, isValidNotation, roll, rollAttack, rollDamage, type RollResult } from '../dice'
+import { critNotation, isValidNotation, roll, rollAttack, rollAttackWithDamage, type RollResult } from '../dice'
 import { useDice } from '../dice/ui'
 import type { Character } from '../model/character'
-import { derive, formatMod, getResources, type DerivedStats } from '../rules'
+import { derive, formatMod, getCritRange, getResources, type DerivedStats } from '../rules'
 import { ABILITIES, type Ability } from '../rules/types'
 import type { Apply } from '../sheet/types'
 import { SPELL_PRESETS } from './presets'
@@ -47,9 +47,9 @@ export function QuickCastBar({ character, apply }: { character: Character; apply
   const attack = (name: string) => {
     const a = stats.attacks.find(x => x.name === name)
     if (!a) return
-    const hit = record(rollAttack(a, { character: who }))
-    const dmg = record(rollDamage(a, { character: who, crit: hit.d20?.crit }))
-    setOutcome({ title: a.name, note: a.notes.join(' · ') || undefined, rolls: [hit, dmg] })
+    const out = rollAttackWithDamage(a, { character: who, critRange: getCritRange(character) })
+    const rolls = [record(out.attack), ...(out.damage ? [record(out.damage)] : [])]
+    setOutcome({ title: a.name, note: a.notes.join(' · ') || undefined, rolls })
   }
 
   const cast = (spell: SpellEntry, choice?: SlotChoice) => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createCharacter, derive, type CharacterDraft } from '../rules'
 import {
-  critNotation, DiceNotationError, parseNotation, roll, rollAttack, rollD20, rollDamage, rollDeathSave,
+  critNotation, DiceNotationError, parseNotation, roll, rollAttack, rollD20, rollAttackWithDamage, rollDamage, rollDeathSave,
   rollHitDie, rollSave, rollSkill, RollHistory, type HistoryStorage, type RollResult, type Rng,
 } from './index'
 
@@ -167,5 +167,34 @@ describe('history', () => {
     expect(h.forCharacter('x')).toEqual([b])
     expect(calls).toBe(3)
     expect(new RollHistory(2, storage).all()).toHaveLength(2)
+  })
+})
+
+describe('one-tap attack', () => {
+  const sword = { name: 'Longsword', bonus: 5, damage: '1d8+3', damageType: 'slashing', versatile: '1d10+3' }
+
+  it('rolls to hit and damage together', () => {
+    const { attack, damage } = rollAttackWithDamage(sword, { rng: seq(12, 6) })
+    expect(attack.total).toBe(17)
+    expect(damage).toMatchObject({ notation: '1d8+3', total: 9, label: 'Longsword slashing' })
+  })
+
+  it('adds riders and two-handed damage, and doubles every die on a crit', () => {
+    const riders = [{ name: 'Rage', damage: '+2' }, { name: 'Sneak Attack', damage: '2d6' }]
+    const { damage } = rollAttackWithDamage(sword, { twoHanded: true, riders, rng: seq(20, 1) })
+    expect(damage?.notation).toBe('2d10+3+2+4d6')
+    expect(damage?.total).toBe(6 + 3 + 2) // six dice showing 1
+    expect(damage?.label).toBe('Longsword slashing + Rage, Sneak Attack (crit)')
+  })
+
+  it('crits on 19 with a wider crit range and skips damage on a natural 1', () => {
+    expect(rollAttackWithDamage(sword, { critRange: 19, rng: seq(19, 1) }).damage?.notation).toBe('2d8+3')
+    expect(rollAttackWithDamage(sword, { rng: seq(1) }).damage).toBeUndefined()
+  })
+
+  it('applies the character\'s conditions to the attack', () => {
+    const c = fighter()
+    c.state.conditions = ['poisoned']
+    expect(rollAttackWithDamage(sword, { character: c, rng: seq(15, 4, 3) }).attack.d20?.mode).toBe('disadvantage')
   })
 })

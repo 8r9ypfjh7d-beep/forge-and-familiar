@@ -5,6 +5,7 @@ import type { Character } from '../model/character'
 import { QuickCastBar } from '../quickcast'
 import { derive, formatMod } from '../rules'
 import { ReactionReminders } from '../reactions'
+import { Attacks } from './components/Attacks'
 import { Attunement } from './components/Attunement'
 import { DEFAULT_THEME_ID, ThemePicker, useCharacterTheme } from '../themes'
 import { Clock } from './components/Clock'
@@ -65,6 +66,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack }: {
       case 'clock': return <Clock key={s} {...p} />
       case 'exhaustion': return <Exhaustion key={s} {...p} />
       case 'stats': return <StatsCard key={s} character={character} />
+      case 'attacks': return <Attacks key={s} character={character} />
       case 'turn': return <TurnChecklist key={s} character={character} />
       case 'reactions': return <ReactionReminders key={s} {...p} />
       case 'slots': return <SpellSlots key={s} {...p} />

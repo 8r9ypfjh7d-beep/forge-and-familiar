@@ -167,6 +167,24 @@ form.inline input { width: 84px; }
 form.inline.clock-custom input { width: 140px; }
 .add-counter .hint { grid-column: 1 / -1; }
 
+/* Attacks: one tap rolls to-hit and damage */
+.attacks .segmented { margin-bottom: 8px; }
+.attacks .riders { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0; }
+.attacks .rider { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: .875rem; }
+.attack-rows { list-style: none; margin: 0; padding: 0; }
+.attack-rows li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 4px 0; border-bottom: 1px solid var(--s-line); }
+.attack-roll {
+  flex: 1 1 200px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-height: 44px;
+  padding: 6px 12px; border: 1px solid var(--s-line); border-radius: 8px; background: transparent;
+  color: var(--s-ink); font: inherit; text-align: start; cursor: pointer;
+}
+.attack-roll:hover { border-color: var(--s-accent); }
+.attack-roll:active { transform: scale(.98); }
+.attack-roll .name { font-weight: 600; flex: 1 1 100px; }
+.attack-roll .dmg { color: var(--s-muted); }
+.attack-result { display: grid; gap: 6px; margin-top: 10px; }
+.attack-rows li .rider { flex-basis: 100%; min-height: 28px; padding-inline-start: 12px; }
+
 /* Story / combat mode switch */
 .mode-switch-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: -4px 0 16px; }
 .mode-switch-row .hint { margin: 0; }

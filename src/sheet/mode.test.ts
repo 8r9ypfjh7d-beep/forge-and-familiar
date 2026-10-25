@@ -34,7 +34,7 @@ describe('sheet modes', () => {
       for (const dying of [false, true]) {
         const s = all(mode, dying)
         expect(new Set(s).size).toBe(s.length)
-        for (const need of ['hp', 'rests', 'stats', 'slots', 'resources', 'history'] as const) expect(s).toContain(need)
+        for (const need of ['hp', 'rests', 'stats', 'attacks', 'slots', 'resources', 'history'] as const) expect(s).toContain(need)
       }
     }
   })

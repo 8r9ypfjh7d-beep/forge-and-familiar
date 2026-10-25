@@ -1,5 +1,5 @@
 import type { Character, HitDie } from '../model/character'
-import { roll, rollDeathSave, rollHitDie, type RollResult } from '../dice'
+import { roll, rollAttackWithDamage, rollDeathSave, rollHitDie, type AttackOutcome, type RollResult } from '../dice'
 import { useDice } from '../dice/ui'
 
 const noRecord = (r: RollResult) => r
@@ -24,6 +24,13 @@ export function useSheetRolls(c: Character) {
     },
     deathSave(): number {
       return record(rollDeathSave({ character })).d20?.natural ?? 10
+    },
+    /** One tap on an attack: to-hit and damage, both saved to the history. */
+    attack(...[a, opts]: Parameters<typeof rollAttackWithDamage>): AttackOutcome {
+      const out = rollAttackWithDamage(a, { ...opts, character })
+      record(out.attack)
+      if (out.damage) record(out.damage)
+      return out
     },
     /** Any notation, e.g. a wand's "1d6+1" charges at dawn. Returns 0 if the notation is invalid. */
     total(notation: string, label: string): number {

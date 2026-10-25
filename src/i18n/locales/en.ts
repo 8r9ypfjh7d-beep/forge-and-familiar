@@ -623,6 +623,19 @@ export const en = {
   'clock.log.dawns': '; {n} dawns',
   'sheet.tracker.preset': 'SRD item with daily charges (optional)',
   'sheet.tracker.presetPick': 'Pick a wand, staff or ring…',
+  'sheet.attacks.title': 'Attacks',
+  'sheet.attacks.hint': 'Tap to roll to-hit and damage',
+  'sheet.attacks.mode': 'Advantage for this attack',
+  'sheet.attacks.ownAdv': 'Your conditions give you advantage on attacks.',
+  'sheet.attacks.ownDis': 'Your conditions give you disadvantage on attacks.',
+  'sheet.attacks.critRange': 'Critical hit on {n}–20',
+  'sheet.attacks.raging': 'Raging ({damage} damage)',
+  'sheet.attacks.sneak': '{name} ({damage}, once per turn)',
+  'sheet.attacks.toHit': '{bonus} to hit',
+  'sheet.attacks.rollLabel': 'Roll {name}: {bonus} to hit, {damage} damage',
+  'sheet.attacks.math': 'Math',
+  'sheet.attacks.twoHanded': 'Two-handed',
+  'sheet.attacks.miss': 'Natural 1: an automatic miss, no damage.',
 } as const
 
 export type MessageKey = keyof typeof en

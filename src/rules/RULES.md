@@ -12,6 +12,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `derive.ts` | `derive()` and helpers: HP, hit dice, AC, attacks, saves, skills, slots, resources, speed |
 | `factory.ts` | `createCharacter(draft)`, `freshState(maxHp)`, starting kit |
 | `rollMode.ts` | Advantage/disadvantage from own conditions and exhaustion |
+| `attackRiders.ts` | `getDamageRiders` (Rage, Sneak Attack) and `getCritRange` (Champion) for one-tap attacks |
 | `choices.ts` | ASI slots and feats, languages, tools, starting-gear choices (`classKit`) |
 | `multiclass.ts` | Prerequisites, multiclass proficiencies, caster level breakdown, per-class spell DCs, multiclass warnings |
 | `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one per class), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (languages, tools), items |
@@ -21,7 +22,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 
 - HP: max hit die at level 1, fixed average after, + CON per level, Hill Dwarf +1/level. Exhaustion 4 halves max (`maxHp` vs `baseMaxHp`).
 - AC: armor + capped DEX, shield +2, Barbarian/Monk unarmored defense (Monk loses it with a shield).
-- Attacks: finesse uses better of STR/DEX, ranged uses DEX, Monk martial arts, proficiency from class and race.
+- Attacks: finesse uses better of STR/DEX, ranged uses DEX, Monk martial arts, proficiency from class and race. Each attack carries `versatile` (two-handed damage) and `properties`. Riders: Rage +2/+3/+4 on STR melee, Sneak Attack ⌈rogue level ÷ 2⌉d6 on finesse or ranged (the player toggles them). Champion crits on 19 (level 3) or 18 (level 15).
 - Slots: full/half caster tables (single half caster rounds up from level 2), multiclass caster level, Warlock pact slots.
 - Resources: per-class maxima by level; `recharge` resolved for level (e.g. Bardic Inspiration short rest from 5).
 - Speed: heavy armor STR requirement, Monk/Barbarian movement, exhaustion 2 and 5.
