@@ -4,6 +4,7 @@ import { useI18n } from '../i18n'
 import type { Character, UserProfile } from '../model/character'
 import { derive, formatMod } from '../rules'
 import { HandoutBadge, Handouts } from '../handouts'
+import { SessionScheduler } from '../schedule'
 import { vitals } from '../sheet/engine'
 import { getCharacter, listCharacters, listProfiles, onCharactersChanged } from '../storage'
 import { formatCode } from './code'
@@ -169,6 +170,8 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
         </select>
         <button className="btn ghost small" onClick={() => confirm(t('party.confirmLeave', { name: party.name })) && leaveParty(party.id, userId)}>{t('party.leave')}</button>
       </div>
+
+      <SessionScheduler party={party} userId={userId} nameOf={nameOf} />
 
       <div className="member-grid">
         {party.members.map(m => (

@@ -1,0 +1,51 @@
+/* Session scheduler, scoped to .ff-schedule. Uses the app tokens from index.css. */
+.ff-schedule { --maybe: #a8700f; margin-bottom: 16px; padding: 14px; }
+@media (prefers-color-scheme: dark) { .ff-schedule { --maybe: #e0b45a; } }
+
+.ff-schedule p { margin: 6px 0 0; }
+.ff-schedule .sched-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ff-schedule .sched-head h3 { margin: 0; }
+.ff-schedule .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.ff-schedule.locked .when { font-family: Georgia, 'Iowan Old Style', serif; font-size: 1.35rem; font-weight: 700; color: var(--accent); margin-bottom: 2px; }
+.ff-schedule.locked > .btn { margin-top: 10px; }
+.ff-schedule.soon { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.ff-schedule .sched-scroll { overflow-x: auto; margin: 10px -4px 0; padding: 0 4px; }
+.ff-schedule .sched-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.ff-schedule .sched-table th, .ff-schedule .sched-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.ff-schedule .sched-table thead th { font-size: 0.75rem; font-weight: 600; color: var(--muted); max-width: 9em; overflow: hidden; text-overflow: ellipsis; }
+.ff-schedule .sched-table thead th.me { color: var(--accent); }
+.ff-schedule .sched-table tbody th { text-align: start; font-weight: 600; }
+.ff-schedule .sched-table tr.best th[scope=row]::before { content: '★ '; color: var(--accent); }
+.ff-schedule .sched-table tr.best { background: var(--accent-soft); }
+.ff-schedule .sched-table tr.past { opacity: 0.55; }
+.ff-schedule .sched-table td.acts { text-align: end; }
+.ff-schedule .sched-table td.acts .btn { margin-inline-start: 4px; }
+
+.ff-schedule .ans { font-weight: 700; }
+.ff-schedule .yes { color: var(--good); }
+.ff-schedule .maybe { color: var(--maybe); }
+.ff-schedule .no { color: var(--bad); }
+.ff-schedule .none { color: var(--muted); }
+.ff-schedule .ans-btn {
+  font: inherit; font-weight: 700; width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel);
+}
+.ff-schedule .ans-btn.yes { border-color: var(--good); }
+.ff-schedule .ans-btn.maybe { border-color: var(--maybe); }
+.ff-schedule .ans-btn.no { border-color: var(--bad); }
+.ff-schedule .ans-btn:disabled { cursor: not-allowed; }
+
+.ff-schedule .propose { margin-top: 12px; }
+.ff-schedule .propose input { flex: 1; min-width: 0; max-width: 260px; }
+
+/* Phones: drop the other players' columns; the Free count still sums them up. */
+@media (max-width: 560px) {
+  .ff-schedule .sched-table .other { display: none; }
+  .ff-schedule .sched-table tbody th { white-space: normal; }
+  .ff-schedule .propose input { max-width: none; flex-basis: 100%; }
+}
+
+/* "3/4" reads left to right in Hebrew too. */
+.ff-schedule .sched-table td.count { direction: ltr; unicode-bidi: isolate; }
