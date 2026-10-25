@@ -160,3 +160,9 @@ form.inline input { width: 84px; }
 .attune-add input { flex: 1; min-width: 0; }
 .add-counter .wide { grid-column: 1 / -1; }
 .ff-sheet .btn.dawn { margin-top: 12px; }
+
+/* In-game clock */
+.clock-now { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1.25rem; }
+.clock-custom { margin-top: 8px; }
+form.inline.clock-custom input { width: 140px; }
+.add-counter .hint { grid-column: 1 / -1; }

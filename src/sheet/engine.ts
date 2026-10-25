@@ -4,6 +4,7 @@
 import type { Character, CharacterState, HitDie } from '../model/character'
 import type { RestType } from '../rules/types'
 import { abilityMod, getAbilityScores, getEffectiveMaxHp, getHitDice, getResources, getSpellSlots } from '../rules'
+import { dawnsBetween, DEFAULT_START } from './clock'
 
 
 export type Counter = NonNullable<CharacterState['counters']>[number]
@@ -258,4 +259,28 @@ export function longRest(c: Character): Character {
   const exhaustion = Math.max(0, state.exhaustion - 1)
   const rested: Character = { ...c, state: { ...state, hitDiceSpent, exhaustion, tempHp: 0, deathSaves: NO_SAVES, spellSlotsUsed: state.spellSlotsUsed.map(() => 0) } }
   return withState(rested, { currentHp: effectiveMaxHp(rested) })
+}
+
+// ---- In-game time ----
+
+export function clockOf(c: Character): number {
+  return c.state.clock ?? DEFAULT_START
+}
+
+/**
+ * Moves the clock forward. Every 06:00 passed is a dawn(); `rolledPerDawn[i]`
+ * holds the regain dice for the i-th dawn (missing means nothing rolled).
+ */
+export function advanceTime(c: Character, minutes: number, rolledPerDawn: Record<string, number>[] = []): Character {
+  if (minutes <= 0) return c
+  const from = clockOf(c)
+  const to = from + Math.round(minutes)
+  let next = withState(c, { clock: to })
+  for (let i = 0; i < dawnsBetween(from, to); i++) next = dawn(next, rolledPerDawn[i])
+  return next
+}
+
+/** Sets the clock directly (start of a campaign, a DM correction). Never triggers dawn. */
+export function setClock(c: Character, t: number): Character {
+  return withState(c, { clock: Math.max(0, Math.round(t)) })
 }

@@ -7,6 +7,7 @@ import { derive, formatMod } from '../rules'
 import { ReactionReminders } from '../reactions'
 import { Attunement } from './components/Attunement'
 import { DEFAULT_THEME_ID, ThemePicker, useCharacterTheme } from '../themes'
+import { Clock } from './components/Clock'
 import { DeathSaves } from './components/DeathSaves'
 import { Exhaustion } from './components/Exhaustion'
 import { HitPoints } from './components/HitPoints'
@@ -44,6 +45,7 @@ export function CharacterSheet({ characterId, onBack }: { characterId: string; o
           <HitPoints character={character} apply={apply} />
           {showDeath && <DeathSaves character={character} apply={apply} />}
           <Rests character={character} apply={apply} />
+          <Clock character={character} apply={apply} />
           <Exhaustion character={character} apply={apply} />
           <Attunement character={character} apply={apply} />
           <StatsCard character={character} />

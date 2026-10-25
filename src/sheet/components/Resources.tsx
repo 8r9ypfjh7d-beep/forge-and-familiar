@@ -3,6 +3,7 @@ import { isValidNotation } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
 import { getResources } from '../../rules'
+import { DAWN_ITEMS } from '../../rules/data/dawnItems'
 import { dawn, dawnCounters, removeCounter, setResourceUsed, upsertCounter, type Counter } from '../engine'
 import { useSheetRolls } from '../dice'
 import type { Apply } from '../types'
@@ -84,8 +85,20 @@ function AddCounter({ onAdd }: { onAdd: (k: Counter) => void }) {
     setLabel(''); setMax('20'); setRecharge('none'); setRegain(''); setOpen(false)
   }
 
+  const preset = (id: string) => {
+    const item = DAWN_ITEMS.find(i => i.id === id)
+    if (!item) return
+    setLabel(item.name); setMax(String(item.charges)); setRecharge('dawn'); setRegain(item.regain ?? '')
+  }
+
   return (
     <form className="add-counter" onSubmit={submit}>
+      <label className="wide">{t('sheet.tracker.preset')}
+        <select value="" onChange={e => preset(e.target.value)}>
+          <option value="">{t('sheet.tracker.presetPick')}</option>
+          {DAWN_ITEMS.map(i => <option key={i.id} value={i.id}>{i.name} ({i.charges}{i.regain ? `, +${i.regain}` : ''})</option>)}
+        </select>
+      </label>
       <label>{t('sheet.tracker.name')}<input value={label} onChange={e => setLabel(e.target.value)} placeholder={t('sheet.tracker.placeholder')} autoFocus /></label>
       <label>{t('sheet.tracker.max')}<input value={max} onChange={e => setMax(e.target.value.replace(/\D/g, ''))} inputMode="numeric" /></label>
       <label>{t('sheet.tracker.recharge')}

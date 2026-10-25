@@ -8,6 +8,8 @@ import {
 } from '../rules'
 import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, type StepId } from './validate'
+import { Why } from './Why'
+import { CLASS_WHY, RACE_WHY } from './why'
 
 export interface StepProps {
   draft: CharacterDraft
@@ -39,7 +41,7 @@ function RaceStep({ draft, update }: StepProps) {
       </div>
       {race?.subraces && (
         <div className="field">
-          <label>{t('builder.subrace')}</label>
+          <label>{t('builder.subrace')} <Why id="subrace" /></label>
           <div className="row">
             {race.subraces.map(s => (
               <button key={s.id} className={`chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id })}>
@@ -51,9 +53,10 @@ function RaceStep({ draft, update }: StepProps) {
       )}
       {race && (
         <p className="small">
-          <strong>{t('builder.traits')}</strong> {[...race.traits, ...(race.subraces?.find(s => s.id === draft.subraceId)?.traits ?? [])].map(x => term('trait', x, x)).join(', ') || t('common.none')}
+          {RACE_WHY[race.id] && <><strong>Why a {race.name}?</strong> {RACE_WHY[race.id]}<br /></>}
+          <strong>{t('builder.traits')}</strong><Why id="traits" /> {[...race.traits, ...(race.subraces?.find(s => s.id === draft.subraceId)?.traits ?? [])].map(x => term('trait', x, x)).join(', ') || t('common.none')}
           <br />
-          <strong>{t('builder.languages')}</strong> {race.languages.map(x => term('language', x, x)).join(', ')}
+          <strong>{t('builder.languages')}</strong><Why id="languages" /> {race.languages.map(x => term('language', x, x)).join(', ')}
         </p>
       )}
     </>
@@ -85,7 +88,7 @@ function ClassStep({ draft, update }: StepProps) {
         ))}
       </div>
       <div className="field">
-        <label htmlFor="level">{t('builder.startLevel')}</label>
+        <label htmlFor="level">{t('builder.startLevel')} <Why id="level" /></label>
         <select
           id="level"
           value={level}
@@ -97,12 +100,13 @@ function ClassStep({ draft, update }: StepProps) {
       </div>
       {cls && (
         <p className="small">
-          <strong>{t('builder.savingThrows')}</strong> {cls.savingThrows.map(ability).join(', ')}
+          {CLASS_WHY[cls.id] && <><strong>Why a {cls.name}?</strong> {CLASS_WHY[cls.id]}<br /></>}
+          <strong>{t('builder.savingThrows')}</strong><Why id="savingThrows" /> {cls.savingThrows.map(ability).join(', ')}
           <br />
-          <strong>{t('builder.armor')}</strong> {cls.armor.length ? cls.armor.map(a => term('armor', a, a)).join(', ') : t('common.noneLower')} · <strong>{t('builder.weapons')}</strong>{' '}
+          <strong>{t('builder.armor')}</strong><Why id="proficiencies" /> {cls.armor.length ? cls.armor.map(a => term('armor', a, a)).join(', ') : t('common.noneLower')} · <strong>{t('builder.weapons')}</strong>{' '}
           {[...cls.weapons.map(w => term('weapons', w, w)), ...(cls.weaponIds ?? []).map(id => item(id, itemById(id)?.name ?? id))].join(', ') || t('common.noneLower')}
           <br />
-          <strong>{t('builder.featuresTo', { level })}</strong> {cls.features.filter(f => f.level <= level).map(f => term('feature', f.name, f.name)).join(', ')}
+          <strong>{t('builder.featuresTo', { level })}</strong><Why id="features" /> {cls.features.filter(f => f.level <= level).map(f => term('feature', f.name, f.name)).join(', ')}
         </p>
       )}
       <MulticlassPicker draft={draft} update={update} />
@@ -150,9 +154,11 @@ function AbilitiesStep({ draft, update }: StepProps) {
         {METHODS.map(m => (
           <button key={m} className={`chip ${draft.abilityMethod === m ? 'on' : ''}`} onClick={() => setMethod(m)}>{t(`builder.method.${m}`)}</button>
         ))}
+        <Why id={`method:${draft.abilityMethod}`} />
         {draft.abilityMethod === 'standard' && (
           <button className="btn ghost small" onClick={() => update({ baseAbilities: suggestedArray(draft) })}>{t('builder.suggest')}</button>
         )}
+        {draft.abilityMethod === 'standard' && <Why id="suggest" />}
       </div>
       {draft.abilityMethod === 'pointBuy' && (
         <p className={`small ${cost !== null && cost > POINT_BUY_BUDGET ? 'bad' : ''}`}>
@@ -161,7 +167,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
       )}
       <table className="ability-table">
         <thead>
-          <tr><th>{t('builder.col.ability')}</th><th>{t('builder.col.base')}</th><th>{t('builder.col.racial')}</th><th>{t('builder.col.score')}</th><th>{t('builder.col.mod')}</th>{free && <th>+1</th>}</tr>
+          <tr><th>{t('builder.col.ability')}</th><th>{t('builder.col.base')}</th><th>{t('builder.col.racial')}<Why id="racial" compact /></th><th>{t('builder.col.score')}</th><th>{t('builder.col.mod')}<Why id="modifier" compact /></th>{free && <th>+1<Why id="freeBonus" compact /></th>}</tr>
         </thead>
         <tbody>
           {ABILITIES.map(a => (
@@ -225,7 +231,7 @@ function SkillsStep({ draft, update }: StepProps) {
   return (
     <>
       <div className="field">
-        <label htmlFor="bg">{t('builder.background')}</label>
+        <label htmlFor="bg">{t('builder.background')} <Why id="background" /></label>
         <select id="bg" value={draft.backgroundId} onChange={e => update({ backgroundId: e.target.value, chosenSkills: [] })}>
           {BACKGROUNDS.map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)}
         </select>
@@ -235,6 +241,7 @@ function SkillsStep({ draft, update }: StepProps) {
         {raceCount
           ? t('builder.chosenMixed', { chosen: draft.chosenSkills.length, total, classCount, raceCount })
           : t('builder.chosenClass', { chosen: draft.chosenSkills.length, total })}
+        <Why id="skills" />
       </p>
       <div className="skill-grid">
         {ALL_SKILLS.map(s => {
@@ -263,7 +270,7 @@ function EquipmentStep({ draft }: StepProps) {
   const { t, term } = useI18n()
   return (
     <>
-      <p className="small">{t('builder.kitIntro')}</p>
+      <p className="small">{t('builder.kitIntro')} <Why id="kit" /></p>
       <ul className="kit">
         {[...counts].map(([id, n]) => {
           const item = itemById(id)
@@ -332,7 +339,7 @@ function DetailsStep({ draft, update }: StepProps) {
           <input id="player" value={draft.playerName} onChange={e => update({ playerName: e.target.value })} />
         </div>
         <div className="field">
-          <label htmlFor="align">{t('builder.alignment')}</label>
+          <label htmlFor="align">{t('builder.alignment')} <Why id="alignment" /></label>
           <select id="align" value={draft.alignment} onChange={e => update({ alignment: e.target.value })}>
             {ALIGNMENTS.map(a => <option key={a} value={a}>{term('alignment', a, a)}</option>)}
           </select>

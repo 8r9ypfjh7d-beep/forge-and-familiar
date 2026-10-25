@@ -5,6 +5,7 @@ import { createCharacter, type CharacterDraft } from '../rules'
 import { STEPS } from './steps'
 import { stepIssues } from './validate'
 import { Summary } from './Summary'
+import { Why } from './Why'
 import './builder.css'
 
 export function emptyDraft(ownerId: string): CharacterDraft {
@@ -48,6 +49,7 @@ export function Builder({ ownerId, onCreate, onCancel }: {
               key={s.id}
               className={`step ${i === step ? 'active' : ''} ${reachable && issues[i].length === 0 ? 'done' : ''}`}
               disabled={!reachable}
+              aria-current={i === step ? 'step' : undefined}
               onClick={() => setStep(i)}
             >
               <span className="step-num">{i + 1}</span> {t(`builder.step.${s.id}`)}
@@ -59,7 +61,7 @@ export function Builder({ ownerId, onCreate, onCancel }: {
       <div className="builder-body">
         <section className="panel builder-step">
           <h2>{t(`builder.step.${STEPS[step].id}`)}</h2>
-          <p className="muted">{t(`builder.step.${STEPS[step].id}.blurb`)}</p>
+          <p className="muted">{t(`builder.step.${STEPS[step].id}.blurb`)} <Why id={`step:${STEPS[step].id}`} /></p>
           <Current draft={draft} update={update} />
           {issues[step].length > 0 && (
             <ul className="issues">

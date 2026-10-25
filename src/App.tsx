@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import './a11y'
+import { AccessibilityButton, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
 import { Builder } from './builder/Builder'
 import { CoinsView } from './coins'
 import { CombatTracker } from './combat/ui/CombatTracker'
@@ -35,6 +37,15 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId())
   const [characters, setCharacters] = useState<Character[]>([])
   const [view, setView] = useState<View>({ kind: 'list' })
+  const mainRef = useFocusOnChange<HTMLElement>(JSON.stringify(view))
+  const a11yDialog = useRef<HTMLDialogElement>(null)
+  useShortcuts({
+    c: () => setView({ kind: 'list' }),
+    b: () => setView({ kind: 'build' }),
+    d: () => setView({ kind: 'dice' }),
+    p: () => setView({ kind: 'party' }),
+    a: () => a11yDialog.current?.showModal(),
+  })
   const { t } = useI18n()
 
   useEffect(() => {
@@ -67,21 +78,23 @@ export default function App() {
     <DiceProvider key={active.id} userId={active.id}>
     <SessionRecorder userId={active.id} />
     <div className="app">
+      <SkipLink />
       <header className="topbar">
         <button className="brand" onClick={() => setView({ kind: 'list' })}>Forge &amp; Familiar</button>
         <div className="row">
-          <button className={`chip ${view.kind === 'party' ? 'on' : ''}`} onClick={() => setView({ kind: 'party' })}>{t('app.party')}</button>
-          <button className={`chip ${view.kind === 'homebrew' ? 'on' : ''}`} onClick={() => setView({ kind: 'homebrew' })}>{t('app.homebrew')}</button>
-          <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
-          <button className={`chip ${view.kind === 'coins' ? 'on' : ''}`} onClick={() => setView({ kind: 'coins' })}>{t('app.coins')}</button>
-          <button className={`chip ${view.kind === 'recap' ? 'on' : ''}`} onClick={() => setView({ kind: 'recap' })}>{t('app.recap')}</button>
-          <button className={`chip ${view.kind === 'dice' ? 'on' : ''}`} onClick={() => setView({ kind: 'dice' })}>{t('app.dice')}</button>
-          <button className={`chip ${view.kind === 'rules' ? 'on' : ''}`} onClick={() => setView({ kind: 'rules' })}>{t('app.rules')}</button>
+          <button className={`chip ${view.kind === 'party' ? 'on' : ''}`} aria-current={view.kind === 'party' ? 'page' : undefined} onClick={() => setView({ kind: 'party' })}>{t('app.party')}</button>
+          <button className={`chip ${view.kind === 'homebrew' ? 'on' : ''}`} aria-current={view.kind === 'homebrew' ? 'page' : undefined} onClick={() => setView({ kind: 'homebrew' })}>{t('app.homebrew')}</button>
+          <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} aria-current={view.kind === 'combat' ? 'page' : undefined} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
+          <button className={`chip ${view.kind === 'coins' ? 'on' : ''}`} aria-current={view.kind === 'coins' ? 'page' : undefined} onClick={() => setView({ kind: 'coins' })}>{t('app.coins')}</button>
+          <button className={`chip ${view.kind === 'recap' ? 'on' : ''}`} aria-current={view.kind === 'recap' ? 'page' : undefined} onClick={() => setView({ kind: 'recap' })}>{t('app.recap')}</button>
+          <button className={`chip ${view.kind === 'dice' ? 'on' : ''}`} aria-current={view.kind === 'dice' ? 'page' : undefined} onClick={() => setView({ kind: 'dice' })}>{t('app.dice')}</button>
+          <button className={`chip ${view.kind === 'rules' ? 'on' : ''}`} aria-current={view.kind === 'rules' ? 'page' : undefined} onClick={() => setView({ kind: 'rules' })}>{t('app.rules')}</button>
           <LanguagePicker />
+          <AccessibilityButton dialogRef={a11yDialog} />
           <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
         </div>
       </header>
-      <main>
+      <main id="main" ref={mainRef} tabIndex={-1}>
         {view.kind === 'list' && (
           <CharacterList
             owner={active}
@@ -168,7 +181,7 @@ export default function App() {
             onBack={() => setView({ kind: 'list' })}
           />
         )}
-        {view.kind === 'dice' && <DiceTray showAll />}
+        {view.kind === 'dice' && <section><h2 className="a11y-sr-only">Dice roller</h2><DiceTray showAll /></section>}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'combat' && <CombatTracker key={active.id} ownerId={active.id} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
@@ -185,15 +198,15 @@ function Welcome({ onCreate }: { onCreate: (name: string) => void }) {
   const [name, setName] = useState('')
   const { t } = useI18n()
   return (
-    <div className="welcome panel">
-      <div className="row welcome-lang"><LanguagePicker /></div>
+    <main className="welcome panel">
+      <div className="row welcome-lang"><AccessibilityButton /><LanguagePicker /></div>
       <h1>Forge &amp; Familiar</h1>
       <p>{t('app.tagline')}</p>
       <form onSubmit={e => { e.preventDefault(); if (name.trim()) onCreate(name.trim()) }} className="row">
         <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder={t('app.yourName')} aria-label={t('app.yourName')} />
         <button className="btn primary" disabled={!name.trim()}>{t('app.start')}</button>
       </form>
-    </div>
+    </main>
   )
 }
 

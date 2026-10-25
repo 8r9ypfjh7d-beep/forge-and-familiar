@@ -21,3 +21,4 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
 - `state.counters` with `recharge: 'dawn'` are magic item charges; `regain` is dice notation rolled at dawn (blank refills all). Rests never touch them; `dawn()` in `sheet/engine.ts` does.
 - `state.supplies` (optional) holds ammo fired since the last battlefield search and hungry days; see `src/supplies/SUPPLIES.md`.
 - `theme` is an optional theme id from `src/themes`; leaving it out means the app default.
+- `state.clock` is in-game minutes since day 1, 00:00 (`sheet/clock.ts` formats it). `advanceTime()` runs `dawn()` once for every 06:00 it passes; `setClock()` never recharges.

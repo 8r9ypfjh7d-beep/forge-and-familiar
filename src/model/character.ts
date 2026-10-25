@@ -41,6 +41,8 @@ export interface CharacterState {
     /** Long rests in a row taken without eating. */
     daysWithoutFood?: number
   }
+  /** In-game time in minutes since 00:00 on day 1. Absent means the default start (day 1, 08:00). */
+  clock?: number
 }
 
 export const CHARACTER_SCHEMA_VERSION = 1
