@@ -84,7 +84,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
       <div className="builder-body">
         <section className="panel builder-step">
           <h2>{t(`builder.step.${STEPS[step].id}`)}</h2>
-          <p className="muted">{t(`builder.step.${STEPS[step].id}.blurb`)} <Why id={`step:${STEPS[step].id}`} /></p>
+          <p className="muted">{t(`builder.step.${STEPS[step].id}.blurb`)} <Why id={`step.${STEPS[step].id}`} /></p>
           <Current draft={draft} update={update} />
           {issues[step].length > 0 && (
             <ul className="issues">
