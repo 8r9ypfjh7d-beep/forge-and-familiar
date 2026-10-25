@@ -1,10 +1,12 @@
 import type { Character, HitDie } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
-import { backgroundById } from './data/backgrounds'
+import { featBonus, getFeats, getLanguages, getTools } from './choices'
+import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { itemById } from './data/items'
 import { NON_STACKING_RESOURCES } from './data/multiclass'
 import { raceById } from './data/races'
+import { subclassById, type SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { ABILITIES, type Abilities, type Ability, type ClassDef, type Item, type RestType, type SkillId } from './types'
@@ -15,7 +17,10 @@ type Armor = Extract<Item, { kind: 'armor' }>
 const classesOf = (c: Character) =>
   c.classes.flatMap(cl => {
     const def = classById(cl.classId)
-    return def ? [{ def, level: cl.level }] : []
+    if (!def) return []
+    const sub = cl.subclassId ? subclassById(cl.subclassId) : undefined
+    const subclass: SubclassDef | undefined = sub?.classId === cl.classId && cl.level >= def.subclassLevel ? sub : undefined
+    return [{ def, level: cl.level, subclass }]
   })
 
 export const totalLevel = (c: Character) => c.classes.reduce((n, cl) => n + cl.level, 0)
@@ -28,14 +33,14 @@ export const proficiencyBonus = (level: number) => 2 + Math.floor((Math.max(1, l
 export function getMaxHp(c: Character): number {
   const con = getAbilityMods(getAbilityScores(c)).con
   const race = raceById(c.raceId)
-  const perLevelBonus = race?.subraces?.find(s => s.id === c.subraceId)?.hpPerLevel ?? 0
+  const perLevelBonus = (race?.hpPerLevel ?? 0) + (race?.subraces?.find(s => s.id === c.subraceId)?.hpPerLevel ?? 0) + featBonus(c, 'hpPerLevel')
   let hp = 0
   let first = true
-  for (const { def, level } of classesOf(c)) {
+  for (const { def, level, subclass } of classesOf(c)) {
     for (let i = 0; i < level; i++) {
       const roll = first ? def.hitDie : def.hitDie / 2 + 1
       first = false
-      hp += Math.max(1, roll + con) + perLevelBonus
+      hp += Math.max(1, roll + con) + perLevelBonus + (subclass?.hpPerLevel ?? 0)
     }
   }
   return Math.max(1, hp)
@@ -153,6 +158,17 @@ export function getArmorClass(c: Character): { value: number; source: string } {
         source = `Unarmored Defense (${def.name})`
       }
     }
+    for (const { subclass } of classesOf(c)) {
+      if (subclass?.unarmoredBase && subclass.unarmoredBase + mods.dex > value) {
+        value = subclass.unarmoredBase + mods.dex
+        source = subclass.name
+      }
+    }
+  }
+  const featAc = featBonus(c, 'ac')
+  if (featAc) {
+    value += featAc
+    source += ' + feats'
   }
   if (shield) {
     value += shield.baseAc
@@ -248,14 +264,18 @@ export interface DerivedStats {
   features: { level: number; name: string; className: string }[]
   traits: string[]
   languages: string[]
+  tools: string[]
+  /** Names of feats taken instead of an Ability Score Improvement. */
+  feats: string[]
   warnings: string[]
 }
 
-/** All proficient skills: chosen + race + background. */
+/** All proficient skills: chosen + race + background + feats. */
 export function getSkillProficiencies(c: Character): Set<SkillId> {
   const race = raceById(c.raceId)
-  const bg = backgroundById(c.backgroundId)
-  return new Set([...c.chosenSkills, ...(race?.skillProficiencies ?? []), ...(bg?.skillProficiencies ?? [])])
+  const bg = getBackground(c)
+  const fromFeats = getFeats(c).flatMap(f => f.effects.flatMap(e => (e.kind === 'skill' ? [e.skill] : [])))
+  return new Set([...c.chosenSkills, ...(race?.skillProficiencies ?? []), ...(bg?.skillProficiencies ?? []), ...fromFeats])
 }
 
 const MONK_MOVEMENT: [number, number][] = [[18, 30], [14, 25], [10, 20], [6, 15], [2, 10]]
@@ -289,7 +309,7 @@ export function derive(c: Character): DerivedStats {
   }
 
   const { armor, shield } = getEquippedArmor(c)
-  let speed = race?.speed ?? 30
+  let speed = (race?.speed ?? 30) + featBonus(c, 'speed')
   if (armor?.category === 'heavy' && armor.strengthReq && abilities.str < armor.strengthReq) {
     speed -= 10
     warnings.push(`${armor.name} needs STR ${armor.strengthReq}: speed −10 ft.`)
@@ -320,7 +340,7 @@ export function derive(c: Character): DerivedStats {
     saves,
     skills,
     passivePerception: 10 + skills.perception.bonus,
-    initiative: mods.dex + jackOfAllTrades,
+    initiative: mods.dex + jackOfAllTrades + featBonus(c, 'initiative'),
     speed,
     armorClass: getArmorClass(c),
     maxHp: getEffectiveMaxHp(c),
@@ -334,11 +354,17 @@ export function derive(c: Character): DerivedStats {
     attacks: getAttacks(c),
     carryingCapacity,
     carriedWeight: Math.round(carriedWeight * 100) / 100,
-    features: classes.flatMap(({ def, level: l }) =>
-      def.features.filter(f => f.level <= l).map(f => ({ ...f, className: def.name })),
+    features: classes.flatMap(({ def, level: l, subclass }) =>
+      [...def.features, ...(subclass?.features ?? [])].filter(f => f.level <= l).sort((a, b) => a.level - b.level).map(f => ({ ...f, className: def.name })),
     ),
-    traits: [...(race?.traits ?? []), ...(subrace?.traits ?? [])],
-    languages: race?.languages ?? [],
+    traits: [...(race?.traits ?? []), ...(subrace?.traits ?? [])].map(t => {
+      const choice = race?.traitChoice
+      const picked = choice?.name === t ? choice.options.find(o => o.id === c.traitChoices?.[choice.id]) : undefined
+      return picked ? `${t} (${picked.name}: ${picked.detail})` : t
+    }),
+    languages: getLanguages(c),
+    tools: getTools(c),
+    feats: getFeats(c).map(f => f.name),
     warnings,
   }
 }

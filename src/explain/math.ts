@@ -3,7 +3,7 @@
 // total), and explain.test.ts checks each total against derive() so the two never drift.
 import type { Character } from '../model/character'
 import {
-  ABILITY_NAMES, SKILLS, abilityMod, backgroundById, classById, derive, getAbilityMods, getAbilityScores,
+  ABILITY_NAMES, SKILLS, abilityMod, getBackground, classById, derive, getAbilityMods, getAbilityScores,
   getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, totalLevel,
   type Ability, type ClassDef, type SkillId,
 } from '../rules'
@@ -80,7 +80,7 @@ function save(c: Character, a: Ability): StatMath {
 
 function skillSources(c: Character, s: SkillId): string[] {
   const race = raceById(c.raceId)
-  const bg = backgroundById(c.backgroundId)
+  const bg = getBackground(c)
   const out: string[] = []
   if (c.chosenSkills.includes(s)) out.push('your choice')
   if (race?.skillProficiencies?.includes(s)) out.push(race.name)

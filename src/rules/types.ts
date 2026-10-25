@@ -28,6 +28,10 @@ export interface Subrace {
   traits: string[]
   /** Extra max HP per character level (Hill Dwarf). */
   hpPerLevel?: number
+  /** Extra languages of the player's choice (High Elf). */
+  languageChoices?: number
+  /** Set on homebrew subraces: the race they belong to. */
+  parentRaceId?: string
 }
 
 export interface Race {
@@ -41,8 +45,17 @@ export interface Race {
   skillProficiencies?: SkillId[]
   /** Number of skills of the player's choice (Half-Elf). */
   freeSkillChoices?: number
+  /** Languages every member knows. Choices are counted in languageChoices. */
   languages: string[]
+  /** Extra languages of the player's choice (Human, Half-Elf). */
+  languageChoices?: number
+  /** Tool proficiency picks (Dwarf: one artisan's tool from a short list). */
+  toolChoices?: { count: number; from: string[] }
+  /** A trait with named options the player picks from (Dragonborn ancestry). */
+  traitChoice?: { id: string; name: string; options: { id: string; name: string; detail: string }[] }
   traits: string[]
+  /** Extra max HP per character level (homebrew races; SRD puts this on Hill Dwarf). */
+  hpPerLevel?: number
   subraces?: Subrace[]
 }
 
@@ -79,15 +92,61 @@ export interface ClassDef {
   /** Monk/Barbarian style unarmored AC: 10 + DEX + this ability. */
   unarmoredDefense?: Ability
   resources: ResourceDef[]
-  /** Item ids granted by the builder (one SRD starting-equipment option). */
+  /** Item ids always granted by the builder. */
   startingEquipment: string[]
+  /** SRD "(a) or (b)" starting equipment choices; each option adds its items. */
+  equipmentChoices?: EquipmentChoice[]
+  /** Tools the class is always proficient with. */
+  toolProficiencies?: string[]
+  /** Tool proficiency picks (Bard instruments, Monk tool or instrument). */
+  toolChoices?: { count: number; from: string[] }
+  /** Class level at which the subclass is chosen. */
+  subclassLevel: number
+  /** What the class calls its subclass, e.g. "Divine Domain". */
+  subclassTitle: string
+  /** Class levels with an Ability Score Improvement (or a feat). */
+  asiLevels: number[]
   features: { level: number; name: string }[]
+}
+
+/** One starting-equipment choice. An option lists item ids; `any:<filter>` asks the player for one item. */
+export interface EquipmentChoice {
+  options: { items: string[] }[]
+}
+
+export interface Subclass {
+  id: string
+  classId: string
+  name: string
+  features: { level: number; name: string }[]
+}
+
+/** Effects a feat applies to the sheet. Shared with homebrew feats. */
+export type FeatEffect =
+  | { kind: 'ability'; ability: Ability; amount: number }
+  | { kind: 'skill'; skill: SkillId }
+  | { kind: 'hpPerLevel'; amount: number }
+  | { kind: 'speed'; amount: number }
+  | { kind: 'initiative'; amount: number }
+  | { kind: 'ac'; amount: number }
+
+export interface Feat {
+  id: string
+  name: string
+  prerequisite?: string
+  description: string
+  effects: FeatEffect[]
 }
 
 export interface Background {
   id: string
   name: string
   skillProficiencies: SkillId[]
+  toolProficiencies?: string[]
+  /** Fixed languages the background teaches. */
+  languages?: string[]
+  /** Extra languages of the player's choice. */
+  languageChoices?: number
   feature: string
   equipment: string[]
 }

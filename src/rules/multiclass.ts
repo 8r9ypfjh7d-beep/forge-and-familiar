@@ -1,6 +1,7 @@
 import type { Character } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
 import { classById } from './data/classes'
+import { subclassById } from './data/subclasses'
 import {
   MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES, NON_STACKING_FEATURES, NON_STACKING_RESOURCES, type MulticlassPrereq,
 } from './data/multiclass'
@@ -63,6 +64,10 @@ export function getProficiencies(c: Pick<Character, 'classes'>) {
     grant.weapons.forEach(w => weapons.add(w))
     grant.weaponIds?.forEach(id => weaponIds.add(id))
   })
+  for (const cl of c.classes) {
+    const sub = cl.subclassId ? subclassById(cl.subclassId) : undefined
+    if (sub?.classId === cl.classId && cl.level >= (classById(cl.classId)?.subclassLevel ?? 99)) sub.armor?.forEach(a => armor.add(a))
+  }
   return { armor, weapons, weaponIds }
 }
 

@@ -149,7 +149,7 @@ function PageOne({ s }: { s: Sheet }) {
           <Box title="Racial traits">
             <List items={s.traits} empty="None" />
           </Box>
-          <Box title="Languages">
+          <Box title="Languages and tools">
             <p>{s.languages.join(', ') || '—'}</p>
           </Box>
           {s.warnings.length > 0 && (

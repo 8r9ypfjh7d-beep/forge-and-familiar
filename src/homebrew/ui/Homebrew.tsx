@@ -2,12 +2,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChangeHistory, deleteHistory, historyForSharing, importHistory, recordRevision, type RestoreMeta } from '../../history'
 import type { Character, UserProfile } from '../../model/character'
-import { classById } from '../../rules'
+import { classById, raceById } from '../../rules'
 import { listCharacters, saveCharacter } from '../../storage'
-import { decodePack, describeEffect, encodeShareCode, entryId, newPack, packCounts, PackError, sanitizeEntry, slug } from '../pack'
+import { allEntries, decodePack, describeEffect, encodeShareCode, entryId, newPack, packCounts, PackError, sanitizeEntry, slug } from '../pack'
 import { deletePack, importPack, listPacks, onPacksChanged, savePack } from '../store'
-import type { ContentKind, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewSpell } from '../types'
-import { FeatForm, ItemForm, SpellForm } from './forms'
+import type { ContentKind, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
+import { FeatForm, ItemForm, RaceForm, SpellForm, SubclassForm } from './forms'
 import './homebrew.css'
 
 const shortId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12)
@@ -50,7 +50,7 @@ function Library({ packs, profile, onOpen, onCreate }: {
       <div className="row spread">
         <div>
           <h2>Homebrew</h2>
-          <p className="muted small">Your group's own spells, items and feats. Share a pack with friends by code or file; nothing is public.</p>
+          <p className="muted small">Your group's own spells, items, feats, races and subclasses. Share a pack with friends by code or file; nothing is public.</p>
         </div>
         <button className="btn primary" onClick={onCreate}>+ New pack</button>
       </div>
@@ -86,7 +86,7 @@ function ImportBox({ onImported }: { onImported: (id: string) => void }) {
       if (result !== 'unchanged') {
         if (pack.history) await importHistory(pack.history)
         else {
-          for (const kind of ['spells', 'items', 'feats'] as const) {
+          for (const kind of ['spells', 'items', 'feats', 'races', 'subclasses'] as const) {
             for (const entry of pack[kind]) await recordRevision({ kind, entry, authorId: pack.authorId, authorName: pack.authorName, source: 'import' })
           }
         }
@@ -136,8 +136,11 @@ type Editing =
   | { kind: 'spells'; entry: HomebrewSpell }
   | { kind: 'items'; entry: HomebrewItem }
   | { kind: 'feats'; entry: HomebrewFeat }
+  | { kind: 'races'; entry: HomebrewRace }
+  | { kind: 'subclasses'; entry: HomebrewSubclass }
 
-const TAB_LABEL: Record<ContentKind, string> = { spells: 'Spells', items: 'Items', feats: 'Feats' }
+const TAB_LABEL: Record<ContentKind, string> = { spells: 'Spells', items: 'Items', feats: 'Feats', races: 'Races', subclasses: 'Subclasses' }
+const SINGULAR: Record<ContentKind, string> = { spells: 'spell', items: 'item', feats: 'feat', races: 'race', subclasses: 'subclass' }
 
 function blank(kind: ContentKind): Editing {
   if (kind === 'spells') {
@@ -150,6 +153,15 @@ function blank(kind: ContentKind): Editing {
     }
   }
   if (kind === 'items') return { kind, entry: { kind: 'gear', id: '', name: '', weight: 1 } }
+  if (kind === 'races') {
+    return {
+      kind, entry: {
+        id: '', name: '', size: 'Medium', speed: 30, abilityBonuses: {}, freeAbilityBonuses: 0, skillProficiencies: [],
+        freeSkillChoices: 0, languages: ['Common'], languageChoices: 0, traits: [], hpPerLevel: 0,
+      },
+    }
+  }
+  if (kind === 'subclasses') return { kind, entry: { id: '', name: '', classId: 'fighter', features: [], armor: [] } }
   return { kind, entry: { id: '', name: '', description: '', effects: [] } }
 }
 
@@ -167,9 +179,11 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
     const withId = <T extends { id: string; name: string }>(x: T): T => (x.id ? x : { ...x, id: entryId(pack, x.name) })
     const upsert = <T extends { id: string }>(list: T[], x: T) => (list.some(y => y.id === x.id) ? list.map(y => (y.id === x.id ? x : y)) : [...list, x])
     const next = { ...pack }
-    let entry: HomebrewSpell | HomebrewItem | HomebrewFeat
+    let entry: HomebrewEntry
     if (e.kind === 'spells') next.spells = upsert(pack.spells, (entry = withId(e.entry)))
     else if (e.kind === 'items') next.items = upsert(pack.items, (entry = withId(e.entry)))
+    else if (e.kind === 'races') next.races = upsert(pack.races, (entry = withId(e.entry)))
+    else if (e.kind === 'subclasses') next.subclasses = upsert(pack.subclasses, (entry = withId(e.entry)))
     else next.feats = upsert(pack.feats, (entry = withId(e.entry)))
     await savePack(next)
     await recordRevision({ kind: e.kind, entry, authorId: profile.id, authorName: profile.displayName, ...meta })
@@ -182,7 +196,8 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   }
 
   const removeEntry = async (kind: ContentKind, id: string, name: string) => {
-    const warn = kind === 'items' ? ' Characters carrying it will show it as an unknown item.' : ''
+    const warn = kind === 'items' ? ' Characters carrying it will show it as an unknown item.'
+      : kind === 'races' || kind === 'subclasses' ? ' Characters using it lose its bonuses until it is added back.' : ''
     if (!confirm(`Delete ${name}?${warn}`)) return
     await savePack({ ...pack, [kind]: (pack[kind] as { id: string }[]).filter(x => x.id !== id) })
   }
@@ -194,6 +209,8 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
       ...newPack(id, profile, `${pack.name} (my copy)`),
       description: pack.description,
       spells: pack.spells.map(rename), items: pack.items.map(rename), feats: pack.feats.map(rename),
+      races: pack.races.map(r => ({ ...rename(r), parentRaceId: r.parentRaceId?.replace(`hb:${pack.id}:`, `hb:${id}:`) })),
+      subclasses: pack.subclasses.map(rename),
     })
     onOpen(copy.id)
   }
@@ -247,12 +264,14 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
                 {TAB_LABEL[k]} ({pack[k].length})
               </button>
             ))}
-            {mine && !editing && <button className="btn primary small hb-add" onClick={() => setEditing(blank(tab))}>+ New {tab.slice(0, -1)}</button>}
+            {mine && !editing && <button className="btn primary small hb-add" onClick={() => setEditing(blank(tab))}>+ New {SINGULAR[tab]}</button>}
           </div>
 
           {editing?.kind === 'spells' && <SpellForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'spells', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'items' && <ItemForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'items', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'feats' && <FeatForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'feats', entry })} onCancel={() => setEditing(null)} />}
+          {editing?.kind === 'races' && <RaceForm key={editing.entry.id || 'new'} initial={editing.entry} pack={pack} onSave={entry => saveEntry({ kind: 'races', entry })} onCancel={() => setEditing(null)} />}
+          {editing?.kind === 'subclasses' && <SubclassForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'subclasses', entry })} onCancel={() => setEditing(null)} />}
 
           {!editing && (
             <EntryList
@@ -277,12 +296,12 @@ function EntryList({ kind, pack, mine, profile, onEdit, onDelete, onRestore }: {
   pack: HomebrewPack
   mine: boolean
   profile: UserProfile
-  onEdit: (kind: ContentKind, entry: HomebrewSpell | HomebrewItem | HomebrewFeat) => void
+  onEdit: (kind: ContentKind, entry: HomebrewEntry) => void
   onDelete: (kind: ContentKind, id: string, name: string) => void
   onRestore?: (kind: ContentKind, entry: unknown, meta: RestoreMeta) => Promise<void>
 }) {
   const [historyFor, setHistoryFor] = useState<string | null>(null)
-  const entries = [...(pack[kind] as (HomebrewSpell | HomebrewItem | HomebrewFeat)[])].sort((a, b) => a.name.localeCompare(b.name))
+  const entries = [...(pack[kind] as (HomebrewEntry)[])].sort((a, b) => a.name.localeCompare(b.name))
   if (entries.length === 0) {
     return <div className="panel empty"><p className="muted">No {TAB_LABEL[kind].toLowerCase()} in this pack yet.</p></div>
   }
@@ -317,7 +336,7 @@ function EntryList({ kind, pack, mine, profile, onEdit, onDelete, onRestore }: {
   )
 }
 
-function subtitle(kind: ContentKind, e: HomebrewSpell | HomebrewItem | HomebrewFeat): string {
+function subtitle(kind: ContentKind, e: HomebrewEntry): string {
   if (kind === 'spells') {
     const s = e as HomebrewSpell
     const lvl = s.level === 0 ? `${s.school} cantrip` : `Level ${s.level} ${s.school.toLowerCase()}`
@@ -330,11 +349,20 @@ function subtitle(kind: ContentKind, e: HomebrewSpell | HomebrewItem | HomebrewF
       : 'gear'
     return [i.rarity, what, `${i.weight} lb`].filter(Boolean).join(' · ')
   }
+  if (kind === 'races') {
+    const r = e as HomebrewRace
+    if (r.parentRaceId) return `Subrace of ${raceById(r.parentRaceId)?.name ?? 'a race not on this device'}`
+    return `${r.size} · speed ${r.speed} ft.`
+  }
+  if (kind === 'subclasses') {
+    const sc = e as HomebrewSubclass
+    return `${classById(sc.classId)?.name ?? sc.classId} subclass`
+  }
   const f = e as HomebrewFeat
   return f.prerequisite ? `Prerequisite: ${f.prerequisite}` : 'Feat'
 }
 
-function EntryBody({ kind, entry }: { kind: ContentKind; entry: HomebrewSpell | HomebrewItem | HomebrewFeat }) {
+function EntryBody({ kind, entry }: { kind: ContentKind; entry: HomebrewEntry }) {
   if (kind === 'spells') {
     const s = entry as HomebrewSpell
     const comps = [s.components.v && 'V', s.components.s && 'S', s.components.m && `M (${s.components.material})`].filter(Boolean).join(', ')
@@ -363,6 +391,34 @@ function EntryBody({ kind, entry }: { kind: ContentKind; entry: HomebrewSpell | 
           <p className="small">{[i.strengthReq && `Strength ${i.strengthReq}`, i.stealthDisadvantage && 'Stealth disadvantage'].filter(Boolean).join(' · ')}</p>
         )}
         {i.description && <p className="hb-text">{i.description}</p>}
+      </>
+    )
+  }
+  if (kind === 'races') {
+    const r = entry as HomebrewRace
+    const bonuses = Object.entries(r.abilityBonuses).map(([a, n]) => `${a.toUpperCase()} ${n! >= 0 ? '+' : ''}${n}`)
+    if (r.freeAbilityBonuses) bonuses.push(`+1 to ${r.freeAbilityBonuses} of your choice`)
+    const lines = [
+      bonuses.length > 0 && `Ability scores: ${bonuses.join(', ')}`,
+      r.traits.length > 0 && `Traits: ${r.traits.join(', ')}`,
+      !r.parentRaceId && `Languages: ${[...r.languages, ...(r.languageChoices ? [`${r.languageChoices} of your choice`] : [])].join(', ') || 'none'}`,
+      (r.skillProficiencies.length > 0 || r.freeSkillChoices > 0) && `Skills: ${[...r.skillProficiencies, ...(r.freeSkillChoices ? [`${r.freeSkillChoices} of your choice`] : [])].join(', ')}`,
+      r.hpPerLevel > 0 && `+${r.hpPerLevel} HP per level`,
+    ].filter(Boolean)
+    return (
+      <>
+        {lines.map(l => <p key={l as string} className="small">{l}</p>)}
+        {r.description && <p className="hb-text">{r.description}</p>}
+      </>
+    )
+  }
+  if (kind === 'subclasses') {
+    const sc = entry as HomebrewSubclass
+    return (
+      <>
+        {sc.features.length > 0 && <p className="small">{[...sc.features].sort((a, b) => a.level - b.level).map(f => `${f.level}: ${f.name}`).join(' · ')}</p>}
+        {sc.armor.length > 0 && <p className="small">Armor: {sc.armor.join(', ')}</p>}
+        {sc.description && <p className="hb-text">{sc.description}</p>}
       </>
     )
   }
@@ -420,7 +476,7 @@ function SharePanel({ pack }: { pack: HomebrewPack }) {
     }
   }
   const download = async () => {
-    const history = await historyForSharing([...pack.spells, ...pack.items, ...pack.feats].map(e => e.id))
+    const history = await historyForSharing(allEntries(pack).map(e => e.id))
     const url = URL.createObjectURL(new Blob([JSON.stringify({ ...pack, history }, null, 2)], { type: 'application/json' }))
     const a = document.createElement('a')
     a.href = url

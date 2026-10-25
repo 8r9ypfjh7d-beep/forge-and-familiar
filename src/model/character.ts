@@ -45,6 +45,26 @@ export interface CharacterState {
   clock?: number
 }
 
+/** The PHB "Customizing a Background" rule: used when backgroundId is 'custom'. */
+export interface CustomBackground {
+  name: string
+  feature: string
+  /** Exactly two skills. */
+  skills: SkillId[]
+  /** Tools and languages together total two. */
+  tools: string[]
+  languages: string[]
+}
+
+/** One Ability Score Improvement: +2/+1+1 to abilities, or a feat instead. */
+export interface Improvement {
+  classId: string
+  /** Class level that granted it. */
+  level: number
+  abilities?: Partial<Abilities>
+  featId?: string
+}
+
 export const CHARACTER_SCHEMA_VERSION = 1
 
 /** A person using the app. Local profile for now; maps to an auth account once a backend exists. */
@@ -66,7 +86,9 @@ export interface Character {
   theme?: string
   raceId: string
   subraceId?: string
+  /** SRD background id, or 'custom' with customBackground filled in. */
   backgroundId: string
+  customBackground?: CustomBackground
   /** The builder creates one entry; the array leaves room for multiclassing. */
   classes: ClassLevel[]
   xp: number
@@ -77,6 +99,16 @@ export interface Character {
   freeAbilityBonuses: Ability[]
   /** Skills picked from class and free race choices. Race and background skills are added by the engine. */
   chosenSkills: SkillId[]
+  /** Languages picked from race and background choices. Fixed ones are added by the engine. */
+  chosenLanguages?: string[]
+  /** Tools picked from race and class choices. */
+  chosenTools?: string[]
+  /** Race.traitChoice id → chosen option id (Dragonborn ancestry). */
+  traitChoices?: Record<string, string>
+  /** Ability Score Improvements or feats, one per slot the class levels grant. */
+  improvements?: Improvement[]
+  /** Starting gear: per class equipmentChoices entry, the option index and the items picked for its "any" slots. */
+  equipmentPicks?: { option: number; items: string[] }[]
   inventory: InventoryEntry[]
   coins: { cp: number; sp: number; gp: number }
   notes: string
