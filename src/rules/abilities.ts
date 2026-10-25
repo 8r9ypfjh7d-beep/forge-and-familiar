@@ -1,6 +1,7 @@
 import type { Character } from '../model/character'
 import { improvementBonuses } from './choices'
 import { raceById } from './data/races'
+import { applyItemAbilities } from './itemEffects'
 import { ABILITIES, type Abilities, type Ability } from './types'
 
 export const abilityMod = (score: number) => Math.floor((score - 10) / 2)
@@ -46,13 +47,13 @@ export function racialBonuses(c: RacialInput): Abilities {
   return out
 }
 
-/** Final ability scores: base + racial bonuses + Ability Score Improvements and feats, capped at 20. */
-export function getAbilityScores(c: RacialInput & Pick<Character, 'baseAbilities'> & Partial<Pick<Character, 'classes' | 'improvements'>>): Abilities {
+/** Final ability scores: base + racial bonuses + Ability Score Improvements and feats, capped at 20, then worn magic items. */
+export function getAbilityScores(c: RacialInput & Pick<Character, 'baseAbilities'> & Partial<Pick<Character, 'classes' | 'improvements' | 'inventory' | 'state'>>): Abilities {
   const bonus = racialBonuses(c)
   const asi = improvementBonuses({ classes: c.classes ?? [], improvements: c.improvements })
   const out = emptyAbilities()
   for (const a of ABILITIES) out[a] = Math.min(20, c.baseAbilities[a] + bonus[a] + asi[a])
-  return out
+  return applyItemAbilities(c, out).scores
 }
 
 export function getAbilityMods(scores: Abilities): Abilities {

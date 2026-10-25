@@ -8,6 +8,7 @@ import { NON_STACKING_RESOURCES } from './data/multiclass'
 import { raceById } from './data/races'
 import { subclassById, type SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
+import { itemBonus } from './itemEffects'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { ABILITIES, type Abilities, type Ability, type ClassDef, type InventoryEntry, type Item, type RestType, type SkillId } from './types'
 
@@ -182,7 +183,7 @@ export function getArmorClass(c: Character): { value: number; source: string } {
     value += shield.baseAc
     source += ' + Shield'
   }
-  const magic = equippedArmor(c).bonus
+  const magic = equippedArmor(c).bonus + itemBonus(c, 'ac', !armor && !shield)
   if (magic) {
     value += magic
     source += ` + ${magic} magic`
@@ -325,11 +326,13 @@ export function derive(c: Character): DerivedStats {
   const jackOfAllTrades = bard && bard.level >= 2 ? Math.floor(prof / 2) : 0
   const warnings: string[] = []
 
+  const itemSaves = itemBonus(c, 'saves')
+  const itemChecks = itemBonus(c, 'checks')
   const saves = {} as DerivedStats['saves']
   for (const a of ABILITIES) {
     // Saving throw proficiencies come from the first class only.
     const proficient = !!firstClass?.savingThrows.includes(a)
-    saves[a] = { bonus: mods[a] + (proficient ? prof : 0), proficient }
+    saves[a] = { bonus: mods[a] + (proficient ? prof : 0) + itemSaves, proficient }
   }
 
   const profSkills = getSkillProficiencies(c)
@@ -337,11 +340,11 @@ export function derive(c: Character): DerivedStats {
   for (const s of ALL_SKILLS) {
     const ability = SKILLS[s].ability
     const proficient = profSkills.has(s)
-    skills[s] = { bonus: mods[ability] + (proficient ? prof : jackOfAllTrades), proficient, ability }
+    skills[s] = { bonus: mods[ability] + (proficient ? prof : jackOfAllTrades) + itemChecks, proficient, ability }
   }
 
   const { armor, shield } = getEquippedArmor(c)
-  let speed = (race?.speed ?? 30) + featBonus(c, 'speed')
+  let speed = (race?.speed ?? 30) + featBonus(c, 'speed') + itemBonus(c, 'speed')
   if (armor?.category === 'heavy' && armor.strengthReq && abilities.str < armor.strengthReq) {
     speed -= 10
     warnings.push(`${armor.name} needs STR ${armor.strengthReq}: speed −10 ft.`)
@@ -372,14 +375,14 @@ export function derive(c: Character): DerivedStats {
     saves,
     skills,
     passivePerception: 10 + skills.perception.bonus,
-    initiative: mods.dex + jackOfAllTrades + featBonus(c, 'initiative'),
+    initiative: mods.dex + jackOfAllTrades + featBonus(c, 'initiative') + itemChecks,
     speed,
     armorClass: getArmorClass(c),
     maxHp: getEffectiveMaxHp(c),
     baseMaxHp: getMaxHp(c),
     hitDice: getHitDice(c),
     spellcasting: spellAbility
-      ? { ability: spellAbility, saveDc: 8 + prof + mods[spellAbility], attackBonus: prof + mods[spellAbility] }
+      ? { ability: spellAbility, saveDc: 8 + prof + mods[spellAbility] + itemBonus(c, 'spellDc'), attackBonus: prof + mods[spellAbility] + itemBonus(c, 'spellAttack') }
       : undefined,
     spellSlots: getSpellSlots(c),
     resources: getResources(c),

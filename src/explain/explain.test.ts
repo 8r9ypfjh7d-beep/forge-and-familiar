@@ -40,7 +40,11 @@ const CASES: [string, Character][] = [
     c.inventory = [
       { uid: 'a', itemId: 'greatsword', qty: 1, equipped: true, name: 'Oathbreaker', magicBonus: 1, pact: true },
       { uid: 'b', itemId: 'leather', qty: 1, equipped: true, magicBonus: 1 },
+      { uid: 'c', itemId: 'stone-of-good-luck-luckstone', qty: 1, equipped: true, attunement: true, effects: [{ kind: 'checks', value: 1 }, { kind: 'saves', value: 1 }] },
+      { uid: 'd', itemId: 'headband-of-intellect', qty: 1, equipped: true, effects: [{ kind: 'abilitySet', ability: 'int', value: 19 }] },
+      { uid: 'e', itemId: 'robe', qty: 1, equipped: true, effects: [{ kind: 'spellAttack', value: 2 }, { kind: 'spellDc', value: 2 }, { kind: 'speed', value: 10 }, { kind: 'ac', value: 5, unarmored: true }] },
     ]
+    c.state.attuned = ['@c']
     return c
   })()],
 ]

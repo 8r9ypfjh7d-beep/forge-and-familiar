@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { BUNDLED, loadKind, searchEntries, type Edition, type Equipment, type MagicItem } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
-import { derive, ITEMS, type InventoryEntry, type Item, type WeaponProperty } from '../rules'
+import {
+  ABILITIES, ABILITY_NAMES, derive, effectsActive, isAttuned, ITEMS, type Ability, type InventoryEntry, type Item, type ItemEffect, type WeaponProperty,
+} from '../rules'
 import type { Apply } from '../sheet/types'
 import { editionOf, sourceFor } from '../spellbook/access'
 import {
-  addItem, COINS, fromLibrary, fromMagicItem, isWarlock, itemOf, removeEntry, setCoins, setEquipped,
+  addItem, attunementFull, COINS, fromLibrary, fromMagicItem, isWarlock, itemOf, removeEntry, setAttuned, setCoins, setEquipped,
   setQty, updateEntry, withBase,
 } from './inventory'
 import './inventory.css'
@@ -72,7 +74,7 @@ export function Inventory({ character, apply }: { character: Character; apply: A
           <ul className="inv-list">
             {character.inventory.map(e => editing === e.uid
               ? <li key={e.uid} className="inv-row editing"><ItemEditor character={character} entry={e} apply={apply} onDone={() => setEditing(null)} /></li>
-              : <Row key={e.uid} entry={e} apply={apply} onEdit={() => setEditing(e.uid)} />)}
+              : <Row key={e.uid} character={character} entry={e} apply={apply} onEdit={() => setEditing(e.uid)} />)}
           </ul>
         )}
 
@@ -83,12 +85,30 @@ export function Inventory({ character, apply }: { character: Character; apply: A
   )
 }
 
-function Row({ entry: e, apply, onEdit }: { entry: InventoryEntry; apply: Apply; onEdit: () => void }) {
-  const { t, term } = useI18n()
+type T = ReturnType<typeof useI18n>
+
+/** "+1 AC", "STR becomes 19", "+2 CON (max 20)"… */
+function effectText({ t, term }: T, f: ItemEffect): string {
+  const n = 'value' in f ? f.value : 0
+  const signed = `${n >= 0 ? '+' : '−'}${Math.abs(n)}`
+  const ability = (a: Ability) => term('ability', a, ABILITY_NAMES[a])
+  switch (f.kind) {
+    case 'abilitySet': return t('inv.fx.text.abilitySet', { ability: ability(f.ability), n })
+    case 'ability': return t(f.max ? 'inv.fx.text.abilityMax' : 'inv.fx.text.ability', { ability: ability(f.ability), n: signed, max: f.max ?? '' })
+    default: return t(`inv.fx.text.${f.kind}` as MessageKey, { n: signed }) + (f.unarmored ? ` ${t('inv.fx.text.unarmored')}` : '')
+  }
+}
+
+function Row({ character, entry: e, apply, onEdit }: { character: Character; entry: InventoryEntry; apply: Apply; onEdit: () => void }) {
+  const i18n = useI18n()
+  const { t, term } = i18n
   const [open, setOpen] = useState(false)
   const item = itemOf(e)
   const name = e.item || e.name ? item.name : term('item', item.id, item.name)
-  const equippable = item.kind !== 'gear'
+  const equippable = item.kind !== 'gear' || !!e.effects?.length || !!e.attunement
+  const attuned = isAttuned(character, e.uid)
+  const active = effectsActive(character, e)
+  const effects = (e.effects ?? []).map(f => effectText(i18n, f)).join(' · ')
   const stat = item.kind === 'weapon'
     ? <><bdi dir="ltr">{item.damage}{e.magicBonus ? `+${e.magicBonus}` : ''}</bdi> {term('damage', item.damageType, item.damageType)}{e.extraDamage && <> + <bdi dir="ltr">{e.extraDamage}</bdi></>}</>
     : item.kind === 'armor'
@@ -104,8 +124,21 @@ function Row({ entry: e, apply, onEdit }: { entry: InventoryEntry; apply: Apply;
           {e.magicBonus ? <span className="inv-badge" dir="ltr">+{e.magicBonus}</span> : null}
           {e.pact && <span className="inv-badge">{t('inv.pactBadge')}</span>}
           <small>{stat}{stat && item.weight ? ' · ' : ''}{item.weight ? t('inv.lb', { n: Math.round(item.weight * e.qty * 100) / 100 }) : ''}</small>
+          {effects && (
+            <small className={`inv-effects${active ? ' on' : ''}`}>
+              <bdi>{effects}</bdi>
+              {!active && <> · {t(e.equipped ? 'inv.fx.needsAttune' : 'inv.fx.needsEquip')}</>}
+            </small>
+          )}
         </button>
         <div className="inv-actions">
+          {e.attunement && (
+            <button type="button" className={`btn small${attuned ? ' primary' : ''}`} aria-pressed={attuned}
+              disabled={!attuned && attunementFull(character)} title={!attuned && attunementFull(character) ? t('inv.attuneFull') : undefined}
+              onClick={() => apply(t(attuned ? 'inv.log.unattune' : 'inv.log.attune', { name }), c => setAttuned(c, e.uid, !attuned))}>
+              {t(attuned ? 'inv.attuned' : 'inv.attuneBtn')}
+            </button>
+          )}
           {equippable && (
             <button type="button" className={`btn small${e.equipped ? ' primary' : ''}`} aria-pressed={e.equipped}
               onClick={() => apply(t(e.equipped ? 'inv.log.unequip' : 'inv.log.equip', { name }), c => setEquipped(c, e.uid, !e.equipped))}>
@@ -137,6 +170,8 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
   const [magic, setMagic] = useState(e.magicBonus ?? 0)
   const [extra, setExtra] = useState(e.extraDamage ?? '')
   const [pact, setPact] = useState(!!e.pact)
+  const [effects, setEffects] = useState<ItemEffect[]>(() => (e.effects ?? []).map(f => ({ ...f })))
+  const [needsAttune, setNeedsAttune] = useState(!!e.attunement)
 
   const setKind = (kind: Item['kind']) => {
     if (kind === item.kind) return
@@ -161,6 +196,8 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
       magicBonus: item.kind === 'gear' ? undefined : magic,
       extraDamage: item.kind === 'weapon' ? extra.trim() || undefined : undefined,
       pact: item.kind === 'weapon' && pact,
+      effects: effects.filter(f => f.value),
+      attunement: needsAttune,
     }), e.uid, qty))
     onDone()
   }
@@ -258,6 +295,11 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
           <span>{t('inv.f.pact')}<small>{t(character.spellEdition === '2024' ? 'inv.pactHint2024' : 'inv.pactHint')}</small></span>
         </label>
       )}
+      <EffectsEditor effects={effects} onChange={setEffects} />
+      <label className="check wide">
+        <input type="checkbox" checked={needsAttune} onChange={ev => setNeedsAttune(ev.target.checked)} />
+        {t('inv.f.attunement')}
+      </label>
       <label className="wide">{t('inv.f.notes')}<textarea rows={4} value={notes} onChange={ev => setNotes(ev.target.value)} placeholder={t('inv.f.notesHint')} /></label>
 
       <div className="wide inv-editor-actions">
@@ -266,6 +308,52 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
         <button type="button" className="btn ghost inv-delete" onClick={remove}>{t('inv.delete')}</button>
       </div>
     </form>
+  )
+}
+
+const EFFECT_KINDS = ['ac', 'saves', 'checks', 'spellAttack', 'spellDc', 'speed', 'abilitySet', 'ability'] as const
+
+function blankEffect(kind: ItemEffect['kind'], prev?: ItemEffect): ItemEffect {
+  if (kind === prev?.kind) return prev
+  if (kind === 'abilitySet') return { kind, ability: 'str', value: 19 }
+  if (kind === 'ability') return { kind, ability: 'str', value: 2, max: 20 }
+  return { kind, value: kind === 'speed' ? 10 : 1 }
+}
+
+/** Stat effects of an item: pick what it changes and by how much. */
+function EffectsEditor({ effects, onChange }: { effects: ItemEffect[]; onChange: (fx: ItemEffect[]) => void }) {
+  const { t, term } = useI18n()
+  const put = (i: number, f: ItemEffect) => onChange(effects.map((x, j) => (j === i ? f : x)))
+  return (
+    <fieldset className="wide inv-effects-editor">
+      <legend>{t('inv.f.effects')}</legend>
+      {effects.length === 0 && <p className="hint">{t('inv.fx.none')}</p>}
+      {effects.map((f, i) => (
+        <div key={i} className="inv-effect">
+          <select aria-label={t('inv.fx.kind')} value={f.kind} onChange={ev => put(i, blankEffect(ev.target.value as ItemEffect['kind'], f))}>
+            {EFFECT_KINDS.map(k => <option key={k} value={k}>{t(`inv.fx.kind.${k}` as MessageKey)}</option>)}
+          </select>
+          {(f.kind === 'abilitySet' || f.kind === 'ability') && (
+            <select aria-label={t('inv.fx.ability')} value={f.ability} onChange={ev => put(i, { ...f, ability: ev.target.value as Ability })}>
+              {ABILITIES.map(a => <option key={a} value={a}>{term('ability', a, ABILITY_NAMES[a])}</option>)}
+            </select>
+          )}
+          <input type="number" aria-label={t('inv.fx.value')} value={f.value} onChange={ev => put(i, { ...f, value: Number(ev.target.value) || 0 })} />
+          {f.kind === 'ability' && (
+            <input type="number" aria-label={t('inv.fx.max')} placeholder={t('inv.fx.max')} value={f.max ?? ''}
+              onChange={ev => put(i, { ...f, max: ev.target.value ? Number(ev.target.value) : undefined })} />
+          )}
+          {f.kind === 'ac' && (
+            <label className="check">
+              <input type="checkbox" checked={!!f.unarmored} onChange={ev => put(i, { ...f, unarmored: ev.target.checked || undefined })} />
+              {t('inv.fx.unarmored')}
+            </label>
+          )}
+          <button type="button" className="btn ghost small inv-effect-remove" aria-label={t('inv.fx.remove')} onClick={() => onChange(effects.filter((_, j) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <button type="button" className="btn small" onClick={() => onChange([...effects, blankEffect('ac')])}>{t('inv.fx.add')}</button>
+    </fieldset>
   )
 }
 

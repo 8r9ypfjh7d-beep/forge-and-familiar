@@ -199,7 +199,22 @@ export interface InventoryEntry {
   pact?: boolean
   /** Extra damage on every hit, e.g. "1d6 fire" (Flame Tongue). */
   extraDamage?: string
+  /** What the item does to the character's numbers while equipped (and attuned, if it needs attunement). */
+  effects?: ItemEffect[]
+  /** Needs attunement before its effects work. Attunement lives in `state.attuned` as `@<uid>`. */
+  attunement?: boolean
 }
+
+/** A bonus an item gives while worn: AC, saves, ability checks, spell attack and DC, walking speed. */
+export type BonusEffectKind = 'ac' | 'saves' | 'checks' | 'spellAttack' | 'spellDc' | 'speed'
+
+export type ItemEffect =
+  /** `unarmored`: only without armor and shield (Bracers of Defense). */
+  | { kind: BonusEffectKind; value: number; unarmored?: boolean }
+  /** Score becomes this unless already higher (Gauntlets of Ogre Power: STR 19). */
+  | { kind: 'abilitySet'; ability: Ability; value: number }
+  /** Adds to the score, up to `max` (Ioun Stone of Agility: DEX +2, max 20). */
+  | { kind: 'ability'; ability: Ability; value: number; max?: number }
 
 export type ConditionId =
   | 'blinded' | 'charmed' | 'deafened' | 'frightened' | 'grappled'
