@@ -1,4 +1,4 @@
-// Item effects: which equipped (and attuned) items change the character's numbers, and by how much.
+// Item effects: which equipped items change the character's numbers, and by how much.
 // derive() and src/explain both read these, so the sheet and "show the math" agree.
 import type { Character } from '../model/character'
 import { entryItem } from './data/items'
@@ -6,19 +6,14 @@ import { ABILITIES, type Abilities, type Ability, type BonusEffectKind, type Inv
 
 type Owner = Partial<Pick<Character, 'inventory' | 'state'>>
 
-/** How an inventory entry is stored in `state.attuned`; free-typed names sit next to these. */
-export const attunementKey = (uid: string) => `@${uid}`
-
-export const isAttuned = (c: Owner, uid: string) => (c.state?.attuned ?? []).includes(attunementKey(uid))
-
-/** An entry's effects work while it is equipped, and attuned if it needs attunement. */
-export const effectsActive = (c: Owner, e: InventoryEntry) => e.equipped && (!e.attunement || isAttuned(c, e.uid))
+/** An entry's effects work while it is equipped. */
+export const effectsActive = (e: InventoryEntry) => e.equipped
 
 export interface ActiveEffect { source: string; effect: ItemEffect }
 
 export function activeItemEffects(c: Owner): ActiveEffect[] {
   return (c.inventory ?? []).flatMap(e => {
-    if (!e.effects?.length || !effectsActive(c, e)) return []
+    if (!e.effects?.length || !effectsActive(e)) return []
     const source = entryItem(e)?.name ?? e.name ?? e.itemId
     return e.effects.map(effect => ({ source, effect }))
   })

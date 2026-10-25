@@ -5,12 +5,12 @@ import { BUNDLED, loadKind, searchEntries, type Edition, type Equipment, type Ma
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import {
-  ABILITIES, ABILITY_NAMES, derive, effectsActive, isAttuned, ITEMS, type Ability, type InventoryEntry, type Item, type ItemEffect, type WeaponProperty,
+  ABILITIES, ABILITY_NAMES, derive, ITEMS, type Ability, type InventoryEntry, type Item, type ItemEffect, type WeaponProperty,
 } from '../rules'
 import type { Apply } from '../sheet/types'
 import { editionOf, sourceFor } from '../spellbook/access'
 import {
-  addItem, attunementFull, COINS, fromLibrary, fromMagicItem, isWarlock, itemOf, removeEntry, setAttuned, setCoins, setEquipped,
+  addItem, COINS, fromLibrary, fromMagicItem, isWarlock, itemOf, removeEntry, setCoins, setEquipped,
   setQty, updateEntry, withBase,
 } from './inventory'
 import './inventory.css'
@@ -74,7 +74,7 @@ export function Inventory({ character, apply }: { character: Character; apply: A
           <ul className="inv-list">
             {character.inventory.map(e => editing === e.uid
               ? <li key={e.uid} className="inv-row editing"><ItemEditor character={character} entry={e} apply={apply} onDone={() => setEditing(null)} /></li>
-              : <Row key={e.uid} character={character} entry={e} apply={apply} onEdit={() => setEditing(e.uid)} />)}
+              : <Row key={e.uid} entry={e} apply={apply} onEdit={() => setEditing(e.uid)} />)}
           </ul>
         )}
 
@@ -99,15 +99,14 @@ function effectText({ t, term }: T, f: ItemEffect): string {
   }
 }
 
-function Row({ character, entry: e, apply, onEdit }: { character: Character; entry: InventoryEntry; apply: Apply; onEdit: () => void }) {
+function Row({ entry: e, apply, onEdit }: { entry: InventoryEntry; apply: Apply; onEdit: () => void }) {
   const i18n = useI18n()
   const { t, term } = i18n
   const [open, setOpen] = useState(false)
   const item = itemOf(e)
   const name = e.item || e.name ? item.name : term('item', item.id, item.name)
-  const equippable = item.kind !== 'gear' || !!e.effects?.length || !!e.attunement
-  const attuned = isAttuned(character, e.uid)
-  const active = effectsActive(character, e)
+  const equippable = item.kind !== 'gear' || !!e.effects?.length
+  const active = e.equipped
   const effects = (e.effects ?? []).map(f => effectText(i18n, f)).join(' · ')
   const stat = item.kind === 'weapon'
     ? <><bdi dir="ltr">{item.damage}{e.magicBonus ? `+${e.magicBonus}` : ''}</bdi> {term('damage', item.damageType, item.damageType)}{e.extraDamage && <> + <bdi dir="ltr">{e.extraDamage}</bdi></>}</>
@@ -127,18 +126,11 @@ function Row({ character, entry: e, apply, onEdit }: { character: Character; ent
           {effects && (
             <small className={`inv-effects${active ? ' on' : ''}`}>
               <bdi>{effects}</bdi>
-              {!active && <> · {t(e.equipped ? 'inv.fx.needsAttune' : 'inv.fx.needsEquip')}</>}
+              {!active && <> · {t('inv.fx.needsEquip')}</>}
             </small>
           )}
         </button>
         <div className="inv-actions">
-          {e.attunement && (
-            <button type="button" className={`btn small${attuned ? ' primary' : ''}`} aria-pressed={attuned}
-              disabled={!attuned && attunementFull(character)} title={!attuned && attunementFull(character) ? t('inv.attuneFull') : undefined}
-              onClick={() => apply(t(attuned ? 'inv.log.unattune' : 'inv.log.attune', { name }), c => setAttuned(c, e.uid, !attuned))}>
-              {t(attuned ? 'inv.attuned' : 'inv.attuneBtn')}
-            </button>
-          )}
           {equippable && (
             <button type="button" className={`btn small${e.equipped ? ' primary' : ''}`} aria-pressed={e.equipped}
               onClick={() => apply(t(e.equipped ? 'inv.log.unequip' : 'inv.log.equip', { name }), c => setEquipped(c, e.uid, !e.equipped))}>
@@ -171,7 +163,6 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
   const [extra, setExtra] = useState(e.extraDamage ?? '')
   const [pact, setPact] = useState(!!e.pact)
   const [effects, setEffects] = useState<ItemEffect[]>(() => (e.effects ?? []).map(f => ({ ...f })))
-  const [needsAttune, setNeedsAttune] = useState(!!e.attunement)
 
   const setKind = (kind: Item['kind']) => {
     if (kind === item.kind) return
@@ -197,7 +188,6 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
       extraDamage: item.kind === 'weapon' ? extra.trim() || undefined : undefined,
       pact: item.kind === 'weapon' && pact,
       effects: effects.filter(f => f.value),
-      attunement: needsAttune,
     }), e.uid, qty))
     onDone()
   }
@@ -296,10 +286,6 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
         </label>
       )}
       <EffectsEditor effects={effects} onChange={setEffects} />
-      <label className="check wide">
-        <input type="checkbox" checked={needsAttune} onChange={ev => setNeedsAttune(ev.target.checked)} />
-        {t('inv.f.attunement')}
-      </label>
       <label className="wide">{t('inv.f.notes')}<textarea rows={4} value={notes} onChange={ev => setNotes(ev.target.value)} placeholder={t('inv.f.notesHint')} /></label>
 
       <div className="wide inv-editor-actions">
@@ -394,7 +380,7 @@ function AddPanel({ lib, onAdd, onClose, source }: {
               const needsBase = m.category === 'weapon' || m.category === 'armor'
               return (
                 <li key={m.id}>
-                  <span><bdi lang="en">{m.name}</bdi><small lang="en">{m.rarityText ?? m.rarity}{m.attunement ? ` · ${t('inv.attune')}` : ''}</small></span>
+                  <span><bdi lang="en">{m.name}</bdi><small lang="en">{m.rarityText ?? m.rarity}</small></span>
                   <button type="button" className="btn small primary" aria-label={t('inv.addName', { name: m.name })}
                     onClick={() => onAdd(needsBase ? { ...fromMagicItem(m), item: placeholderBase(m) } : fromMagicItem(m), m.name, needsBase)}>
                     {t('inv.addShort')}

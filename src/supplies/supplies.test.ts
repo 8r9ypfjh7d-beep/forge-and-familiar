@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { longRest, setExhaustion } from '../sheet/engine'
+import { longRest } from '../sheet/engine'
 import { makeCharacter } from '../sheet/fixtures'
 import { ammoSpent, countOf, daysWithoutFood, endDay, foodLimit, rangedWeapons, recoverAmmo, spendAmmo } from './supplies'
 
@@ -76,25 +76,14 @@ describe('rations', () => {
     expect(daysWithoutFood(c)).toBe(0)
   })
 
-  it('going hungry blocks the exhaustion relief of a long rest', () => {
-    const tired = setExhaustion(archer, 2)
-    expect(day(tired, 'ration').state.exhaustion).toBe(1)
-    expect(day(tired, 'none').state.exhaustion).toBe(2)
-  })
-
-  it('past 3 + CON days without food, each day adds exhaustion', () => {
+  it('counts hungry days past 3 + CON and resets on a meal', () => {
     const limit = foodLimit(archer)
     expect(limit).toBe(5)
     let c = archer
-    for (let i = 0; i < limit; i++) c = day(c, 'none')
-    expect(c.state.exhaustion).toBe(0)
-    c = day(c, 'none')
-    expect(c.state.exhaustion).toBe(1)
-    c = day(c, 'none')
-    expect(c.state.exhaustion).toBe(2)
+    for (let i = 0; i <= limit; i++) c = day(c, 'none')
+    expect(daysWithoutFood(c)).toBe(limit + 1)
     c = day(c, 'ration')
     expect(daysWithoutFood(c)).toBe(0)
-    expect(c.state.exhaustion).toBe(1)
   })
 
   it('does nothing when the long rest itself was refused', () => {

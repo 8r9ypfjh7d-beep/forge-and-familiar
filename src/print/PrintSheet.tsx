@@ -138,7 +138,6 @@ function PageOne({ s }: { s: Sheet }) {
           </Box>
           <Box title="Conditions">
             <div className="p-write">{s.conditions.join(', ')}</div>
-            <p className="p-death">Exhaustion <Circles max={6} used={s.exhaustion} /></p>
           </Box>
         </div>
 

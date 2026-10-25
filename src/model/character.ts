@@ -23,17 +23,12 @@ export interface CharacterState {
   pactSlotsUsed: number
   resources: Record<string, { used: number }>
   conditions: ConditionId[]
-  exhaustion: number
   /** Player-made trackers (arrows, item charges). */
   counters?: {
     id: string; label: string; max: number; used: number; recharge: 'short' | 'long' | 'dawn' | 'none'
     /** Dawn trackers only: dice regained each dawn, e.g. "1d6+1". Blank means all of them. */
     regain?: string
   }[]
-  /** Inspiration from the DM: you have it or you don't. */
-  inspiration?: boolean
-  /** Magic items the character is attuned to, at most three (SRD 5.1). */
-  attuned?: string[]
   /** Ammo and food countdowns (src/supplies). Counts themselves are inventory quantities. */
   supplies?: {
     /** Pieces fired per ammo item id since the last battlefield search. */
@@ -41,8 +36,6 @@ export interface CharacterState {
     /** Long rests in a row taken without eating. */
     daysWithoutFood?: number
   }
-  /** In-game time in minutes since 00:00 on day 1. Absent means the default start (day 1, 08:00). */
-  clock?: number
 }
 
 /** The PHB "Customizing a Background" rule: used when backgroundId is 'custom'. */

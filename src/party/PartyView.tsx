@@ -215,7 +215,7 @@ function MemberCard({ member, playerName, isDm, character, onOpen }: {
   }
 
   const s = derive(character)
-  const { currentHp, tempHp, conditions, exhaustion } = character.state
+  const { currentHp, tempHp, conditions } = character.state
   const pct = s.maxHp ? Math.max(0, Math.min(100, (currentHp / s.maxHp) * 100)) : 0
   const tone = pct > 50 ? 'ok' : pct > 25 ? 'hurt' : 'low'
   const v = vitals(character)
@@ -248,10 +248,9 @@ function MemberCard({ member, playerName, isDm, character, onOpen }: {
         {s.spellcasting && <div><dt>{t('stat.spellDc')}</dt><dd>{s.spellcasting.saveDc}</dd></div>}
       </dl>
 
-      {(conditions.length > 0 || exhaustion > 0) && (
+      {conditions.length > 0 && (
         <ul className="conds">
           {conditions.map(c => <li key={c}>{term('condition', c, c)}</li>)}
-          {exhaustion > 0 && <li>{t('party.exhaustion', { level: exhaustion })}</li>}
         </ul>
       )}
 

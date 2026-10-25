@@ -2,8 +2,7 @@
 // Pure: each function returns a new Character for the sheet's apply().
 import { LIBRARY_ID_FOR_RULES_ITEM, toRulesItem, type Equipment, type MagicItem } from '../content'
 import type { Character } from '../model/character'
-import { attunementKey, entryItem, isAttuned, itemById, MAGIC_ITEM_STATS, type InventoryEntry, type Item } from '../rules'
-import { ATTUNEMENT_LIMIT, attune } from '../sheet/engine'
+import { entryItem, itemById, MAGIC_ITEM_STATS, type InventoryEntry, type Item } from '../rules'
 
 const RULES_ID_FOR_LIBRARY = Object.fromEntries(Object.entries(LIBRARY_ID_FOR_RULES_ITEM).map(([rules, lib]) => [lib, rules]))
 
@@ -36,7 +35,6 @@ export function fromMagicItem(m: MagicItem): Omit<InventoryEntry, 'uid' | 'qty' 
     ...(magicBonus ? { magicBonus } : {}),
     ...(stats.extraDamage ? { extraDamage: stats.extraDamage } : {}),
     ...(stats.effects?.length ? { effects: stats.effects.map(f => ({ ...f })) } : {}),
-    ...(m.attunement ? { attunement: true } : {}),
   }
 }
 
@@ -44,7 +42,7 @@ export function fromMagicItem(m: MagicItem): Omit<InventoryEntry, 'uid' | 'qty' 
 export const withBase = (base: Item, name: string, id: string): Item => ({ ...base, id, name })
 
 const isPlain = (e: Omit<InventoryEntry, 'uid' | 'qty' | 'equipped'>) =>
-  !e.item && !e.name && !e.notes && !e.magicBonus && !e.pact && !e.extraDamage && !e.effects?.length && !e.attunement
+  !e.item && !e.name && !e.notes && !e.magicBonus && !e.pact && !e.extraDamage && !e.effects?.length
 
 /** Adds an item. A plain SRD item stacks onto a plain stack of the same item; anything customised gets its own line. */
 export function addItem(c: Character, fields: Omit<InventoryEntry, 'uid' | 'qty' | 'equipped'>, qty = 1): { character: Character; uid: string } {
@@ -64,28 +62,14 @@ export function updateEntry(c: Character, uid: string, patch: Partial<Omit<Inven
 /** Drops empty optional fields so saves stay small. */
 function clean(e: InventoryEntry): InventoryEntry {
   const out = { ...e }
-  for (const k of ['name', 'notes', 'magicBonus', 'pact', 'extraDamage', 'item', 'effects', 'attunement'] as const) {
+  for (const k of ['name', 'notes', 'magicBonus', 'pact', 'extraDamage', 'item', 'effects'] as const) {
     const v = out[k]
     if (v === undefined || v === '' || v === 0 || v === false || (Array.isArray(v) && !v.length)) delete out[k]
   }
   return out
 }
 
-/** Removes an item, and its attunement slot with it. */
-export const removeEntry = (c: Character, uid: string): Character => ({
-  ...c,
-  inventory: c.inventory.filter(e => e.uid !== uid),
-  state: c.state.attuned?.includes(attunementKey(uid)) ? { ...c.state, attuned: c.state.attuned.filter(k => k !== attunementKey(uid)) } : c.state,
-})
-
-/** Attunes to an item (at most three items) or ends attunement. */
-export function setAttuned(c: Character, uid: string, on: boolean): Character {
-  if (on === isAttuned(c, uid)) return c
-  if (on) return attune(c, attunementKey(uid))
-  return { ...c, state: { ...c.state, attuned: (c.state.attuned ?? []).filter(k => k !== attunementKey(uid)) } }
-}
-
-export const attunementFull = (c: Character) => (c.state.attuned ?? []).length >= ATTUNEMENT_LIMIT
+export const removeEntry = (c: Character, uid: string): Character => ({ ...c, inventory: c.inventory.filter(e => e.uid !== uid) })
 
 export function setQty(c: Character, uid: string, qty: number): Character {
   if (qty <= 0) return removeEntry(c, uid)

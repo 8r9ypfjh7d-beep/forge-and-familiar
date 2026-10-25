@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { getMaxHp } from '../rules'
 import {
-  canLongRest, effectiveMaxHp, grantTempHp, heal, hitDiceRemaining, longRest, rollDeathSave,
-  setExhaustion, setPactUsed, setResourceUsed, setSlotUsed, shortRest, spendHitDie, stabilize,
-  takeDamage, upsertCounter, vitals, setInspiration, attune, endAttunement, dawn, dawnCounters,
+  canLongRest, grantTempHp, heal, hitDiceRemaining, longRest, rollDeathSave,
+  setPactUsed, setResourceUsed, setSlotUsed, shortRest, spendHitDie, stabilize,
+  takeDamage, upsertCounter, vitals, dawn, dawnCounters,
 } from './engine'
 import { makeCharacter } from './fixtures'
 
@@ -156,43 +156,13 @@ describe('long rest', () => {
     expect(canLongRest(atZero)).toBe(false)
     expect(longRest(atZero)).toBe(atZero)
   })
-
-  it('removes one exhaustion level, and level 4 halves max HP', () => {
-    const tired = setExhaustion(fighter, 4)
-    expect(effectiveMaxHp(tired)).toBe(Math.floor(MAX / 2))
-    expect(tired.state.currentHp).toBe(Math.floor(MAX / 2))
-    const rested = longRest(tired)
-    expect(rested.state.exhaustion).toBe(3)
-    expect(rested.state.currentHp).toBe(MAX)
-  })
 })
 
-describe('inspiration, attunement and dawn', () => {
-  it('starts without inspiration or attuned items', () => {
-    expect(fighter.state.inspiration).toBe(false)
-    expect(fighter.state.attuned).toEqual([])
-  })
-
-  it('toggles inspiration', () => {
-    expect(setInspiration(fighter, true).state.inspiration).toBe(true)
-    expect(setInspiration(setInspiration(fighter, true), false).state.inspiration).toBe(false)
-  })
-
-  it('attunes to at most three items', () => {
-    let c = fighter
-    for (const item of ['Ring of Protection', 'Cloak of Elvenkind', 'Wand of Web', 'Belt of Giant Strength']) c = attune(c, item)
-    expect(c.state.attuned).toEqual(['Ring of Protection', 'Cloak of Elvenkind', 'Wand of Web'])
-    expect(attune(fighter, '   ')).toBe(fighter)
-  })
-
-  it('ends attunement to one item', () => {
-    const c = attune(attune(fighter, 'Ring of Protection'), 'Wand of Web')
-    expect(endAttunement(c, 0).state.attuned).toEqual(['Wand of Web'])
-  })
-
-  it('drops extra attuned items from old saves', () => {
-    const c = makeCharacter({ state: { ...fighter.state, attuned: ['a', 'b', 'c', 'd'] } })
-    expect(c.state.attuned).toHaveLength(3)
+describe('old saves and dawn', () => {
+  it('drops fields of removed features from old saves', () => {
+    const old = { ...fighter.state, exhaustion: 2, inspiration: true, attuned: ['Ring'], clock: 600 }
+    const { state } = makeCharacter({ state: old })
+    for (const k of ['exhaustion', 'inspiration', 'attuned', 'clock']) expect(state).not.toHaveProperty(k)
   })
 
   const wand = { id: 'wand', label: 'Wand of Magic Missiles', max: 7, used: 6, recharge: 'dawn' as const, regain: '1d6+1' }

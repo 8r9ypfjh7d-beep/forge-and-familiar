@@ -51,7 +51,6 @@ export interface PrintSheet {
   traits: string[]
   languages: string[]
   conditions: string[]
-  exhaustion: number
   warnings: string[]
   notes: string
 }
@@ -124,7 +123,6 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
     traits: d.traits,
     languages: [...d.languages, ...d.tools],
     conditions: play ? c.state.conditions.map(cap) : [],
-    exhaustion: play ? c.state.exhaustion : 0,
     warnings: d.warnings,
     notes: c.notes,
   }

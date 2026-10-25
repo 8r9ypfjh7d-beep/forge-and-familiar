@@ -5,8 +5,6 @@ import { abilityMod, formatMod, getAbilityScores } from '../../rules'
 import { canLongRest, hitDiceRemaining, longRest, shortRest, spendHitDie, vitals } from '../engine'
 import type { Apply } from '../types'
 import { useSheetRolls } from '../dice'
-import { LONG_REST_MINUTES, SHORT_REST_MINUTES } from '../clock'
-import { useAdvanceTime } from '../useAdvanceTime'
 import { MealChoice } from '../../supplies/Supplies'
 import { defaultMeal, endDay, type Meal } from '../../supplies/supplies'
 
@@ -15,7 +13,6 @@ export function Rests({ character, apply }: { character: Character; apply: Apply
   const [confirmLong, setConfirmLong] = useState(false)
   const [meal, setMeal] = useState<Meal>('ration')
   const rolls = useSheetRolls(character)
-  const advance = useAdvanceTime(character, apply)
   const con = abilityMod(getAbilityScores(character).con)
   const dice = hitDiceRemaining(character)
   const dead = vitals(character) === 'dead'
@@ -51,7 +48,7 @@ export function Rests({ character, apply }: { character: Character; apply: Apply
           </ul>
           <div className="row">
             <button type="button" className="btn primary"
-              onClick={() => { advance(SHORT_REST_MINUTES, t('sheet.log.short'), shortRest); setShortOpen(false) }}>{t('sheet.finishShort')}</button>
+              onClick={() => { apply(t('sheet.log.short'), shortRest); setShortOpen(false) }}>{t('sheet.finishShort')}</button>
             <button type="button" className="btn ghost" onClick={() => setShortOpen(false)}>{t('common.cancel')}</button>
           </div>
         </div>
@@ -63,7 +60,7 @@ export function Rests({ character, apply }: { character: Character; apply: Apply
           <MealChoice character={character} meal={meal} onChange={setMeal} />
           <div className="row">
             <button type="button" className="btn primary"
-              onClick={() => { advance(LONG_REST_MINUTES, t(meal === 'ration' ? 'sheet.log.longRation' : meal === 'none' ? 'sheet.log.longHungry' : 'sheet.log.long'), c => endDay(c, longRest(c), meal)); setConfirmLong(false); setShortOpen(false) }}>{t('sheet.restUntilMorning')}</button>
+              onClick={() => { apply(t(meal === 'ration' ? 'sheet.log.longRation' : meal === 'none' ? 'sheet.log.longHungry' : 'sheet.log.long'), c => endDay(c, longRest(c), meal)); setConfirmLong(false); setShortOpen(false) }}>{t('sheet.restUntilMorning')}</button>
             <button type="button" className="btn ghost" onClick={() => setConfirmLong(false)}>{t('common.cancel')}</button>
           </div>
         </div>

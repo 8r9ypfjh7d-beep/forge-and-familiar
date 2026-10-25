@@ -36,7 +36,7 @@ export const xpForNextLevel = (level: number): number | undefined => XP_THRESHOL
 
 // ---------- Hit points ----------
 
-/** Max HP before exhaustion: max die at 1st level, fixed average after, plus CON and racial extras. */
+/** Max HP: max die at 1st level, fixed average after, plus CON and racial extras. */
 export function getMaxHp(c: Character): number {
   const con = getAbilityMods(getAbilityScores(c)).con
   const race = raceById(c.raceId)
@@ -52,10 +52,6 @@ export function getMaxHp(c: Character): number {
   }
   return Math.max(1, hp)
 }
-
-/** Max HP after exhaustion (level 4+ halves it). */
-export const getEffectiveMaxHp = (c: Character) =>
-  c.state.exhaustion >= 4 ? Math.max(1, Math.floor(getMaxHp(c) / 2)) : getMaxHp(c)
 
 export function getHitDice(c: Character): { die: HitDie; total: number }[] {
   const byDie = new Map<HitDie, number>()
@@ -369,8 +365,6 @@ export function derive(c: Character): DerivedStats {
   if (monk && !armor && !shield) speed += MONK_MOVEMENT.find(([l]) => monk.level >= l)?.[1] ?? 0
   const barb = classes.find(x => x.def.id === 'barbarian')
   if (barb && barb.level >= 5 && armor?.category !== 'heavy') speed += 10
-  if (c.state.exhaustion >= 5) speed = 0
-  else if (c.state.exhaustion >= 2) speed = Math.floor(speed / 2)
 
   for (const a of [armor, shield]) {
     if (a && !isArmorProficient(c, a)) warnings.push(`Not proficient with ${a.name}: disadvantage on STR/DEX rolls, no spellcasting.`)
@@ -394,7 +388,7 @@ export function derive(c: Character): DerivedStats {
     initiative: mods.dex + jackOfAllTrades + featBonus(c, 'initiative') + itemChecks,
     speed,
     armorClass: getArmorClass(c),
-    maxHp: getEffectiveMaxHp(c),
+    maxHp: getMaxHp(c),
     baseMaxHp: getMaxHp(c),
     hitDice: getHitDice(c),
     spellcasting: spellAbility

@@ -87,7 +87,6 @@ export function buildRecap(s: Session, now = new Date().toISOString()): Recap {
       case 'slot': r.slotsUsed += e.delta; break
       case 'resource': r.resourcesUsed[e.label] = (r.resourcesUsed[e.label] ?? 0) + e.delta; break
       case 'condition': if (e.added && !r.conditions.includes(e.condition)) r.conditions.push(e.condition); break
-      case 'exhaustion': if (e.to > e.from && !r.conditions.includes('exhaustion')) r.conditions.push('exhaustion'); break
       case 'item': {
         const row = r.loot.find(l => l.name === e.name)
         if (row) row.qty += e.delta
@@ -223,7 +222,6 @@ export function describeEvent(e: SessionEvent): string {
     case 'resource': return e.delta > 0 ? `used ${e.label}${e.delta > 1 ? ` ×${e.delta}` : ''}` : `regained ${e.label}${e.delta < -1 ? ` ×${-e.delta}` : ''}`
     case 'rest': return `took a ${e.rest} rest`
     case 'condition': return e.added ? `became ${e.condition}` : `is no longer ${e.condition}`
-    case 'exhaustion': return e.to > e.from ? `gained exhaustion (level ${e.to})` : `recovered from exhaustion (level ${e.to})`
     case 'item': return e.delta > 0 ? `got ${e.name}${e.delta > 1 ? ` ×${e.delta}` : ''}` : `lost ${e.name}${e.delta < -1 ? ` ×${-e.delta}` : ''}`
     case 'coins': {
       const parts = (['gp', 'sp', 'cp'] as const).filter(k => e.delta[k]).map(k => `${e.delta[k] > 0 ? '+' : ''}${e.delta[k]} ${k}`)

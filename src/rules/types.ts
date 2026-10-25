@@ -199,10 +199,8 @@ export interface InventoryEntry {
   pact?: boolean
   /** Extra damage on every hit, e.g. "1d6 fire" (Flame Tongue). */
   extraDamage?: string
-  /** What the item does to the character's numbers while equipped (and attuned, if it needs attunement). */
+  /** What the item does to the character's numbers while equipped. */
   effects?: ItemEffect[]
-  /** Needs attunement before its effects work. Attunement lives in `state.attuned` as `@<uid>`. */
-  attunement?: boolean
 }
 
 /** A bonus an item gives while worn: AC, saves, ability checks, spell attack and DC, walking speed. */

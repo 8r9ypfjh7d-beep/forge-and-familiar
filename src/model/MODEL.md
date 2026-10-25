@@ -18,13 +18,12 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
 - `customActions` (optional) are the player's own actions, bonus actions, reactions, free actions and other abilities on the combat page (`{ id, kind, name, description? }`); see `src/sheet/combat/COMBAT_PAGE.md`.
 - `quickCast` (optional) lists the entries pinned to the sheet's quick-cast bar; see `src/quickcast/QUICKCAST.md`.
 - `spells` (optional) lists known or prepared spells as `{ id, classId }`, ids from the content library; `spellEdition` (optional, `'2024'` or missing for 2014) picks which SRD's spell lists and counts apply. See `src/spellbook/SPELLBOOK.md`.
-- `inventory` entries (`InventoryEntry` in `rules/types.ts`): `itemId`, `qty`, `equipped`, plus optional `item` (the full item, embedded for library and custom items so their stats stay editable), `name`, `notes`, `magicBonus` (+1 to +3), `pact` (one warlock pact weapon), `extraDamage` (e.g. `1d6 fire`), `effects` (stat effects, see `ItemEffect`) and `attunement` (needs attunement). `state.attuned` may hold `@<uid>` for an inventory item next to free-typed names. All optional, so old saves need no migration. See `src/inventory/INVENTORY.md`.
+- `inventory` entries (`InventoryEntry` in `rules/types.ts`): `itemId`, `qty`, `equipped`, plus optional `item` (the full item, embedded for library and custom items so their stats stay editable), `name`, `notes`, `magicBonus` (+1 to +3), `pact` (one warlock pact weapon), `extraDamage` (e.g. `1d6 fire`), `effects` (stat effects that apply while equipped, see `ItemEffect`). All optional, so old saves need no migration. See `src/inventory/INVENTORY.md`.
 - `schemaVersion` lets storage migrate old saves.
-- `state.inspiration` and `state.attuned` (max 3 item names) are optional; `normalize()` in `sheet/engine.ts` fills them for old saves.
+- Old saves may still hold `state.exhaustion`, `state.inspiration`, `state.attuned` and `state.clock`. Those features were removed; `normalize()` in `sheet/engine.ts` drops the fields on load.
 - `state.counters` with `recharge: 'dawn'` are magic item charges; `regain` is dice notation rolled at dawn (blank refills all). Rests never touch them; `dawn()` in `sheet/engine.ts` does.
 - `state.supplies` (optional) holds ammo fired since the last battlefield search and hungry days; see `src/supplies/SUPPLIES.md`.
 - `theme` is an optional theme id from `src/themes`; leaving it out means the app default.
-- `state.clock` is in-game minutes since day 1, 00:00 (`sheet/clock.ts` formats it). `advanceTime()` runs `dawn()` once for every 06:00 it passes; `setClock()` never recharges.
 - Builder choices, all optional so old saves stay valid without a schema bump:
   - `backgroundId: 'custom'` with `customBackground` is the PHB custom background (2 skills, 2 tools or languages, a feature name).
   - `chosenLanguages`, `chosenTools`: picks the race, class and background allow. Fixed languages and tools are added by the engine.

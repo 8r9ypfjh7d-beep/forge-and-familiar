@@ -14,10 +14,9 @@ const draft = (over: Partial<CharacterDraft> = {}): CharacterDraft => ({
   ...over,
 })
 
-const make = (over: Partial<CharacterDraft> = {}, equip: string[] = [], exhaustion = 0): Character => {
+const make = (over: Partial<CharacterDraft> = {}, equip: string[] = []): Character => {
   const c = createCharacter(draft(over))
   if (equip.length) c.inventory = equip.map((itemId, i) => ({ uid: String(i), itemId, qty: 1, equipped: true }))
-  c.state.exhaustion = exhaustion
   return c
 }
 
@@ -30,9 +29,7 @@ const CASES: [string, Character][] = [
   ['bard 6 (jack of all trades)', make({ classes: [{ classId: 'bard', level: 6 }], chosenSkills: ['performance'] }, ['rapier', 'leather'])],
   ['hill dwarf cleric', make({ raceId: 'dwarf', subraceId: 'hill-dwarf', classes: [{ classId: 'cleric', level: 4 }] }, ['scale-mail'])],
   ['half-elf sorcerer, frail', make({ raceId: 'half-elf', freeAbilityBonuses: ['con', 'dex'], classes: [{ classId: 'sorcerer', level: 3 }], baseAbilities: { str: 8, dex: 8, con: 3, int: 10, wis: 10, cha: 20 } })],
-  ['exhausted (2)', make({}, ['longsword'], 2)],
-  ['exhausted (4)', make({ classes: [{ classId: 'rogue', level: 5 }] }, [], 4)],
-  ['exhausted (5)', make({}, [], 5)],
+  ['rogue 5', make({ classes: [{ classId: 'rogue', level: 5 }] })],
   ['multiclass fighter/wizard', makeCharacter()],
   ['magic gear and a 2024 pact weapon', (() => {
     const c = make({ classes: [{ classId: 'warlock', level: 7 }], baseAbilities: { str: 10, dex: 14, con: 12, int: 8, wis: 10, cha: 18 } })
@@ -40,11 +37,10 @@ const CASES: [string, Character][] = [
     c.inventory = [
       { uid: 'a', itemId: 'greatsword', qty: 1, equipped: true, name: 'Oathbreaker', magicBonus: 1, pact: true },
       { uid: 'b', itemId: 'leather', qty: 1, equipped: true, magicBonus: 1 },
-      { uid: 'c', itemId: 'stone-of-good-luck-luckstone', qty: 1, equipped: true, attunement: true, effects: [{ kind: 'checks', value: 1 }, { kind: 'saves', value: 1 }] },
+      { uid: 'c', itemId: 'stone-of-good-luck-luckstone', qty: 1, equipped: true, effects: [{ kind: 'checks', value: 1 }, { kind: 'saves', value: 1 }] },
       { uid: 'd', itemId: 'headband-of-intellect', qty: 1, equipped: true, effects: [{ kind: 'abilitySet', ability: 'int', value: 19 }] },
       { uid: 'e', itemId: 'robe', qty: 1, equipped: true, effects: [{ kind: 'spellAttack', value: 2 }, { kind: 'spellDc', value: 2 }, { kind: 'speed', value: 10 }, { kind: 'ac', value: 5, unarmored: true }] },
     ]
-    c.state.attuned = ['@c']
     return c
   })()],
 ]

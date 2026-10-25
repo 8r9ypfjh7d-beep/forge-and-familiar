@@ -20,12 +20,11 @@ describe('editing a saved character', () => {
 
   it('keeps id, owner, notes, coins, gear and play state', () => {
     const c = { ...brannoc(), notes: 'Owes a debt', coins: { cp: 1, sp: 2, gp: 3 }, xp: 120 }
-    c.state = { ...c.state, conditions: ['poisoned'], inspiration: true }
+    c.state = { ...c.state, conditions: ['poisoned'] }
     const edited = applyEdit(c, { ...draftFrom(c), name: 'Brannoc the Bold', alignment: 'Neutral Good' })
     expect(edited).toMatchObject({ id: c.id, ownerId: 'u1', createdAt: c.createdAt, notes: 'Owes a debt', xp: 120, coins: c.coins, name: 'Brannoc the Bold' })
     expect(edited.inventory).toEqual(c.inventory)
     expect(edited.state.conditions).toEqual(['poisoned'])
-    expect(edited.state.inspiration).toBe(true)
   })
 
   it('moves current HP with max HP so a full character stays full', () => {

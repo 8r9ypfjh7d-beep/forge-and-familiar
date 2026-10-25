@@ -14,7 +14,7 @@ Compare two builds side by side: two characters, a character and one of its leve
 ## Notes
 
 - Nothing is saved. Tweaks are applied to a copy; the stored character never changes.
-- `asBuild()` clears exhaustion and conditions so play state doesn't skew a build comparison.
+- `asBuild()` clears conditions so play state doesn't skew a build comparison.
 - Damage per round: best equipped attack × attacks per action, 5% crits double dice, plus Monk bonus strike and one Sneak Attack. Leaves out spells, Action Surge, Rage, Smite and fighting styles.
 - Multiclass prerequisites are not checked yet.
 - Reads snapshots through `listSnapshots()` from `src/portability`.

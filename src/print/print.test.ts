@@ -4,7 +4,7 @@ import { buildPrintSheet } from './sheetData'
 
 const played = () => {
   const c = makeCharacter({ inventory: [{ uid: 'a', itemId: 'longsword', qty: 1, equipped: true }] })
-  return { ...c, state: { ...c.state, currentHp: 12, tempHp: 4, spellSlotsUsed: [1, 0, 0, 0, 0, 0, 0, 0, 0], conditions: ['poisoned' as const], exhaustion: 1 } }
+  return { ...c, state: { ...c.state, currentHp: 12, tempHp: 4, spellSlotsUsed: [1, 0, 0, 0, 0, 0, 0, 0, 0], conditions: ['poisoned' as const] } }
 }
 
 describe('buildPrintSheet', () => {
@@ -30,7 +30,6 @@ describe('buildPrintSheet', () => {
     expect(s.tempHp).toBeUndefined()
     expect(s.spellSlots[0]).toMatchObject({ label: '1st', used: 0 })
     expect(s.conditions).toEqual([])
-    expect(s.exhaustion).toBe(0)
   })
 
   it('fills play state when asked', () => {
@@ -39,7 +38,6 @@ describe('buildPrintSheet', () => {
     expect(s.tempHp).toBe(4)
     expect(s.spellSlots[0].used).toBe(1)
     expect(s.conditions).toEqual(['Poisoned'])
-    expect(s.exhaustion).toBe(1)
   })
 
   it('includes class resources and custom trackers', () => {

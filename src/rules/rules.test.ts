@@ -63,11 +63,6 @@ describe('hit points', () => {
     const c = make()
     expect(c.state.currentHp).toBe(getMaxHp(c))
   })
-
-  it('halves max HP at exhaustion 4', () => {
-    const c = make({}, ch => { ch.state.exhaustion = 4 })
-    expect(derive(c).maxHp).toBe(Math.floor(getMaxHp(c) / 2))
-  })
 })
 
 describe('armor class', () => {
@@ -171,7 +166,7 @@ describe('derive', () => {
 })
 
 describe('roll mode', () => {
-  it('applies conditions and exhaustion', async () => {
+  it('applies conditions', async () => {
     const { getRollMode, autoFailsSave } = await import('./index')
     const c = make({}, ch => { ch.state.conditions = ['poisoned'] })
     expect(getRollMode(c, 'attack')).toBe('disadvantage')

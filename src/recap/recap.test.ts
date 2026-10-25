@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RollResult } from '../dice/types'
 import type { Character } from '../model/character'
-import { getEffectiveMaxHp } from '../rules'
+import { getMaxHp } from '../rules'
 import { heal, longRest, rollDeathSave, setResourceUsed, setSlotUsed, shortRest, spendHitDie, takeDamage } from '../sheet/engine'
 import { makeCharacter } from '../sheet/fixtures'
 import { diffCharacter, track } from './diff'
@@ -22,7 +22,7 @@ function roll(partial: Partial<RollResult> & { natural?: number }): RollResult {
 
 describe('diffCharacter', () => {
   const c = makeCharacter()
-  const max = getEffectiveMaxHp(c)
+  const max = getMaxHp(c)
 
   it('sees damage, a drop to 0 and healing', () => {
     expect(diffCharacter(track(c), takeDamage(c, 7))).toEqual([{ kind: 'damage', amount: 7, hpAfter: max - 7, maxHp: max }])
@@ -116,7 +116,7 @@ describe('session journal', () => {
 describe('buildRecap', () => {
   it('sums the session per character and writes highlights', () => {
     const c = makeCharacter()
-    const max = getEffectiveMaxHp(c)
+    const max = getMaxHp(c)
     let s = startSession({ ownerId: 'u1', title: 'The Sunless Citadel', characters: [c], at: '2026-10-25T19:00:00.000Z' })
     let cur = c
     const step = (next: Character, at: string) => { s = recordCharacter(s, next, at); cur = next }

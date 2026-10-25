@@ -59,7 +59,7 @@ export function Supplies({ character, apply }: { character: Character; apply: Ap
       {hungry > 0 && (
         <p className={`hint${hungry >= limit ? ' supply-warn' : ''}`}>
           {hungry} {hungry === 1 ? 'day' : 'days'} without food.
-          {hungry >= limit ? ' Each further hungry day adds a level of exhaustion.' : ` Exhaustion starts after ${limit}.`}
+          {hungry >= limit ? ' Past the limit of going without food.' : ` The limit is ${limit}.`}
         </p>
       )}
       {recoverable.length > 0 && (

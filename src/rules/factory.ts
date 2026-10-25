@@ -21,7 +21,6 @@ export function freshState(maxHp: number): CharacterState {
     pactSlotsUsed: 0,
     resources: {},
     conditions: [],
-    exhaustion: 0,
     counters: [],
   }
 }
