@@ -22,7 +22,7 @@ describe('sheet modes', () => {
     expect(l.vitals).toEqual(['hp', 'rests'])
     expect(Object.keys(l.tabs ?? {})).toEqual(['combat', 'spells', 'inventory', 'features', 'notes'])
     expect(l.tabs?.combat[0]).toBe('fight')
-    for (const s of ['turn', 'reactions', 'clock', 'social', 'resources', 'exhaustion', 'inspiration'] as const) expect(all('combat')).not.toContain(s)
+    for (const s of ['turn', 'reactions', 'social', 'resources'] as const) expect(all('combat')).not.toContain(s)
   })
 
   it('death saves show only at 0 HP, first in both modes', () => {

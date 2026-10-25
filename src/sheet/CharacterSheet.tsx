@@ -6,11 +6,8 @@ import { QuickCastBar } from '../quickcast'
 import { derive, formatMod } from '../rules'
 import { ReactionReminders } from '../reactions'
 import { Attacks } from './components/Attacks'
-import { Attunement } from './components/Attunement'
 import { DEFAULT_THEME_ID, ThemePicker, useCharacterTheme } from '../themes'
-import { Clock } from './components/Clock'
 import { DeathSaves } from './components/DeathSaves'
-import { Exhaustion } from './components/Exhaustion'
 import { HitPoints } from './components/HitPoints'
 import { Resources } from './components/Resources'
 import { Rests } from './components/Rests'
@@ -63,12 +60,9 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'identity': return <Identity key={s} character={character} />
       case 'social': return <SocialSkills key={s} character={character} />
       case 'notes': return <Notes key={s} {...p} />
-      case 'inspiration': return <Attunement key={s} {...p} />
       case 'hp': return <HitPoints key={s} {...p} />
       case 'death': return <DeathSaves key={s} {...p} />
       case 'rests': return <Rests key={s} {...p} />
-      case 'clock': return <Clock key={s} {...p} />
-      case 'exhaustion': return <Exhaustion key={s} {...p} />
       case 'stats': return <StatsCard key={s} character={character} />
       case 'attacks': return <Attacks key={s} character={character} />
       case 'turn': return <TurnChecklist key={s} character={character} />

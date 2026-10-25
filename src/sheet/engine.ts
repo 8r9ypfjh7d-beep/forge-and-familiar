@@ -3,8 +3,7 @@
 // Rules follow the SRD 5.1 sections on Hit Points, Death Saving Throws and Resting.
 import type { Character, CharacterState, HitDie } from '../model/character'
 import type { RestType } from '../rules/types'
-import { abilityMod, getAbilityScores, getEffectiveMaxHp, getHitDice, getResources, getSpellSlots } from '../rules'
-import { dawnsBetween, DEFAULT_START } from './clock'
+import { abilityMod, getAbilityScores, getHitDice, getMaxHp, getResources, getSpellSlots } from '../rules'
 
 
 export type Counter = NonNullable<CharacterState['counters']>[number]
@@ -17,14 +16,13 @@ function withState(c: Character, patch: Partial<CharacterState>): Character {
   return { ...c, state: { ...c.state, ...patch } }
 }
 
-/** Max HP after exhaustion: level 4 and above halves it. */
-export const effectiveMaxHp = getEffectiveMaxHp
+export const effectiveMaxHp = getMaxHp
 
 export type Vitals = 'healthy' | 'dying' | 'stable' | 'dead'
 
 export function vitals(c: Character): Vitals {
-  const { currentHp, deathSaves, exhaustion } = c.state
-  if (deathSaves.failures >= 3 || exhaustion >= 6) return 'dead'
+  const { currentHp, deathSaves } = c.state
+  if (deathSaves.failures >= 3) return 'dead'
   if (currentHp > 0) return 'healthy'
   // The SRD resets both counts on becoming stable; we keep three successes
   // instead, so stable stays derivable without an extra stored flag.
@@ -33,13 +31,14 @@ export function vitals(c: Character): Vitals {
 
 /** Fills missing fields and clamps used counts to the current maxima (e.g. after a level change). */
 export function normalize(c: Character): Character {
-  const s = c.state
+  // Fields of removed features (exhaustion, inspiration, attunement, in-game clock) are dropped from old saves.
+  const { exhaustion: _e, inspiration: _i, attuned: _a, clock: _c, ...s } = c.state as CharacterState & Record<'exhaustion' | 'inspiration' | 'attuned' | 'clock', unknown>
   const { slots, pact } = getSpellSlots(c)
   const resources: CharacterState['resources'] = {}
   for (const r of getResources(c)) resources[r.id] = { used: clamp(s.resources?.[r.id]?.used ?? 0, 0, r.max) }
   const hitDiceSpent: CharacterState['hitDiceSpent'] = {}
   for (const { die, total } of getHitDice(c)) hitDiceSpent[die] = clamp(s.hitDiceSpent?.[die] ?? 0, 0, total)
-  return withState(c, {
+  return withState({ ...c, state: s }, {
     currentHp: clamp(s.currentHp ?? effectiveMaxHp(c), 0, effectiveMaxHp(c)),
     tempHp: Math.max(0, s.tempHp ?? 0),
     deathSaves: s.deathSaves ?? NO_SAVES,
@@ -48,10 +47,7 @@ export function normalize(c: Character): Character {
     resources,
     hitDiceSpent,
     conditions: s.conditions ?? [],
-    exhaustion: clamp(s.exhaustion ?? 0, 0, 6),
     counters: s.counters ?? [],
-    inspiration: s.inspiration ?? false,
-    attuned: (s.attuned ?? []).slice(0, ATTUNEMENT_LIMIT),
   })
 }
 
@@ -94,7 +90,7 @@ export function grantTempHp(c: Character, amount: number, opts: { replace?: bool
   return withState(c, { tempHp })
 }
 
-/** Brings a dead character back at 1 HP, e.g. Revivify. Exhaustion is left to the player. */
+/** Brings a dead character back at 1 HP, e.g. Revivify. */
 export function revive(c: Character, hp = 1): Character {
   return withState(c, { currentHp: clamp(hp, 1, effectiveMaxHp(c)), deathSaves: NO_SAVES })
 }
@@ -161,31 +157,6 @@ export function removeCounter(c: Character, id: string): Character {
   return withState(c, { counters: (c.state.counters ?? []).filter(k => k.id !== id) })
 }
 
-// ---- Inspiration and attunement ----
-
-export function setInspiration(c: Character, on: boolean): Character {
-  return withState(c, { inspiration: on })
-}
-
-/** A creature can be attuned to no more than three magic items at a time. */
-export const ATTUNEMENT_LIMIT = 3
-
-export function attune(c: Character, item: string): Character {
-  const attuned = c.state.attuned ?? []
-  const name = item.trim()
-  if (!name || attuned.length >= ATTUNEMENT_LIMIT) return c
-  return withState(c, { attuned: [...attuned, name] })
-}
-
-export function endAttunement(c: Character, index: number): Character {
-  return withState(c, { attuned: (c.state.attuned ?? []).filter((_, i) => i !== index) })
-}
-
-export function setExhaustion(c: Character, level: number): Character {
-  const next = withState(c, { exhaustion: clamp(level, 0, 6) })
-  return withState(next, { currentHp: Math.min(next.state.currentHp, effectiveMaxHp(next)) })
-}
-
 // ---- Rests ----
 
 export function hitDiceRemaining(c: Character): { die: HitDie; total: number; remaining: number }[] {
@@ -242,8 +213,7 @@ export function canLongRest(c: Character): boolean {
 
 /**
  * Ends a long rest: full HP, every slot and resource back, temp HP gone,
- * half the total hit dice regained (minimum one, largest dice first),
- * and one level of exhaustion removed. Needs at least 1 HP at the start.
+ * and half the total hit dice regained (minimum one, largest dice first). Needs at least 1 HP at the start.
  */
 export function longRest(c: Character): Character {
   if (!canLongRest(c)) return c
@@ -256,33 +226,8 @@ export function longRest(c: Character): Character {
     if (back > 0) hitDiceSpent[die] = (hitDiceSpent[die] ?? 0) - back
     toRegain -= back
   }
-  const exhaustion = Math.max(0, state.exhaustion - 1)
-  const rested: Character = { ...c, state: { ...state, hitDiceSpent, exhaustion, tempHp: 0, deathSaves: NO_SAVES, spellSlotsUsed: state.spellSlotsUsed.map(() => 0) } }
+  const rested: Character = { ...c, state: { ...state, hitDiceSpent, tempHp: 0, deathSaves: NO_SAVES, spellSlotsUsed: state.spellSlotsUsed.map(() => 0) } }
   return withState(rested, { currentHp: effectiveMaxHp(rested) })
-}
-
-// ---- In-game time ----
-
-export function clockOf(c: Character): number {
-  return c.state.clock ?? DEFAULT_START
-}
-
-/**
- * Moves the clock forward. Every 06:00 passed is a dawn(); `rolledPerDawn[i]`
- * holds the regain dice for the i-th dawn (missing means nothing rolled).
- */
-export function advanceTime(c: Character, minutes: number, rolledPerDawn: Record<string, number>[] = []): Character {
-  if (minutes <= 0) return c
-  const from = clockOf(c)
-  const to = from + Math.round(minutes)
-  let next = withState(c, { clock: to })
-  for (let i = 0; i < dawnsBetween(from, to); i++) next = dawn(next, rolledPerDawn[i])
-  return next
-}
-
-/** Sets the clock directly (start of a campaign, a DM correction). Never triggers dawn. */
-export function setClock(c: Character, t: number): Character {
-  return withState(c, { clock: Math.max(0, Math.round(t)) })
 }
 
 /** The free-text notes on the character (backstory, personality, reminders). */

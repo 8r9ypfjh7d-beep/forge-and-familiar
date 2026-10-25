@@ -70,12 +70,6 @@ describe('applyTweak', () => {
     const split = applyTweak(c, { asi: ['dex', 'con'] }).baseAbilities
     expect([split.dex, split.con]).toEqual([c.baseAbilities.dex + 1, c.baseAbilities.con + 1])
   })
-
-  it('ignores exhaustion so builds compare at full strength', () => {
-    const tired = fighter4()
-    tired.state.exhaustion = 5
-    expect(compareBuilds(applyTweak(tired, {}), fighter4())[0].rows.find(r => r.label === 'Speed')?.delta).toBe(0)
-  })
 })
 
 describe('compareBuilds', () => {

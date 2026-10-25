@@ -16,8 +16,8 @@ Ammunition and ration countdowns on the live sheet. Counts are inventory quantit
 - Ammunition weapons map to arrows (bows) or bolts (crossbows). Each shot takes one from the stacks; empty stacks stay at 0.
 - Shots are remembered in `state.supplies.ammoSpent`. Searching after a fight recovers half, rounded down. A long rest forgets unsearched shots.
 - One long rest is one day. The long rest dialog picks a meal: a ration (taken from inventory), other food, or none.
-- Going hungry: the long rest does not remove exhaustion, and past 3 + CON modifier days (min 1) each hungry day adds one level.
-- Default meal is a ration when one is carried, otherwise "other food", so tables that skip food tracking never get exhaustion by accident.
+- Going hungry counts the days; the sheet warns past 3 + CON modifier days (min 1).
+- Default meal is a ration when one is carried, otherwise "other food", so tables that skip food tracking never count hungry days by accident.
 
 ## Hooks into the sheet
 

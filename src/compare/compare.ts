@@ -14,9 +14,9 @@ export interface BuildTweak {
   asi?: (Ability | undefined)[]
 }
 
-/** The build with play state cleared, so exhaustion or conditions don't skew the numbers. */
+/** The build with play state cleared, so conditions don't skew the numbers. */
 export function asBuild(c: Character): Character {
-  return { ...c, state: { ...c.state, exhaustion: 0, conditions: [] } }
+  return { ...c, state: { ...c.state, conditions: [] } }
 }
 
 export function applyTweak(c: Character, t: BuildTweak): Character {

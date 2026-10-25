@@ -5,8 +5,8 @@ import { useCallback, useState } from 'react'
 export type SheetMode = 'story' | 'combat'
 
 export type SheetSection =
-  | 'quickcast' | 'identity' | 'social' | 'notes' | 'inspiration'
-  | 'hp' | 'death' | 'rests' | 'clock' | 'exhaustion' | 'stats' | 'attacks'
+  | 'quickcast' | 'identity' | 'social' | 'notes'
+  | 'hp' | 'death' | 'rests' | 'stats' | 'attacks'
   | 'turn' | 'reactions' | 'slots' | 'spells' | 'inventory' | 'resources' | 'supplies' | 'history'
   // Combat page (src/sheet/combat): summary header, skills rail, tabbed panel and its fight and features views.
   | 'summary' | 'skills' | 'tabs' | 'fight' | 'features'
@@ -51,7 +51,7 @@ export function sheetLayout(mode: SheetMode, { dying }: { dying: boolean }): She
     top: [],
     columns: [
       dying ? ['hp', 'death', 'identity', 'social', 'notes'] : ['identity', 'hp', 'social', 'notes'],
-      ['inspiration', 'rests', 'clock', 'stats', 'attacks', 'inventory', 'slots', 'spells', 'resources', 'supplies', 'exhaustion', 'history'],
+      ['rests', 'stats', 'attacks', 'inventory', 'slots', 'spells', 'resources', 'supplies', 'history'],
     ],
   }
 }

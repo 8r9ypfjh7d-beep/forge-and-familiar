@@ -19,7 +19,7 @@ Up to 100 dice and 1000 sides per term.
 | `RollHistory`, `localHistoryStorage(key)` | Newest-first store, capped, with subscribe. |
 | `sendSecretRoll(partyId, { roll, fromUserId })`, `secretView(list, dmId, viewerId)` | Secret rolls (`secret.ts`): one log per party (`ff.rolls.secret.v1.<partyId>`). The DM gets every result; the roller gets masked "sent" stubs only. Never written to `ff.rolls.v1.*`, so the group feed can't show them. |
 
-`opts`: `{ mode?, character?, ignoreConditions?, label?, rng? }`. Passing `character` tags the roll with who rolled it. It also merges `getRollMode` from that character's conditions and exhaustion with any situational `mode`. Advantage and disadvantage cancel out, per the SRD. Saves the character fails automatically come back with `autoFail: true`.
+`opts`: `{ mode?, character?, ignoreConditions?, label?, rng? }`. Passing `character` tags the roll with who rolled it. It also merges `getRollMode` from that character's conditions with any situational `mode`. Advantage and disadvantage cancel out, per the SRD. Saves the character fails automatically come back with `autoFail: true`.
 
 ## React (`import … from '../dice/ui'`)
 - `<DiceProvider userId>` wraps the app. Each user gets their own history in localStorage (`ff.rolls.v1.<userId>`), so friends sharing a device keep separate logs.

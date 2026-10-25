@@ -3,7 +3,7 @@ import type { Equipment, MagicItem } from '../content'
 import type { Character } from '../model/character'
 import { createCharacter, derive, ITEMS, type CharacterDraft } from '../rules'
 import {
-  addItem, attunementFull, fromLibrary, fromMagicItem, magicBonusOf, removeEntry, setAttuned, setCoins, setEquipped, setQty, updateEntry, withBase,
+  addItem, fromLibrary, fromMagicItem, magicBonusOf, removeEntry, setCoins, setEquipped, setQty, updateEntry, withBase,
 } from './inventory'
 
 const warlock = (edition?: '2024'): Character => {
@@ -104,24 +104,22 @@ describe('magic item effects reach the sheet', () => {
 
   const wear = (c: Character, uid: string) => setEquipped(c, uid, true)
 
-  it('applies a Ring of Protection only once worn and attuned', () => {
+  it('applies a Ring of Protection as soon as it is worn, with no attunement', () => {
     let c = warlock()
     const before = derive(c)
     const { character, uid } = addItem(c, magic('ring-of-protection', 'Ring of Protection'))
+    expect(derive(character).armorClass.value).toBe(before.armorClass.value)
     c = wear(character, uid)
-    expect(derive(c).armorClass.value).toBe(before.armorClass.value)
-    c = setAttuned(c, uid, true)
     const after = derive(c)
     expect(after.armorClass.value).toBe(before.armorClass.value + 1)
     expect(after.saves.wis.bonus).toBe(before.saves.wis.bonus + 1)
-    // Removing the item frees its attunement slot.
-    expect(removeEntry(c, uid).state.attuned).toEqual([])
+    expect(derive(removeEntry(c, uid)).armorClass.value).toBe(before.armorClass.value)
   })
 
   it('raises ability scores and everything built on them', () => {
     let c = warlock()
     const { character, uid } = addItem(c, magic('amulet-of-health', 'Amulet of Health'))
-    c = setAttuned(wear(character, uid), uid, true)
+    c = wear(character, uid)
     const d = derive(c)
     expect(d.abilities.con).toBe(19)
     expect(d.maxHp).toBeGreaterThan(derive(warlock()).maxHp)
@@ -130,7 +128,7 @@ describe('magic item effects reach the sheet', () => {
   it('never lowers a score above the item value', () => {
     let c = warlock()
     const { character, uid } = addItem(c, magic('gauntlets-of-ogre-power', 'Gauntlets of Ogre Power'))
-    c = setAttuned(wear(character, uid), uid, true)
+    c = wear(character, uid)
     c.baseAbilities = { ...c.baseAbilities, str: 20 }
     expect(derive(c).abilities.str).toBe(20)
   })
@@ -139,7 +137,7 @@ describe('magic item effects reach the sheet', () => {
     let c = warlock()
     const base = derive(c).spellcasting!
     const { character, uid } = addItem(c, magic('wand-of-the-war-mage-2', 'Wand of the War Mage +2'))
-    c = setAttuned(wear(character, uid), uid, true)
+    c = wear(character, uid)
     expect(derive(c).spellcasting!.attackBonus).toBe(base.attackBonus + 2)
     c = updateEntry(c, uid, { effects: [{ kind: 'spellDc', value: 1 }] })
     expect(derive(c).spellcasting).toMatchObject({ attackBonus: base.attackBonus, saveDc: base.saveDc + 1 })
@@ -148,25 +146,15 @@ describe('magic item effects reach the sheet', () => {
   it('bracers only count without armor', () => {
     let c = warlock()
     const { character, uid } = addItem(c, magic('bracers-of-defense', 'Bracers of Defense'))
-    c = setAttuned(wear(character, uid), uid, true)
+    c = wear(character, uid)
     const bare = derive(c).armorClass.value
     c = addItem(c, { itemId: 'leather' }).character
     c = setEquipped(c, c.inventory.at(-1)!.uid, true)
     expect(derive(c).armorClass.value).toBe(bare - 2 + 1) // leather 11 vs unarmored 10, bracers off
   })
 
-  it('stops at three attuned items', () => {
-    let c = warlock()
-    for (let i = 0; i < 4; i++) {
-      const { character, uid } = addItem(c, magic('ring-of-protection', 'Ring of Protection'))
-      c = setAttuned(character, uid, true)
-    }
-    expect(c.state.attuned).toHaveLength(3)
-    expect(attunementFull(c)).toBe(true)
-  })
-
   it('fills in magic weapon bonuses from the table', () => {
-    expect(magic('defender', 'Defender')).toMatchObject({ magicBonus: 3, attunement: true })
+    expect(magic('defender', 'Defender')).toMatchObject({ magicBonus: 3 })
     expect(magic('flame-tongue', 'Flame Tongue')).toMatchObject({ extraDamage: '2d6 fire' })
   })
 })

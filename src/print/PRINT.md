@@ -14,6 +14,6 @@ Two-page, paper-style character sheet. "Print or save as PDF" opens the browser 
 ## Notes
 
 - Opened from the "Print" button on each character card (`App.tsx`, view `print`).
-- Play state is off by default, so HP, slots, conditions and exhaustion print as empty boxes for pencil play. The checkbox fills them from `character.state`.
+- Play state is off by default, so HP, slots and conditions print as empty boxes for pencil play. The checkbox fills them from `character.state`.
 - The page title is set to "<name> - character sheet" while the view is open, which browsers use as the default PDF file name.
 - Fits US Letter and A4. Spell lists are blank lines until a spell compendium exists.

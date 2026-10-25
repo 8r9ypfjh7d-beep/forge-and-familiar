@@ -1,7 +1,7 @@
 // Turns two snapshots of a character into session events. Pure: no storage, no React.
 // The sheet saves one action at a time, so each diff usually holds a single action.
 import type { Character } from '../model/character'
-import { getEffectiveMaxHp, getResources, itemById, totalLevel } from '../rules'
+import { getMaxHp, getResources, itemById, totalLevel } from '../rules'
 import { vitals } from '../sheet/engine'
 import type { SessionEventBody, Tracked } from './types'
 
@@ -28,7 +28,7 @@ export function diffCharacter(before: Tracked, now: Character): SessionEventBody
   const a = prev.state
   const b = now.state
   const out: SessionEventBody[] = []
-  const maxHp = getEffectiveMaxHp(now)
+  const maxHp = getMaxHp(now)
 
   // ---- Rests ----
   const resetIds = Object.keys(a.resources).filter(id => (a.resources[id]?.used ?? 0) > 0 && (b.resources[id]?.used ?? 0) === 0)
@@ -38,8 +38,7 @@ export function diffCharacter(before: Tracked, now: Character): SessionEventBody
   const hitDiceBack = hitDiceSpent(before) > hitDiceSpent(now)
   // Healing never refreshes resources, so full HP plus anything coming back is a long rest.
   const healedWithReset = a.currentHp < maxHp && anyReset
-  const exhaustionEased = b.exhaustion === a.exhaustion - 1 && a.currentHp < maxHp
-  const longRest = b.currentHp === maxHp && b.tempHp === 0 && (hitDiceBack || slotsRefreshed || healedWithReset || exhaustionEased)
+  const longRest = b.currentHp === maxHp && b.tempHp === 0 && (hitDiceBack || slotsRefreshed || healedWithReset)
   const shortRest = !longRest && anyReset && a.currentHp === b.currentHp && sum(a.spellSlotsUsed) === sum(b.spellSlotsUsed) &&
     getResources(now).filter(r => r.recharge === 'short').every(r => (b.resources[r.id]?.used ?? 0) === 0)
 
@@ -87,9 +86,6 @@ export function diffCharacter(before: Tracked, now: Character): SessionEventBody
   // ---- Conditions ----
   for (const id of b.conditions) if (!a.conditions.includes(id)) out.push({ kind: 'condition', condition: id, added: true })
   for (const id of a.conditions) if (!b.conditions.includes(id)) out.push({ kind: 'condition', condition: id, added: false })
-  if (b.exhaustion !== a.exhaustion && !(longRest && b.exhaustion === a.exhaustion - 1)) {
-    out.push({ kind: 'exhaustion', from: a.exhaustion, to: b.exhaustion })
-  }
 
   // ---- Loot ----
   const qty = (t: Pick<Tracked, 'inventory'>) => {

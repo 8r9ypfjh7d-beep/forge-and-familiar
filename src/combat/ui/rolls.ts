@@ -10,7 +10,7 @@ const roller = (c: Combatant) => ({ characterId: c.characterId ?? c.id, characte
 export function useCombatRolls() {
   const { record } = useDice()
   return {
-    /** Party members roll from their sheet (DEX, conditions, exhaustion); others from their modifier. */
+    /** Party members roll from their sheet (DEX, conditions); others from their modifier. */
     initiative(c: Combatant, party: Party): RollResult | undefined {
       const ch = c.characterId ? party[c.characterId] : undefined
       if (c.kind === 'pc') return ch && record(rollInitiative(derive(ch), { character: ch }))

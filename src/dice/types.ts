@@ -48,7 +48,7 @@ export interface RollOptions {
   mode?: RollMode | RollMode[]
   /**
    * The rolling character. Fills `roller`, and on character rolls adds the mode from their own
-   * conditions and exhaustion (rules getRollMode) to `mode`.
+   * conditions (rules getRollMode) to `mode`.
    */
   character?: Pick<Character, 'id' | 'name' | 'state'>
   /** Skip the character's conditions, for when the table rules otherwise. */

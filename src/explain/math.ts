@@ -157,9 +157,6 @@ function speed(c: Character): StatMath {
   const barb = classesOf(c).find(x => x.def.id === 'barbarian')
   if (barb && barb.level >= 5 && armor?.category !== 'heavy') lines.push({ label: 'Fast Movement (Barbarian)', value: 10 })
   lines.push(...itemLines(c, 'speed'))
-  const sum = lines.reduce((n, l) => n + l.value, 0)
-  if (c.state.exhaustion >= 5) lines.push({ label: `Exhaustion ${c.state.exhaustion}: speed 0`, value: -sum })
-  else if (c.state.exhaustion >= 2) lines.push({ label: `Exhaustion ${c.state.exhaustion}: speed halved`, value: Math.floor(sum / 2) - sum })
   return make('Speed (ft.)', lines)
 }
 
@@ -197,9 +194,6 @@ function maxHp(c: Character): StatMath {
   const sum = lines.reduce((t, l) => t + l.value, 0)
   if (base > sum) lines.push({ label: 'Minimum 1 HP', value: base - sum })
   const notes = ['Uses the fixed average for levels after 1st.']
-  if (c.state.exhaustion >= 4) {
-    lines.push({ label: `Exhaustion ${c.state.exhaustion}: max HP halved`, value: Math.max(1, Math.floor(base / 2)) - base })
-  }
   return make('Max hit points', lines, { notes })
 }
 

@@ -19,6 +19,6 @@ The sheet's Inventory card: coins, carried weight, every item the character owns
 - The editor can change anything: kind, weapon damage, type, properties, range, armor AC and DEX cap, magic bonus, extra damage, notes. Saving always embeds `entry.item`, so edits never touch the SRD data.
 - Equipped weapons become attacks and equipped armor sets AC through `src/rules` (`entryItem`). Warlocks can mark one weapon as their pact weapon.
 - Stat effects: adding a magic item copies its effects from `MAGIC_ITEM_STATS` (`src/rules/data/magicItemEffects.ts`) onto the entry: AC, saves, ability checks, spell attack and DC, speed, ability scores ("becomes 19" or "+2, max 20"), plus weapon and armor `magicBonus` and `extraDamage`. Every item, database or custom, can have its effects edited in the item editor.
-- Effects work while the item is equipped, and attuned when it requires attunement. Attuning uses the shared three slots in `state.attuned` (stored as `@<uid>`, shown by name on the Attunement card); removing the item frees the slot.
+- Effects work while the item is equipped. The app has no attunement, so magic items that need it in the rules work as soon as they are worn.
 - Coins are `Character.coins` (gp, sp, cp).
 - Every change goes through the sheet's `apply()`, so it can be undone and is logged.

@@ -13,7 +13,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 
 ## Layout
 
-- **Story** (default): who the character is (race, background and feature, alignment, languages, tools, traits), HP, social and exploration skills, notes, inspiration and attunement, rests, clock, stats, slots, resources. No quick-cast bar, turn checklist or reactions.
+- **Story** (default): who the character is (race, background and feature, alignment, languages, tools, traits), HP, social and exploration skills, notes, rests, stats, slots, resources. No quick-cast bar, turn checklist or reactions.
 - **Combat**: laid out like Roll20's character page. A summary on top (who, HP and rests, abilities with Mod and Save, AC and speed), the skills and tools on the side, and tabs: Combat (attacks table, weapon mastery, effects, the player's own actions), Spells (quick-cast, slots, spellbook), Inventory (inventory, supplies), Features & Traits, Notes (notes, identity, history). `sheetLayout` returns these as `vitals` and `tabs`.
 - At 0 HP, HP and death saves come first in story mode; combat mode puts death saves above the summary.
 

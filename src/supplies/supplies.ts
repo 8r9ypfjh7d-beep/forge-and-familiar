@@ -1,9 +1,8 @@
 // Ammunition and food countdowns, driven by inventory stacks.
 // Pure: each change takes a Character and returns a new one, like sheet/engine.
-// Rules follow SRD 5.1: Ammunition (weapon property), Food and Water, Exhaustion.
+// Rules follow SRD 5.1: Ammunition (weapon property), Food and Water.
 import type { Character, CharacterState } from '../model/character'
 import { abilityMod, entryItem, getAbilityScores, itemById, type InventoryEntry, type Item } from '../rules'
-import { setExhaustion } from '../sheet/engine'
 
 type Weapon = Extract<Item, { kind: 'weapon' }>
 type Supplies = NonNullable<CharacterState['supplies']>
@@ -107,7 +106,7 @@ export function forgetSpentAmmo(c: Character): Character {
 
 export type Meal = 'ration' | 'other' | 'none'
 
-/** Days a character can go without food before exhaustion sets in: 3 + CON modifier, at least 1. */
+/** Days a character can go without food before it becomes a problem: 3 + CON modifier, at least 1. */
 export function foodLimit(c: Character): number {
   return Math.max(1, 3 + abilityMod(getAbilityScores(c).con))
 }
@@ -120,8 +119,7 @@ export function daysWithoutFood(c: Character): number {
  * Settles the day's food after a long rest (one long rest = one day).
  * Pass the character before and after sheet/engine longRest:
  * - a meal resets the hungry count; a ration comes out of the pack;
- * - going hungry undoes the rest's exhaustion relief (it needs food and drink)
- *   and, past the limit, adds one level of exhaustion;
+ * - going hungry adds a day to the hungry count;
  * - ammunition nobody searched for is lost.
  */
 export function endDay(before: Character, rested: Character, meal: Meal): Character {
@@ -130,10 +128,7 @@ export function endDay(before: Character, rested: Character, meal: Meal): Charac
   if (meal === 'ration' && countOf(c, RATION_ID) <= 0) meal = 'none'
   if (meal === 'ration') return withSupplies(c, { daysWithoutFood: 0 }, take(c.inventory, RATION_ID, 1))
   if (meal === 'other') return withSupplies(c, { daysWithoutFood: 0 })
-  const days = daysWithoutFood(c) + 1
-  c = withSupplies(c, { daysWithoutFood: days })
-  const exhaustion = before.state.exhaustion + (days > foodLimit(c) ? 1 : 0)
-  return exhaustion === c.state.exhaustion ? c : setExhaustion(c, exhaustion)
+  return withSupplies(c, { daysWithoutFood: daysWithoutFood(c) + 1 })
 }
 
 /** The long-rest dialog suggests a ration when there is one; tables that skip food tracking never go hungry by default. */
