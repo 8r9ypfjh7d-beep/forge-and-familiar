@@ -99,3 +99,44 @@
 .ff-secret__list li { display: grid; gap: 2px; }
 .ff-secret__sent { gap: 2px; }
 .ff-secret__sent li { display: block; }
+
+/* Floating dice button and its window. Sits under full-screen overlays (table mode, handouts). */
+.ff-dice-fab {
+  position: fixed;
+  inset-block-end: max(16px, env(safe-area-inset-bottom));
+  inset-inline-end: max(16px, env(safe-area-inset-right));
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+.ff-dice-fab > * { pointer-events: auto; }
+.ff-dice-fab__button {
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: var(--accent, #8c2f1b); color: var(--accent-ink, #fff);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.ff-dice-fab__button:hover { transform: scale(1.06); }
+.ff-dice-fab__button.is-open { transform: rotate(30deg); }
+.ff-dice-fab__button:focus-visible { outline: 3px solid var(--ink, #2a2118); outline-offset: 3px; }
+.ff-dice-fab__panel {
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100dvh - 112px);
+  overflow-y: auto;
+  background: var(--panel, #fffdf8);
+  border: 1px solid var(--line, #e2d7c4);
+  border-radius: var(--radius, 10px);
+  box-shadow: 0 10px 32px rgb(0 0 0 / 0.25);
+}
+.ff-dice-fab__head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 0; }
+.ff-dice-fab__head h2 { margin: 0; font-size: 1rem; }
+.ff-dice-fab .ff-dice { border: 0; max-width: none; background: transparent; }
+.ff-dice-fab .ff-dice__history { max-height: 200px; }
+@media (prefers-reduced-motion: reduce) { .ff-dice-fab__button { transition: none; } }
+@media print { .ff-dice-fab { display: none; } }

@@ -5,7 +5,7 @@ import { Builder } from './builder/Builder'
 import { CoinsView } from './coins'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { CompareView } from './compare'
-import { DiceProvider, DiceTray } from './dice/ui'
+import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ImportButton, LevelHistory } from './portability/ui'
@@ -25,7 +25,7 @@ import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'starters' } | { kind: 'dice' } | { kind: 'combat' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
+type View = { kind: 'list' } | { kind: 'build' } | { kind: 'starters' } | { kind: 'combat' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
 
 const newId = () => crypto.randomUUID()
 
@@ -37,12 +37,13 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId())
   const [characters, setCharacters] = useState<Character[]>([])
   const [view, setView] = useState<View>({ kind: 'list' })
+  const [diceOpen, setDiceOpen] = useState(false)
   const mainRef = useFocusOnChange<HTMLElement>(JSON.stringify(view))
   const a11yDialog = useRef<HTMLDialogElement>(null)
   useShortcuts({
     c: () => setView({ kind: 'list' }),
     b: () => setView({ kind: 'build' }),
-    d: () => setView({ kind: 'dice' }),
+    d: () => setDiceOpen(o => !o),
     p: () => setView({ kind: 'party' }),
     a: () => a11yDialog.current?.showModal(),
   })
@@ -71,6 +72,9 @@ export default function App() {
     setView({ kind: 'list' })
   }
 
+  const onScreenId = 'id' in view ? view.id : undefined
+  const onScreen = characters.find(c => c.id === onScreenId)
+
   if (profiles === null) return null
   if (!active) return <Welcome onCreate={addProfile} />
 
@@ -87,7 +91,6 @@ export default function App() {
           <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} aria-current={view.kind === 'combat' ? 'page' : undefined} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
           <button className={`chip ${view.kind === 'coins' ? 'on' : ''}`} aria-current={view.kind === 'coins' ? 'page' : undefined} onClick={() => setView({ kind: 'coins' })}>{t('app.coins')}</button>
           <button className={`chip ${view.kind === 'recap' ? 'on' : ''}`} aria-current={view.kind === 'recap' ? 'page' : undefined} onClick={() => setView({ kind: 'recap' })}>{t('app.recap')}</button>
-          <button className={`chip ${view.kind === 'dice' ? 'on' : ''}`} aria-current={view.kind === 'dice' ? 'page' : undefined} onClick={() => setView({ kind: 'dice' })}>{t('app.dice')}</button>
           <button className={`chip ${view.kind === 'rules' ? 'on' : ''}`} aria-current={view.kind === 'rules' ? 'page' : undefined} onClick={() => setView({ kind: 'rules' })}>{t('app.rules')}</button>
           <LanguagePicker />
           <AccessibilityButton dialogRef={a11yDialog} />
@@ -181,7 +184,6 @@ export default function App() {
             onBack={() => setView({ kind: 'list' })}
           />
         )}
-        {view.kind === 'dice' && <section><h2 className="a11y-sr-only">Dice roller</h2><DiceTray showAll /></section>}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'combat' && <CombatTracker key={active.id} ownerId={active.id} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
@@ -189,6 +191,7 @@ export default function App() {
         {view.kind === 'recap' && <RecapView userId={active.id} />}
         {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}
       </main>
+      <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen} />
     </div>
     </DiceProvider>
   )

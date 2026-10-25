@@ -31,7 +31,6 @@ const messages: Messages = {
 
   'app.language': 'שפה',
   'app.party': 'חבורה',
-  'app.dice': 'קוביות',
   'app.player': 'שחקן',
   'app.newPlayerPrompt': 'שם השחקן החדש',
   'app.addPlayer': '+ הוספת שחקן…',
@@ -306,6 +305,8 @@ const messages: Messages = {
   'sheet.log.pactRestored': 'שוחזרה משבצת ברית',
   'sheet.pactHint': 'משבצות ברית חוזרות במנוחה קצרה.',
 
+  'dice.open': 'פתיחת הטלת קוביות',
+  'dice.close': 'סגירת הטלת קוביות',
   'dice.roller': 'הטלת קוביות',
   'dice.addDie': 'הוספת d{sides}',
   'dice.mod': 'מתאם',
