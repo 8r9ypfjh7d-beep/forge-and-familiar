@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import './a11y'
 import { AccessibilityButton, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
-import { Builder } from './builder/Builder'
+import { Builder, EditCharacter } from './builder/Builder'
 import { CoinsView } from './coins'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { CompareView } from './compare'
@@ -25,7 +25,7 @@ import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'starters' } | { kind: 'combat' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
+type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
 
 const newId = () => crypto.randomUUID()
 
@@ -105,6 +105,7 @@ export default function App() {
             onNew={() => setView({ kind: 'build' })}
             onStarter={() => setView({ kind: 'starters' })}
             onOpen={id => setView({ kind: 'sheet', id })}
+            onEdit={id => setView({ kind: 'edit', id })}
             onTable={id => setView({ kind: 'table', id })}
             onLevels={id => setView({ kind: 'levels', id })}
             onCompanions={id => setView({ kind: 'companions', id })}
@@ -132,6 +133,17 @@ export default function App() {
             }}
           />
         )}
+        {view.kind === 'edit' && (
+          <EditCharacter
+            key={view.id}
+            characterId={view.id}
+            onCancel={() => setView({ kind: 'list' })}
+            onSaved={id => {
+              refresh()
+              setView({ kind: 'sheet', id })
+            }}
+          />
+        )}
         {view.kind === 'starters' && (
           <StarterPicker
             ownerId={active.id}
@@ -148,6 +160,7 @@ export default function App() {
         {view.kind === 'sheet' && (
           <CharacterSheet
             characterId={view.id}
+            onEdit={() => setView({ kind: 'edit', id: view.id })}
             onBack={() => {
               refresh()
               setView({ kind: 'list' })
@@ -240,12 +253,13 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
   )
 }
 
-function CharacterList({ owner, characters, onNew, onStarter, onOpen, onTable, onLevels, onCompanions, onJournal, onPrint, onCompare, onImported, onDelete }: {
+function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, onTable, onLevels, onCompanions, onJournal, onPrint, onCompare, onImported, onDelete }: {
   owner: UserProfile
   characters: Character[]
   onNew: () => void
   onStarter: () => void
   onOpen: (id: string) => void
+  onEdit: (id: string) => void
   onTable: (id: string) => void
   onLevels: (id: string) => void
   onCompanions: (id: string) => void
@@ -285,6 +299,7 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onTable, o
                   <p className="muted small">{raceName(c.raceId, c.subraceId)} · {classLine(c.classes)}</p>
                   <div className="row">
                     <button className="btn primary small" onClick={() => onOpen(c.id)}>{t('common.openSheet')}</button>
+                    <button className="btn small" onClick={() => onEdit(c.id)} aria-label={`${t('list.edit')}: ${c.name}`}>{t('list.edit')}</button>
                     <button className="btn small" onClick={() => onTable(c.id)}>{t('list.table')}</button>
                     <button className="btn small" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
                     <button className="btn small" onClick={() => onCompanions(c.id)}>{t('list.companions')}</button>

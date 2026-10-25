@@ -1,7 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
+import { addSnapshots, takeSnapshot } from '../portability'
 import { createCharacter, type CharacterDraft } from '../rules'
+import { getCharacter, saveCharacter } from '../storage'
+import { applyEdit, draftFrom, startingGearChanged } from './edit'
 import { STEPS } from './steps'
 import { stepIssues } from './validate'
 import { Summary } from './Summary'
@@ -24,13 +27,17 @@ export function emptyDraft(ownerId: string): CharacterDraft {
   }
 }
 
-export function Builder({ ownerId, onCreate, onCancel }: {
+/** Creates a character, or edits `editing` when given. onCreate gets the finished character either way. */
+export function Builder({ ownerId, editing, onCreate, onCancel }: {
   ownerId: string
+  editing?: Character
   onCreate: (c: Character) => void
   onCancel: () => void
 }) {
-  const [draft, setDraft] = useState<CharacterDraft>(() => emptyDraft(ownerId))
+  const [initial] = useState<CharacterDraft>(() => (editing ? draftFrom(editing) : emptyDraft(ownerId)))
+  const [draft, setDraft] = useState<CharacterDraft>(initial)
   const [step, setStep] = useState(0)
+  const [replaceGear, setReplaceGear] = useState(true)
   const update = (patch: Partial<CharacterDraft>) => setDraft(d => ({ ...d, ...patch }))
   const { t } = useI18n()
 
@@ -38,9 +45,25 @@ export function Builder({ ownerId, onCreate, onCancel }: {
   const firstBlocked = issues.findIndex(i => i.length > 0)
   const Current = STEPS[step].Component
   const isLast = step === STEPS.length - 1
+  const gearChanged = !!editing && startingGearChanged(editing, draft)
+  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initial), [draft, initial])
+  const result = () => (editing ? applyEdit(editing, draft, { replaceGear: gearChanged && replaceGear }) : createCharacter(draft))
+  const preview = useMemo(
+    () => (editing && firstBlocked === -1 ? applyEdit(editing, draft, { replaceGear: gearChanged && replaceGear }) : undefined),
+    [editing, draft, firstBlocked, gearChanged, replaceGear],
+  )
+  const cancel = () => {
+    if (!editing || !dirty || confirm(t('builder.edit.discard'))) onCancel()
+  }
 
   return (
     <div className="builder">
+      {editing && (
+        <div className="edit-banner" role="note">
+          <h2>{t('builder.edit.title', { name: editing.name })}</h2>
+          <p className="small">{t('builder.edit.intro')}</p>
+        </div>
+      )}
       <nav className="steps" aria-label={t('builder.steps')}>
         {STEPS.map((s, i) => {
           const reachable = firstBlocked === -1 || i <= firstBlocked
@@ -68,23 +91,81 @@ export function Builder({ ownerId, onCreate, onCancel }: {
               {issues[step].map(m => <li key={m}>{m}</li>)}
             </ul>
           )}
+          {gearChanged && (STEPS[step].id === 'equipment' || isLast) && (
+            <label className="gear-swap small">
+              <input type="checkbox" checked={replaceGear} onChange={e => setReplaceGear(e.target.checked)} />
+              <span>{t('builder.edit.swapGear')}</span>
+            </label>
+          )}
+          {editing && firstBlocked !== -1 && firstBlocked !== step && (
+            <p className="edit-blocked small">
+              {t('builder.edit.blocked', { step: t(`builder.step.${STEPS[firstBlocked].id}`) })}{' '}
+              <button className="btn ghost small" onClick={() => setStep(firstBlocked)}>{t('builder.edit.goFix')}</button>
+            </p>
+          )}
           <div className="builder-nav">
-            <button className="btn ghost" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
-              {step === 0 ? t('common.cancel') : t('builder.back')}
-            </button>
-            {isLast ? (
-              <button className="btn primary" disabled={firstBlocked !== -1} onClick={() => onCreate(createCharacter(draft))}>
-                {t('builder.create')}
-              </button>
+            {editing ? (
+              <div className="row">
+                {step > 0 && <button className="btn ghost" onClick={() => setStep(step - 1)}>{t('builder.back')}</button>}
+                <button className="btn ghost" onClick={cancel}>{t('common.cancel')}</button>
+              </div>
             ) : (
-              <button className="btn primary" disabled={issues[step].length > 0} onClick={() => setStep(step + 1)}>
-                {t('builder.next')}
+              <button className="btn ghost" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
+                {step === 0 ? t('common.cancel') : t('builder.back')}
               </button>
             )}
+            <div className="row">
+              {!isLast && (
+                <button className={`btn ${editing ? '' : 'primary'}`} disabled={issues[step].length > 0} onClick={() => setStep(step + 1)}>
+                  {t('builder.next')}
+                </button>
+              )}
+              {(isLast || editing) && (
+                <button className="btn primary" disabled={firstBlocked !== -1 || (!!editing && !dirty)} onClick={() => onCreate(result())}>
+                  {editing ? t('builder.edit.save') : t('builder.create')}
+                </button>
+              )}
+            </div>
           </div>
         </section>
-        <Summary draft={draft} />
+        <Summary draft={draft} preview={preview} />
       </div>
     </div>
+  )
+}
+
+/** Loads a saved character into the builder. Saving takes a level snapshot first, so the edit can be rolled back. */
+export function EditCharacter({ characterId, onSaved, onCancel }: {
+  characterId: string
+  onSaved: (id: string) => void
+  onCancel: () => void
+}) {
+  const [character, setCharacter] = useState<Character | null | undefined>(undefined)
+  const { t } = useI18n()
+  useEffect(() => {
+    getCharacter(characterId).then(c => setCharacter(c ?? null))
+  }, [characterId])
+
+  if (character === undefined) return <p className="muted">{t('common.loading')}</p>
+  if (character === null) {
+    return (
+      <div className="panel empty">
+        <p>{t('common.notFound')}</p>
+        <button className="btn" onClick={onCancel}>{t('common.back')}</button>
+      </div>
+    )
+  }
+  return (
+    <Builder
+      key={character.id}
+      ownerId={character.ownerId}
+      editing={character}
+      onCancel={onCancel}
+      onCreate={async edited => {
+        await addSnapshots([takeSnapshot(character, t('builder.edit.snapshot'))])
+        const saved = await saveCharacter(edited)
+        onSaved(saved.id)
+      }}
+    />
   )
 }

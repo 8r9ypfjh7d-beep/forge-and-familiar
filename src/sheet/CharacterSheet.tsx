@@ -24,7 +24,7 @@ import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './
 import { Identity, Notes, SocialSkills } from './components/Story'
 import './sheet.css'
 
-export function CharacterSheet({ characterId, onBack }: { characterId: string; onBack: () => void }) {
+export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
   const { character, apply, undo, undoTo, redo, canRedo, log } = useLiveCharacter(characterId)
   useCharacterTheme(character?.theme)
   const { t } = useI18n()
@@ -39,10 +39,10 @@ export function CharacterSheet({ characterId, onBack }: { characterId: string; o
     )
   }
 
-  return <Sheet character={character} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} />
+  return <Sheet character={character} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} />
 }
 
-function Sheet({ character, apply, undo, undoTo, redo, log, onBack }: {
+function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   character: Character
   apply: Apply
   undo: () => void
@@ -50,6 +50,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack }: {
   redo?: () => void
   log: LogEntry[]
   onBack: () => void
+  onEdit?: () => void
 }) {
   const [mode, setMode] = useSheetMode(character.id)
   const layout = sheetLayout(mode, { dying: character.state.currentHp === 0 })
@@ -79,7 +80,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack }: {
   }
   return (
     <div className={`ff-sheet mode-${mode}`}>
-      <Header character={character} apply={apply} onBack={onBack} />
+      <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} />
       <ModeSwitch mode={mode} onChange={setMode} />
       {layout.top.map(section)}
       <div className="sheet-grid">
@@ -106,7 +107,7 @@ function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMo
   )
 }
 
-function Header({ character, apply, onBack }: { character: Character; apply: Apply; onBack: () => void }) {
+function Header({ character, apply, onBack, onEdit }: { character: Character; apply: Apply; onBack: () => void; onEdit?: () => void }) {
   const stats = derive(character)
   const { t, classLine } = useI18n()
   const classes = classLine(character.classes)
@@ -120,6 +121,7 @@ function Header({ character, apply, onBack }: { character: Character; apply: App
         <h1>{character.name}</h1>
         <p>{classes}</p>
       </div>
+      {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
       <dl className="quick-stats">
         <div><dt>{t('stat.ac')}</dt><dd><ShowMath character={character} stat="ac">{stats.armorClass.value}</ShowMath></dd></div>
         <div><dt>{t('stat.init')}</dt><dd><ShowMath character={character} stat="initiative">{formatMod(stats.initiative)}</ShowMath></dd></div>

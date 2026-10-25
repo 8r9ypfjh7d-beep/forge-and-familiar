@@ -1,19 +1,24 @@
 import { useMemo } from 'react'
 import { useI18n } from '../i18n'
+import type { Character } from '../model/character'
 import {
   ABILITIES, classById, createCharacter, derive, formatMod, getSpellcastingByClass, raceById, type CharacterDraft,
 } from '../rules'
 
-/** Live preview of derived stats while building. Unassigned scores count as 10. */
-export function Summary({ draft }: { draft: CharacterDraft }) {
+/**
+ * Live preview of derived stats while building. Unassigned scores count as 10.
+ * When editing, `preview` is the edited character, so AC and attacks use its real gear.
+ */
+export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: Character }) {
   const race = raceById(draft.raceId)
   const cls = classById(draft.classes[0]?.classId ?? '')
   const d = useMemo(() => {
+    if (preview) return derive(preview)
     if (!race || !cls) return null
     const base = { ...draft.baseAbilities }
     for (const a of ABILITIES) if (!base[a]) base[a] = 10
     return derive(createCharacter({ ...draft, baseAbilities: base }))
-  }, [draft, race, cls])
+  }, [draft, race, cls, preview])
   const scoresSet = ABILITIES.every(a => draft.baseAbilities[a] > 0)
   // Prerequisite warnings are noise until scores are assigned.
   const warnings = d?.warnings.filter(w => scoresSet || !w.startsWith('Multiclass prerequisite')) ?? []

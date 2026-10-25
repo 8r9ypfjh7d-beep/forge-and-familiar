@@ -66,3 +66,12 @@
 .kit-choices { display: grid; gap: 0.5rem; margin-block: 0.75rem; }
 .kit-choice { border: 1px solid var(--line, #ddd); border-radius: 8px; padding: 0.4rem 0.75rem 0.6rem; margin: 0; }
 .kit-option { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; padding-block: 0.2rem; }
+
+/* Editing a saved character */
+.edit-banner { margin-block-end: 12px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); }
+.edit-banner h2 { margin: 0; font-size: 1.1rem; }
+.edit-banner p { margin: 4px 0 0; }
+.gear-swap { display: flex; align-items: flex-start; gap: 8px; margin-block-start: 12px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 8px; }
+.gear-swap input { margin-block-start: 3px; }
+.edit-blocked { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0 0; color: var(--muted); }
+.builder-nav { gap: 8px; flex-wrap: wrap; }
