@@ -25,7 +25,10 @@ export function Attacks({ character }: { character: Character }) {
 
   const attack = (a: (typeof attacks)[number]) => {
     const riders = getDamageRiders(character, a).filter(r => on[r.id])
-    const out = rolls.attack(a, { mode, critRange, riders, twoHanded: twoHanded[a.name] })
+    // An item's own extra damage ("1d6 fire") rolls on every hit, like a rider that is always on.
+    const extra = a.extraDamage ? /^(\S+)\s*(.*)$/.exec(a.extraDamage) : null
+    const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1] }] : riders
+    const out = rolls.attack(a, { mode, critRange, riders: all, twoHanded: twoHanded[a.name] })
     setLast({ ...out, name: a.name })
     // Sneak Attack is once per turn, so it switches itself off once it has been rolled.
     if (out.damage && riders.some(r => r.oncePerTurn)) setOn(o => ({ ...o, sneakAttack: false }))
@@ -71,7 +74,7 @@ export function Attacks({ character }: { character: Character }) {
                 aria-label={t('sheet.attacks.rollLabel', { name, bonus: formatMod(a.bonus), damage })}>
                 <span className="name">{name}</span>
                 <span className="hit">{t('sheet.attacks.toHit', { bonus: formatMod(a.bonus) })}</span>
-                <span className="dmg">{damage} {term('damage', a.damageType, a.damageType)}</span>
+                <span className="dmg">{damage} {term('damage', a.damageType, a.damageType)}{a.extraDamage ? ` + ${a.extraDamage}` : ''}</span>
               </button>
               <ShowMath character={character} stat={`attack:${i}`} className="attack-math">{t('sheet.attacks.math')}</ShowMath>
               {a.versatile && (

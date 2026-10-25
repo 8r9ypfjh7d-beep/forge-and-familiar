@@ -21,8 +21,9 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 ## Key rules implemented
 
 - HP: max hit die at level 1, fixed average after, + CON per level, Hill Dwarf +1/level. Exhaustion 4 halves max (`maxHp` vs `baseMaxHp`).
-- AC: armor + capped DEX, shield +2, Barbarian/Monk unarmored defense (Monk loses it with a shield).
-- Attacks: finesse uses better of STR/DEX, ranged uses DEX, Monk martial arts, proficiency from class and race. Each attack carries `versatile` (two-handed damage) and `properties`. Riders: Rage +2/+3/+4 on STR melee, Sneak Attack ⌈rogue level ÷ 2⌉d6 on finesse or ranged (the player toggles them). Champion crits on 19 (level 3) or 18 (level 15).
+- AC: armor + capped DEX, shield +2, Barbarian/Monk unarmored defense (Monk loses it with a shield), + `magicBonus` of equipped armor and shield.
+- Items: always resolve an inventory entry with `entryItem(e)`: it uses the entry's embedded `item` (library or custom items), else `itemById`, and applies the `name` override.
+- Attacks: finesse uses better of STR/DEX, ranged uses DEX, Monk martial arts, proficiency from class and race. Each attack carries `versatile` (two-handed damage) and `properties`. Riders: Rage +2/+3/+4 on STR melee, Sneak Attack ⌈rogue level ÷ 2⌉d6 on finesse or ranged (the player toggles them). Champion crits on 19 (level 3) or 18 (level 15). Magic weapons add `magicBonus` to attack and damage and `extraDamage` rides along. A `pact` weapon is always proficient and, with `spellEdition: '2024'`, uses CHA when it is higher.
 - Slots: full/half caster tables (single half caster rounds up from level 2), multiclass caster level, Warlock pact slots.
 - Resources: per-class maxima by level; `recharge` resolved for level (e.g. Bardic Inspiration short rest from 5).
 - Speed: heavy armor STR requirement, Monk/Barbarian movement, exhaustion 2 and 5.

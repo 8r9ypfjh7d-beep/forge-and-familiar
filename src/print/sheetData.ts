@@ -1,7 +1,7 @@
 // Everything the printable sheet shows, flattened from a Character and derive(). Pure, no React.
 import type { Character } from '../model/character'
 import {
-  ABILITIES, ABILITY_NAMES, ALL_SKILLS, SKILLS, getBackground, classById, derive, formatMod, itemById, raceById,
+  ABILITIES, ABILITY_NAMES, ALL_SKILLS, SKILLS, entryItem, getBackground, classById, derive, formatMod, raceById,
   type Ability,
 } from '../rules'
 
@@ -117,7 +117,7 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
     attacks: d.attacks.map(a => ({
       name: a.name, bonus: formatMod(a.bonus), damage: `${a.damage} ${a.damageType}`, notes: a.notes.join(', '),
     })),
-    equipment: c.inventory.map(e => ({ name: itemById(e.itemId)?.name ?? e.itemId, qty: e.qty, equipped: e.equipped })),
+    equipment: c.inventory.map(e => ({ name: entryItem(e)?.name ?? e.itemId, qty: e.qty, equipped: e.equipped })),
     coins: c.coins,
     carried: `${d.carriedWeight} / ${d.carryingCapacity} lb`,
     features: [...d.features.map(f => `${f.name} (${f.className} ${f.level})`), ...d.feats.map(f => `${f} (feat)`)],

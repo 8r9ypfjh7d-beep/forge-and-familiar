@@ -2,7 +2,7 @@
 // Pure: each change takes a Character and returns a new one, like sheet/engine.
 // Rules follow SRD 5.1: Ammunition (weapon property), Food and Water, Exhaustion.
 import type { Character, CharacterState } from '../model/character'
-import { abilityMod, getAbilityScores, itemById, type InventoryEntry, type Item } from '../rules'
+import { abilityMod, entryItem, getAbilityScores, itemById, type InventoryEntry, type Item } from '../rules'
 import { setExhaustion } from '../sheet/engine'
 
 type Weapon = Extract<Item, { kind: 'weapon' }>
@@ -41,7 +41,7 @@ export interface RangedWeapon {
 export function rangedWeapons(c: Character): RangedWeapon[] {
   const out: RangedWeapon[] = []
   for (const e of c.inventory) {
-    const item = e.equipped ? itemById(e.itemId) : undefined
+    const item = e.equipped ? entryItem(e) : undefined
     if (item?.kind !== 'weapon' || out.some(r => r.weapon.id === item.id)) continue
     const ammoId = ammoFor(item)
     if (ammoId) out.push({ weapon: item, ammoId, ammoName: itemById(ammoId)?.name ?? ammoId, left: countOf(c, ammoId) })

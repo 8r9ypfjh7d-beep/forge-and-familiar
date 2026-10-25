@@ -3,6 +3,7 @@
 // total), and explain.test.ts checks each total against derive() so the two never drift.
 import type { Character } from '../model/character'
 import {
+  entryItem,
   ABILITY_NAMES, SKILLS, abilityMod, getBackground, classById, derive, getAbilityMods, getAbilityScores,
   getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, totalLevel,
   type Ability, type ClassDef, type SkillId,
@@ -118,6 +119,8 @@ function armorClass(c: Character): StatMath {
     if (from) lines.push({ label: `${ABBR(from.unarmoredDefense!)} modifier (Unarmored Defense, ${from.name})`, value: best })
   }
   if (shield) lines.push({ label: shield.name, value: shield.baseAc })
+  const magic = c.inventory.filter(e => e.equipped && e.magicBonus && entryItem(e)?.kind === 'armor').reduce((n, e) => n + (e.magicBonus ?? 0), 0)
+  if (magic) lines.push({ label: 'Magic armor and shield', value: magic })
   return make('Armor class', lines, { notes })
 }
 
@@ -211,6 +214,8 @@ function attack(c: Character, index: number): StatMath | null {
   if (!atk) return null
   const lines = [{ label: `${ABBR(atk.ability)} modifier`, value: getAbilityMods(getAbilityScores(c))[atk.ability] }]
   if (atk.proficient) lines.push(profLine(c))
+  const magic = atk.bonus - lines.reduce((t, l) => t + l.value, 0)
+  if (magic) lines.push({ label: 'Magic weapon', value: magic })
   const notes = [`Damage ${atk.damage} ${atk.damageType}: weapon die + ${ABBR(atk.ability)} modifier.`]
   if (!atk.proficient) notes.push('Not proficient, so no proficiency bonus.')
   return make(`${atk.name} to hit`, lines, { signed: true, notes })
