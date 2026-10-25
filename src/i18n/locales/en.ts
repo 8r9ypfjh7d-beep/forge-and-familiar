@@ -341,6 +341,21 @@ export const en = {
   'levels.confirmDelete': 'Delete snapshot "{label}"?',
   'levels.deleted': 'Snapshot deleted.',
   'levels.footnote': 'Rolling back restores race, background, classes, levels, XP, ability scores and skills. Name, notes, portrait, gear and coins stay as they are now.',
+  'rulesqa.title': 'Rules Q&A',
+  'rulesqa.intro': 'Ask in your own words. Answers are quoted straight from the SRD 5.1 rules text, with the section they come from.',
+  'rulesqa.englishOnly': '',
+  'rulesqa.question': 'Rules question',
+  'rulesqa.placeholder': 'e.g. Can I move after I attack?',
+  'rulesqa.ask': 'Ask',
+  'rulesqa.examples': 'Example questions',
+  'rulesqa.notCovered': 'The SRD doesn\'t cover that.',
+  'rulesqa.notCoveredHint': 'Try different words, or the name of the action, condition or rule.',
+  'rulesqa.flanking': 'Flanking is an optional rule from the Dungeon Master\'s Guide and isn\'t part of the SRD.',
+  'rulesqa.weak': 'No section answers this directly. This is the closest match, so check it fits.',
+  'rulesqa.readFull': 'Read the full section',
+  'rulesqa.hideFull': 'Hide full section',
+  'rulesqa.backToBest': 'Back to best answer',
+  'rulesqa.related': 'Also relevant',
 } as const
 
 export type MessageKey = keyof typeof en

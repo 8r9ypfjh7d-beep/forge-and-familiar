@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../i18n'
 import { Markdown } from './Markdown'
 import { loadRules } from './load'
 import { answer, breadcrumb, excerpt, type RulesIndex } from './search'
@@ -16,6 +17,7 @@ const EXAMPLES = [
 
 /** Ask a rules question in plain words; the answer is quoted from the SRD 5.1 with its section. */
 export function RulesQA() {
+  const { t } = useI18n()
   const [rules, setRules] = useState<{ index: RulesIndex; source: string } | null>(null)
   const [draft, setDraft] = useState('')
   const [asked, setAsked] = useState('')
@@ -40,55 +42,57 @@ export function RulesQA() {
 
   return (
     <section className="ff-rulesqa">
-      <h2>Rules Q&amp;A</h2>
-      <p className="muted">Ask in your own words. Answers are quoted straight from the SRD 5.1 rules text, with the section they come from.</p>
+      <h2>{t('rulesqa.title')}</h2>
+      <p className="muted">{t('rulesqa.intro')}</p>
+      {t('rulesqa.englishOnly') && <p className="muted small">{t('rulesqa.englishOnly')}</p>}
 
       <form className="ask row" onSubmit={e => { e.preventDefault(); ask(draft) }}>
         <input
           type="search"
+          dir="auto"
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          placeholder="e.g. Can I move after I attack?"
-          aria-label="Rules question"
+          placeholder={t('rulesqa.placeholder')}
+          aria-label={t('rulesqa.question')}
           autoFocus
         />
-        <button className="btn primary" disabled={!rules || !draft.trim()}>Ask</button>
+        <button className="btn primary" disabled={!rules || !draft.trim()}>{t('rulesqa.ask')}</button>
       </form>
 
       {!result && (
-        <div className="examples row" aria-label="Example questions">
+        <div className="examples row" lang="en" dir="ltr" aria-label={t('rulesqa.examples')}>
           {EXAMPLES.map(q => <button key={q} className="chip" onClick={() => ask(q)} disabled={!rules}>{q}</button>)}
         </div>
       )}
 
       {result && !shown && (
         <div className="panel answer">
-          <p><strong>The SRD doesn't cover that.</strong> Try different words, or the name of the action, condition or rule.</p>
-          {/flank/i.test(asked) && <p className="muted small">Flanking is an optional rule from the Dungeon Master's Guide and isn't part of the SRD.</p>}
+          <p><strong>{t('rulesqa.notCovered')}</strong> {t('rulesqa.notCoveredHint')}</p>
+          {/flank/i.test(asked) && <p className="muted small">{t('rulesqa.flanking')}</p>}
         </div>
       )}
 
       {result && shown && (
         <article className="panel answer" aria-live="polite">
           {result.weak && !open && (
-            <p className="hedge small">No section answers this directly. This is the closest match, so check it fits.</p>
+            <p className="hedge small">{t('rulesqa.weak')}</p>
           )}
-          <p className="crumb small muted">{breadcrumb(shown)}</p>
-          <blockquote><Markdown text={quote} /></blockquote>
+          <p className="crumb small muted" lang="en" dir="ltr">{breadcrumb(shown)}</p>
+          <blockquote lang="en" dir="ltr"><Markdown text={quote} /></blockquote>
           <div className="row">
             <button className="btn small" onClick={() => setFull(f => !f)} aria-expanded={full}>
-              {full ? 'Hide full section' : 'Read the full section'}
+              {full ? t('rulesqa.hideFull') : t('rulesqa.readFull')}
             </button>
-            {open && <button className="btn ghost small" onClick={() => { setOpen(null); setFull(false) }}>Back to best answer</button>}
+            {open && <button className="btn ghost small" onClick={() => { setOpen(null); setFull(false) }}>{t('rulesqa.backToBest')}</button>}
           </div>
-          {full && <div className="full"><Markdown text={shown.text} /></div>}
+          {full && <div className="full" lang="en" dir="ltr"><Markdown text={shown.text} /></div>}
         </article>
       )}
 
       {result && result.related.length > 0 && (
         <div className="related">
-          <h3>Also relevant</h3>
-          <ul className="plain">
+          <h3>{t('rulesqa.related')}</h3>
+          <ul className="plain" lang="en" dir="ltr">
             {[result.best!, ...result.related].filter(h => h.passage !== shown).map(h => (
               <li key={h.passage.id}>
                 <button className="link" onClick={() => { setOpen(h.passage); setFull(false) }}>{breadcrumb(h.passage)}</button>
@@ -98,7 +102,7 @@ export function RulesQA() {
         </div>
       )}
 
-      {rules && <p className="source muted small">{rules.source}</p>}
+      {rules && <p className="source muted small" lang="en" dir="ltr">{rules.source}</p>}
     </section>
   )
 }
