@@ -4,7 +4,7 @@
 
 | File | Purpose |
 |------|---------|
-| `character.ts` | `Character`, `CharacterState`, `UserProfile`, `ClassLevel`, `HitDie` |
+| `character.ts` | `Character`, `CharacterState`, `UserProfile`, `ClassLevel`, `HitDie`, `CustomBackground`, `Improvement` |
 
 ## What it is
 
@@ -22,3 +22,10 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
 - `state.supplies` (optional) holds ammo fired since the last battlefield search and hungry days; see `src/supplies/SUPPLIES.md`.
 - `theme` is an optional theme id from `src/themes`; leaving it out means the app default.
 - `state.clock` is in-game minutes since day 1, 00:00 (`sheet/clock.ts` formats it). `advanceTime()` runs `dawn()` once for every 06:00 it passes; `setClock()` never recharges.
+- Builder choices, all optional so old saves stay valid without a schema bump:
+  - `backgroundId: 'custom'` with `customBackground` is the PHB custom background (2 skills, 2 tools or languages, a feature name).
+  - `chosenLanguages`, `chosenTools`: picks the race, class and background allow. Fixed languages and tools are added by the engine.
+  - `traitChoices`: race trait options, e.g. `{ draconicAncestry: 'red' }`.
+  - `improvements`: one per Ability Score Improvement the class levels grant: ability bonuses or a `featId` (SRD or homebrew).
+  - `equipmentPicks`: per class equipment choice, the option taken and the items picked for its "any weapon" slots.
+  - `classes[].subclassId`: SRD or homebrew subclass.

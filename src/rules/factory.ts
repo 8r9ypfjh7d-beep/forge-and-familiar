@@ -1,5 +1,6 @@
 import { CHARACTER_SCHEMA_VERSION, type Character, type CharacterState } from '../model/character'
-import { backgroundById } from './data/backgrounds'
+import { classKit } from './choices'
+import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { itemById } from './data/items'
 import { getMaxHp } from './derive'
@@ -26,10 +27,10 @@ export function freshState(maxHp: number): CharacterState {
 }
 
 /** Starting gear ids from the class kit and the background, merged into stacks. */
-export function startingItemIds(draft: Pick<CharacterDraft, 'classes' | 'backgroundId'>): string[] {
+export function startingItemIds(draft: Pick<CharacterDraft, 'classes' | 'backgroundId' | 'customBackground' | 'equipmentPicks'>): string[] {
   const cls = classById(draft.classes[0]?.classId ?? '')
-  const bg = backgroundById(draft.backgroundId)
-  return [...(cls?.startingEquipment ?? []), ...(bg?.equipment ?? [])]
+  const bg = getBackground(draft)
+  return [...(cls ? classKit(cls, draft.equipmentPicks) : []), ...(bg?.equipment ?? [])]
 }
 
 const AMMO_BUNDLE: Record<string, number> = { arrows: 20, bolts: 20, rations: 5, torch: 5 }

@@ -71,6 +71,9 @@ export function Summary({ draft }: { draft: CharacterDraft }) {
           {d.resources.length > 0 && (
             <p className="small"><strong>{t('summary.resources')}</strong> {d.resources.map(r => t('summary.resource', { label: term('resource', r.id, r.label), max: r.max, recharge: t(`rest.${r.recharge}`) })).join(', ')}</p>
           )}
+          {d.languages.length > 0 && <p className="small"><strong>{t('summary.languages')}</strong> {d.languages.map(l => term('language', l, l)).join(', ')}</p>}
+          {d.tools.length > 0 && <p className="small"><strong>{t('summary.tools')}</strong> {d.tools.map(x => term('tool', x, x)).join(', ')}</p>}
+          {d.feats.length > 0 && <p className="small"><strong>{t('summary.feats')}</strong> {d.feats.join(', ')}</p>}
           <p className="small muted">{t('summary.carrying', { weight: d.carriedWeight, capacity: d.carryingCapacity })}</p>
           {warnings.map(w => <p key={w} className="small bad">{w}</p>)}
         </>

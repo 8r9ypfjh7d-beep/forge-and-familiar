@@ -1,12 +1,16 @@
 // Pure pack helpers: ids, validation, and share codes. Imported packs come from other people,
 // so everything read from a code or file is rebuilt field by field and never trusted as-is.
 import { parseNotation } from '../dice/notation'
-import { ABILITIES, ABILITY_NAMES, type Ability, type SkillId } from '../rules/types'
+import { ABILITIES, ABILITY_NAMES, type Abilities, type Ability, type ArmorCategory, type SkillId } from '../rules/types'
 import { ALL_SKILLS, SKILLS } from '../rules/data/skills'
 import {
   PACK_FORMAT, PACK_VERSION, RARITIES, SPELL_SCHOOLS,
-  type ContentKind, type FeatEffect, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewSpell,
+  type ContentKind, type FeatEffect, type HomebrewEntry, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace,
+  type HomebrewSpell, type HomebrewSubclass,
 } from './types'
+
+/** Every entry in a pack, all kinds. */
+export const allEntries = (p: HomebrewPack): HomebrewEntry[] => [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses]
 
 export const SHARE_PREFIX = 'FFHB1.'
 export const LIMITS = { entries: 500, name: 80, text: 4000, short: 120 }
@@ -20,7 +24,7 @@ export const slug = (name: string) =>
 
 /** Namespaced id for a new entry, unique within the pack: `hb:<packId>:<slug>`. */
 export function entryId(pack: HomebrewPack, name: string): string {
-  const taken = new Set([...pack.spells, ...pack.items, ...pack.feats].map(e => e.id))
+  const taken = new Set(allEntries(pack).map(e => e.id))
   const base = `hb:${pack.id}:${slug(name)}`
   let id = base
   for (let n = 2; taken.has(id); n++) id = `${base}-${n}`
@@ -31,7 +35,7 @@ export function newPack(id: string, author: { id: string; displayName: string },
   return {
     format: PACK_FORMAT, version: PACK_VERSION, id, name, description: '',
     authorId: author.id, authorName: author.displayName, updatedAt: new Date().toISOString(),
-    spells: [], items: [], feats: [],
+    spells: [], items: [], feats: [], races: [], subclasses: [],
   }
 }
 
@@ -71,6 +75,21 @@ export function featIssues(f: HomebrewFeat): string[] {
   const out: string[] = []
   if (!f.name.trim()) out.push('Give the feat a name.')
   if (!f.description.trim()) out.push('Describe what the feat does.')
+  return out
+}
+
+export function raceIssues(r: HomebrewRace): string[] {
+  const out: string[] = []
+  if (!r.name.trim()) out.push('Give the race a name.')
+  if (!r.parentRaceId && !(r.speed >= 0 && r.speed <= 120)) out.push('Speed must be between 0 and 120 ft.')
+  return out
+}
+
+export function subclassIssues(s: HomebrewSubclass): string[] {
+  const out: string[] = []
+  if (!s.name.trim()) out.push('Give the subclass a name.')
+  if (!s.classId) out.push('Pick the class it belongs to.')
+  if (s.features.some(f => !f.name.trim())) out.push('Every feature needs a name.')
   return out
 }
 
@@ -191,6 +210,54 @@ function cleanFeat(v: Obj, packId: string, seen: Set<string>): HomebrewFeat {
   }
 }
 
+const SIZES = ['Small', 'Medium'] as const
+const ARMOR = ['light', 'medium', 'heavy', 'shield'] as const
+const textList = (v: unknown, max = 30) => list(v).map(x => str(x, LIMITS.name).trim()).filter(Boolean).slice(0, max)
+
+function cleanBonuses(v: unknown): Partial<Abilities> {
+  const out: Partial<Abilities> = {}
+  if (!isObj(v)) return out
+  for (const a of ABILITIES) {
+    const n = int(v[a], -5, 5, 0)
+    if (n) out[a] = n
+  }
+  return out
+}
+
+function cleanRace(v: Obj, packId: string, seen: Set<string>): HomebrewRace {
+  const name = str(v.name, LIMITS.name) || 'Unnamed race'
+  const parent = optStr(v.parentRaceId, 120)
+  return {
+    id: ownId(v.id, packId, name, seen),
+    name,
+    // A subrace may hang off any race id; it simply doesn't show if that race is missing.
+    parentRaceId: parent && /^[a-z0-9:-]+$/i.test(parent) ? parent : undefined,
+    size: oneOf(v.size, SIZES, 'Medium'),
+    speed: int(v.speed, 0, 120, 30),
+    abilityBonuses: cleanBonuses(v.abilityBonuses),
+    freeAbilityBonuses: int(v.freeAbilityBonuses, 0, 6),
+    skillProficiencies: [...new Set(list(v.skillProficiencies).filter((x): x is SkillId => ALL_SKILLS.includes(x as SkillId)))],
+    freeSkillChoices: int(v.freeSkillChoices, 0, 6),
+    languages: textList(v.languages, 10),
+    languageChoices: int(v.languageChoices, 0, 6),
+    traits: textList(v.traits),
+    hpPerLevel: int(v.hpPerLevel, 0, 5),
+    description: optStr(v.description, LIMITS.text),
+  }
+}
+
+function cleanSubclass(v: Obj, packId: string, seen: Set<string>): HomebrewSubclass {
+  const name = str(v.name, LIMITS.name) || 'Unnamed subclass'
+  return {
+    id: ownId(v.id, packId, name, seen),
+    name,
+    classId: str(v.classId, 40),
+    features: list(v.features).filter(isObj).map(f => ({ level: int(f.level, 1, 20, 1), name: str(f.name, LIMITS.name) || 'Feature' })).slice(0, 40),
+    armor: [...new Set(list(v.armor).filter((a): a is ArmorCategory => ARMOR.includes(a as ArmorCategory)))],
+    description: optStr(v.description, LIMITS.text),
+  }
+}
+
 /** Rebuilds a pack from unknown JSON. Throws PackError if it isn't a homebrew pack at all. */
 export function sanitizePack(raw: unknown): HomebrewPack {
   if (!isObj(raw) || raw.format !== PACK_FORMAT) throw new PackError("This isn't a Forge & Familiar homebrew pack.")
@@ -209,16 +276,20 @@ export function sanitizePack(raw: unknown): HomebrewPack {
     spells: list(raw.spells).filter(isObj).map(v => cleanSpell(v, id, seen)),
     items: list(raw.items).filter(isObj).map(v => cleanItem(v, id, seen)),
     feats: list(raw.feats).filter(isObj).map(v => cleanFeat(v, id, seen)),
+    races: list(raw.races).filter(isObj).map(v => cleanRace(v, id, seen)),
+    subclasses: list(raw.subclasses).filter(isObj).map(v => cleanSubclass(v, id, seen)),
     history: Array.isArray(raw.history) ? raw.history.slice(0, LIMITS.entries * 20) : undefined,
   }
 }
 
 /** Rebuilds one entry (e.g. a restored history version) the same way an import would. */
-export function sanitizeEntry(kind: ContentKind, raw: unknown, packId: string): HomebrewSpell | HomebrewItem | HomebrewFeat {
+export function sanitizeEntry(kind: ContentKind, raw: unknown, packId: string): HomebrewEntry {
   if (!isObj(raw)) throw new PackError('That version could not be read.')
   const seen = new Set<string>()
   if (kind === 'spells') return cleanSpell(raw, packId, seen)
   if (kind === 'items') return cleanItem(raw, packId, seen)
+  if (kind === 'races') return cleanRace(raw, packId, seen)
+  if (kind === 'subclasses') return cleanSubclass(raw, packId, seen)
   return cleanFeat(raw, packId, seen)
 }
 
@@ -259,6 +330,8 @@ export const packCounts = (p: HomebrewPack) =>
     p.spells.length && `${p.spells.length} spell${p.spells.length > 1 ? 's' : ''}`,
     p.items.length && `${p.items.length} item${p.items.length > 1 ? 's' : ''}`,
     p.feats.length && `${p.feats.length} feat${p.feats.length > 1 ? 's' : ''}`,
+    p.races.length && `${p.races.length} race${p.races.length > 1 ? 's' : ''}`,
+    p.subclasses.length && `${p.subclasses.length} subclass${p.subclasses.length > 1 ? 'es' : ''}`,
   ].filter(Boolean).join(' · ') || 'Empty'
 
 export function describeEffect(e: FeatEffect): string {

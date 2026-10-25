@@ -120,3 +120,20 @@ describe('rules engine integration', () => {
     registerHomebrewItems([])
   })
 })
+
+describe('homebrew races and subclasses', () => {
+  it('sanitizes races and subclasses and keeps them in the pack namespace', () => {
+    const pack = sanitizePack({
+      format: 'ff-homebrew', version: 1, id: 'abcd1234', name: 'Book', updatedAt: '2026-10-25T00:00:00Z',
+      races: [
+        { id: 'elf', name: 'Wood Elf', parentRaceId: 'elf', abilityBonuses: { wis: 1, str: 99, bad: 3 }, traits: ['Fleet of Foot', 42], speed: 999 },
+        { name: 'Tabaxi', size: 'Huge', skillProficiencies: ['perception', 'flying'], languageChoices: 1 },
+      ],
+      subclasses: [{ name: 'Battle Master', classId: 'fighter', features: [{ level: 3, name: 'Combat Superiority' }, { level: 99 }], armor: ['heavy', 'mithral'] }],
+    })
+    expect(pack.races[0]).toMatchObject({ id: 'hb:abcd1234:wood-elf', parentRaceId: 'elf', abilityBonuses: { wis: 1, str: 5 }, traits: ['Fleet of Foot'], speed: 120 })
+    expect(pack.races[1]).toMatchObject({ size: 'Medium', skillProficiencies: ['perception'], languageChoices: 1 })
+    expect(pack.subclasses[0]).toMatchObject({ id: 'hb:abcd1234:battle-master', features: [{ level: 3, name: 'Combat Superiority' }, { level: 20, name: 'Feature' }], armor: ['heavy'] })
+    expect(sanitizePack({ format: 'ff-homebrew', version: 1, id: 'abcd1234' }).races).toEqual([])
+  })
+})

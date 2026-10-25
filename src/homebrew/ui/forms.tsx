@@ -1,8 +1,11 @@
-// Entry editors for homebrew spells, items and feats. Each edits a copy and hands it back on save.
+// Entry editors for homebrew spells, items, feats, races and subclasses. Each edits a copy and hands it back on save.
 import { useState, type ReactNode } from 'react'
-import { ABILITIES, ABILITY_NAMES, ALL_SKILLS, CLASSES, SKILLS, type Ability, type SkillId, type WeaponProperty } from '../../rules'
-import { featIssues, itemIssues, spellIssues } from '../pack'
-import { RARITIES, SPELL_SCHOOLS, type FeatEffect, type HomebrewFeat, type HomebrewItem, type HomebrewSpell, type Rarity, type SpellSchool } from '../types'
+import { ABILITIES, ABILITY_NAMES, ALL_SKILLS, CLASSES, SKILLS, allRaces, type Ability, type ArmorCategory, type SkillId, type WeaponProperty } from '../../rules'
+import { featIssues, itemIssues, raceIssues, spellIssues, subclassIssues } from '../pack'
+import {
+  RARITIES, SPELL_SCHOOLS,
+  type FeatEffect, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type Rarity, type SpellSchool,
+} from '../types'
 
 const WEAPON_PROPS: WeaponProperty[] = ['finesse', 'light', 'heavy', 'reach', 'thrown', 'two-handed', 'versatile', 'ammunition', 'loading', 'ranged']
 
@@ -264,3 +267,132 @@ export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat;
     </FormShell>
   )
 }
+
+/** One entry per line, for traits and languages. */
+function LinesField({ label, value, onChange, placeholder }: { label: string; value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const [text, setText] = useState(value.join('\n'))
+  return (
+    <Field label={label} wide>
+      <textarea
+        rows={3}
+        value={text}
+        placeholder={placeholder}
+        onChange={e => {
+          setText(e.target.value)
+          onChange(e.target.value.split('\n').map(x => x.trim()).filter(Boolean))
+        }}
+      />
+    </Field>
+  )
+}
+
+export function RaceForm({ initial, pack, onSave, onCancel }: { initial: HomebrewRace; pack: HomebrewPack; onSave: (r: HomebrewRace) => void; onCancel: () => void }) {
+  const [r, setR] = useState(initial)
+  const set = (patch: Partial<HomebrewRace>) => setR(prev => ({ ...prev, ...patch }))
+  const ownRaces = pack.races.filter(x => !x.parentRaceId && x.id !== r.id)
+  const parents = [...allRaces().filter(x => !ownRaces.some(o => o.id === x.id) && x.id !== r.id), ...ownRaces]
+  const setBonus = (a: Ability, n: number) => {
+    const next = { ...r.abilityBonuses }
+    if (n) next[a] = n
+    else delete next[a]
+    set({ abilityBonuses: next })
+  }
+  return (
+    <FormShell title={initial.name ? `Edit ${initial.name}` : 'New race or subrace'} value={r} issues={raceIssues(r)} onSave={onSave} onCancel={onCancel}>
+      <Field label="Name" wide><input value={r.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder="Wood Elf, Tabaxi, ..." /></Field>
+      <Field label="Subrace of" wide>
+        <select value={r.parentRaceId ?? ''} onChange={e => set({ parentRaceId: e.target.value || undefined })}>
+          <option value="">Nothing: a race of its own</option>
+          {parents.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+        </select>
+      </Field>
+      {!r.parentRaceId && (
+        <>
+          <Field label="Size">
+            <select value={r.size} onChange={e => set({ size: e.target.value as HomebrewRace['size'] })}>
+              <option value="Small">Small</option>
+              <option value="Medium">Medium</option>
+            </select>
+          </Field>
+          <Field label="Speed (ft.)"><input type="number" min={0} max={120} step={5} value={r.speed} onChange={e => set({ speed: numOr(e.target.value, 30) })} /></Field>
+        </>
+      )}
+      <div className="hb-field wide">
+        <span>Ability score increases</span>
+        <div className="row">
+          {ABILITIES.map(a => (
+            <label key={a} className="hb-check">
+              {a.toUpperCase()}
+              <input type="number" className="hb-amount" min={-5} max={5} value={r.abilityBonuses[a] ?? 0} onChange={e => setBonus(a, numOr(e.target.value, 0))} />
+            </label>
+          ))}
+          <label className="hb-check">
+            +1 to any
+            <input type="number" className="hb-amount" min={0} max={6} value={r.freeAbilityBonuses} onChange={e => set({ freeAbilityBonuses: numOr(e.target.value, 0) })} />
+          </label>
+        </div>
+      </div>
+      <div className="hb-field wide">
+        <span>Skill proficiencies</span>
+        <div className="row">
+          {ALL_SKILLS.map(sk => (
+            <Check
+              key={sk}
+              label={SKILLS[sk].name}
+              checked={r.skillProficiencies.includes(sk)}
+              onChange={on => set({ skillProficiencies: on ? [...r.skillProficiencies, sk] : r.skillProficiencies.filter(x => x !== sk) })}
+            />
+          ))}
+        </div>
+      </div>
+      <Field label="Skills of the player's choice"><input type="number" min={0} max={6} value={r.freeSkillChoices} onChange={e => set({ freeSkillChoices: numOr(e.target.value, 0) })} /></Field>
+      <Field label="Languages of the player's choice"><input type="number" min={0} max={6} value={r.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} /></Field>
+      <Field label="Extra HP per level"><input type="number" min={0} max={5} value={r.hpPerLevel} onChange={e => set({ hpPerLevel: numOr(e.target.value, 0) })} /></Field>
+      {!r.parentRaceId && <LinesField label="Languages (one per line)" value={r.languages} onChange={languages => set({ languages })} placeholder="Common" />}
+      <LinesField label="Traits (one per line)" value={r.traits} onChange={traits => set({ traits })} placeholder="Darkvision" />
+      <Field label="Description" wide><textarea rows={4} value={r.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+    </FormShell>
+  )
+}
+
+const ARMOR_TYPES: ArmorCategory[] = ['light', 'medium', 'heavy', 'shield']
+
+export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewSubclass; onSave: (s: HomebrewSubclass) => void; onCancel: () => void }) {
+  const [sc, setSc] = useState(initial)
+  const set = (patch: Partial<HomebrewSubclass>) => setSc(prev => ({ ...prev, ...patch }))
+  const setFeature = (i: number, f: { level: number; name: string }) => set({ features: sc.features.map((x, j) => (j === i ? f : x)) })
+  return (
+    <FormShell title={initial.name ? `Edit ${initial.name}` : 'New subclass'} value={sc} issues={subclassIssues(sc)} onSave={onSave} onCancel={onCancel}>
+      <Field label="Name" wide><input value={sc.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder="Battle Master, School of Divination, ..." /></Field>
+      <Field label="Class">
+        <select value={sc.classId} onChange={e => set({ classId: e.target.value })}>
+          {CLASSES.map(c => <option key={c.id} value={c.id}>{c.name} ({c.subclassTitle})</option>)}
+        </select>
+      </Field>
+      <div className="hb-field wide">
+        <span>Bonus armor proficiencies</span>
+        <div className="row">
+          {ARMOR_TYPES.map(a => (
+            <Check key={a} label={a} checked={sc.armor.includes(a)} onChange={on => set({ armor: on ? [...sc.armor, a] : sc.armor.filter(x => x !== a) })} />
+          ))}
+        </div>
+      </div>
+      <div className="hb-field wide">
+        <span>Features by level</span>
+        {sc.features.map((f, i) => (
+          <div key={i} className="row hb-effect">
+            <input type="number" min={1} max={20} aria-label="Level" className="hb-amount" value={f.level} onChange={e => setFeature(i, { ...f, level: numOr(e.target.value, 1) })} />
+            <input value={f.name} aria-label="Feature name" placeholder="Combat Superiority" onChange={e => setFeature(i, { ...f, name: e.target.value })} />
+            <button type="button" className="btn ghost small" onClick={() => set({ features: sc.features.filter((_, j) => j !== i) })} aria-label="Remove feature">✕</button>
+          </div>
+        ))}
+        <div>
+          <button type="button" className="btn small" onClick={() => set({ features: [...sc.features, { level: classLevel(sc.classId), name: '' }] })}>+ Add feature</button>
+        </div>
+      </div>
+      <Field label="Description" wide><textarea rows={4} value={sc.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+    </FormShell>
+  )
+}
+
+const classLevel = (classId: string) => CLASSES.find(c => c.id === classId)?.subclassLevel ?? 3

@@ -1,7 +1,7 @@
 // Everything the printable sheet shows, flattened from a Character and derive(). Pure, no React.
 import type { Character } from '../model/character'
 import {
-  ABILITIES, ABILITY_NAMES, ALL_SKILLS, SKILLS, backgroundById, classById, derive, formatMod, itemById, raceById,
+  ABILITIES, ABILITY_NAMES, ALL_SKILLS, SKILLS, getBackground, classById, derive, formatMod, itemById, raceById,
   type Ability,
 } from '../rules'
 
@@ -88,7 +88,7 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
     classLine: c.classes.map(cl => `${classById(cl.classId)?.name ?? cl.classId} ${cl.level}`).join(' / '),
     level: d.level,
     race: subrace?.name ?? race?.name ?? c.raceId,
-    background: backgroundById(c.backgroundId)?.name ?? c.backgroundId,
+    background: getBackground(c)?.name ?? c.backgroundId,
     alignment: c.alignment,
     xp: c.xp,
     portrait: c.portrait,
@@ -120,9 +120,9 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
     equipment: c.inventory.map(e => ({ name: itemById(e.itemId)?.name ?? e.itemId, qty: e.qty, equipped: e.equipped })),
     coins: c.coins,
     carried: `${d.carriedWeight} / ${d.carryingCapacity} lb`,
-    features: d.features.map(f => `${f.name} (${f.className} ${f.level})`),
+    features: [...d.features.map(f => `${f.name} (${f.className} ${f.level})`), ...d.feats.map(f => `${f} (feat)`)],
     traits: d.traits,
-    languages: d.languages,
+    languages: [...d.languages, ...d.tools],
     conditions: play ? c.state.conditions.map(cap) : [],
     exhaustion: play ? c.state.exhaustion : 0,
     warnings: d.warnings,

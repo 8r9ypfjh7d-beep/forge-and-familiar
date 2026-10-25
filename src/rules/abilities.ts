@@ -1,4 +1,5 @@
 import type { Character } from '../model/character'
+import { improvementBonuses } from './choices'
 import { raceById } from './data/races'
 import { ABILITIES, type Abilities, type Ability } from './types'
 
@@ -45,11 +46,12 @@ export function racialBonuses(c: RacialInput): Abilities {
   return out
 }
 
-/** Final ability scores: base + racial bonuses, capped at 20. */
-export function getAbilityScores(c: RacialInput & Pick<Character, 'baseAbilities'>): Abilities {
+/** Final ability scores: base + racial bonuses + Ability Score Improvements and feats, capped at 20. */
+export function getAbilityScores(c: RacialInput & Pick<Character, 'baseAbilities'> & Partial<Pick<Character, 'classes' | 'improvements'>>): Abilities {
   const bonus = racialBonuses(c)
+  const asi = improvementBonuses({ classes: c.classes ?? [], improvements: c.improvements })
   const out = emptyAbilities()
-  for (const a of ABILITIES) out[a] = Math.min(20, c.baseAbilities[a] + bonus[a])
+  for (const a of ABILITIES) out[a] = Math.min(20, c.baseAbilities[a] + bonus[a] + asi[a])
   return out
 }
 
