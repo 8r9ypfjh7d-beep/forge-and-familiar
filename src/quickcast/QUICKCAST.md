@@ -8,8 +8,8 @@ A strip at the top of the live sheet with the spells, attacks and resources a pl
 |------|---------|
 | `types.ts` | `QuickCastEntry` (attack, spell, resource) and `SlotChoice` |
 | `quickcast.ts` | Pure logic: add/remove/move entries, `slotChoices`, `spendSlot`, `spellDamage`, `resourceUse`, `spendResource` |
-| `presets.ts` | A few SRD 5.1 spells to pin in one tap, until the compendium exists |
-| `QuickCastBar.tsx` | The bar, the slot picker, the result panel and the pin form |
+| `presets.ts` | `spellPreset()` turns a rules `Spell` into pin fields; `SPELL_PRESETS` is every SRD spell |
+| `QuickCastBar.tsx` | The bar, the slot picker, the result panel, the pin form and `SpellPicker` |
 | `quickcast.css` | Styles, scoped inside `.ff-sheet` |
 | `quickcast.test.ts` | Tests for the pure logic |
 
@@ -21,6 +21,8 @@ A strip at the top of the live sheet with the spells, attacks and resources a pl
 - **Resource**: spends one use of a class resource or a player tracker (`state.counters`).
 - Slot and resource spending goes through the sheet's `apply`, so it appears in the session log and Undo reverts it. Rolls go to the shared dice history via `useDice().record`.
 
+- **Pin form**: `SpellPicker` lists the character's class and subclass spells (`spellsFor`) grouped by level, with name search and a switch to show every class's spells (on by default for non-casters). Picking fills the form; every field stays editable for spells outside the SRD.
+
 ## Later
 
-When the spell compendium lands, a spell entry can carry a compendium id and fill its fields from there.
+A spell entry could carry the spell id so a compendium can show its text.

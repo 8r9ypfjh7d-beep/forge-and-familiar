@@ -1,9 +1,12 @@
 // Homebrew pack library. Async like src/storage so a backend can replace localStorage later.
 // Every pack on this device is active: its items are registered with the rules engine so
 // characters holding them keep their attacks, AC and weight.
-import { registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses, type Race, type Subrace } from '../rules'
+import {
+  registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSpells, registerHomebrewSubclasses,
+  type Race, type Spell, type Subrace,
+} from '../rules'
 import { sanitizePack } from './pack'
-import type { HomebrewPack, HomebrewRace } from './types'
+import type { HomebrewPack, HomebrewRace, HomebrewSpell } from './types'
 
 const KEY = 'ff.homebrew.v1'
 const CHANGED = 'ff:homebrew-changed'
@@ -37,6 +40,16 @@ const toSubrace = (r: HomebrewRace): Subrace => ({
   hpPerLevel: r.hpPerLevel || undefined, languageChoices: r.languageChoices || undefined,
 })
 
+const toSpell = (s: HomebrewSpell): Spell => ({
+  id: s.id, name: s.name, level: s.level, school: s.school,
+  // Class names typed as free text ("Warlock") match the SRD ids.
+  classes: s.classes.map(c => c.trim().toLowerCase()),
+  castingTime: s.castingTime, range: s.range,
+  components: (s.components.v ? 'V' : '') + (s.components.s ? 'S' : '') + (s.components.m ? 'M' : ''),
+  duration: s.duration, concentration: s.concentration || undefined, ritual: s.ritual || undefined,
+  roll: s.save ? 'save' : 'none', save: s.save, damage: s.damage, damageType: s.damageType,
+})
+
 /** Hands every pack's content to the rules engine. */
 function register(packs: HomebrewPack[]) {
   registerHomebrewItems(packs.flatMap(p => p.items))
@@ -44,6 +57,7 @@ function register(packs: HomebrewPack[]) {
   const races = packs.flatMap(p => p.races)
   registerHomebrewRaces(races.filter(r => !r.parentRaceId).map(toRace), races.filter(r => r.parentRaceId).map(toSubrace))
   registerHomebrewSubclasses(packs.flatMap(p => p.subclasses))
+  registerHomebrewSpells(packs.flatMap(p => p.spells).map(toSpell))
 }
 
 function writePacks(packs: HomebrewPack[]) {

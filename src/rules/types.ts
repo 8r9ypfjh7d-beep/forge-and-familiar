@@ -194,3 +194,33 @@ export type ConditionId =
   | 'blinded' | 'charmed' | 'deafened' | 'frightened' | 'grappled'
   | 'incapacitated' | 'invisible' | 'paralyzed' | 'petrified' | 'poisoned'
   | 'prone' | 'restrained' | 'stunned' | 'unconscious'
+
+/** An SRD 5.1 (or homebrew) spell's stat line, plus how quick-cast rolls it. */
+export interface Spell {
+  id: string
+  /** Display name. */
+  name: string
+  /** 0 is a cantrip. */
+  level: number
+  school: string
+  /** Class ids whose spell list has it. */
+  classes: string[]
+  /** Subclass ids that always add it (domain, oath, circle or patron spells). */
+  subclasses?: string[]
+  castingTime: string
+  range: string
+  /** Any of V, S, M. */
+  components: string
+  duration: string
+  concentration?: boolean
+  ritual?: boolean
+  roll: 'attack' | 'save' | 'none'
+  save?: Ability
+  /** Damage or healing at the spell's base level. */
+  damage?: string
+  damageType?: string
+  addMod?: boolean
+  /** Added per slot level above the base. */
+  upcast?: string
+  cantripScaling?: boolean
+}

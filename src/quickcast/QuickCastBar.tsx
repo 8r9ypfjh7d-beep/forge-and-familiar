@@ -4,10 +4,10 @@ import { useState } from 'react'
 import { critNotation, isValidNotation, roll, rollAttack, rollDamage, type RollResult } from '../dice'
 import { useDice } from '../dice/ui'
 import type { Character } from '../model/character'
-import { derive, formatMod, getResources, type DerivedStats } from '../rules'
+import { allSpells, derive, formatMod, getResources, spellById, spellsFor, type DerivedStats, type Spell } from '../rules'
 import { ABILITIES, type Ability } from '../rules/types'
 import type { Apply } from '../sheet/types'
-import { SPELL_PRESETS } from './presets'
+import { spellPreset } from './presets'
 import {
   addEntry, entriesOf, moveEntry, newEntryId, ORDINAL, removeEntry, resourceUse, slotChoices, spellDamage,
   spendResource, spendSlot,
@@ -288,15 +288,7 @@ function AddEntry({ character, stats, onAdd, onCancel }: {
 
       {kind === 'spell' && (
         <>
-          <label>Start from an SRD spell
-            <select value="" onChange={e => {
-              const p = SPELL_PRESETS.find(x => x.name === e.target.value)
-              if (p) { setSpell({ ...p }); setError('') }
-            }}>
-              <option value="">Choose…</option>
-              {SPELL_PRESETS.map(p => <option key={p.name} value={p.name}>{p.name} ({ORDINAL[p.level]})</option>)}
-            </select>
-          </label>
+          <SpellPicker character={character} onPick={sp => { setSpell(spellPreset(sp)); setError('') }} />
           <div className="qc-grid">
             <label className="wide">Name<input value={spell.name} onChange={e => patch({ name: e.target.value })} placeholder="Fireball" /></label>
             <label>Level
@@ -340,5 +332,42 @@ function AddEntry({ character, stats, onAdd, onCancel }: {
         <button type="button" className="btn ghost" onClick={onCancel}>Cancel</button>
       </div>
     </form>
+  )
+}
+
+/** Search and pick from the character's spell lists (or every spell), grouped by level. */
+function SpellPicker({ character, onPick }: { character: Character; onPick: (s: Spell) => void }) {
+  const own = spellsFor(character)
+  const [everyList, setEveryList] = useState(own.length === 0)
+  const [query, setQuery] = useState('')
+  const q = query.trim().toLowerCase()
+  const pool = everyList
+    ? [...allSpells()].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+    : own
+  const shown = q ? pool.filter(s => s.name.toLowerCase().includes(q)) : pool
+  const levels = [...new Set(shown.map(s => s.level))]
+
+  return (
+    <div className="qc-picker">
+      <label>Find a spell ({shown.length} {everyList ? 'in every class' : 'on your spell list'})
+        <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search by name" />
+      </label>
+      <label>Start from a spell
+        <select value="" onChange={e => { const sp = spellById(e.target.value); if (sp) onPick(sp) }}>
+          <option value="">{shown.length ? 'Choose…' : 'No spells match'}</option>
+          {levels.map(l => (
+            <optgroup key={l} label={l === 0 ? 'Cantrips' : `${ORDINAL[l]} level`}>
+              {shown.filter(s => s.level === l).map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name}{s.concentration ? ' (C)' : ''}{s.ritual ? ' (R)' : ''} · {s.castingTime}, {s.range}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      <label className="check"><input type="checkbox" checked={everyList} onChange={e => setEveryList(e.target.checked)} />
+        Show spells from every class</label>
+    </div>
   )
 }

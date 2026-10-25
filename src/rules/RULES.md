@@ -13,8 +13,9 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `factory.ts` | `createCharacter(draft)`, `freshState(maxHp)`, starting kit |
 | `rollMode.ts` | Advantage/disadvantage from own conditions and exhaustion |
 | `choices.ts` | ASI slots and feats, languages, tools, starting-gear choices (`classKit`) |
+| `spells.ts` | `allSpells()`, `spellById()`, `spellsFor(character)` (class and subclass lists, sorted by level), `registerHomebrewSpells` |
 | `multiclass.ts` | Prerequisites, multiclass proficiencies, caster level breakdown, per-class spell DCs, multiclass warnings |
-| `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one per class), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (languages, tools), items |
+| `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one per class), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (languages, tools), items, `spells.ts` (all 319 SRD 5.1 spells: stat line, class/subclass lists, quick-cast roll fields; generated from the 5e-bits SRD export, no rules text) |
 | `rules.test.ts`, `multiclass.test.ts`, `choices.test.ts` | Engine tests |
 
 ## Key rules implemented
@@ -29,6 +30,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 - Subclasses: features join `features` from `subclassLevel`; Life Domain adds heavy armor; Draconic Bloodline adds 1 HP per sorcerer level and 13 + DEX unarmored AC.
 - ASIs and feats (`improvements`) add to ability scores (cap 20). Feat effects apply: ability, skill, HP per level, speed, initiative, AC. `DerivedStats.feats`, `.tools`, `.languages` list them.
 - Backgrounds go through `getBackground(c)`, which also builds the PHB custom background.
+- Spells: `data/spells.ts` holds stat lines only; `subclasses` lists Fiend, Life, Devotion and Land spells that are always on the list. Lore's Magical Secrets is not modelled (any class). Homebrew pack spells join through `registerHomebrewSpells` (free-text class names are lower-cased to match ids).
 - Homebrew: `registerHomebrewRaces` (subraces attach to their parent), `registerHomebrewSubclasses`, `registerHomebrewFeats`, like `registerHomebrewItems`. SRD ids always win. Use `allRaces()` for lists; `RACES` is SRD only.
 - Multiclass (SRD 5.1, `data/multiclass.ts`): ability prerequisites for the new class and every current one; later classes grant only their multiclass armor/weapon proficiencies; Unarmored Defense comes from the first class that has it; Channel Divinity uses don't add up. `derive().warnings` carries unmet prerequisites, level over 20, Extra Attack/Unarmored Defense/Channel Divinity not stacking, separate spell lists and pact slots, and the extra skill Bard/Ranger/Rogue grant (not yet pickable).
 

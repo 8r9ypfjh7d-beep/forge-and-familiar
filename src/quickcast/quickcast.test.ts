@@ -83,3 +83,10 @@ describe('resources', () => {
     expect(spendResource(once, 'arrows')).toBe(once)
   })
 })
+
+describe('spell presets', () => {
+  it('turns every SRD spell into a pinnable entry', () => {
+    expect(SPELL_PRESETS).toHaveLength(319)
+    expect(SPELL_PRESETS.find(p => p.name === 'Magic Missile')).toEqual({ name: 'Magic Missile', level: 1, roll: 'none', damage: '3d4+3', damageType: 'force', upcast: '1d4+1' })
+  })
+})

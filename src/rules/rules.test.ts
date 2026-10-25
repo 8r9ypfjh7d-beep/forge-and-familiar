@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
 import {
   abilityMod, createCharacter, derive, getAbilityScores, getArmorClass, getAttacks, getMaxHp,
-  getResources, getSpellSlots, pointBuyCost, type CharacterDraft,
+  getResources, getSpellSlots, pointBuyCost, registerHomebrewSpells, SPELLS, spellById, spellsFor, type CharacterDraft,
 } from './index'
 
 const draft = (over: Partial<CharacterDraft> = {}): CharacterDraft => ({
@@ -170,5 +170,34 @@ describe('homebrew items', () => {
     const c = make({}, ch => equipOnly(ch, 'hb:p1:frost-brand'))
     expect(getAttacks(c)[0]).toMatchObject({ name: 'Frost Brand', damage: '1d10+3', proficient: true })
     registerHomebrewItems([])
+  })
+})
+
+describe('spells', () => {
+  it('has every SRD 5.1 spell with its class lists', () => {
+    expect(SPELLS).toHaveLength(319)
+    expect(new Set(SPELLS.map(s => s.id)).size).toBe(319)
+    expect(spellById('eldritch-blast')).toMatchObject({ level: 0, classes: ['warlock'], roll: 'attack', damage: '1d10' })
+    expect(spellById('fireball')).toMatchObject({ roll: 'save', save: 'dex', damage: '8d6', upcast: '1d6' })
+    expect(spellById('cure-wounds')).toMatchObject({ damageType: 'healing', addMod: true, upcast: '1d8' })
+  })
+
+  it('lists the spells a character can learn, including subclass spells', () => {
+    const warlock = spellsFor({ classes: [{ classId: 'warlock', level: 5 }] })
+    expect(warlock.map(s => s.name)).toContain('Eldritch Blast')
+    expect(warlock.map(s => s.name)).not.toContain('Fireball')
+    expect(spellsFor({ classes: [{ classId: 'warlock', level: 5, subclassId: 'fiend' }] }).map(s => s.name)).toContain('Fireball')
+    expect(spellsFor({ classes: [{ classId: 'fighter', level: 3 }] })).toEqual([])
+    expect(warlock.map(s => s.level)).toEqual([...warlock.map(s => s.level)].sort((a, b) => a - b))
+  })
+
+  it('adds homebrew spells, but never over an SRD id', () => {
+    registerHomebrewSpells([
+      { ...spellById('fireball')!, id: 'fireball', name: 'Fake' },
+      { id: 'hb:x:hex-bolt', name: 'Hex Bolt', level: 1, school: 'Evocation', classes: ['warlock'], castingTime: '1 action', range: '60 feet', components: 'V', duration: 'Instantaneous', roll: 'none' },
+    ])
+    expect(spellById('fireball')!.name).toBe('Fireball')
+    expect(spellsFor({ classes: [{ classId: 'warlock', level: 1 }] }).map(s => s.id)).toContain('hb:x:hex-bolt')
+    registerHomebrewSpells([])
   })
 })
