@@ -192,3 +192,13 @@
 .cs-action-form .wide, .cs-action-form .row { grid-column: 1 / -1; }
 .cs-action-form .row { margin-top: 0; }
 .cs-action-form textarea { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-panel); color: var(--s-ink); resize: vertical; }
+
+.cs-fieldset { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0; padding: 8px 10px 10px; border: 1px solid var(--s-line); border-radius: 8px; }
+.cs-fieldset legend { font-size: .8rem; font-weight: 700; padding-inline: 4px; }
+.cs-fieldset .wide { grid-column: 1 / -1; margin: 0; }
+.cs-fieldset input[aria-invalid="true"] { border-color: var(--s-bad); }
+.cs-check { display: flex !important; align-items: center; gap: 8px; color: var(--s-ink) !important; }
+.cs-check input { min-height: 0; inline-size: 18px; block-size: 18px; accent-color: var(--s-accent); }
+.cs-action-tools { align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.cs-action-roll { max-width: none !important; font-weight: 700; color: var(--s-accent); }
+.cs-effect-tag { font-size: .7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--s-accent); color: var(--s-accent); }

@@ -3,6 +3,7 @@ import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction } from '../../model/character'
 import { getDamageRiders, type DerivedStats } from '../../rules'
 import type { Ability } from '../../rules/types'
+import { formatNotation, parseNotation } from '../../dice/notation'
 import { spellDamage } from '../../quickcast/quickcast'
 import type { SpellEntry } from '../../quickcast/types'
 import { toQuickCast } from '../../spellbook/spellbook'
@@ -29,6 +30,43 @@ export function updateAction(c: Character, id: string, patch: Partial<Omit<Custo
 
 export function removeAction(c: Character, id: string): Character {
   return { ...c, customActions: (c.customActions ?? []).filter(a => a.id !== id) }
+}
+
+const TOKENS: Record<string, (s: DerivedStats) => number> = {
+  str: s => s.mods.str, dex: s => s.mods.dex, con: s => s.mods.con, int: s => s.mods.int, wis: s => s.mods.wis, cha: s => s.mods.cha,
+  prof: s => s.proficiencyBonus, level: s => s.level,
+}
+
+/**
+ * Dice a player typed for an action, with STR…CHA (modifiers), PROF and LEVEL filled in: "1d8+CHA" → "1d8+3".
+ * Undefined when blank or not valid dice.
+ */
+export function resolveDice(text: string | undefined, stats: DerivedStats): string | undefined {
+  const raw = text?.trim()
+  if (!raw) return undefined
+  const filled = raw.replace(/\s+/g, '')
+    .replace(/(str|dex|con|int|wis|cha|prof|level)/gi, m => `${TOKENS[m.toLowerCase()](stats)}`)
+    .replace(/\+-/g, '-').replace(/--/g, '+')
+  try {
+    return formatNotation(parseNotation(filled))
+  } catch {
+    return undefined
+  }
+}
+
+/** A typed damage type that means healing, in English or Hebrew. */
+export const isHealing = (type?: string) => !!type && /^(healing|heal|ריפוי)$/i.test(type.trim())
+
+/** What tapping a custom action rolls: an attack bonus or a save DC, and dice. */
+export function actionRoll(a: CustomAction, stats: DerivedStats): { attackBonus?: number; dc?: number; save?: Ability; dice?: string } {
+  const r = a.roll
+  if (!r) return {}
+  const mod = r.ability ? stats.mods[r.ability] : 0
+  return {
+    ...(r.check === 'attack' ? { attackBonus: mod + stats.proficiencyBonus } : {}),
+    ...(r.check === 'save' ? { dc: 8 + stats.proficiencyBonus + mod, ...(r.save ? { save: r.save } : {}) } : {}),
+    ...(resolveDice(r.dice, stats) ? { dice: resolveDice(r.dice, stats) } : {}),
+  }
 }
 
 /** One spell shown in the attacks table. */
@@ -129,6 +167,11 @@ export function effectToggles(c: Character, stats: DerivedStats, spellNames: Rec
   const ids = new Set([...(c.spells ?? []).map(s => s.id), ...(c.quickCast ?? []).flatMap(q => (q.kind === 'spell' ? [slug(q.name)] : []))])
   for (const [id, fx] of Object.entries(SPELL_EFFECTS)) {
     if (ids.has(id)) out.push({ id, name: spellNames[id] ?? id, ...fx })
+  }
+  // The player's own actions that carry an effect (a curse, a blessing, a stance).
+  for (const a of c.customActions ?? []) {
+    const damage = a.effect && resolveDice(a.effect.damage, stats)
+    if (damage) out.push({ id: `act:${a.id}`, name: a.name, damage, ...(a.effect?.type ? { damageType: a.effect.type } : {}) })
   }
   return out
 }

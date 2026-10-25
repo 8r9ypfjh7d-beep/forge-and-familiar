@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadKind } from '../../content'
 import { derive, xpForNextLevel } from '../../rules'
 import { makeCharacter } from '../fixtures'
-import { actionsOf, addAction, effectToggles, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
+import { actionRoll, actionsOf, addAction, effectToggles, resolveDice, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
 
 const warlock = (over = {}) => makeCharacter({
   classes: [{ classId: 'warlock', level: 7 }],
@@ -64,5 +64,26 @@ describe('combat page helpers', () => {
     const dagger = derive(c).attacks.find(a => a.name === 'Dagger')
     expect(dagger).toMatchObject({ itemId: 'dagger', reach: 5, range: '20/60' })
     expect(derive(c).attacks.at(-1)).toMatchObject({ name: 'Unarmed Strike', reach: 5 })
+  })
+
+  it('fills STR…CHA, PROF and LEVEL into an action\'s dice', () => {
+    const d = { ...derive(warlock()), mods: { str: 2, dex: 1, con: 2, int: -1, wis: 0, cha: 3 } }
+    expect(resolveDice('1d8+CHA', d)).toBe('1d8+3')
+    expect(resolveDice('1d8 + int', d)).toBe('1d8-1')
+    expect(resolveDice('1d8-INT', d)).toBe('1d8+1')
+    expect(resolveDice('2d6+PROF', d)).toBe('2d6+3')
+    expect(resolveDice('LEVEL', d)).toBe('7')
+    expect(resolveDice('', d)).toBeUndefined()
+    expect(resolveDice('lots', d)).toBeUndefined()
+  })
+
+  it('rolls an action as an attack or a save DC, and lists its effect as a toggle', () => {
+    let c = warlock({ spells: [] })
+    c = addAction(c, { id: 'a', kind: 'action', name: 'Oil Flask', roll: { check: 'save', ability: 'dex', save: 'dex', dice: '5' } })
+    c = addAction(c, { id: 'b', kind: 'bonus', name: 'Smite', roll: { check: 'attack', ability: 'cha', dice: '1d8+CHA', type: 'force' }, effect: { damage: '1d4', type: 'psychic' } })
+    const d = { ...derive(c), mods: { str: 2, dex: 1, con: 2, int: -1, wis: 0, cha: 3 }, proficiencyBonus: 3 }
+    expect(actionRoll(c.customActions![0], d)).toEqual({ dc: 12, save: 'dex', dice: '5' })
+    expect(actionRoll(c.customActions![1], d)).toEqual({ attackBonus: 6, dice: '1d8+3' })
+    expect(effectToggles(c, d)).toEqual([{ id: 'act:b', name: 'Smite', damage: '1d4', damageType: 'psychic' }])
   })
 })
