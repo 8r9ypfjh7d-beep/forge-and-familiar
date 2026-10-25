@@ -10,3 +10,7 @@ npm run build
 ```
 
 Characters and player profiles are saved in the browser for now (see `src/storage/`).
+
+## Online version
+
+The app is hosted on Netlify (`netlify.toml`). Every push to `main` rebuilds and republishes it. Characters are still saved per device and browser until accounts exist.
