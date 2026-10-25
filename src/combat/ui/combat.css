@@ -1,0 +1,79 @@
+/* Combat tracker styles, scoped to .ff-combat. Uses the app's tokens from index.css. */
+.ff-combat { --c-temp: #3b6fb0; font-variant-numeric: tabular-nums; }
+@media (prefers-color-scheme: dark) { .ff-combat { --c-temp: #7aa7e0; } }
+.ff-combat h3 { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-family: inherit; }
+.ff-combat .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.ff-combat .panel { padding: 14px; }
+.ff-combat .btn.danger { background: var(--bad); border-color: var(--bad); color: var(--accent-ink); }
+.ff-combat .btn.heal { background: var(--good); border-color: var(--good); color: var(--accent-ink); }
+.ff-combat .icon { font: inherit; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.ff-combat .icon:hover:not(:disabled) { color: var(--ink); background: var(--accent-soft); }
+.ff-combat .icon:disabled { opacity: .3; cursor: default; }
+.ff-combat .tag { margin-left: 0; background: none; font-size: .72rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.ff-combat .tag.bad { color: var(--bad); border-color: var(--bad); }
+.ff-combat .check { display: flex; gap: 6px; align-items: center; font-size: .9rem; }
+
+.encounter-list { display: grid; gap: 10px; }
+.encounter-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.encounter-list h3 { margin: 0; text-transform: none; letter-spacing: 0; font-size: 1.05rem; color: var(--ink); font-family: Georgia, serif; }
+
+.combat-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.combat-head h2 { margin: 0; flex: 1; min-width: 0; }
+.title-btn { font: inherit; background: none; border: 0; color: inherit; padding: 0; cursor: text; text-align: left; }
+.combat-head .round { display: grid; text-align: right; line-height: 1.2; }
+.combat-head .round strong { font-size: 1.2rem; }
+.combat-actions { margin: 12px 0; }
+.combat-actions .next { min-width: 150px; }
+
+.checks { display: grid; gap: 8px; margin-bottom: 12px; }
+.check-card { border-color: var(--accent); background: var(--accent-soft); }
+.check-card p { margin: 0 0 8px; }
+
+.combat-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.combat-grid > div { display: grid; gap: 12px; }
+@media (max-width: 860px) { .combat-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.order { display: grid; gap: 8px; }
+.combatant { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: center; border-left: 4px solid transparent; }
+.combatant.active { border-left-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+.combatant.out { opacity: .55; }
+.combatant .init { display: flex; align-items: center; gap: 2px; }
+.combatant .init input { width: 44px; text-align: center; font-size: 1.15rem; font-weight: 700; padding: 6px 2px; }
+.combatant .tie { display: grid; }
+.combatant .tie .icon { padding: 0 3px; font-size: .6rem; }
+.combatant .name-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.combatant .hp-line { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.hpbar { flex: 1; max-width: 220px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.hpbar > div { height: 100%; background: var(--good); }
+.hpbar > div.mid { background: #c58a1d; }
+.hpbar > div.low { background: var(--bad); }
+.combatant .chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.combatant .chip { font-size: .75rem; padding: 2px 8px; cursor: default; }
+.combatant button.chip { cursor: pointer; }
+.chip.conc { border-color: var(--c-temp); color: var(--c-temp); }
+.chip.cond { border-color: var(--bad); color: var(--bad); text-transform: capitalize; }
+.chip.fx { background: var(--accent-soft); }
+.combatant .controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.combatant .controls input { width: 56px; text-align: center; }
+.combatant .controls select { max-width: 130px; }
+@media (max-width: 560px) {
+  .combatant { grid-template-columns: 52px minmax(0, 1fr); }
+  .combatant .controls { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: nowrap; }
+  .combatant .controls select { min-width: 0; flex: 1; }
+}
+
+.monster-form, .effect-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; align-items: end; margin-top: 12px; }
+.monster-form label, .effect-form label:not(.check) { display: grid; gap: 3px; font-size: .78rem; font-weight: 600; color: var(--muted); }
+.monster-form input, .effect-form input, .effect-form select { width: 100%; min-width: 0; }
+.monster-form label:first-child { grid-column: span 2; }
+.monster-form p { grid-column: 1 / -1; margin: 0; }
+.effect-form { grid-template-columns: minmax(0, 1fr); }
+.effect-form fieldset { border: 1px solid var(--line); border-radius: 8px; display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; }
+.effect-form legend { font-size: .78rem; font-weight: 600; color: var(--muted); }
+
+.effects ul { display: grid; gap: 6px; margin-bottom: 10px; }
+.effect { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.effect .tag { margin-left: 6px; }
+.effect .left { font-weight: 700; }
+.combat-log { max-height: 260px; overflow: auto; font-size: .85rem; }
+.combat-log li { border-bottom: 1px dashed var(--line); padding: 3px 0; }

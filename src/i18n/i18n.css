@@ -1,0 +1,14 @@
+/* Language picker, plus right-to-left fixes that logical CSS properties can't cover. */
+.ff-lang { font-size: 0.85rem; padding: 4px 8px; }
+.welcome-lang { justify-content: flex-end; margin: -6px 0 6px; }
+
+/* Signed numbers and dice ("+3", "2d6+1") read left to right even inside Hebrew text. */
+[dir='rtl'] .num,
+[dir='rtl'] dd,
+[dir='rtl'] .stat strong,
+[dir='rtl'] .ability-mini .small,
+[dir='rtl'] .ff-roll__detail,
+[dir='rtl'] .ff-roll__notation,
+[dir='rtl'] .ff-dice__text,
+[dir='rtl'] .stepper-value,
+[dir='rtl'] .track-count { direction: ltr; unicode-bidi: isolate; }

@@ -1,0 +1,56 @@
+/* Show-the-math popover and stats card. Uses the sheet's tokens with app-level fallbacks. */
+.show-math {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0 2px; margin: 0 -2px;
+  cursor: help; border-radius: 4px;
+  text-decoration: underline dotted; text-decoration-color: var(--s-muted, var(--muted, #7a6d5d));
+  text-underline-offset: 3px;
+}
+.show-math:hover { background: color-mix(in srgb, var(--s-accent, var(--accent, #8c2f1f)) 10%, transparent); }
+
+.math-pop {
+  position: fixed; inset: auto; margin: 0;
+  width: min(300px, calc(100vw - 32px));
+  padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--s-line, var(--line, #e3d8c4));
+  background: var(--s-panel, var(--panel, #fffdf8)); color: var(--s-ink, var(--ink, #2a2118));
+  box-shadow: 0 8px 24px rgb(0 0 0 / .18);
+  font-size: .875rem; font-variant-numeric: tabular-nums; text-align: left;
+}
+.math-pop h3 { margin: 0 0 8px; font-size: .95rem; }
+.math-pop table { width: 100%; border-collapse: collapse; }
+.math-pop td { padding: 3px 0; vertical-align: top; }
+.math-pop td:last-child { text-align: right; padding-left: 12px; white-space: nowrap; font-weight: 600; }
+.math-pop tfoot td { border-top: 1px solid var(--s-line, var(--line, #e3d8c4)); padding-top: 6px; font-weight: 700; }
+.math-pop p { margin: 8px 0 0; color: var(--s-muted, var(--muted, #7a6d5d)); font-size: .8rem; }
+
+.stats-card .ability-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (min-width: 520px) { .stats-card .ability-grid { grid-template-columns: repeat(6, 1fr); } }
+.stats-card .ability {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 4px; border: 1px solid var(--s-line); border-radius: 8px;
+}
+.stats-card .abbr { font-size: .65rem; letter-spacing: .06em; color: var(--s-muted); }
+.stats-card .score { font-size: .8rem; color: var(--s-muted); }
+.stats-card .mod { font-size: 1.3rem; font-weight: 800; line-height: 1.1; }
+.stats-card .save { font-size: .75rem; color: var(--s-muted); }
+.stats-card .save.prof { color: var(--s-ink); font-weight: 600; }
+.stats-card .stat-list { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 12px 0 0; font-size: .875rem; }
+.stats-card .stat-list div { display: flex; gap: 6px; }
+.stats-card .stat-list dt { color: var(--s-muted); }
+.stats-card .stat-list dd { margin: 0; font-weight: 600; }
+.stats-card .sub { margin: 14px 0 6px; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--s-muted); }
+.stats-card .attack-list, .stats-card .skill-list { list-style: none; margin: 0; padding: 0; font-size: .875rem; }
+.stats-card .attack-list li { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 4px 0; border-bottom: 1px solid var(--s-line); }
+.stats-card .attack-list .name { font-weight: 600; flex: 1 1 120px; }
+.stats-card .attack-list .dmg { color: var(--s-muted); }
+.stats-card .skills { margin-top: 12px; }
+.stats-card .skills summary { cursor: pointer; font-weight: 600; font-size: .875rem; min-height: 32px; display: flex; align-items: center; }
+.stats-card .skill-list { columns: 2 180px; column-gap: 16px; }
+.stats-card .skill-list li { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; break-inside: avoid; }
+.stats-card .skill-list li.prof { font-weight: 600; }
+
+/* Undo log */
+.log-entry { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; }
+.log-entry .what { min-width: 0; }
+.log-entry .diff { display: block; color: var(--s-muted); font-size: .8rem; font-weight: 400; }
+.log-entry time { color: var(--s-muted); font-size: .75rem; font-weight: 400; margin-left: 6px; }

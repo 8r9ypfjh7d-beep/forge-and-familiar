@@ -1,0 +1,55 @@
+.steps { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.step { font: inherit; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.step:disabled { opacity: 0.4; cursor: not-allowed; }
+.step.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.step-num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--line); font-size: 0.75rem; }
+.step.done .step-num { background: var(--good); color: var(--panel); }
+.step.active .step-num { background: var(--accent); color: var(--accent-ink); }
+
+.builder-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .builder-body { grid-template-columns: 1fr; } }
+.builder-step { min-height: 420px; display: flex; flex-direction: column; }
+.builder-nav { display: flex; justify-content: space-between; margin-top: auto; padding-top: 18px; }
+.issues { margin: 12px 0 0; padding-inline-start: 18px; color: var(--muted); font-size: 0.85rem; }
+
+.choice { font: inherit; text-align: start; display: grid; gap: 2px; padding: 12px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.choice:hover { border-color: var(--accent); }
+.choice.selected { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.tabs { margin-bottom: 10px; }
+.ability-table { border-collapse: collapse; width: 100%; max-width: 560px; }
+.ability-table th, .ability-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: start; }
+.ability-table td.num { text-align: center; }
+.ability-table input[type='number'] { width: 70px; }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper .num { min-width: 22px; }
+
+.skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 12px; }
+.skill { display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 0.92rem; }
+.skill.dim { opacity: 0.45; }
+.tag { font-size: 0.7rem; padding: 1px 6px; border-radius: 999px; background: var(--line); color: var(--muted); margin-inline-start: auto; }
+.tag.class { background: var(--accent-soft); color: var(--accent); }
+
+.kit { list-style: none; padding: 0; margin: 0 0 8px; max-width: 520px; }
+.kit li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); }
+
+.details { display: grid; grid-template-columns: 180px 1fr; gap: 20px; }
+@media (max-width: 560px) { .details { grid-template-columns: 1fr; } }
+.portrait-pick { display: grid; gap: 8px; align-content: start; }
+.portrait-pick img, .portrait-pick .portrait-empty { width: 180px; height: 180px; object-fit: cover; border-radius: var(--radius); }
+
+.summary { position: sticky; top: 16px; }
+.summary-portrait { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.stat { display: grid; justify-items: center; padding: 6px 2px; border: 1px solid var(--line); border-radius: 8px; }
+.stat strong { font-size: 1.15rem; }
+.ability-mini { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; text-align: center; }
+.ability-mini > div { display: grid; padding: 4px 0; border-radius: 6px; border: 1px solid transparent; }
+.ability-mini .save-prof { border-color: var(--accent); }
+
+.multiclass-open { align-self: flex-start; margin-top: 8px; }
+.multiclass { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.multiclass h3 { margin: 0 0 4px; font-size: 1rem; }
+.multiclass-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.multiclass-add { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.multiclass-add .chip:disabled { opacity: 0.45; cursor: not-allowed; }

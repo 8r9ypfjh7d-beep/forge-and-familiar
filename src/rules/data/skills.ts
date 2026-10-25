@@ -1,0 +1,24 @@
+import type { Ability, SkillId } from '../types'
+
+export const SKILLS: Record<SkillId, { name: string; ability: Ability }> = {
+  acrobatics: { name: 'Acrobatics', ability: 'dex' },
+  animalHandling: { name: 'Animal Handling', ability: 'wis' },
+  arcana: { name: 'Arcana', ability: 'int' },
+  athletics: { name: 'Athletics', ability: 'str' },
+  deception: { name: 'Deception', ability: 'cha' },
+  history: { name: 'History', ability: 'int' },
+  insight: { name: 'Insight', ability: 'wis' },
+  intimidation: { name: 'Intimidation', ability: 'cha' },
+  investigation: { name: 'Investigation', ability: 'int' },
+  medicine: { name: 'Medicine', ability: 'wis' },
+  nature: { name: 'Nature', ability: 'int' },
+  perception: { name: 'Perception', ability: 'wis' },
+  performance: { name: 'Performance', ability: 'cha' },
+  persuasion: { name: 'Persuasion', ability: 'cha' },
+  religion: { name: 'Religion', ability: 'int' },
+  sleightOfHand: { name: 'Sleight of Hand', ability: 'dex' },
+  stealth: { name: 'Stealth', ability: 'dex' },
+  survival: { name: 'Survival', ability: 'wis' },
+}
+
+export const ALL_SKILLS = Object.keys(SKILLS) as SkillId[]

@@ -1,0 +1,9 @@
+/* Import button, level history view. */
+.ff-import { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ff-levels { display: grid; gap: 12px; }
+.ff-levels form.panel { padding: 12px; }
+.ff-levels form input { flex: 1 1 180px; min-width: 0; }
+.ff-snaps { display: grid; gap: 8px; }
+.ff-snaps li { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; }
+.ff-snaps h3 { margin: 0; }
+.ff-snaps p { margin: 0; }

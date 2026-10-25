@@ -1,0 +1,47 @@
+/* Homebrew screen. Uses the global tokens and primitives from src/index.css. */
+.hb .empty { text-align: center; color: var(--muted); }
+.hb-packs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.hb-pack { font: inherit; color: var(--ink); text-align: left; display: grid; gap: 4px; cursor: pointer; }
+.hb-pack:hover { border-color: var(--accent); }
+.hb-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.hb-import { margin-top: 16px; }
+.hb-import-row { display: grid; gap: 8px; }
+.hb-import textarea, .hb-share textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 0.8rem; resize: vertical; }
+
+.hb-head { margin-bottom: 10px; }
+.hb-title { flex: 1 1 220px; min-width: 0; }
+.hb-title p { margin: 2px 0 0; }
+.hb-name { font-family: Georgia, serif; font-size: 1.3rem; font-weight: 700; width: 100%; border-color: transparent; background: transparent; padding: 2px 6px; margin-left: -6px; }
+.hb-name:hover { border-color: var(--line); }
+.hb-desc { width: 100%; margin-bottom: 14px; resize: vertical; }
+
+.hb-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .hb-body { grid-template-columns: 1fr; } }
+.hb-tabs { margin-bottom: 12px; }
+.hb-add { margin-left: auto; }
+
+.hb-entries { display: grid; gap: 10px; }
+.hb-entries .hb-entry { padding: 14px 16px; }
+.hb-entry h3 { margin: 0; }
+.hb-entry .row.spread { margin-bottom: 6px; align-items: flex-start; }
+.hb-text { white-space: pre-wrap; }
+.hb-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px 12px; margin: 0 0 8px; }
+.hb-stats dt { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.hb-stats dd { margin: 0; }
+
+.hb-form h3 { margin-bottom: 8px; }
+.hb-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 12px; }
+.hb-field { display: grid; gap: 4px; align-content: start; font-size: 0.85rem; }
+.hb-field > span { font-weight: 600; }
+.hb-field.wide { grid-column: 1 / -1; }
+.hb-field input, .hb-field select, .hb-field textarea { width: 100%; }
+.hb-field textarea { resize: vertical; }
+.hb-check { display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem; text-transform: capitalize; }
+.hb-effect { margin-bottom: 6px; flex-wrap: nowrap; }
+.hb-effect select { min-width: 0; flex: 1; }
+.hb-field .hb-amount { width: 80px; flex: none; }
+.hb-form-actions { justify-content: flex-end; margin-top: 14px; }
+
+.hb-share { display: grid; gap: 8px; }
+.hb-share p { margin: 0; }

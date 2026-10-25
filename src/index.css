@@ -1,0 +1,88 @@
+/* Global tokens and shared primitives used by every screen (builder, sheet, dice). */
+:root {
+  --bg: #f6f1e7;
+  --panel: #fffdf8;
+  --ink: #2a2118;
+  --muted: #7a6b5a;
+  --line: #e2d7c4;
+  --accent: #8c2f1b;
+  --accent-ink: #fff;
+  --accent-soft: #f3e1d8;
+  --good: #2f6b3a;
+  --bad: #a3271b;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgb(60 40 20 / 0.08), 0 4px 16px rgb(60 40 20 / 0.06);
+  color-scheme: light;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17130f;
+    --panel: #221c16;
+    --ink: #efe6d8;
+    --muted: #a89782;
+    --line: #3a3027;
+    --accent: #e0785a;
+    --accent-ink: #1a120d;
+    --accent-soft: #3a2219;
+    --good: #7fc58b;
+    --bad: #f08a7c;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); min-height: 100vh; }
+h1, h2, h3, h4 { font-family: Georgia, 'Iowan Old Style', serif; margin: 0 0 0.4em; line-height: 1.2; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.1rem; }
+h4 { font-size: 0.95rem; margin-top: 1em; }
+p { margin: 0 0 0.6em; }
+img { max-width: 100%; }
+
+.app { max-width: 1200px; margin: 0 auto; padding: 0 16px 48px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+.brand { font-family: Georgia, serif; font-size: 1.3rem; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.strong { font-weight: 700; }
+.bad { color: var(--bad); }
+.good { color: var(--good); }
+.num { font-variant-numeric: tabular-nums; text-align: center; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row.spread { justify-content: space-between; margin-bottom: 14px; }
+.grid { display: grid; gap: 12px; }
+.plain { list-style: none; padding: 0; margin: 0; }
+.plain li { padding: 2px 0; }
+
+.btn { font: inherit; border-radius: 8px; padding: 8px 14px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 4px 10px; font-size: 0.85rem; }
+
+.chip { font: inherit; font-size: 0.85rem; border-radius: 999px; padding: 4px 12px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+input, select, textarea { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+input:focus-visible, select:focus-visible, button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.field { display: grid; gap: 4px; margin: 12px 0; }
+.field label { font-size: 0.85rem; font-weight: 600; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.portrait-empty { display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border-radius: 8px; aspect-ratio: 1; font-family: Georgia, serif; font-size: 0.9rem; }
+
+.welcome { max-width: 440px; margin: 15vh auto 0; text-align: center; }
+.welcome .row { justify-content: center; margin-top: 12px; }
+.empty { text-align: center; padding: 40px 18px; }
+.char-card { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 12px; }
+.char-card img, .char-card .portrait-empty { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; font-size: 1.6rem; }
+.char-card h3 { margin: 0; }

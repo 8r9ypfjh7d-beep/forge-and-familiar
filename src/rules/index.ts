@@ -1,0 +1,13 @@
+// Public API of the rules engine. Pure functions only: no React, no storage.
+export * from './types'
+export * from './abilities'
+export * from './derive'
+export * from './factory'
+export * from './rollMode'
+export { RACES, raceById } from './data/races'
+export { CLASSES, classById } from './data/classes'
+export { BACKGROUNDS, ALIGNMENTS, backgroundById } from './data/backgrounds'
+export { ITEMS, itemById, registerHomebrewItems } from './data/items'
+export { SKILLS, ALL_SKILLS } from './data/skills'
+export * from './multiclass'
+export { MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES } from './data/multiclass'

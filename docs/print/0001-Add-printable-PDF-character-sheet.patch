@@ -1,0 +1,727 @@
+From 7b94f594fed6cc64248ab48515b8e315405c2c5a Mon Sep 17 00:00:00 2001
+From: claude <noreply@anthropic.com>
+Date: Sun, 25 Oct 2026 11:02:30 +0000
+Subject: [PATCH] Add printable PDF character sheet
+
+---
+ src/App.tsx              |   9 +-
+ src/print/PRINT.md       |  19 +++
+ src/print/PrintSheet.tsx | 281 +++++++++++++++++++++++++++++++++++++++
+ src/print/index.ts       |   2 +
+ src/print/print.css      | 122 +++++++++++++++++
+ src/print/print.test.ts  |  54 ++++++++
+ src/print/sheetData.ts   | 131 ++++++++++++++++++
+ 7 files changed, 616 insertions(+), 2 deletions(-)
+ create mode 100644 src/print/PRINT.md
+ create mode 100644 src/print/PrintSheet.tsx
+ create mode 100644 src/print/index.ts
+ create mode 100644 src/print/print.css
+ create mode 100644 src/print/print.test.ts
+ create mode 100644 src/print/sheetData.ts
+
+diff --git a/src/App.tsx b/src/App.tsx
+index 0e520f4..081ca9d 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -6,12 +6,13 @@ import { deleteSnapshotsFor } from './portability'
+ import { ImportButton, LevelHistory } from './portability/ui'
+ import { classById, raceById } from './rules'
+ import { PartyView } from './party'
++import { PrintSheet } from './print'
+ import { CharacterSheet } from './sheet/CharacterSheet'
+ import {
+   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
+ } from './storage'
+ 
+-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'dice' } | { kind: 'party' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string }
++type View = { kind: 'list' } | { kind: 'build' } | { kind: 'dice' } | { kind: 'party' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'print'; id: string }
+ 
+ const newId = () => crypto.randomUUID()
+ 
+@@ -66,6 +67,7 @@ export default function App() {
+             onNew={() => setView({ kind: 'build' })}
+             onOpen={id => setView({ kind: 'sheet', id })}
+             onLevels={id => setView({ kind: 'levels', id })}
++            onPrint={id => setView({ kind: 'print', id })}
+             onImported={refresh}
+             onDelete={async id => {
+               await deleteCharacter(id)
+@@ -104,6 +106,7 @@ export default function App() {
+             }}
+           />
+         )}
++        {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView({ kind: 'list' })} />}
+         {view.kind === 'dice' && <DiceTray showAll />}
+         {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}
+       </main>
+@@ -152,12 +155,13 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
+   )
+ }
+ 
+-function CharacterList({ owner, characters, onNew, onOpen, onLevels, onImported, onDelete }: {
++function CharacterList({ owner, characters, onNew, onOpen, onLevels, onPrint, onImported, onDelete }: {
+   owner: UserProfile
+   characters: Character[]
+   onNew: () => void
+   onOpen: (id: string) => void
+   onLevels: (id: string) => void
++  onPrint: (id: string) => void
+   onImported: () => void
+   onDelete: (id: string) => void
+ }) {
+@@ -189,6 +193,7 @@ function CharacterList({ owner, characters, onNew, onOpen, onLevels, onImported,
+                   <div className="row">
+                     <button className="btn primary small" onClick={() => onOpen(c.id)}>Open sheet</button>
+                     <button className="btn small" onClick={() => onLevels(c.id)}>Levels</button>
++                    <button className="btn small" onClick={() => onPrint(c.id)}>Print</button>
+                     <button className="btn ghost small" onClick={() => confirm(`Delete ${c.name}?`) && onDelete(c.id)}>Delete</button>
+                   </div>
+                 </div>
+diff --git a/src/print/PRINT.md b/src/print/PRINT.md
+new file mode 100644
+index 0000000..25d4f0f
+--- /dev/null
++++ b/src/print/PRINT.md
+@@ -0,0 +1,19 @@
++# Printable sheet
++
++Two-page, paper-style character sheet. "Print or save as PDF" opens the browser print dialog; choosing "Save as PDF" gives a file. No PDF library: the browser renders it, so the text stays selectable and fonts stay sharp.
++
++## Files Covered
++
++| File | Purpose |
++|------|---------|
++| `sheetData.ts` | `buildPrintSheet(character, { withPlayState })`: flattens the character and `derive()` into display strings. Pure. |
++| `PrintSheet.tsx` | `PrintSheet({ characterId, onBack })` view: toolbar plus page 1 (stats, skills, HP, attacks, features) and page 2 (spellcasting, slots, resources, equipment, coins, notes) |
++| `print.css` | Paper styles (black on white in both themes) and `@media print` rules that hide the app chrome and break pages |
++| `print.test.ts` | Tests for `buildPrintSheet` |
++
++## Notes
++
++- Opened from the "Print" button on each character card (`App.tsx`, view `print`).
++- Play state is off by default, so HP, slots, conditions and exhaustion print as empty boxes for pencil play. The checkbox fills them from `character.state`.
++- The page title is set to "<name> - character sheet" while the view is open, which browsers use as the default PDF file name.
++- Fits US Letter and A4. Spell lists are blank lines until a spell compendium exists.
+diff --git a/src/print/PrintSheet.tsx b/src/print/PrintSheet.tsx
+new file mode 100644
+index 0000000..47c012d
+--- /dev/null
++++ b/src/print/PrintSheet.tsx
+@@ -0,0 +1,281 @@
++import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
++import type { Character } from '../model/character'
++import { getCharacter, onCharactersChanged } from '../storage'
++import { buildPrintSheet, type Pips, type PrintSheet as Sheet } from './sheetData'
++import './print.css'
++
++/** Paper-style character sheet. The browser's print dialog saves it as a PDF. */
++export function PrintSheet({ characterId, onBack }: { characterId: string; onBack: () => void }) {
++  const [character, setCharacter] = useState<Character | null | undefined>(undefined)
++  const [withPlayState, setWithPlayState] = useState(false)
++
++  useEffect(() => {
++    const load = () => getCharacter(characterId).then(c => setCharacter(c ?? null))
++    load()
++    return onCharactersChanged(id => { if (!id || id === characterId) load() })
++  }, [characterId])
++
++  useEffect(() => {
++    if (!character) return
++    const title = document.title
++    // Browsers use the page title as the default PDF file name.
++    document.title = `${character.name} - character sheet`
++    return () => { document.title = title }
++  }, [character])
++
++  if (character === undefined) return <p className="muted">Loading…</p>
++  if (character === null) {
++    return (
++      <section className="panel">
++        <p>This character could not be found.</p>
++        <button type="button" className="btn" onClick={onBack}>Back</button>
++      </section>
++    )
++  }
++
++  const s = buildPrintSheet(character, { withPlayState })
++  return (
++    <div className="ff-print">
++      <div className="print-toolbar panel">
++        <button type="button" className="btn ghost" onClick={onBack}>← Back</button>
++        <label className="row small">
++          <input type="checkbox" checked={withPlayState} onChange={e => setWithPlayState(e.target.checked)} />
++          Fill in current HP, used slots and conditions
++        </label>
++        <button type="button" className="btn primary" onClick={() => window.print()}>Print or save as PDF</button>
++        <p className="muted small">In the print dialog, choose “Save as PDF” as the printer to get a file.</p>
++      </div>
++      <PageOne s={s} />
++      <PageTwo s={s} />
++    </div>
++  )
++}
++
++function PageOne({ s }: { s: Sheet }) {
++  return (
++    <article className="paper">
++      <header className="p-head">
++        {s.portrait && <img className="p-portrait" src={s.portrait} alt="" />}
++        <div className="p-name">
++          <h1>{s.name}</h1>
++          <span className="p-label">Character name</span>
++        </div>
++        <dl className="p-facts">
++          <Fact label="Class & level" value={s.classLine} />
++          <Fact label="Race" value={s.race} />
++          <Fact label="Background" value={s.background} />
++          <Fact label="Alignment" value={s.alignment} />
++          <Fact label="Player" value={s.playerName} />
++          <Fact label="Experience" value={String(s.xp)} />
++        </dl>
++      </header>
++
++      <div className="p-grid">
++        <div className="p-col">
++          <div className="p-abilities">
++            {s.abilities.map(a => (
++              <div key={a.id} className="p-ability">
++                <span className="p-label">{a.name}</span>
++                <strong>{a.mod}</strong>
++                <span className="p-score">{a.score}</span>
++              </div>
++            ))}
++          </div>
++          <div className="p-stack">
++            <Stat label="Proficiency bonus" value={s.proficiencyBonus} inline />
++            <Stat label="Passive Perception" value={String(s.passivePerception)} inline />
++            <Box title="Saving throws">
++              <ul className="p-checks">
++                {s.saves.map(x => <Check key={x.name} on={x.proficient} bonus={x.bonus} name={x.name} />)}
++              </ul>
++            </Box>
++            <Box title="Skills">
++              <ul className="p-checks">
++                {s.skills.map(x => <Check key={x.name} on={x.proficient} bonus={x.bonus} name={x.name} extra={x.ability} />)}
++              </ul>
++            </Box>
++          </div>
++        </div>
++
++        <div className="p-col">
++          <div className="p-trio">
++            <Stat label="Armor class" value={String(s.armorClass)} sub={s.armorSource} />
++            <Stat label="Initiative" value={s.initiative} />
++            <Stat label="Speed" value={`${s.speed} ft`} />
++          </div>
++          <Box title="Hit points">
++            <p className="p-max">Max <strong>{s.maxHp}</strong></p>
++            <div className="p-write tall">{s.currentHp ?? ''}</div>
++            <span className="p-label">Current</span>
++            <div className="p-write">{s.tempHp ?? ''}</div>
++            <span className="p-label">Temporary</span>
++          </Box>
++          <div className="p-pair">
++            <Box title="Hit dice">
++              <p className="p-center"><strong>{s.hitDice}</strong></p>
++              <div className="p-write" />
++              <span className="p-label">Spent</span>
++            </Box>
++            <Box title="Death saves">
++              <p className="p-death">Successes <Circles max={3} used={0} /></p>
++              <p className="p-death">Failures <Circles max={3} used={0} /></p>
++            </Box>
++          </div>
++          <Box title="Attacks">
++            <table className="p-table">
++              <thead><tr><th>Name</th><th>Hit</th><th>Damage</th></tr></thead>
++              <tbody>
++                {s.attacks.map(a => (
++                  <tr key={a.name}>
++                    <td>{a.name}{a.notes && <small>{a.notes}</small>}</td>
++                    <td>{a.bonus}</td>
++                    <td>{a.damage}</td>
++                  </tr>
++                ))}
++                {[0, 1].map(i => <tr key={`blank${i}`} className="blank"><td /><td /><td /></tr>)}
++              </tbody>
++            </table>
++          </Box>
++          <Box title="Conditions">
++            <div className="p-write">{s.conditions.join(', ')}</div>
++            <p className="p-death">Exhaustion <Circles max={6} used={s.exhaustion} /></p>
++          </Box>
++        </div>
++
++        <div className="p-col">
++          <Box title="Features">
++            <List items={s.features} empty="None yet" />
++          </Box>
++          <Box title="Racial traits">
++            <List items={s.traits} empty="None" />
++          </Box>
++          <Box title="Languages">
++            <p>{s.languages.join(', ') || '—'}</p>
++          </Box>
++          {s.warnings.length > 0 && (
++            <Box title="Warnings">
++              <List items={s.warnings} />
++            </Box>
++          )}
++        </div>
++      </div>
++      <footer className="p-foot">Forge &amp; Familiar · SRD 5.1</footer>
++    </article>
++  )
++}
++
++function PageTwo({ s }: { s: Sheet }) {
++  return (
++    <article className="paper">
++      <header className="p-head small">
++        <div className="p-name"><h1>{s.name}</h1></div>
++        <p className="p-sub">{s.classLine} · {s.race}</p>
++      </header>
++      <div className="p-grid two">
++        <div className="p-col">
++          <Box title="Spellcasting">
++            {s.spellcasting ? (
++              <div className="p-trio">
++                <Stat label="Ability" value={s.spellcasting.ability.slice(0, 3).toUpperCase()} />
++                <Stat label="Save DC" value={String(s.spellcasting.saveDc)} />
++                <Stat label="Attack" value={s.spellcasting.attackBonus} />
++              </div>
++            ) : <p className="p-muted">No spellcasting.</p>}
++            {s.spellSlots.length > 0 && <PipTable rows={s.spellSlots} head="Slots" />}
++          </Box>
++          <Box title="Class resources & trackers">
++            {s.resources.length > 0 ? <PipTable rows={s.resources} head="Uses" /> : <p className="p-muted">None.</p>}
++          </Box>
++          <Box title="Spells known & prepared">
++            <div className="p-lines" style={{ '--lines': 26 } as CSSProperties} />
++          </Box>
++        </div>
++        <div className="p-col">
++          <Box title="Equipment">
++            <table className="p-table">
++              <thead><tr><th>Item</th><th>Qty</th><th>Worn</th></tr></thead>
++              <tbody>
++                {s.equipment.map((e, i) => (
++                  <tr key={i}><td>{e.name}</td><td>{e.qty}</td><td>{e.equipped ? '✓' : ''}</td></tr>
++                ))}
++                {[0, 1, 2, 3].map(i => <tr key={`blank${i}`} className="blank"><td /><td /><td /></tr>)}
++              </tbody>
++            </table>
++            <p className="p-muted">Carried {s.carried}</p>
++          </Box>
++          <Box title="Coins">
++            <div className="p-trio">
++              <Stat label="CP" value={String(s.coins.cp)} />
++              <Stat label="SP" value={String(s.coins.sp)} />
++              <Stat label="GP" value={String(s.coins.gp)} />
++            </div>
++          </Box>
++          <Box title="Notes">
++            {s.notes && <p className="p-notes">{s.notes}</p>}
++            <div className="p-lines" style={{ '--lines': s.notes ? 18 : 20 } as CSSProperties} />
++          </Box>
++        </div>
++      </div>
++      <footer className="p-foot">Forge &amp; Familiar · SRD 5.1</footer>
++    </article>
++  )
++}
++
++function Fact({ label, value }: { label: string; value: string }) {
++  return <div><dd>{value || ' '}</dd><dt className="p-label">{label}</dt></div>
++}
++
++function Box({ title, children }: { title: string; children: ReactNode }) {
++  return <section className="p-box"><h2>{title}</h2>{children}</section>
++}
++
++function Stat({ label, value, sub, inline }: { label: string; value: string; sub?: string; inline?: boolean }) {
++  return (
++    <div className={`p-stat${inline ? ' inline' : ''}`}>
++      <strong>{value}</strong>
++      <span className="p-label">{label}</span>
++      {sub && <small>{sub}</small>}
++    </div>
++  )
++}
++
++function Check({ on, bonus, name, extra }: { on: boolean; bonus: string; name: string; extra?: string }) {
++  return (
++    <li>
++      <span className={`p-dot${on ? ' on' : ''}`} aria-label={on ? 'proficient' : undefined} />
++      <span className="p-bonus">{bonus}</span>
++      {name}
++      {extra && <small> ({extra})</small>}
++    </li>
++  )
++}
++
++function Circles({ max, used }: { max: number; used: number }) {
++  return (
++    <span className="p-circles">
++      {Array.from({ length: max }, (_, i) => <span key={i} className={`p-dot${i < used ? ' on' : ''}`} />)}
++    </span>
++  )
++}
++
++function PipTable({ rows, head }: { rows: Pips[]; head: string }) {
++  return (
++    <table className="p-table">
++      <thead><tr><th>{head === 'Slots' ? 'Level' : 'Resource'}</th><th>Max</th><th>{head === 'Slots' ? 'Expended' : 'Used'}</th></tr></thead>
++      <tbody>
++        {rows.map(r => (
++          <tr key={r.label}>
++            <td>{r.label}{r.note && <small>{r.note}</small>}</td>
++            <td>{r.max}</td>
++            <td>{r.max <= 10 ? <Circles max={r.max} used={r.used} /> : r.used || ''}</td>
++          </tr>
++        ))}
++      </tbody>
++    </table>
++  )
++}
++
++function List({ items, empty }: { items: string[]; empty?: string }) {
++  if (!items.length) return <p className="p-muted">{empty ?? '—'}</p>
++  return <ul className="p-list">{items.map(i => <li key={i}>{i}</li>)}</ul>
++}
+diff --git a/src/print/index.ts b/src/print/index.ts
+new file mode 100644
+index 0000000..c0e43f8
+--- /dev/null
++++ b/src/print/index.ts
+@@ -0,0 +1,2 @@
++export { PrintSheet } from './PrintSheet'
++export { buildPrintSheet, type PrintOptions, type PrintSheet as PrintSheetData } from './sheetData'
+diff --git a/src/print/print.css b/src/print/print.css
+new file mode 100644
+index 0000000..1671963
+--- /dev/null
++++ b/src/print/print.css
+@@ -0,0 +1,122 @@
++/* Printable sheet. Always black on white, like paper, in both themes. Pages are US Letter / A4 safe. */
++.ff-print { --p-ink: #1b1611; --p-line: #3b3229; --p-soft: #8a7d6e; --p-fill: #f4efe6; }
++
++.print-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
++.print-toolbar p { margin: 0; flex-basis: 100%; }
++.print-toolbar input { accent-color: var(--accent); }
++
++.paper {
++  background: #fff;
++  color: var(--p-ink);
++  width: 100%;
++  max-width: 8.27in;
++  min-height: 10.6in;
++  margin: 0 auto 24px;
++  padding: 0.4in;
++  box-shadow: 0 2px 12px rgb(0 0 0 / 0.18);
++  font-family: Georgia, 'Iowan Old Style', serif;
++  font-size: 10pt;
++  line-height: 1.3;
++  display: flex;
++  flex-direction: column;
++  color-scheme: light;
++}
++.paper h1 { font-size: 20pt; margin: 0; }
++.paper h2 {
++  font-family: system-ui, sans-serif; font-size: 7.5pt; letter-spacing: .1em; text-transform: uppercase;
++  margin: 0 0 4pt; color: var(--p-ink);
++}
++.paper p { margin: 0 0 3pt; }
++.paper small { display: block; font-size: 7.5pt; color: var(--p-soft); }
++.p-label { display: block; font-family: system-ui, sans-serif; font-size: 6.5pt; letter-spacing: .08em; text-transform: uppercase; color: var(--p-soft); }
++.p-muted { color: var(--p-soft); font-style: italic; }
++
++.p-head { display: flex; gap: 12pt; align-items: flex-end; border-bottom: 2pt solid var(--p-line); padding-bottom: 8pt; margin-bottom: 10pt; }
++.p-head.small { align-items: baseline; }
++.p-head.small h1 { font-size: 14pt; }
++.p-sub { color: var(--p-soft); }
++.p-portrait { width: 0.9in; height: 0.9in; object-fit: cover; border: 1pt solid var(--p-line); border-radius: 4pt; }
++.p-name { flex: 0 0 auto; min-width: 1.8in; border-bottom: 1pt solid var(--p-line); }
++.p-facts { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6pt 10pt; margin: 0; }
++.p-facts div { border-bottom: 0.75pt solid var(--p-line); }
++.p-facts dd { margin: 0; font-weight: 600; }
++
++.p-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 10pt; flex: 1; align-items: start; }
++.p-grid.two { grid-template-columns: 1fr 1fr; }
++.p-col { display: flex; flex-direction: column; gap: 8pt; min-width: 0; }
++.p-col:first-child { display: grid; grid-template-columns: 0.7in 1fr; gap: 8pt; align-items: start; }
++.p-grid.two .p-col:first-child { display: flex; }
++.p-stack { display: flex; flex-direction: column; gap: 8pt; min-width: 0; }
++
++.p-box { border: 1pt solid var(--p-line); border-radius: 5pt; padding: 6pt 8pt; break-inside: avoid; }
++
++.p-abilities { display: flex; flex-direction: column; gap: 14pt; }
++.p-ability { border: 1pt solid var(--p-line); border-radius: 6pt; text-align: center; padding: 4pt 2pt 10pt; position: relative; }
++.p-ability .p-label { font-size: 5.5pt; }
++.p-ability strong { display: block; font-size: 16pt; }
++.p-score {
++  position: absolute; left: 50%; bottom: -7pt; transform: translateX(-50%);
++  background: #fff; border: 1pt solid var(--p-line); border-radius: 8pt; padding: 0 6pt; font-size: 8.5pt;
++}
++
++.p-stat { border: 1pt solid var(--p-line); border-radius: 5pt; text-align: center; padding: 4pt; }
++.p-stat strong { display: block; font-size: 15pt; }
++.p-stat.inline { display: flex; align-items: center; gap: 6pt; text-align: left; padding: 3pt 6pt; }
++.p-stat.inline strong { font-size: 12pt; min-width: 22pt; text-align: center; border: 1pt solid var(--p-line); border-radius: 50%; }
++.p-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6pt; margin-bottom: 4pt; }
++.p-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
++
++.p-checks { list-style: none; margin: 0; padding: 0; }
++.p-checks li { display: flex; align-items: center; gap: 4pt; padding: 0.5pt 0; }
++.p-checks small { display: inline; margin-left: 2pt; }
++.p-bonus { display: inline-block; min-width: 18pt; border-bottom: 0.75pt solid var(--p-line); text-align: center; font-weight: 600; }
++
++.p-dot { display: inline-block; width: 7pt; height: 7pt; border: 1pt solid var(--p-line); border-radius: 50%; flex: none; }
++.p-dot.on { background: var(--p-ink); }
++.p-circles { display: inline-flex; gap: 3pt; vertical-align: middle; margin-left: 4pt; }
++.p-death { display: flex; justify-content: space-between; align-items: center; }
++
++.p-max { display: flex; justify-content: space-between; }
++.p-write { border-bottom: 1pt solid var(--p-line); min-height: 16pt; font-size: 13pt; text-align: center; font-weight: 600; }
++.p-write.tall { min-height: 30pt; font-size: 20pt; }
++.p-center { text-align: center; }
++
++.p-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
++.p-table th { font-family: system-ui, sans-serif; font-size: 6.5pt; text-transform: uppercase; letter-spacing: .06em; text-align: left; color: var(--p-soft); border-bottom: 1pt solid var(--p-line); }
++.p-table td { border-bottom: 0.5pt solid #cfc6b8; padding: 2pt 2pt 2pt 0; vertical-align: top; }
++.p-table tr.blank td { height: 15pt; }
++.p-table td:not(:first-child), .p-table th:not(:first-child) { white-space: nowrap; }
++
++.p-list { margin: 0; padding-left: 12pt; }
++.p-notes { white-space: pre-wrap; }
++.p-lines {
++  height: calc(var(--lines, 8) * 16pt);
++  background: repeating-linear-gradient(to bottom, transparent 0 15pt, #cfc6b8 15pt 16pt);
++}
++.p-foot { margin-top: 8pt; text-align: right; font-family: system-ui, sans-serif; font-size: 6.5pt; color: var(--p-soft); }
++
++@media (max-width: 760px) {
++  .paper { padding: 16px; min-height: 0; }
++  .p-head { flex-wrap: wrap; }
++  .p-facts { grid-template-columns: repeat(2, 1fr); }
++  .p-grid, .p-grid.two { grid-template-columns: 1fr; }
++}
++
++@media print {
++  @page { margin: 0.35in; }
++  :root, body { background: #fff !important; }
++  body * { visibility: hidden; }
++  .ff-print, .ff-print * { visibility: visible; }
++  .ff-print { position: absolute; inset: 0 auto auto 0; width: 100%; }
++  .app { padding: 0; }
++  .print-toolbar { display: none; }
++  .paper {
++    box-shadow: none; margin: 0; padding: 0; max-width: none; min-height: calc(100vh - 1px);
++    break-after: page; -webkit-print-color-adjust: exact; print-color-adjust: exact;
++  }
++  .paper:last-child { break-after: auto; }
++  .p-head { flex-wrap: nowrap; }
++  .p-facts { grid-template-columns: repeat(3, 1fr); }
++  .p-grid { grid-template-columns: 1.15fr 1fr 1fr; }
++  .p-grid.two { grid-template-columns: 1fr 1fr; }
++}
+diff --git a/src/print/print.test.ts b/src/print/print.test.ts
+new file mode 100644
+index 0000000..1e1124f
+--- /dev/null
++++ b/src/print/print.test.ts
+@@ -0,0 +1,54 @@
++import { describe, expect, it } from 'vitest'
++import { makeCharacter } from '../sheet/fixtures'
++import { buildPrintSheet } from './sheetData'
++
++const played = () => {
++  const c = makeCharacter({ inventory: [{ uid: 'a', itemId: 'longsword', qty: 1, equipped: true }] })
++  return { ...c, state: { ...c.state, currentHp: 12, tempHp: 4, spellSlotsUsed: [1, 0, 0, 0, 0, 0, 0, 0, 0], conditions: ['poisoned' as const], exhaustion: 1 } }
++}
++
++describe('buildPrintSheet', () => {
++  it('fills header, abilities, saves and skills from the engine', () => {
++    const s = buildPrintSheet(makeCharacter(), { withPlayState: false })
++    expect(s.classLine).toBe('Fighter 5 / Wizard 2')
++    expect(s.level).toBe(7)
++    expect(s.proficiencyBonus).toBe('+3')
++    expect(s.abilities).toHaveLength(6)
++    expect(s.saves.find(x => x.name === 'Strength')).toEqual({ name: 'Strength', bonus: '+6', proficient: true })
++    expect(s.skills).toHaveLength(18)
++  })
++
++  it('lists equipped weapons as attacks and shows inventory', () => {
++    const s = buildPrintSheet(played(), { withPlayState: false })
++    expect(s.attacks.map(a => a.name)).toContain('Longsword')
++    expect(s.equipment).toEqual([{ name: 'Longsword', qty: 1, equipped: true }])
++  })
++
++  it('leaves play state blank for pencil play', () => {
++    const s = buildPrintSheet(played(), { withPlayState: false })
++    expect(s.currentHp).toBeUndefined()
++    expect(s.tempHp).toBeUndefined()
++    expect(s.spellSlots[0]).toMatchObject({ label: '1st', used: 0 })
++    expect(s.conditions).toEqual([])
++    expect(s.exhaustion).toBe(0)
++  })
++
++  it('fills play state when asked', () => {
++    const s = buildPrintSheet(played(), { withPlayState: true })
++    expect(s.currentHp).toBe(12)
++    expect(s.tempHp).toBe(4)
++    expect(s.spellSlots[0].used).toBe(1)
++    expect(s.conditions).toEqual(['Poisoned'])
++    expect(s.exhaustion).toBe(1)
++  })
++
++  it('includes class resources and custom trackers', () => {
++    const c = makeCharacter()
++    const s = buildPrintSheet(
++      { ...c, state: { ...c.state, counters: [{ id: 'k', label: 'Arrows', max: 20, used: 3, recharge: 'none' }] } },
++      { withPlayState: true },
++    )
++    expect(s.resources.map(r => r.label)).toContain('Arrows')
++    expect(s.resources.find(r => r.label === 'Arrows')).toMatchObject({ max: 20, used: 3, note: undefined })
++  })
++})
+diff --git a/src/print/sheetData.ts b/src/print/sheetData.ts
+new file mode 100644
+index 0000000..0c0cdd4
+--- /dev/null
++++ b/src/print/sheetData.ts
+@@ -0,0 +1,131 @@
++// Everything the printable sheet shows, flattened from a Character and derive(). Pure, no React.
++import type { Character } from '../model/character'
++import {
++  ABILITIES, ABILITY_NAMES, ALL_SKILLS, SKILLS, backgroundById, classById, derive, formatMod, itemById, raceById,
++  type Ability,
++} from '../rules'
++
++export interface PrintOptions {
++  /** Fill in current HP, used slots and resources. Off prints blank boxes for pencil play. */
++  withPlayState: boolean
++}
++
++export interface Pips {
++  label: string
++  max: number
++  used: number
++  note?: string
++}
++
++export interface PrintSheet {
++  name: string
++  playerName: string
++  classLine: string
++  level: number
++  race: string
++  background: string
++  alignment: string
++  xp: number
++  portrait?: string
++  abilities: { id: Ability; name: string; score: number; mod: string }[]
++  saves: { name: string; bonus: string; proficient: boolean }[]
++  skills: { name: string; ability: string; bonus: string; proficient: boolean }[]
++  proficiencyBonus: string
++  passivePerception: number
++  armorClass: number
++  armorSource: string
++  initiative: string
++  speed: number
++  maxHp: number
++  currentHp?: number
++  tempHp?: number
++  hitDice: string
++  spellcasting?: { ability: string; saveDc: number; attackBonus: string }
++  spellSlots: Pips[]
++  resources: Pips[]
++  attacks: { name: string; bonus: string; damage: string; notes: string }[]
++  equipment: { name: string; qty: number; equipped: boolean }[]
++  coins: { cp: number; sp: number; gp: number }
++  carried: string
++  features: string[]
++  traits: string[]
++  languages: string[]
++  conditions: string[]
++  exhaustion: number
++  warnings: string[]
++  notes: string
++}
++
++const ORDINAL = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th']
++const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
++
++export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
++  const d = derive(c)
++  const play = opts.withPlayState
++  const race = raceById(c.raceId)
++  const subrace = race?.subraces?.find(s => s.id === c.subraceId)
++
++  const spellSlots: Pips[] = d.spellSlots.slots.flatMap((max, i) =>
++    max > 0 ? [{ label: ORDINAL[i], max, used: play ? (c.state.spellSlotsUsed[i] ?? 0) : 0 }] : [],
++  )
++  const pact = d.spellSlots.pact
++  if (pact) {
++    spellSlots.push({ label: `Pact (${ORDINAL[pact.level - 1]})`, max: pact.count, used: play ? c.state.pactSlotsUsed : 0, note: 'short rest' })
++  }
++
++  const resources: Pips[] = [
++    ...d.resources.map(r => ({
++      label: r.label, max: r.max, used: play ? (c.state.resources[r.id]?.used ?? 0) : 0, note: `${r.recharge} rest`,
++    })),
++    ...(c.state.counters ?? []).map(k => ({
++      label: k.label, max: k.max, used: play ? k.used : 0, note: k.recharge === 'none' ? undefined : `${k.recharge} rest`,
++    })),
++  ]
++
++  return {
++    name: c.name,
++    playerName: c.playerName,
++    classLine: c.classes.map(cl => `${classById(cl.classId)?.name ?? cl.classId} ${cl.level}`).join(' / '),
++    level: d.level,
++    race: subrace?.name ?? race?.name ?? c.raceId,
++    background: backgroundById(c.backgroundId)?.name ?? c.backgroundId,
++    alignment: c.alignment,
++    xp: c.xp,
++    portrait: c.portrait,
++    abilities: ABILITIES.map(a => ({ id: a, name: ABILITY_NAMES[a], score: d.abilities[a], mod: formatMod(d.mods[a]) })),
++    saves: ABILITIES.map(a => ({ name: ABILITY_NAMES[a], bonus: formatMod(d.saves[a].bonus), proficient: d.saves[a].proficient })),
++    skills: ALL_SKILLS.map(s => ({
++      name: SKILLS[s].name, ability: SKILLS[s].ability.toUpperCase(), bonus: formatMod(d.skills[s].bonus), proficient: d.skills[s].proficient,
++    })),
++    proficiencyBonus: formatMod(d.proficiencyBonus),
++    passivePerception: d.passivePerception,
++    armorClass: d.armorClass.value,
++    armorSource: d.armorClass.source,
++    initiative: formatMod(d.initiative),
++    speed: d.speed,
++    maxHp: d.maxHp,
++    currentHp: play ? c.state.currentHp : undefined,
++    tempHp: play && c.state.tempHp > 0 ? c.state.tempHp : undefined,
++    hitDice: d.hitDice.map(h => `${h.total}${h.die}`).join(' + '),
++    spellcasting: d.spellcasting && {
++      ability: ABILITY_NAMES[d.spellcasting.ability],
++      saveDc: d.spellcasting.saveDc,
++      attackBonus: formatMod(d.spellcasting.attackBonus),
++    },
++    spellSlots,
++    resources,
++    attacks: d.attacks.map(a => ({
++      name: a.name, bonus: formatMod(a.bonus), damage: `${a.damage} ${a.damageType}`, notes: a.notes.join(', '),
++    })),
++    equipment: c.inventory.map(e => ({ name: itemById(e.itemId)?.name ?? e.itemId, qty: e.qty, equipped: e.equipped })),
++    coins: c.coins,
++    carried: `${d.carriedWeight} / ${d.carryingCapacity} lb`,
++    features: d.features.map(f => `${f.name} (${f.className} ${f.level})`),
++    traits: d.traits,
++    languages: d.languages,
++    conditions: play ? c.state.conditions.map(cap) : [],
++    exhaustion: play ? c.state.exhaustion : 0,
++    warnings: d.warnings,
++    notes: c.notes,
++  }
++}
+-- 
+2.43.0
+

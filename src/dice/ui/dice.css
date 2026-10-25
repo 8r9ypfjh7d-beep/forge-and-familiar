@@ -1,0 +1,101 @@
+/* Dice roller. Override the --ff-* tokens from the app theme. */
+.ff-dice {
+  --ff-dice-bg: var(--ff-surface, #fbf8f3);
+  --ff-dice-fg: var(--ff-text, #2b2420);
+  --ff-dice-muted: var(--ff-text-muted, #7a6e64);
+  --ff-dice-line: var(--ff-border, #e2d9cc);
+  --ff-dice-accent: var(--ff-accent, #8b2e2e);
+  --ff-dice-accent-fg: var(--ff-accent-text, #fff);
+  --ff-dice-crit: #2f7a3a;
+  --ff-dice-fumble: #b03a2e;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--ff-dice-bg);
+  color: var(--ff-dice-fg);
+  border: 1px solid var(--ff-dice-line);
+  border-radius: 10px;
+  font: inherit;
+  max-width: 420px;
+}
+@media (prefers-color-scheme: dark) {
+  .ff-dice {
+    --ff-dice-bg: var(--ff-surface, #221d1a);
+    --ff-dice-fg: var(--ff-text, #efe6da);
+    --ff-dice-muted: var(--ff-text-muted, #a89a8c);
+    --ff-dice-line: var(--ff-border, #3a322c);
+    --ff-dice-accent: var(--ff-accent, #c45a4a);
+    --ff-dice-crit: #6cc47a;
+    --ff-dice-fumble: #ef7a6a;
+  }
+}
+.ff-dice button, .ff-dice input { font: inherit; color: inherit; }
+.ff-dice__buttons { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.ff-dice__die {
+  position: relative;
+  padding: 10px 0;
+  border: 1px solid var(--ff-dice-line);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.ff-dice__die:hover { border-color: var(--ff-dice-accent); }
+.ff-dice__count {
+  position: absolute; top: -6px; inset-inline-end: -6px;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 9px; background: var(--ff-dice-accent); color: var(--ff-dice-accent-fg);
+  font-size: 0.7rem; line-height: 18px;
+}
+.ff-dice__row { display: flex; gap: 8px; align-items: center; }
+.ff-dice__mod { display: flex; gap: 6px; align-items: center; font-size: 0.85rem; color: var(--ff-dice-muted); }
+.ff-dice__mod input { width: 56px; }
+.ff-dice input {
+  padding: 6px 8px; border: 1px solid var(--ff-dice-line); border-radius: 6px; background: transparent;
+}
+.ff-dice__text { flex: 1; min-width: 0; }
+.ff-dice__modes { display: flex; margin-inline-start: auto; border: 1px solid var(--ff-dice-line); border-radius: 6px; overflow: hidden; }
+.ff-dice__modes button { padding: 6px 10px; border: 0; background: transparent; cursor: pointer; font-size: 0.85rem; }
+.ff-dice__modes button.is-on { background: var(--ff-dice-accent); color: var(--ff-dice-accent-fg); }
+.ff-dice__roll {
+  flex: 1; padding: 8px 12px; border: 0; border-radius: 6px; cursor: pointer;
+  background: var(--ff-dice-accent); color: var(--ff-dice-accent-fg) !important; font-weight: 600;
+}
+.ff-dice__roll:disabled { opacity: 0.45; cursor: default; }
+.ff-dice__ghost { padding: 6px 10px; border: 1px solid var(--ff-dice-line); border-radius: 6px; background: transparent; cursor: pointer; }
+.ff-dice__ghost:disabled { opacity: 0.45; cursor: default; }
+.ff-dice__error { margin: 0; color: var(--ff-dice-fumble); font-size: 0.85rem; }
+.ff-dice__history-head { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+.ff-dice__history-head h3 { margin: 0; font-size: 0.9rem; }
+.ff-dice__history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.ff-dice__empty { color: var(--ff-dice-muted); font-size: 0.85rem; }
+
+.ff-roll { padding: 8px 10px; border: 1px solid var(--ff-dice-line, #e2d9cc); border-radius: 8px; }
+.ff-roll--crit { border-color: var(--ff-dice-crit, #2f7a3a); }
+.ff-roll--fumble { border-color: var(--ff-dice-fumble, #b03a2e); }
+.ff-roll__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ff-roll__label { font-weight: 600; }
+.ff-roll__who, .ff-roll__mode { font-weight: 400; color: var(--ff-dice-muted, #7a6e64); }
+.ff-roll__total { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ff-roll--compact .ff-roll__total { font-size: 1.1rem; }
+.ff-roll--crit .ff-roll__total { color: var(--ff-dice-crit, #2f7a3a); }
+.ff-roll--fumble .ff-roll__total { color: var(--ff-dice-fumble, #b03a2e); }
+.ff-roll__detail { font-size: 0.8rem; color: var(--ff-dice-muted, #7a6e64); font-variant-numeric: tabular-nums; }
+.ff-roll__notation { margin-inline-start: 8px; opacity: 0.7; }
+.ff-roll__badge { margin-inline-start: 8px; font-weight: 600; }
+.ff-roll--crit .ff-roll__badge { color: var(--ff-dice-crit, #2f7a3a); }
+.ff-roll--fumble .ff-roll__badge { color: var(--ff-dice-fumble, #b03a2e); }
+.ff-die--dropped { text-decoration: line-through; opacity: 0.55; }
+.ff-die--max { font-weight: 700; }
+
+/* Secret rolls panel (party page). Uses the app's .panel/.btn/.chip primitives. */
+.ff-secret { display: grid; gap: 10px; margin-top: 16px; }
+.ff-secret h3, .ff-secret p { margin: 0; }
+.ff-secret .row.spread { margin-bottom: 0; align-items: flex-start; }
+.ff-secret select { min-width: 0; flex: 1 1 180px; }
+.ff-secret__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
+.ff-secret__list li { display: grid; gap: 2px; }
+.ff-secret__sent { gap: 2px; }
+.ff-secret__sent li { display: block; }

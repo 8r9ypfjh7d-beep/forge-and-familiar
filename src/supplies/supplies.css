@@ -1,0 +1,10 @@
+/* Supplies card and the long-rest meal picker. Lives inside .ff-sheet and uses its tokens. */
+.supply-count { font-weight: 600; margin-right: auto; }
+.supply-count.low, .supplies .supply-warn { color: var(--s-bad); }
+.ff-sheet .btn small { font-weight: 400; opacity: .85; }
+
+.meal-choice { border: 0; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
+.meal-choice legend { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--s-muted); margin-bottom: 4px; padding: 0; }
+.meal-choice label { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.meal-choice input { min-height: 0; accent-color: var(--s-accent); }
+.meal-choice small { color: var(--s-muted); }

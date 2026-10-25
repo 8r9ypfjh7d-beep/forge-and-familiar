@@ -1,0 +1,76 @@
+/* Party view, scoped to .ff-party. Uses the app tokens from index.css. */
+.ff-party { --temp: #3b6fb0; }
+@media (prefers-color-scheme: dark) { .ff-party { --temp: #7aa7e0; } }
+
+.ff-party .grow { flex: 1; min-width: 0; }
+.ff-party .party-card { text-align: start; font: inherit; color: inherit; cursor: pointer; display: grid; gap: 4px; }
+.ff-party .party-card:hover { border-color: var(--accent); }
+.ff-party .party-card h3 { margin: 0; }
+.ff-party .party-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 20px; }
+.ff-party .party-forms input, .ff-party .party-forms select { flex: 1; min-width: 0; }
+.ff-party .party-forms .field input, .ff-party .party-forms .field select { width: 100%; }
+.ff-party .code-input { text-transform: uppercase; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+
+.ff-party .party-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.ff-party .party-head h2 { margin: 0; }
+.ff-party .party-head p { margin: 0; }
+.ff-party .invite { display: grid; justify-items: end; gap: 2px; }
+.ff-party .code {
+  font: 700 1.25rem/1 ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: 0.12em;
+  padding: 8px 12px; border-radius: 8px; border: 1px dashed var(--accent); background: var(--accent-soft); color: var(--accent); cursor: pointer;
+}
+.ff-party .party-me { margin-bottom: 16px; }
+
+.ff-party .member-grid { display: grid; align-items: start; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.ff-party .member { display: grid; gap: 12px; align-content: start; padding: 14px; }
+.ff-party .member header { display: flex; gap: 10px; align-items: center; }
+.ff-party .member header img, .ff-party .member .portrait-empty { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; font-size: 1.3rem; flex: none; }
+.ff-party .member h3 { margin: 0; }
+.ff-party .member p { margin: 0; }
+.ff-party .member.watching { opacity: 0.85; }
+.ff-party .badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); vertical-align: 1px; }
+
+.ff-party .hp-text { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+.ff-party .hp-text strong { font-size: 1.2rem; }
+.ff-party .temp { color: var(--temp); font-weight: 600; font-size: 0.85rem; }
+.ff-party .vital { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--bad); }
+.ff-party .vital.stable { color: var(--muted); }
+.ff-party .bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.ff-party .fill { height: 100%; transition: width 0.3s; }
+.ff-party .fill.ok { background: var(--good); }
+.ff-party .fill.hurt { background: #c58a1b; }
+.ff-party .fill.low { background: var(--bad); }
+
+.ff-party .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 6px; margin: 0; }
+.ff-party .stats div { text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 4px 2px; }
+.ff-party .stats dt { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.ff-party .stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.ff-party .conds { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.ff-party .conds li { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); text-transform: capitalize; }
+
+/* Shared stash */
+.ff-party .stash { margin-top: 16px; display: grid; gap: 14px; }
+.ff-party .stash h3, .ff-party .stash h4 { margin: 0; }
+.ff-party .stash h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; }
+.ff-party .stash-head { display: flex; gap: 4px 12px; align-items: baseline; flex-wrap: wrap; }
+.ff-party .stash-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 20px; }
+@media (max-width: 720px) { .ff-party .stash-cols { grid-template-columns: minmax(0, 1fr); } }
+.ff-party .purse, .ff-party .loot { display: grid; gap: 8px; align-content: start; }
+.ff-party .purse p { margin: 0; }
+.ff-party .coins { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0; }
+.ff-party .coins div { text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 4px 2px; }
+.ff-party .coins div.none { opacity: 0.5; }
+.ff-party .coins dt { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.ff-party .coins dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ff-party .stash input.amount { width: 6.5em; }
+.ff-party .stash input.grow { min-width: 8em; }
+.ff-party .purse > .btn { justify-self: start; }
+.ff-party .stash-items { list-style: none; margin: 0 0 8px; padding: 0; }
+.ff-party .stash-items li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ff-party .stash-items li:last-child { border-bottom: 0; }
+.ff-party .qty { display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.ff-party .qty span { min-width: 2ch; text-align: center; font-weight: 700; }
+.ff-party .stash-log summary { cursor: pointer; }
+.ff-party .stash-log ul { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; max-height: 220px; overflow-y: auto; }
+.ff-party .stash-log time { margin-left: 6px; }

@@ -1,0 +1,183 @@
+import { describe, expect, it } from 'vitest'
+import { makeCharacter } from '../sheet/fixtures'
+import {
+  addCombatant, addEffect, breakConcentration, concentrationDc, concentrationOf, createEncounter, damageNpc,
+  effectConditions, elapsed, endCombat, nextTurn, removeCombatant, resolveCheck, setInitiative, startCombat,
+  statusOf, syncPartyConditions,
+} from './engine'
+import type { Encounter } from './types'
+
+const npc = (id: string, initiative: number, initBonus = 0, hp = 10) =>
+  ({ id, name: id, kind: 'npc' as const, initiative, initBonus, hp: { current: hp, max: hp, temp: 0 }, conSave: 0 })
+
+function party(): Encounter {
+  let e = createEncounter('e1', 'u1', 'Goblin ambush', '2026-10-25T00:00:00Z')
+  e = addCombatant(e, npc('goblin', 12, 2))
+  e = addCombatant(e, npc('wizard', 18, 1))
+  e = addCombatant(e, npc('orc', 12, 1))
+  return e
+}
+
+const order = (e: Encounter) => e.combatants.map(c => c.id)
+
+describe('initiative order', () => {
+  it('sorts high to low and breaks ties on the modifier', () => {
+    expect(order(party())).toEqual(['wizard', 'goblin', 'orc'])
+  })
+
+  it('needs every initiative before combat starts', () => {
+    const e = setInitiative(party(), 'orc', null)
+    expect(startCombat(e).round).toBe(0)
+    expect(order(e)).toEqual(['wizard', 'goblin', 'orc'])
+  })
+
+  it('runs turns in order and counts rounds', () => {
+    let e = startCombat(party())
+    expect([e.round, e.activeId]).toEqual([1, 'wizard'])
+    e = nextTurn(nextTurn(e))
+    expect([e.round, e.activeId]).toEqual([1, 'orc'])
+    e = nextTurn(e)
+    expect([e.round, e.activeId]).toEqual([2, 'wizard'])
+  })
+
+  it('skips monsters at 0 HP', () => {
+    let e = startCombat(party())
+    e = damageNpc(e, 'goblin', 10, 'c1')
+    e = nextTurn(e)
+    expect(e.activeId).toBe('orc')
+  })
+
+  it('a late joiner slots into the order without changing whose turn it is', () => {
+    let e = nextTurn(startCombat(party()))
+    e = addCombatant(e, npc('wolf', 20))
+    expect(e.activeId).toBe('goblin')
+    expect(order(e)[0]).toBe('wolf')
+  })
+
+  it('removing the active combatant passes the turn on', () => {
+    const e = removeCombatant(startCombat(party()), 'wizard')
+    expect(e.activeId).toBe('goblin')
+  })
+
+  it('shows elapsed time in 6 second rounds', () => {
+    expect(elapsed(1)).toBe('0 s')
+    expect(elapsed(11)).toBe('1 min 0 s')
+  })
+})
+
+const effect = (id: string, over: Partial<Parameters<typeof addEffect>[1]> = {}) => ({
+  id, name: id, sourceId: 'wizard', targetIds: ['orc'], concentration: false,
+  remaining: 1, tick: 'start' as const, ...over,
+})
+
+describe('timers', () => {
+  it('a 1 minute spell lasts 10 rounds and ends at the start of the caster\'s turn', () => {
+    let e = addEffect(startCombat(party()), effect('Bless', { remaining: 10 }))
+    for (let i = 0; i < 29; i++) e = nextTurn(e) // through the end of round 10
+    expect(e.effects).toHaveLength(1)
+    e = nextTurn(e) // wizard's turn, round 11
+    expect([e.round, e.activeId]).toEqual([11, 'wizard'])
+    expect(e.effects).toHaveLength(0)
+    expect(e.log).toContain('Bless ends')
+  })
+
+  it('"until the end of your next turn" skips the end of the turn it was cast on', () => {
+    let e = addEffect(startCombat(party()), effect('Shield of Faith', { tick: 'end' }))
+    e = nextTurn(e) // end of wizard's turn 1
+    expect(e.effects).toHaveLength(1)
+    e = nextTurn(nextTurn(e)) // back to wizard, round 2
+    expect(e.effects).toHaveLength(1)
+    e = nextTurn(e) // end of wizard's turn 2
+    expect(e.effects).toHaveLength(0)
+  })
+
+  it('effects with no source tick at the top of each round', () => {
+    let e = addEffect(startCombat(party()), effect('Web', { sourceId: undefined, remaining: 1 }))
+    e = nextTurn(nextTurn(e))
+    expect(e.effects).toHaveLength(1)
+    e = nextTurn(e)
+    expect(e.effects).toHaveLength(0)
+  })
+
+  it('effects with no duration stay until combat ends', () => {
+    let e = addEffect(startCombat(party()), effect('Curse', { remaining: null }))
+    for (let i = 0; i < 9; i++) e = nextTurn(e)
+    expect(e.effects).toHaveLength(1)
+    expect(endCombat(e).effects).toHaveLength(0)
+  })
+
+  it('a condition effect shows on its targets', () => {
+    const e = addEffect(startCombat(party()), effect('Hold Person', { condition: 'paralyzed' }))
+    expect(effectConditions(e, 'orc')).toEqual(['paralyzed'])
+    expect(statusOf(e, e.combatants.find(c => c.id === 'orc')!, {}).conditions).toEqual(['paralyzed'])
+  })
+})
+
+describe('concentration', () => {
+  const concentrating = () =>
+    addEffect(startCombat(party()), effect('Hold Person', { concentration: true, condition: 'paralyzed', remaining: 10 }))
+
+  it('DC is 10 or half the damage', () => {
+    expect(concentrationDc(7)).toBe(10)
+    expect(concentrationDc(23)).toBe(11)
+  })
+
+  it('a new concentration spell ends the old one', () => {
+    const e = addEffect(concentrating(), effect('Bless', { concentration: true, targetIds: ['goblin'] }))
+    expect(e.effects.map(x => x.name)).toEqual(['Bless'])
+  })
+
+  it('damage queues a save per hit and a failure ends the spell', () => {
+    let e = damageNpc(concentrating(), 'wizard', 4, 'c1')
+    e = damageNpc(e, 'wizard', 30, 'c2')
+    expect(e.pendingChecks.map(p => p.dc)).toEqual([10, 15])
+    e = resolveCheck(e, 'c1', 12)
+    expect(concentrationOf(e, 'wizard')?.name).toBe('Hold Person')
+    e = resolveCheck(e, 'c2', 14)
+    expect(concentrationOf(e, 'wizard')).toBeUndefined()
+    expect(effectConditions(e, 'orc')).toEqual([])
+  })
+
+  it('an automatic failure ends it whatever the total', () => {
+    const e = resolveCheck(damageNpc(concentrating(), 'wizard', 4, 'c1'), 'c1', 25, true)
+    expect(e.effects).toHaveLength(0)
+  })
+
+  it('no save is queued for someone not concentrating', () => {
+    expect(damageNpc(concentrating(), 'goblin', 5, 'c1').pendingChecks).toEqual([])
+  })
+
+  it('ends at 0 HP or when incapacitated', () => {
+    const dropped = breakConcentration(damageNpc(concentrating(), 'wizard', 10, 'c1'), {})
+    expect(dropped.effects).toHaveLength(0)
+    expect(dropped.pendingChecks).toEqual([])
+    const stunned = addEffect(concentrating(), effect('Stun', { sourceId: 'goblin', targetIds: ['wizard'], condition: 'stunned' }))
+    expect(concentrationOf(breakConcentration(stunned, {}), 'wizard')).toBeUndefined()
+  })
+})
+
+describe('party members', () => {
+  const hero = makeCharacter({ id: 'hero' })
+  const withHero = () => addCombatant(party(), { id: 'p1', name: hero.name, kind: 'pc', characterId: 'hero', initiative: 15, initBonus: 1 })
+
+  it('reads HP and conditions from the character', () => {
+    const e = withHero()
+    const s = statusOf(e, e.combatants.find(c => c.id === 'p1')!, { hero })
+    expect(s.hp).toBe(hero.state.currentHp)
+  })
+
+  it('writes effect conditions to the character and lifts them when the effect ends', () => {
+    const before = startCombat(withHero())
+    const after = addEffect(before, effect('Hold Person', { targetIds: ['p1'], condition: 'paralyzed', remaining: 1 }))
+    const [held] = syncPartyConditions(before, after, { hero })
+    expect(held.state.conditions).toEqual(['paralyzed'])
+    const ended = nextTurn(nextTurn(nextTurn(nextTurn(after))))
+    const [freed] = syncPartyConditions(after, ended, { hero: held })
+    expect(freed.state.conditions).toEqual([])
+  })
+
+  it('leaves characters alone when nothing changes', () => {
+    const e = startCombat(withHero())
+    expect(syncPartyConditions(e, nextTurn(e), { hero })).toEqual([])
+  })
+})
