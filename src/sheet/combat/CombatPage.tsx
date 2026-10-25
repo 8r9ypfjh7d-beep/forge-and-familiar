@@ -1,12 +1,13 @@
 // The sheet's combat mode, laid out like Roll20's character page: a summary (who, HP, abilities,
 // AC and speed), the skills on the side, and tabs. Tabs reuse the sheet's own cards; only the
 // summary, skills rail, attacks table, effects, action lists and features view live here.
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BUNDLED, loadKind, type Equipment, type Feat, type Feature, type Spell, type Trait } from '../../content'
 import type { RollMode, RollResult } from '../../dice'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
+import type { Ability } from '../../rules/types'
 import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
 import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCritRange, getDamageRiders, subclassById, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
@@ -15,7 +16,7 @@ import { useSheetRolls } from '../dice'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
-  ACTION_KINDS, actionsOf, addAction, effectToggles, masteryLimit, matchFeature, newActionId, removeAction, spellAttackRows, updateAction,
+  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteryLimit, matchFeature, newActionId, removeAction, resolveDice, spellAttackRows, updateAction,
   type ActionKind, type CustomAction, type SpellAttackRow,
 } from './combat'
 import './combat.css'
@@ -243,6 +244,9 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const [on, setOn] = useState<Record<string, boolean>>({})
   const [twoHanded, setTwoHanded] = useState<Record<string, boolean>>({})
   const [out, setOut] = useState<Outcome | null>(null)
+  const outRef = useRef<HTMLDivElement>(null)
+  // Actions sit far below the result box, so bring the result into view after every roll.
+  useEffect(() => { if (out) outRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }) }, [out])
   const spellNames = Object.fromEntries(lib.spells.map(s => [s.id, s.name]))
   const effects = effectToggles(character, d, spellNames)
   const spells = spellAttackRows(character, d, lib.spells)
@@ -281,6 +285,23 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
       ...(res.damage ? [{ roll: res.damage, what: r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) }] : []),
     ]
     setOut({ name: r.name, rolls: list, note: notes.join(' · ') || undefined })
+  }
+
+  /** A custom action: attack roll (with toggled effects on a hit) or save DC, then its dice. */
+  const runAction = (a: CustomAction) => {
+    const r = actionRoll(a, d)
+    const healing = isHealing(a.roll?.type)
+    const riders = r.attackBonus !== undefined && !healing ? active.filter(e => !e.weaponOnly && e.id !== `act:${a.id}`).map(e => ({ name: e.name, damage: e.damage })) : []
+    const res = rolls.spell(a.name, { attackBonus: r.attackBonus, damage: r.dice, damageType: a.roll?.type, mode, riders })
+    const type = a.roll?.type ? term('damage', a.roll.type, a.roll.type) : ''
+    setOut({
+      name: a.name,
+      rolls: [
+        ...('attack' in res && res.attack ? [{ roll: res.attack, what: t('cs.roll.toHit') }] : []),
+        ...(res.damage ? [{ roll: res.damage, what: healing ? t('cs.roll.healing') : r.attackBonus !== undefined || r.dc !== undefined ? t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) : t('cs.roll.result') }] : []),
+      ],
+      note: r.dc !== undefined ? t('cs.saveNote', { dc: r.dc, ability: r.save ? abilityShort(r.save) : '' }) : undefined,
+    })
   }
 
   const ft = (n: number) => t('cs.feet', { n })
@@ -344,7 +365,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         ))}
       </ul>
       {out && (
-        <div className="cs-out">
+        <div ref={outRef} className="cs-out">
           <strong>{out.name}</strong>
           <LastRoll rolls={out.rolls} note={out.note} />
         </div>
@@ -373,7 +394,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         )
         : <p className="hint">{t('cs.noEffects')}</p>}
 
-      <CustomActions character={character} apply={apply} />
+      <CustomActions character={character} apply={apply} onRoll={runAction} />
     </section>
   )
 }
@@ -385,10 +406,21 @@ const KIND_TITLE: Record<ActionKind, MessageKey> = {
 }
 
 /** The player's own actions, bonus actions, reactions, free actions and other abilities, grouped like Roll20. */
-function CustomActions({ character, apply }: { character: Character; apply: Apply }) {
-  const { t } = useI18n()
+function CustomActions({ character, apply, onRoll }: { character: Character; apply: Apply; onRoll: (a: CustomAction) => void }) {
+  const { t, abilityShort, term } = useI18n()
+  const d = derive(character)
   const [adding, setAdding] = useState<ActionKind | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+  /** "+6 · 1d8+3 force" or "DC 14 WIS · 2d6" */
+  const summary = (a: CustomAction) => {
+    const r = actionRoll(a, d)
+    const bits = [
+      r.attackBonus !== undefined ? formatMod(r.attackBonus) : '',
+      r.dc !== undefined ? t('cs.dcShort', { dc: r.dc, ability: r.save ? abilityShort(r.save) : '' }).trim() : '',
+      r.dice ? `${r.dice}${a.roll?.type ? ` ${term('damage', a.roll.type, a.roll.type)}` : ''}` : '',
+    ].filter(Boolean)
+    return bits.join(' · ')
+  }
   return (
     <>
       {ACTION_KINDS.map(k => {
@@ -401,32 +433,42 @@ function CustomActions({ character, apply }: { character: Character; apply: Appl
                 aria-label={t('cs.addTo', { group: t(KIND_TITLE[k]) })} onClick={() => setAdding(adding === k ? null : k)}>+ {t('common.add')}</button>
             </h3>
             {adding === k && (
-              <ActionForm kind={k} onCancel={() => setAdding(null)}
+              <ActionForm kind={k} stats={d} onCancel={() => setAdding(null)}
                 onSave={a => { apply(t('cs.log.actionAdded', { name: a.name }), c => addAction(c, { ...a, id: newActionId() })); setAdding(null) }} />
             )}
             {list.length === 0 && adding !== k && <p className="hint">{t('cs.noActions')}</p>}
             <ul className="cs-rows">
-              {list.map(a => editing === a.id
-                ? (
-                  <li key={a.id} className="cs-action">
-                    <ActionForm kind={a.kind} initial={a} onCancel={() => setEditing(null)}
-                      onSave={p => { apply(t('cs.log.actionEdited', { name: p.name }), c => updateAction(c, a.id, p)); setEditing(null) }} />
-                  </li>
-                )
-                : (
+              {list.map(a => {
+                if (editing === a.id) {
+                  return (
+                    <li key={a.id} className="cs-action">
+                      <ActionForm kind={a.kind} stats={d} initial={a} onCancel={() => setEditing(null)}
+                        onSave={p => { apply(t('cs.log.actionEdited', { name: p.name }), c => updateAction(c, a.id, { roll: undefined, effect: undefined, description: undefined, ...p })); setEditing(null) }} />
+                    </li>
+                  )
+                }
+                const sum = summary(a)
+                return (
                   <li key={a.id} className="cs-action">
                     <div className="cs-action-row">
                       {a.description
                         ? <details><summary><span>{a.name}</span></summary><p className="cs-desc-text">{a.description}</p></details>
                         : <span className="cs-action-name">{a.name}</span>}
                       <span className="cs-action-tools">
+                        {sum && (
+                          <button type="button" className="btn small cs-action-roll" onClick={() => onRoll(a)} aria-label={t('cs.rollAction', { name: a.name, what: sum })}>
+                            <span aria-hidden="true">🎲</span> <span dir="ltr">{sum}</span>
+                          </button>
+                        )}
+                        {a.effect && <span className="cs-effect-tag" title={t('cs.effectTagHint')}>{t('cs.effectTag')}</span>}
                         <button type="button" className="btn ghost small" aria-label={t('cs.editAction', { name: a.name })} onClick={() => setEditing(a.id)}>✎</button>
                         <button type="button" className="btn ghost small" aria-label={t('cs.removeAction', { name: a.name })}
                           onClick={() => apply(t('cs.log.actionRemoved', { name: a.name }), c => removeAction(c, a.id))}>×</button>
                       </span>
                     </div>
                   </li>
-                ))}
+                )
+              })}
             </ul>
           </div>
         )
@@ -435,18 +477,57 @@ function CustomActions({ character, apply }: { character: Character; apply: Appl
   )
 }
 
-function ActionForm({ kind, initial, onSave, onCancel }: {
+type Check = 'none' | 'attack' | 'save'
+
+function ActionForm({ kind, stats, initial, onSave, onCancel }: {
   kind: ActionKind
+  stats: DerivedStats
   initial?: CustomAction
   onSave: (a: Omit<CustomAction, 'id'>) => void
   onCancel: () => void
 }) {
-  const { t } = useI18n()
+  const { t, abilityShort } = useI18n()
   const [name, setName] = useState(initial?.name ?? '')
   const [text, setText] = useState(initial?.description ?? '')
   const [group, setGroup] = useState<ActionKind>(kind)
+  const [check, setCheck] = useState<Check>(initial?.roll?.check ?? 'none')
+  const [ability, setAbility] = useState<Ability>(initial?.roll?.ability ?? stats.spellcasting?.ability ?? 'str')
+  const [save, setSave] = useState<Ability>(initial?.roll?.save ?? 'wis')
+  const [dice, setDice] = useState(initial?.roll?.dice ?? '')
+  const [type, setType] = useState(initial?.roll?.type ?? '')
+  const [hasEffect, setHasEffect] = useState(!!initial?.effect)
+  const [fx, setFx] = useState(initial?.effect?.damage ?? '')
+  const [fxType, setFxType] = useState(initial?.effect?.type ?? '')
+  const diceBad = !!dice.trim() && !resolveDice(dice, stats)
+  const fxBad = hasEffect && !resolveDice(fx, stats)
+  const ok = !!name.trim() && !diceBad && !fxBad
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!ok) return
+    const roll: CustomAction['roll'] = {
+      ...(check !== 'none' ? { check, ability } : {}),
+      ...(check === 'save' ? { save } : {}),
+      ...(dice.trim() ? { dice: dice.trim() } : {}),
+      ...(dice.trim() && type.trim() ? { type: type.trim() } : {}),
+    }
+    onSave({
+      kind: group, name: name.trim(),
+      ...(text.trim() ? { description: text.trim() } : {}),
+      ...(Object.keys(roll).length ? { roll } : {}),
+      ...(hasEffect ? { effect: { damage: fx.trim(), ...(fxType.trim() ? { type: fxType.trim() } : {}) } } : {}),
+    })
+  }
+  const abilitySelect = (value: Ability, set: (a: Ability) => void, label: string) => (
+    <label>{label}
+      <select value={value} onChange={e => set(e.target.value as Ability)}>
+        {ABILITIES.map(a => <option key={a} value={a}>{abilityShort(a)}</option>)}
+      </select>
+    </label>
+  )
+
   return (
-    <form className="cs-action-form" onSubmit={e => { e.preventDefault(); if (name.trim()) onSave({ kind: group, name: name.trim(), description: text.trim() || undefined }) }}>
+    <form className="cs-action-form" onSubmit={submit}>
       <label>{t('cs.actionName')}<input value={name} onChange={e => setName(e.target.value)} autoFocus placeholder={t('cs.actionNamePlaceholder')} /></label>
       <label>{t('cs.actionGroup')}
         <select value={group} onChange={e => setGroup(e.target.value as ActionKind)}>
@@ -454,8 +535,39 @@ function ActionForm({ kind, initial, onSave, onCancel }: {
         </select>
       </label>
       <label className="wide">{t('cs.actionText')}<textarea rows={3} value={text} onChange={e => setText(e.target.value)} placeholder={t('cs.actionTextPlaceholder')} /></label>
+
+      <fieldset className="wide cs-fieldset">
+        <legend>{t('cs.form.roll')}</legend>
+        <label>{t('cs.form.check')}
+          <select value={check} onChange={e => setCheck(e.target.value as Check)}>
+            <option value="none">{t('cs.form.checkNone')}</option>
+            <option value="attack">{t('cs.form.checkAttack')}</option>
+            <option value="save">{t('cs.form.checkSave')}</option>
+          </select>
+        </label>
+        {check !== 'none' && abilitySelect(ability, setAbility, t('cs.form.ability'))}
+        {check === 'save' && abilitySelect(save, setSave, t('cs.form.saveAbility'))}
+        <label>{t('cs.form.dice')}
+          <input value={dice} onChange={e => setDice(e.target.value)} placeholder="1d8+CHA" dir="ltr" aria-invalid={diceBad} />
+        </label>
+        <label>{t('cs.form.type')}
+          <input value={type} onChange={e => setType(e.target.value)} placeholder={t('cs.form.typePlaceholder')} />
+        </label>
+        <p className="hint wide">{diceBad ? t('cs.form.diceBad') : t('cs.form.diceHint')}</p>
+      </fieldset>
+
+      <fieldset className="wide cs-fieldset">
+        <legend>{t('cs.form.effect')}</legend>
+        <label className="cs-check wide"><input type="checkbox" checked={hasEffect} onChange={e => setHasEffect(e.target.checked)} />{t('cs.form.effectOn')}</label>
+        {hasEffect && <>
+          <label>{t('cs.form.effectDice')}<input value={fx} onChange={e => setFx(e.target.value)} placeholder="1d6" dir="ltr" aria-invalid={fxBad} /></label>
+          <label>{t('cs.form.type')}<input value={fxType} onChange={e => setFxType(e.target.value)} placeholder={t('cs.form.typePlaceholder')} /></label>
+          {fxBad && <p className="hint wide">{t('cs.form.diceBad')}</p>}
+        </>}
+      </fieldset>
+
       <div className="row">
-        <button type="submit" className="btn primary" disabled={!name.trim()}>{t('cs.save.action')}</button>
+        <button type="submit" className="btn primary" disabled={!ok}>{t('cs.save.action')}</button>
         <button type="button" className="btn ghost" onClick={onCancel}>{t('common.cancel')}</button>
       </div>
     </form>

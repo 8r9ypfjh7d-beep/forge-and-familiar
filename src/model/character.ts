@@ -74,6 +74,19 @@ export interface CustomAction {
   kind: ActionKind
   name: string
   description?: string
+  /** Rolled when the action is tapped. Dice may use STR…CHA, PROF and LEVEL, e.g. "1d8+CHA". */
+  roll?: {
+    /** 'attack' rolls d20 + ability modifier + proficiency first; 'save' shows a DC of 8 + proficiency + modifier. */
+    check?: 'attack' | 'save'
+    ability?: Ability
+    /** The ability the target saves with. */
+    save?: Ability
+    dice?: string
+    /** Damage type or "healing". */
+    type?: string
+  }
+  /** A toggle in Effects that adds this to every attack's damage while it is on (like Hex). */
+  effect?: { damage: string; type?: string }
 }
 
 export const CHARACTER_SCHEMA_VERSION = 1
