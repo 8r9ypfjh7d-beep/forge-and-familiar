@@ -79,7 +79,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'resources': return <Resources key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
       case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
-      case 'summary': return <CombatSummary key={s} {...p} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />
+      case 'summary': return <CombatSummary key={s} character={character} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />
       case 'skills': return <SkillsPanel key={s} character={character} />
       case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} /> : null
       case 'fight': return <Fight key={s} {...p} />

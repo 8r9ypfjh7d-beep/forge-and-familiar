@@ -43,7 +43,8 @@
 .qc-roll-label { font-weight: 600; font-size: .9rem; }
 .qc-roll-label small { color: var(--s-accent); font-weight: 700; }
 .qc-roll-break { color: var(--s-muted); font-size: .8rem; overflow-wrap: anywhere; }
-.qc-roll-total { font-size: 1.5rem; font-weight: 800; min-width: 2ch; text-align: right; }
+.qc-roll-total { font-size: 1.5rem; font-weight: 800; min-width: 2ch; text-align: end; }
+.qc-roll-meaning { grid-column: 1 / -1; font-size: .85rem; color: var(--s-muted); margin-top: -4px; }
 .qc-roll.crit .qc-roll-total { color: var(--s-good); }
 .qc-roll.fumble .qc-roll-total { color: var(--s-bad); }
 

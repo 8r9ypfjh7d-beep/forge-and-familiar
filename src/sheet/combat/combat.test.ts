@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadKind } from '../../content'
 import { derive, xpForNextLevel } from '../../rules'
 import { makeCharacter } from '../fixtures'
-import { actionGroups, castingKind, effectToggles, featureKind, masteryLimit, spellAttackRows } from './combat'
+import { actionsOf, addAction, effectToggles, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
 
 const warlock = (over = {}) => makeCharacter({
   classes: [{ classId: 'warlock', level: 7 }],
@@ -17,17 +17,6 @@ describe('combat page helpers', () => {
     expect(xpForNextLevel(1)).toBe(300)
     expect(xpForNextLevel(7)).toBe(34000)
     expect(xpForNextLevel(20)).toBeUndefined()
-  })
-
-  it('reads casting times and feature text into action kinds', () => {
-    expect(castingKind('1 bonus action')).toBe('bonus')
-    expect(castingKind('1 reaction, which you take when you are hit')).toBe('reaction')
-    expect(castingKind('1 action')).toBe('action')
-    expect(castingKind('1 minute')).toBeUndefined()
-    expect(featureKind('As a bonus action, you can conjure a pact weapon.')).toBe('bonus')
-    expect(featureKind('you can use your reaction to halve the damage')).toBe('reaction')
-    expect(featureKind('You can use your action to present your holy symbol')).toBe('action')
-    expect(featureKind('Your speed increases by 10 feet.')).toBeUndefined()
   })
 
   it('lists attack and save spells with range, bonus or DC, and scaled damage', async () => {
@@ -53,13 +42,15 @@ describe('combat page helpers', () => {
     expect(effectToggles(rogue, derive(rogue)).map(e => e.id)).toEqual(['sneakAttack'])
   })
 
-  it('groups standard actions with bonus-action spells', async () => {
-    const spells = await loadKind('spells', { sources: ['srd-5.2'] })
-    const c = warlock()
-    const g = actionGroups(c, derive(c), spells, [])
-    expect(g.action.map(l => l.id)).toContain('dodge')
-    expect(g.reaction.map(l => l.id)).toContain('opportunity')
-    expect(g.bonus.map(l => l.id)).toContain('hex')
+  it('keeps the player\'s own actions by group, and edits and removes them', () => {
+    let c = warlock()
+    c = addAction(c, { id: 'a1', kind: 'bonus', name: '  Curse Another ', description: ' ' })
+    c = addAction(c, { id: 'a2', kind: 'action', name: '' })
+    expect(c.customActions).toEqual([{ id: 'a1', kind: 'bonus', name: 'Curse Another', description: undefined }])
+    c = updateAction(c, 'a1', { kind: 'reaction', description: 'Move the curse' })
+    expect(actionsOf(c, 'bonus')).toEqual([])
+    expect(actionsOf(c, 'reaction')[0]).toMatchObject({ name: 'Curse Another', description: 'Move the curse' })
+    expect(removeAction(c, 'a1').customActions).toEqual([])
   })
 
   it('weapon mastery needs the 2024 rules and a martial class', () => {
