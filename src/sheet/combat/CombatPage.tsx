@@ -4,7 +4,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { BUNDLED, loadKind, type Equipment, type Feat, type Feature, type Spell, type Trait } from '../../content'
 import type { RollMode, RollResult } from '../../dice'
-import { RollView } from '../../dice/ui'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
@@ -13,11 +12,11 @@ import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCri
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor } from '../../spellbook/access'
 import { useSheetRolls } from '../dice'
-import { setInspiration } from '../engine'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
-  ACTION_KINDS, actionGroups, effectToggles, masteryLimit, matchFeature, spellAttackRows, type ActionKind, type ActionLine, type SpellAttackRow,
+  ACTION_KINDS, actionsOf, addAction, effectToggles, masteryLimit, matchFeature, newActionId, removeAction, spellAttackRows, updateAction,
+  type ActionKind, type CustomAction, type SpellAttackRow,
 } from './combat'
 import './combat.css'
 
@@ -49,12 +48,35 @@ function useLibrary(character: Character): Library {
   return lib?.source === source ? lib.data : EMPTY
 }
 
-/** Shows the last roll a panel made, so a tap always has a visible answer (the dice history keeps them all). */
-function LastRoll({ rolls, note }: { rolls: RollResult[]; note?: string }) {
+/** A roll and what it is for, e.g. "To hit" or "Damage (force)". */
+interface Shown { roll: RollResult; what: string }
+
+/**
+ * The last roll a panel made, one labeled line per roll so "to hit" and "damage" can't be mixed up.
+ * The dice history keeps them all.
+ */
+function LastRoll({ rolls, note }: { rolls: Shown[]; note?: string }) {
+  const { t } = useI18n()
   if (!rolls.length && !note) return null
   return (
     <div className="cs-last" aria-live="polite">
-      {rolls.map(r => <RollView key={r.id} roll={r} compact />)}
+      {rolls.map(({ roll: r, what }) => {
+        const crit = r.d20?.crit
+        const fumble = r.d20?.fumble
+        const mode = r.d20 && r.d20.mode !== 'normal' ? t(r.d20.mode === 'advantage' ? 'dice.advShort' : 'dice.disShort') : ''
+        return (
+          <div key={r.id} className={`cs-rollline type-${r.type}${crit ? ' crit' : ''}${fumble ? ' fumble' : ''}`}>
+            <span className="what">{what}{mode && <small> ({mode})</small>}</span>
+            <span className="total">{r.total}</span>
+            <span className="how" dir="ltr">{r.breakdown}</span>
+            {r.type === 'attack' && (
+              <span className="meaning">
+                {fumble ? t('cs.roll.fumble') : crit ? t('cs.roll.crit') : t('cs.roll.hitsAc', { n: r.total })}
+              </span>
+            )}
+          </div>
+        )
+      })}
       {note && <p className="hint">{note}</p>}
     </div>
   )
@@ -62,14 +84,13 @@ function LastRoll({ rolls, note }: { rolls: RollResult[]; note?: string }) {
 
 // ---------- Summary ----------
 
-export function CombatSummary({ character, apply, vitals, onEdit }: { character: Character; apply: Apply; vitals: ReactNode; onEdit?: () => void }) {
+export function CombatSummary({ character, vitals, onEdit }: { character: Character; vitals: ReactNode; onEdit?: () => void }) {
   const { t, term, className, raceName, abilityShort } = useI18n()
   const d = derive(character)
   const rolls = useSheetRolls(character)
-  const [last, setLast] = useState<RollResult | null>(null)
+  const [last, setLast] = useState<Shown | null>(null)
   const bg = getBackground(character)
   const next = xpForNextLevel(d.level)
-  const inspired = !!character.state.inspiration
   const classes = character.classes.map(cl => {
     const sub = cl.subclassId ? subclassById(cl.subclassId) : undefined
     const base = `${className(cl.classId)} ${cl.level}`
@@ -96,11 +117,7 @@ export function CombatSummary({ character, apply, vitals, onEdit }: { character:
         </div>
         <div className="cs-hero-actions">
           {onEdit && <button type="button" className="btn cs-levelup" onClick={onEdit}>{t('cs.levelUp')}</button>}
-          <button type="button" className={`btn cs-inspiration${inspired ? ' on' : ''}`} aria-pressed={inspired}
-            onClick={() => apply(t(inspired ? 'cs.log.inspirationSpent' : 'cs.log.inspirationGained'), c => setInspiration(c, !inspired))}>
-            {t('cs.inspiration')} <span aria-hidden="true">{inspired ? '★' : '☆'}</span>
-          </button>
-          <button type="button" className="btn primary cs-init" onClick={() => setLast(rolls.initiative(d))}>
+          <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
             {t('cs.initiative', { bonus: formatMod(d.initiative) })}
           </button>
         </div>
@@ -119,11 +136,11 @@ export function CombatSummary({ character, apply, vitals, onEdit }: { character:
                 <span className="cs-score">{m(`ability:${a}`, d.abilities[a])}</span>
               </div>
               <div className="cs-ability-rolls">
-                <button type="button" className="cs-roll" onClick={() => setLast(rolls.check(d, a))}
+                <button type="button" className="cs-roll" onClick={() => setLast({ roll: rolls.check(d, a), what: t('cs.roll.check', { ability: abilityShort(a) }) })}
                   aria-label={t('cs.rollCheck', { ability: abilityShort(a), bonus: formatMod(d.mods[a]) })}>
                   <span dir="ltr">{formatMod(d.mods[a])}</span><small>{t('cs.mod')}</small>
                 </button>
-                <button type="button" className={`cs-roll save${d.saves[a].proficient ? ' prof' : ''}`} onClick={() => setLast(rolls.save(d, a))}
+                <button type="button" className={`cs-roll save${d.saves[a].proficient ? ' prof' : ''}`} onClick={() => setLast({ roll: rolls.save(d, a), what: t('cs.roll.save', { ability: abilityShort(a) }) })}
                   aria-label={t(d.saves[a].proficient ? 'cs.rollSaveProf' : 'cs.rollSave', { ability: abilityShort(a), bonus: formatMod(d.saves[a].bonus) })}>
                   <span dir="ltr">{formatMod(d.saves[a].bonus)}</span><i className="dot" aria-hidden="true" /><small>{t('cs.save')}</small>
                 </button>
@@ -151,14 +168,14 @@ export function SkillsPanel({ character }: { character: Character }) {
   const { t, term, skill, abilityShort } = useI18n()
   const d = derive(character)
   const rolls = useSheetRolls(character)
-  const [last, setLast] = useState<RollResult | null>(null)
+  const [last, setLast] = useState<Shown | null>(null)
   return (
     <section className="card cs-skills" aria-labelledby="cs-skills-title">
       <h2 id="cs-skills-title">{t('cs.skills')}</h2>
       <ul>
         {ALL_SKILLS.map(s => (
           <li key={s}>
-            <button type="button" className={d.skills[s].proficient ? 'prof' : ''} onClick={() => setLast(rolls.skill(d, s))}
+            <button type="button" className={d.skills[s].proficient ? 'prof' : ''} onClick={() => setLast({ roll: rolls.skill(d, s), what: skill(s) })}
               aria-label={t(d.skills[s].proficient ? 'cs.rollSkillProf' : 'cs.rollSkill', { skill: skill(s), bonus: formatMod(d.skills[s].bonus) })}>
               <span className="name">{skill(s)}</span>
               <span className="abbr">{abilityShort(SKILLS[s].ability)}</span>
@@ -215,7 +232,7 @@ export function CombatTabs({ tabs, render }: { tabs: Record<CombatTab, SheetSect
 
 // ---------- Combat tab: attacks, weapon mastery, effects, actions ----------
 
-interface Outcome { name: string; rolls: RollResult[]; note?: string }
+interface Outcome { name: string; rolls: Shown[]; note?: string }
 
 export function Fight({ character, apply }: { character: Character; apply: Apply }) {
   const { t, term, attackName, abilityShort } = useI18n()
@@ -238,7 +255,11 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const extra = a.extraDamage ? /^(\S+)\s*(.*)$/.exec(a.extraDamage) : null
     const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1] }] : riders
     const r = rolls.attack(a, { mode, critRange, riders: all, twoHanded: twoHanded[a.name] })
-    setOut({ name: attackName(a.name), rolls: [r.attack, ...(r.damage ? [r.damage] : [])], note: r.damage ? undefined : t('sheet.attacks.miss') })
+    const type = term('damage', a.damageType, a.damageType)
+    setOut({
+      name: attackName(a.name),
+      rolls: [{ roll: r.attack, what: t('cs.roll.toHit') }, ...(r.damage ? [{ roll: r.damage, what: t('cs.roll.damage', { type }) }] : [])],
+    })
     if (r.damage && active.some(e => e.oncePerTurn)) setOn(o => ({ ...o, ...Object.fromEntries(active.filter(e => e.oncePerTurn).map(e => [e.id, false])) }))
   }
 
@@ -254,8 +275,11 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const damage = spellDamage({ ...r.entry, id: '', kind: 'spell' }, choice?.level ?? r.level, d.level, sc ? d.mods[sc.ability] : 0)
     const riders = r.kind === 'attack' && r.damageType !== 'healing' ? active.filter(e => !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage })) : []
     const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders })
-    const list = [...('attack' in res && res.attack ? [res.attack] : []), ...(res.damage ? [res.damage] : [])]
-    if ('attack' in res && res.attack && !res.damage && damage) notes.push(t('sheet.attacks.miss'))
+    const type = r.damageType ? term('damage', r.damageType, r.damageType) : ''
+    const list: Shown[] = [
+      ...('attack' in res && res.attack ? [{ roll: res.attack, what: t('cs.roll.toHit') }] : []),
+      ...(res.damage ? [{ roll: res.damage, what: r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) }] : []),
+    ]
     setOut({ name: r.name, rolls: list, note: notes.join(' · ') || undefined })
   }
 
@@ -349,47 +373,92 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         )
         : <p className="hint">{t('cs.noEffects')}</p>}
 
-      <ActionLists character={character} stats={d} lib={lib} />
+      <CustomActions character={character} apply={apply} />
     </section>
   )
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
-const KIND_TITLE: Record<ActionKind, MessageKey> = { action: 'cs.actions', bonus: 'cs.bonusActions', reaction: 'cs.reactions', free: 'cs.freeActions' }
+const KIND_TITLE: Record<ActionKind, MessageKey> = {
+  action: 'cs.actions', bonus: 'cs.bonusActions', reaction: 'cs.reactions', free: 'cs.freeActions', other: 'cs.otherActions',
+}
 
-function ActionLists({ character, stats, lib }: { character: Character; stats: DerivedStats; lib: Library }) {
-  const { t, term } = useI18n()
-  const groups = actionGroups(character, stats, lib.spells, lib.features)
+/** The player's own actions, bonus actions, reactions, free actions and other abilities, grouped like Roll20. */
+function CustomActions({ character, apply }: { character: Character; apply: Apply }) {
+  const { t } = useI18n()
+  const [adding, setAdding] = useState<ActionKind | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
   return (
     <>
-      {ACTION_KINDS.map(k => (
-        <div key={k} className="cs-actions">
-          <h3 className="cs-sub">{t(KIND_TITLE[k])}</h3>
-          <ul className="cs-rows">
-            {groups[k].map(l => <ActionRow key={`${l.source}-${l.id}`} line={l} name={l.source === 'std' ? t(`cs.std.${l.id}` as MessageKey) : l.source === 'feature' ? term('feature', l.name, l.name) : l.name}
-              text={l.source === 'std' ? t(`cs.std.${l.id}.desc` as MessageKey) : undefined} />)}
-          </ul>
-        </div>
-      ))}
+      {ACTION_KINDS.map(k => {
+        const list = actionsOf(character, k)
+        return (
+          <div key={k} className="cs-actions">
+            <h3 className="cs-sub">
+              {t(KIND_TITLE[k])}
+              <button type="button" className="btn ghost small cs-add" aria-expanded={adding === k}
+                aria-label={t('cs.addTo', { group: t(KIND_TITLE[k]) })} onClick={() => setAdding(adding === k ? null : k)}>+ {t('common.add')}</button>
+            </h3>
+            {adding === k && (
+              <ActionForm kind={k} onCancel={() => setAdding(null)}
+                onSave={a => { apply(t('cs.log.actionAdded', { name: a.name }), c => addAction(c, { ...a, id: newActionId() })); setAdding(null) }} />
+            )}
+            {list.length === 0 && adding !== k && <p className="hint">{t('cs.noActions')}</p>}
+            <ul className="cs-rows">
+              {list.map(a => editing === a.id
+                ? (
+                  <li key={a.id} className="cs-action">
+                    <ActionForm kind={a.kind} initial={a} onCancel={() => setEditing(null)}
+                      onSave={p => { apply(t('cs.log.actionEdited', { name: p.name }), c => updateAction(c, a.id, p)); setEditing(null) }} />
+                  </li>
+                )
+                : (
+                  <li key={a.id} className="cs-action">
+                    <div className="cs-action-row">
+                      {a.description
+                        ? <details><summary><span>{a.name}</span></summary><p className="cs-desc-text">{a.description}</p></details>
+                        : <span className="cs-action-name">{a.name}</span>}
+                      <span className="cs-action-tools">
+                        <button type="button" className="btn ghost small" aria-label={t('cs.editAction', { name: a.name })} onClick={() => setEditing(a.id)}>✎</button>
+                        <button type="button" className="btn ghost small" aria-label={t('cs.removeAction', { name: a.name })}
+                          onClick={() => apply(t('cs.log.actionRemoved', { name: a.name }), c => removeAction(c, a.id))}>×</button>
+                      </span>
+                    </div>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )
+      })}
     </>
   )
 }
 
-function ActionRow({ line, name, text }: { line: ActionLine; name: string; text?: string }) {
+function ActionForm({ kind, initial, onSave, onCancel }: {
+  kind: ActionKind
+  initial?: CustomAction
+  onSave: (a: Omit<CustomAction, 'id'>) => void
+  onCancel: () => void
+}) {
   const { t } = useI18n()
-  const body = text ?? line.description
+  const [name, setName] = useState(initial?.name ?? '')
+  const [text, setText] = useState(initial?.description ?? '')
+  const [group, setGroup] = useState<ActionKind>(kind)
   return (
-    <li className="cs-action">
-      {body
-        ? (
-          <details>
-            <summary><span>{name}</span>{line.source === 'spell' && <small className="hint">{t('cs.spellTag')}</small>}</summary>
-            {text ? <p>{text}</p> : <div className="cs-desc" dir="ltr"><Markdown text={body} /></div>}
-          </details>
-        )
-        : <span>{name}</span>}
-    </li>
+    <form className="cs-action-form" onSubmit={e => { e.preventDefault(); if (name.trim()) onSave({ kind: group, name: name.trim(), description: text.trim() || undefined }) }}>
+      <label>{t('cs.actionName')}<input value={name} onChange={e => setName(e.target.value)} autoFocus placeholder={t('cs.actionNamePlaceholder')} /></label>
+      <label>{t('cs.actionGroup')}
+        <select value={group} onChange={e => setGroup(e.target.value as ActionKind)}>
+          {ACTION_KINDS.map(k => <option key={k} value={k}>{t(KIND_TITLE[k])}</option>)}
+        </select>
+      </label>
+      <label className="wide">{t('cs.actionText')}<textarea rows={3} value={text} onChange={e => setText(e.target.value)} placeholder={t('cs.actionTextPlaceholder')} /></label>
+      <div className="row">
+        <button type="submit" className="btn primary" disabled={!name.trim()}>{t('cs.save.action')}</button>
+        <button type="button" className="btn ghost" onClick={onCancel}>{t('common.cancel')}</button>
+      </div>
+    </form>
   )
 }
 

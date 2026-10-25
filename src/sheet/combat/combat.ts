@@ -1,39 +1,34 @@
-// Pure helpers for the combat page: spells as attack rows, action groups, toggled effects, weapon mastery.
+// Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
-import type { Character } from '../../model/character'
+import type { ActionKind, Character, CustomAction } from '../../model/character'
 import { getDamageRiders, type DerivedStats } from '../../rules'
 import type { Ability } from '../../rules/types'
 import { spellDamage } from '../../quickcast/quickcast'
 import type { SpellEntry } from '../../quickcast/types'
 import { toQuickCast } from '../../spellbook/spellbook'
 
-export type ActionKind = 'action' | 'bonus' | 'reaction' | 'free'
-export const ACTION_KINDS: ActionKind[] = ['action', 'bonus', 'reaction', 'free']
+export type { ActionKind, CustomAction } from '../../model/character'
 
-/** Things every creature can do, listed under their kind. Names and details are i18n keys `cs.std.<id>`. */
-export const STANDARD_ACTIONS: Record<ActionKind, string[]> = {
-  action: ['attack', 'castSpell', 'dash', 'disengage', 'dodge', 'help', 'hide', 'ready', 'search', 'useObject', 'grapple', 'shove'],
-  bonus: ['twoWeapon'],
-  reaction: ['opportunity', 'readied'],
-  free: ['interact', 'talk', 'drop'],
+/** The groups shown under the attacks table, in order. */
+export const ACTION_KINDS: ActionKind[] = ['action', 'bonus', 'reaction', 'free', 'other']
+
+export const newActionId = () => `act-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+
+export const actionsOf = (c: Character, kind: ActionKind): CustomAction[] => (c.customActions ?? []).filter(a => a.kind === kind)
+
+/** Adds an action the player typed in. Blank names are ignored. */
+export function addAction(c: Character, action: CustomAction): Character {
+  const name = action.name.trim()
+  if (!name) return c
+  return { ...c, customActions: [...(c.customActions ?? []), { ...action, name, description: action.description?.trim() || undefined }] }
 }
 
-/** "1 bonus action" → bonus. Spells cast in a minute or more are left out (undefined). */
-export function castingKind(castingTime: string): ActionKind | undefined {
-  const t = castingTime.toLowerCase()
-  if (t.includes('bonus action')) return 'bonus'
-  if (t.includes('reaction')) return 'reaction'
-  if (/\baction\b/.test(t)) return 'action'
-  return undefined
+export function updateAction(c: Character, id: string, patch: Partial<Omit<CustomAction, 'id'>>): Character {
+  return { ...c, customActions: (c.customActions ?? []).map(a => (a.id === id ? { ...a, ...patch } : a)) }
 }
 
-/** Reads a feature's rules text for how it is used. Features that are always on return undefined. */
-export function featureKind(description: string): ActionKind | undefined {
-  const t = description.toLowerCase()
-  if (/\b(as a|use a|use your|take a) bonus action\b/.test(t)) return 'bonus'
-  if (/\b(use|uses|using) (your|its|a) reaction\b|\bas a reaction\b/.test(t)) return 'reaction'
-  if (/\b(as an|use an|use your|take the) (magic )?action\b|\bas a magic action\b/.test(t)) return 'action'
-  return undefined
+export function removeAction(c: Character, id: string): Character {
+  return { ...c, customActions: (c.customActions ?? []).filter(a => a.id !== id) }
 }
 
 /** One spell shown in the attacks table. */
@@ -94,35 +89,6 @@ export function withRollFromText(s: Spell): Spell {
 }
 
 const byName = (spells: Spell[], name: string) => spells.find(s => s.name.toLowerCase() === name.toLowerCase())
-
-/** One line under Actions, Bonus Actions, Reactions or Free Actions. */
-export interface ActionLine {
-  /** 'std' lines are translated by id; the others carry their own name and text. */
-  source: 'std' | 'feature' | 'spell'
-  id: string
-  name: string
-  description?: string
-}
-
-/** Standard actions, then the character's features and spells, grouped by how they are used. */
-export function actionGroups(c: Character, stats: DerivedStats, spells: Spell[], features: Feature[]): Record<ActionKind, ActionLine[]> {
-  const out = Object.fromEntries(ACTION_KINDS.map(k => [k, STANDARD_ACTIONS[k].map(id => ({ source: 'std' as const, id, name: id }))])) as Record<ActionKind, ActionLine[]>
-  for (const f of stats.features) {
-    const lib = matchFeature(features, f.name, f.className)
-    const kind = lib && featureKind(lib.description)
-    if (kind && !out[kind].some(l => l.name === f.name)) out[kind].push({ source: 'feature', id: lib.id, name: f.name, description: lib.description })
-  }
-  const byId = new Map(spells.map(s => [s.id, s]))
-  for (const k of c.spells ?? []) {
-    const s = byId.get(k.id)
-    const kind = s && castingKind(s.castingTime)
-    // Plain one-action spells are covered by "Cast a Spell"; list the quicker ones.
-    if (s && kind && kind !== 'action' && !out[kind].some(l => l.id === s.id)) {
-      out[kind].push({ source: 'spell', id: s.id, name: s.name, description: s.description })
-    }
-  }
-  return out
-}
 
 /** The library entry for one of derive()'s features: same name, the class's own entry first. */
 export function matchFeature(features: Feature[], name: string, className: string): Feature | undefined {

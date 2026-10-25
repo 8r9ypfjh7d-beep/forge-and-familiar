@@ -25,9 +25,9 @@ export interface SheetLayout {
 }
 
 export const COMBAT_TABS: Record<CombatTab, SheetSection[]> = {
-  combat: ['fight', 'resources', 'exhaustion'],
+  combat: ['fight'],
   spells: ['quickcast', 'slots', 'spells'],
-  inventory: ['inventory', 'inspiration', 'supplies'],
+  inventory: ['inventory', 'supplies'],
   features: ['features'],
   notes: ['notes', 'identity', 'history'],
 }

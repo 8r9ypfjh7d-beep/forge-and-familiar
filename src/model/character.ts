@@ -73,6 +73,16 @@ export interface KnownSpell {
   classId: string
 }
 
+export type ActionKind = 'action' | 'bonus' | 'reaction' | 'free' | 'other'
+
+/** An action the player wrote on the combat page (Curse Another, Douse with Oil...). */
+export interface CustomAction {
+  id: string
+  kind: ActionKind
+  name: string
+  description?: string
+}
+
 export const CHARACTER_SCHEMA_VERSION = 1
 
 /** A person using the app. Local profile for now; maps to an auth account once a backend exists. */
@@ -126,6 +136,8 @@ export interface Character {
   spellEdition?: '2014' | '2024'
   /** Spells, attacks and resources pinned to the sheet's quick-cast bar, in display order. */
   quickCast?: QuickCastEntry[]
+  /** Actions, bonus actions, reactions and the like the player added on the combat page. */
+  customActions?: CustomAction[]
   state: CharacterState
   createdAt: string
   updatedAt: string
