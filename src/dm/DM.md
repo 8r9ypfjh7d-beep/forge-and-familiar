@@ -9,7 +9,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 | `types.ts` | `DmState` (party groups, encounter plans, NPCs), `emptyDmState` |
 | `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters`, NPC generator with an injected picker, `normalizeDm` |
 | `store.ts` | `loadDm` / `saveDm`, localStorage `ff.dm.v1.<userId>` |
-| `DmScreen.tsx` | Top card (party and budget tiles) and tabs: Encounters, Monsters, Quick rules, NPCs |
+| `DmScreen.tsx` | Top card (party and budget tiles), story reminders (src/requests), and tabs: Encounters, Monsters, Quick rules, NPCs, Requests |
 | `dm.css` | Styles; the page sits inside `.ff-sheet` so cards, tabs and titles match the sheet |
 | `dm.test.ts` | Budget, difficulty, plans, hand-off, search and generator tests |
 
@@ -20,6 +20,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 - **Monsters.** SRD 5.1 library monsters (`loadKind('monsters')`). Stat block bonuses, saves, skills, attacks and damage roll through `useDice`, so they land in the DM's own history. The party roll feed never shows the DM's rolls (watchers are skipped).
 - **Run in combat tracker.** Makes an encounter with one `npc` row per creature (average HP, first AC, DEX initiative, CON save) and opens it in src/combat. Players are added there as usual.
 - **Quick rules.** DCs, cover, travel pace, light, conditions, and a few rulings, as translated text (keys `dm.ref.*`, `dm.cond.*`). Exhaustion is left out on purpose (removed from the app).
+- **Player requests.** Story reminders card and the Requests tab come from src/requests (see REQUESTS.md).
 - **NPCs.** Generator picks a made-up name plus a translated role, quirk and want (`dm.npc.*`, sizes in `NPC_TABLES`). Kept NPCs are editable text.
 
 ## Known tasks

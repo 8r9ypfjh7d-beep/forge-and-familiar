@@ -7,6 +7,7 @@ import { rollD20 } from '../dice'
 import { RollView, useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
+import { DmRequestsTab, inbox, StoryReminders, useRequests } from '../requests'
 import { formatMod } from '../rules'
 import type { Ability } from '../rules'
 import {
@@ -24,10 +25,11 @@ const newId = () => crypto.randomUUID()
 const SOURCE = 'srd-5.1'
 const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 
-type Tab = 'encounters' | 'monsters' | 'reference' | 'npcs'
-const TABS: Tab[] = ['encounters', 'monsters', 'reference', 'npcs']
+export type DmTab = 'encounters' | 'monsters' | 'reference' | 'npcs' | 'requests'
+type Tab = DmTab
+const TABS: Tab[] = ['encounters', 'monsters', 'reference', 'npcs', 'requests']
 const TAB_KEYS: Record<Tab, MessageKey> = {
-  encounters: 'dm.tab.encounters', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs',
+  encounters: 'dm.tab.encounters', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests',
 }
 const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
   none: 'dm.diff.none', trivial: 'dm.diff.trivial', low: 'dm.diff.low', moderate: 'dm.diff.moderate', high: 'dm.diff.high', beyond: 'dm.diff.beyond',
@@ -36,11 +38,14 @@ const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
 type Update = (fn: (s: DmState) => DmState) => void
 
 /** The DM's own screen. Nothing here reads players' characters. */
-export function DmScreen({ userId, onRunEncounter }: { userId: string; onRunEncounter: (encounterId: string) => void }) {
+export function DmScreen({ userId, onRunEncounter, initialTab }: { userId: string; onRunEncounter: (encounterId: string) => void; initialTab?: DmTab }) {
   const { t } = useI18n()
   const [state, setState] = useState<DmState | null>(null)
   const [monsters, setMonsters] = useState<Monster[]>([])
-  const [tab, setTab] = useState<Tab>('encounters')
+  const [tab, setTab] = useState<Tab>(initialTab ?? 'encounters')
+  const requests = useRequests()
+  // Opened straight on a later tab (from a request link): bring it into view on narrow screens.
+  useEffect(() => { if (initialTab) document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [initialTab, state])
   const [openMonster, setOpenMonster] = useState<string | null>(null)
 
   useEffect(() => { loadDm(userId).then(setState) }, [userId])
@@ -89,12 +94,14 @@ export function DmScreen({ userId, onRunEncounter }: { userId: string; onRunEnco
   return (
     <div className="ff-sheet ff-dm">
       <PartyCard state={state} update={update} plan={plan} />
+      {requests && <StoryReminders list={requests} onOpen={() => setTab('requests')} />}
       <div className="cs-tabs">
         <div className="cs-tablist" role="tablist" aria-label={t('dm.tabs')}>
           {TABS.map((id, i) => (
             <button key={id} id={`dm-tab-${id}`} type="button" role="tab" aria-selected={tab === id} aria-controls="dm-tabpanel"
               tabIndex={tab === id ? 0 : -1} className={tab === id ? 'on' : ''} onClick={() => setTab(id)} onKeyDown={e => move(e, i)}>
               {t(TAB_KEYS[id])}
+              {id === 'requests' && requests && inbox(requests).length > 0 && <span className="dm-badge">{inbox(requests).length}</span>}
             </button>
           ))}
         </div>
@@ -103,6 +110,7 @@ export function DmScreen({ userId, onRunEncounter }: { userId: string; onRunEnco
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} />}
           {tab === 'reference' && <ReferenceTab />}
           {tab === 'npcs' && <NpcsTab state={state} update={update} />}
+          {tab === 'requests' && <DmRequestsTab list={requests ?? []} />}
         </div>
       </div>
       <p className="hint dm-credit">{t('dm.credit')}</p>

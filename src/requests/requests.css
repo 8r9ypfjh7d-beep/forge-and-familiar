@@ -1,0 +1,69 @@
+/* Player requests to the DM. Lives inside .ff-sheet (player page and DM screen). Logical properties for RTL. */
+.ff-requests > .card { margin-block-end: 16px; }
+.ff-requests .plain, .req-reminders .plain, .ff-dm .req-list { list-style: none; margin: 0; padding: 0; }
+.ff-requests h1 { color: var(--s-accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: .02em; }
+.ff-requests textarea, .ff-dm .req-card textarea {
+  font: inherit; inline-size: 100%; padding: 8px 10px; resize: vertical;
+  border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink);
+}
+.ff-requests input:not([type]), .ff-requests select, .req-paste input, .req-link { font: inherit; padding: 6px 8px; min-inline-size: 0; }
+
+.req-form form { display: grid; gap: 12px; }
+.req-field { display: grid; gap: 4px; border: 0; margin: 0; padding: 0; min-inline-size: 0; }
+.req-field > input, .req-field > select { inline-size: 100%; }
+.req-kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+.req-kinds legend { margin-block-end: 4px; }
+.req-kinds .hint { flex-basis: 100%; margin: 0; }
+.req-kinds .chip:focus-within { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+.req-box { border: 1px solid var(--s-line); border-radius: 10px; padding: 10px 12px; }
+.req-box legend { padding-inline: 4px; }
+.req-box .inv-effects-editor { border: 0; padding: 0; margin: 0; }
+.req-box .hint { margin: 0; }
+.req-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.req-grid label { display: grid; gap: 2px; font-size: .85rem; min-inline-size: 0; }
+.req-grid input, .req-grid select { inline-size: 100%; }
+.req-error { color: var(--s-bad); margin: 0; }
+.req-form input[aria-invalid='true'], .req-grid input[aria-invalid='true'] { border-color: var(--s-bad); }
+
+.req-list { display: grid; gap: 10px; margin-block-end: 12px !important; }
+.req-card { border: 1px solid var(--s-line); border-inline-start-width: 4px; border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.req-card.st-pending { border-inline-start-color: var(--s-muted); }
+.req-card.st-later { border-inline-start-color: #b7791f; }
+.req-card.st-granted { border-inline-start-color: var(--s-good); }
+.req-card.st-denied { border-inline-start-color: var(--s-bad); opacity: .85; }
+.req-card.fresh { box-shadow: 0 0 0 2px var(--s-accent); }
+.req-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.req-head h3 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.req-kind { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; border: 1px solid var(--s-line); border-radius: 999px; padding: 1px 8px; color: var(--s-muted); }
+.req-who { margin-inline-start: auto; }
+.req-details { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.req-mech { display: grid; gap: 2px; font-size: .9rem; }
+.ff-sheet .req-mech .sub-title, .ff-sheet .req-reply .sub-title { display: inline; font-size: .7rem; margin: 0 0 0 0; margin-inline-end: 4px; padding: 0; border: 0; }
+.ff-sheet .req-field > .sub-title, .ff-sheet .req-card > .sub-title { margin: 4px 0 0; }
+.req-status { margin: 0; font-weight: 600; }
+.req-status.st-later { color: #b7791f; }
+.req-status.st-granted { color: var(--s-good); }
+.req-status.st-denied { color: var(--s-bad); }
+.req-reply { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.req-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.req-share { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.req-link { inline-size: min(100%, 320px); }
+.req-paste { display: grid; gap: 4px; }
+.req-row { display: flex; gap: 6px; }
+.req-row input { flex: 1; }
+
+/* DM: reminders on top of the screen while playing */
+.req-reminders { border-color: #b7791f !important; }
+.req-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.req-chips li { min-inline-size: 0; max-inline-size: 100%; }
+.req-chips details { border: 1px solid var(--s-line); border-radius: 12px; padding: 6px 10px; background: var(--s-bg); }
+.req-chips details[open] { display: grid; gap: 6px; max-inline-size: 420px; }
+.req-chips summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; }
+.req-granted { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-block-end: 8px; }
+
+/* App-wide notice after opening a link or adding a grant */
+.req-notice {
+  display: flex; gap: 8px; align-items: center; justify-content: space-between;
+  margin: 8px auto; padding: 8px 12px; max-inline-size: 1200px;
+  border: 1px solid var(--accent); border-radius: 10px; background: var(--accent-soft); color: var(--ink);
+}

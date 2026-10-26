@@ -7,6 +7,7 @@ import { CoinsView } from './coins'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { CompareView } from './compare'
 import { DmScreen } from './dm'
+import { RequestsAgent, RequestsView } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
@@ -27,7 +28,7 @@ import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
+type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
 
 const newId = () => crypto.randomUUID()
 
@@ -96,6 +97,11 @@ export default function App() {
     setView({ kind: 'list' })
   }
 
+  // A request link opens the DM's Requests tab; an answer link opens the player's requests.
+  const openRequestLink = useCallback((type: 'request' | 'answer') => {
+    setView(type === 'request' ? { kind: 'dm', tab: 'requests' } : { kind: 'requests' })
+  }, [])
+
   const onScreenId = 'id' in view ? view.id : undefined
   const onScreen = characters.find(c => c.id === onScreenId)
 
@@ -105,12 +111,14 @@ export default function App() {
   return (
     <DiceProvider key={active.id} userId={active.id}>
     <SessionRecorder userId={active.id} />
+    <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <div className="app">
       <SkipLink />
       <header className="topbar">
         <button className="brand" onClick={() => setView({ kind: 'list' })}>Forge &amp; Familiar</button>
         <div className="row">
           <button className={`chip ${view.kind === 'party' ? 'on' : ''}`} aria-current={view.kind === 'party' ? 'page' : undefined} onClick={() => setView({ kind: 'party' })}>{t('app.party')}</button>
+          {session?.role !== 'dm' && <button className={`chip ${view.kind === 'requests' ? 'on' : ''}`} aria-current={view.kind === 'requests' ? 'page' : undefined} onClick={() => setView({ kind: 'requests' })}>{t('app.requests')}</button>}
           {isDm && <button className={`chip ${view.kind === 'dm' ? 'on' : ''}`} aria-current={view.kind === 'dm' ? 'page' : undefined} onClick={() => setView({ kind: 'dm' })}>{t('app.dm')}</button>}
           <button className={`chip ${view.kind === 'homebrew' ? 'on' : ''}`} aria-current={view.kind === 'homebrew' ? 'page' : undefined} onClick={() => setView({ kind: 'homebrew' })}>{t('app.homebrew')}</button>
           <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} aria-current={view.kind === 'combat' ? 'page' : undefined} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
@@ -225,7 +233,8 @@ export default function App() {
         )}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'combat' && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
-        {view.kind === 'dm' && <DmScreen key={active.id} userId={active.id} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
+        {view.kind === 'dm' && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
+        {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
         {view.kind === 'coins' && <CoinsView userId={active.id} />}
         {view.kind === 'recap' && <RecapView userId={active.id} />}

@@ -118,3 +118,9 @@
   .dm-sb-abilities { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .dm-credit { font-size: .75rem; }
+
+/* New-requests count on the Requests tab */
+.dm-badge {
+  display: inline-block; margin-inline-start: 6px; min-inline-size: 1.4em; padding: 0 5px; border-radius: 999px;
+  background: var(--s-accent); color: #fff; font-size: .75rem; font-weight: 700; text-align: center;
+}
