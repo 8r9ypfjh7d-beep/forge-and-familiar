@@ -7,11 +7,11 @@ import type { Character } from '../model/character'
 import { derive, formatMod, getCritRange, getResources, type DerivedStats } from '../rules'
 import { ABILITIES, type Ability } from '../rules/types'
 import type { Apply } from '../sheet/types'
-import { SPELL_PRESETS } from './presets'
 import {
   addEntry, entriesOf, moveEntry, newEntryId, ORDINAL, removeEntry, resourceUse, slotChoices, spellDamage,
   spendResource, spendSlot,
 } from './quickcast'
+import { SpellPicker } from './SpellPicker'
 import type { QuickCastEntry, SlotChoice, SpellEntry } from './types'
 import './quickcast.css'
 
@@ -300,15 +300,7 @@ function AddEntry({ character, stats, onAdd, onCancel }: {
 
       {kind === 'spell' && (
         <>
-          <label>Start from an SRD spell
-            <select value="" onChange={e => {
-              const p = SPELL_PRESETS.find(x => x.name === e.target.value)
-              if (p) { setSpell({ ...p }); setError('') }
-            }}>
-              <option value="">Choose…</option>
-              {SPELL_PRESETS.map(p => <option key={p.name} value={p.name}>{p.name} ({ORDINAL[p.level]})</option>)}
-            </select>
-          </label>
+          <SpellPicker character={character} onPick={p => { setSpell(p); setError('') }} />
           <div className="qc-grid">
             <label className="wide">Name<input value={spell.name} onChange={e => patch({ name: e.target.value })} placeholder="Fireball" /></label>
             <label>Level
