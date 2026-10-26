@@ -8,7 +8,7 @@ The Spells card on the live sheet. It lists the character's own spells by level,
 |------|---------|
 | `index.ts` | Public API |
 | `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells), `canTake`, `availableSpells`, `editionOf`, `sourceFor` |
-| `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
+| `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `storySpellsOf`, `toggleStorySpell`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
 | `Spellbook.tsx` | The card: summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
 | `spellbook.css` | Styles, scoped inside `.ff-sheet` |
 | `spellbook.test.ts` | Access for both editions, multiclass, subclass spells, quick-cast mapping |
@@ -24,6 +24,10 @@ The Spells card on the live sheet. It lists the character's own spells by level,
 ## Saved data
 
 `Character.spells` (`{ id, classId }[]`) and `Character.spellEdition` (`'2024'`, or missing for 2014). Ids are library slugs, shared by both editions, so switching edition keeps the choices; spells the new edition lacks (Hex is not in SRD 5.1) just don't show.
+
+## Story spells
+
+`StorySpells` is story mode's Spells card. It shows only the spells in `Character.storySpells`, pinned with "+ Pin spells" from every spell the character's classes can take (their own spells first). Separate from quick-cast, which is for combat.
 
 ## Quick cast
 

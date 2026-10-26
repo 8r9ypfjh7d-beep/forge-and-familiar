@@ -7,7 +7,7 @@ The sheet's combat mode, laid out like Roll20's character page. Only the layout 
 | File | Purpose |
 |------|---------|
 | `combat.ts` | Pure: `spellAttackRows` (known library spells and typed-in quick-cast spells that attack or force a save), `withRollFromText` (save/attack from the text when the library has none), `addAction` / `updateAction` / `removeAction` / `actionsOf` (the player's own actions), `resolveDice` (fills STR…CHA, PROF, LEVEL), `actionRoll` (an action's attack bonus or save DC and dice), `isHealing`, `effectToggles` (Rage, Sneak Attack, Hex, Hunter's Mark, Divine Favor), `masteryLimit` |
-| `CombatPage.tsx` | `CombatSummary` (portrait and level, class and subclass, race, background, XP, proficiency, Level Up, Initiative roll, the sheet's HP and Rest cards, abilities with Mod and Save rolls, AC and speed), `SkillsPanel`, `CombatTabs`, `Fight` (Combat tab), `FeaturesTraits` |
+| `CombatPage.tsx` | `CombatSummary` (portrait and level, class and subclass, race, background, XP, proficiency, Level Up, Initiative roll, the sheet's HP and Rest cards, `AbilitiesPanel` with Mod and Save rolls, `AcSpeed`; story mode reuses `AbilitiesPanel` and `SkillsPanel`), `SkillsPanel`, `CombatTabs`, `Fight` (Combat tab), `FeaturesTraits` |
 | `combat.css` | Styles, logical properties for RTL |
 | `combat.test.ts` | Helper tests |
 

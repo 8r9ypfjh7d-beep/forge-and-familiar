@@ -138,6 +138,8 @@ export interface Character {
   notes: string
   /** Known or prepared spells (src/spellbook). Missing on older saves: none chosen. */
   spells?: KnownSpell[]
+  /** Library spell ids pinned to story mode's Spells card, in display order (src/spellbook). */
+  storySpells?: string[]
   /** Rules edition for spell lists and counts: '2024' uses the SRD 5.2. Missing means 2014 (SRD 5.1). */
   spellEdition?: '2014' | '2024'
   /** Spells, attacks and resources pinned to the sheet's quick-cast bar, in display order. */

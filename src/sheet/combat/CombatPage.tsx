@@ -86,7 +86,7 @@ function LastRoll({ rolls, note }: { rolls: Shown[]; note?: string }) {
 // ---------- Summary ----------
 
 export function CombatSummary({ character, vitals, onEdit }: { character: Character; vitals: ReactNode; onEdit?: () => void }) {
-  const { t, term, className, raceName, abilityShort } = useI18n()
+  const { t, term, className, raceName } = useI18n()
   const d = derive(character)
   const rolls = useSheetRolls(character)
   const [last, setLast] = useState<Shown | null>(null)
@@ -127,39 +127,62 @@ export function CombatSummary({ character, vitals, onEdit }: { character: Charac
 
       <div className="cs-vitals">{vitals}</div>
 
-      <section className="card cs-abilities" aria-labelledby="cs-abilities-title">
-        <h2 id="cs-abilities-title">{t('cs.abilities')}</h2>
-        <ul className="cs-ability-row">
-          {ABILITIES.map(a => (
-            <li key={a} className="cs-ability">
-              <div className="cs-ability-head">
-                <span className="abbr">{abilityShort(a)}</span>
-                <span className="cs-score">{m(`ability:${a}`, d.abilities[a])}</span>
-              </div>
-              <div className="cs-ability-rolls">
-                <button type="button" className="cs-roll" onClick={() => setLast({ roll: rolls.check(d, a), what: t('cs.roll.check', { ability: abilityShort(a) }) })}
-                  aria-label={t('cs.rollCheck', { ability: abilityShort(a), bonus: formatMod(d.mods[a]) })}>
-                  <span dir="ltr">{formatMod(d.mods[a])}</span><small>{t('cs.mod')}</small>
-                </button>
-                <button type="button" className={`cs-roll save${d.saves[a].proficient ? ' prof' : ''}`} onClick={() => setLast({ roll: rolls.save(d, a), what: t('cs.roll.save', { ability: abilityShort(a) }) })}
-                  aria-label={t(d.saves[a].proficient ? 'cs.rollSaveProf' : 'cs.rollSave', { ability: abilityShort(a), bonus: formatMod(d.saves[a].bonus) })}>
-                  <span dir="ltr">{formatMod(d.saves[a].bonus)}</span><i className="dot" aria-hidden="true" /><small>{t('cs.save')}</small>
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="card cs-acspeed" aria-labelledby="cs-ac-title">
-        <h2 id="cs-ac-title">{t('cs.acSpeed')}</h2>
-        <dl>
-          <div><dt>{t('cs.armorClass')}</dt><dd className="cs-shield">{m('ac', d.armorClass.value)}</dd></div>
-          <div><dt>{t('cs.speedFt')}</dt><dd className="cs-hex">{m('speed', d.speed)}</dd></div>
-          <div><dt>{t('stat.passivePerception')}</dt><dd>{m('passivePerception', d.passivePerception)}</dd></div>
-        </dl>
-      </section>
+      <AbilitiesPanel character={character} onRoll={setLast} />
+      <AcSpeed character={character} />
     </div>
+  )
+}
+
+/** The six abilities, each with a Mod (check) and Save roll. Shows its own last roll unless `onRoll` takes it. */
+export function AbilitiesPanel({ character, onRoll }: { character: Character; onRoll?: (shown: Shown) => void }) {
+  const { t, abilityShort } = useI18n()
+  const d = derive(character)
+  const rolls = useSheetRolls(character)
+  const [own, setOwn] = useState<Shown | null>(null)
+  const setLast = onRoll ?? setOwn
+  const m = (stat: Parameters<typeof ShowMath>[0]['stat'], text: string | number) => <ShowMath character={character} stat={stat}>{text}</ShowMath>
+  return (
+    <section className="card cs-abilities" aria-labelledby="cs-abilities-title">
+      <h2 id="cs-abilities-title">{t('cs.abilities')}</h2>
+      <ul className="cs-ability-row">
+        {ABILITIES.map(a => (
+          <li key={a} className="cs-ability">
+            <div className="cs-ability-head">
+              <span className="abbr">{abilityShort(a)}</span>
+              <span className="cs-score">{m(`ability:${a}`, d.abilities[a])}</span>
+            </div>
+            <div className="cs-ability-rolls">
+              <button type="button" className="cs-roll" onClick={() => setLast({ roll: rolls.check(d, a), what: t('cs.roll.check', { ability: abilityShort(a) }) })}
+                aria-label={t('cs.rollCheck', { ability: abilityShort(a), bonus: formatMod(d.mods[a]) })}>
+                <span dir="ltr">{formatMod(d.mods[a])}</span><small>{t('cs.mod')}</small>
+              </button>
+              <button type="button" className={`cs-roll save${d.saves[a].proficient ? ' prof' : ''}`} onClick={() => setLast({ roll: rolls.save(d, a), what: t('cs.roll.save', { ability: abilityShort(a) }) })}
+                aria-label={t(d.saves[a].proficient ? 'cs.rollSaveProf' : 'cs.rollSave', { ability: abilityShort(a), bonus: formatMod(d.saves[a].bonus) })}>
+                <span dir="ltr">{formatMod(d.saves[a].bonus)}</span><i className="dot" aria-hidden="true" /><small>{t('cs.save')}</small>
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {own && <LastRoll rolls={[own]} />}
+    </section>
+  )
+}
+
+/** Armor class, speed and passive perception. */
+export function AcSpeed({ character }: { character: Character }) {
+  const { t } = useI18n()
+  const d = derive(character)
+  const m = (stat: Parameters<typeof ShowMath>[0]['stat'], text: string | number) => <ShowMath character={character} stat={stat}>{text}</ShowMath>
+  return (
+    <section className="card cs-acspeed" aria-labelledby="cs-ac-title">
+      <h2 id="cs-ac-title">{t('cs.acSpeed')}</h2>
+      <dl>
+        <div><dt>{t('cs.armorClass')}</dt><dd className="cs-shield">{m('ac', d.armorClass.value)}</dd></div>
+        <div><dt>{t('cs.speedFt')}</dt><dd className="cs-hex">{m('speed', d.speed)}</dd></div>
+        <div><dt>{t('stat.passivePerception')}</dt><dd>{m('passivePerception', d.passivePerception)}</dd></div>
+      </dl>
+    </section>
   )
 }
 
