@@ -1,0 +1,28 @@
+# Tells Render to rebuild the live site after every push to main.
+# Backup for Render's own auto-deploy, which sometimes misses pushes.
+# Needs the repo secret RENDER_DEPLOY_HOOK (Render > Settings > Deploy Hook).
+name: Deploy to Render
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: render-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Render deploy hook
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK secret is not set, skipping deploy"
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Render deploy started"

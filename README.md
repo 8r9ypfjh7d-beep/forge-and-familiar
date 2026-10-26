@@ -10,3 +10,7 @@ npm run build
 ```
 
 Characters and player profiles are saved in the browser for now (see `src/storage/`).
+
+## Online version
+
+The app is live at https://forge-and-familiar.onrender.com, a free Render static site (build `npm ci && npm run build`, publish `dist`, Node 22). Every push to `main` rebuilds and republishes it, through Render's auto-deploy and the `Deploy to Render` GitHub Action (repo secret `RENDER_DEPLOY_HOOK`). Characters are still saved per device and browser until accounts exist.
