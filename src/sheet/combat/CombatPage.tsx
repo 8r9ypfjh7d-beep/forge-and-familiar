@@ -102,31 +102,32 @@ export function CombatSummary({ character, vitals, onEdit }: { character: Charac
 
   return (
     <div className="cs-summary">
-      <section className="card cs-hero" aria-labelledby="cs-name">
-        <div className="cs-portrait">
-          {character.portrait
-            ? <img src={character.portrait} alt="" />
-            : <div className="placeholder" aria-hidden="true">{character.name.slice(0, 1)}</div>}
-          <span className="cs-level" aria-label={t('cs.level', { n: d.level })}>{d.level}</span>
+      <section className="card cs-top" aria-labelledby="cs-name">
+        <div className="cs-hero">
+          <div className="cs-portrait">
+            {character.portrait
+              ? <img src={character.portrait} alt="" />
+              : <div className="placeholder" aria-hidden="true">{character.name.slice(0, 1)}</div>}
+            <span className="cs-level" aria-label={t('cs.level', { n: d.level })}>{d.level}</span>
+          </div>
+          <div className="cs-who">
+            <h1 id="cs-name">{character.name}</h1>
+            <p className="cs-class">{classes}</p>
+            <p>{raceName(character.raceId, character.subraceId)}</p>
+            {bg && <p>{term('background', bg.id, bg.name)}</p>}
+            <p className="cs-xp">{next ? t('cs.xp', { xp: character.xp, next }) : t('cs.xpMax', { xp: character.xp })}</p>
+            <p className="cs-prof">{t('cs.prof')} <span className="cs-badge">{m('proficiency', formatMod(d.proficiencyBonus))}</span></p>
+          </div>
+          <div className="cs-hero-actions">
+            {onEdit && <button type="button" className="btn cs-levelup" onClick={onEdit}>{t('cs.levelUp')}</button>}
+            <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
+              {t('cs.initiative', { bonus: formatMod(d.initiative) })}
+            </button>
+          </div>
+          {last && <LastRoll rolls={[last]} />}
         </div>
-        <div className="cs-who">
-          <h1 id="cs-name">{character.name}</h1>
-          <p className="cs-class">{classes}</p>
-          <p>{raceName(character.raceId, character.subraceId)}</p>
-          {bg && <p>{term('background', bg.id, bg.name)}</p>}
-          <p className="cs-xp">{next ? t('cs.xp', { xp: character.xp, next }) : t('cs.xpMax', { xp: character.xp })}</p>
-          <p className="cs-prof">{t('cs.prof')} <span className="cs-badge">{m('proficiency', formatMod(d.proficiencyBonus))}</span></p>
-        </div>
-        <div className="cs-hero-actions">
-          {onEdit && <button type="button" className="btn cs-levelup" onClick={onEdit}>{t('cs.levelUp')}</button>}
-          <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
-            {t('cs.initiative', { bonus: formatMod(d.initiative) })}
-          </button>
-        </div>
-        {last && <LastRoll rolls={[last]} />}
+        <div className="cs-vitals">{vitals}</div>
       </section>
-
-      <div className="cs-vitals">{vitals}</div>
 
       <AbilitiesPanel character={character} onRoll={setLast} />
       <AcSpeed character={character} />
