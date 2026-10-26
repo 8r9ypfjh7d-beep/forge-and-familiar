@@ -19,7 +19,7 @@ export function removeSpell(c: Character, classId: string, id: string): Characte
 }
 
 /** Switching rules editions keeps the chosen spells; ids are shared slugs, and ones the new list lacks just don't show. */
-export const setEdition = (c: Character, edition: Edition): Character => ({ ...c, spellEdition: edition === '2014' ? undefined : edition })
+export const setEdition = (c: Character, edition: Edition): Character => ({ ...c, spellEdition: edition === (c.rulesEdition ?? '2014') ? undefined : edition })
 
 const DICE = /^(\d+)d(\d+)(.*)$/
 

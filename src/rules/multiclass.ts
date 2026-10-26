@@ -1,26 +1,31 @@
 import type { Character } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
+import { classChoices } from './choices'
 import { classById } from './data/classes'
 import { subclassById } from './data/subclasses'
 import {
-  MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES, NON_STACKING_FEATURES, NON_STACKING_RESOURCES, type MulticlassPrereq,
+  MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES, MULTICLASS_PROFICIENCIES_2024, NON_STACKING_FEATURES, NON_STACKING_RESOURCES, type MulticlassPrereq,
 } from './data/multiclass'
+import { rulesEdition } from './edition'
 import type { Abilities, Ability, ArmorCategory, ClassDef, WeaponCategory } from './types'
 
-// SRD 5.1 multiclassing: prerequisites, limited proficiencies, caster level and warnings.
+// Multiclassing (SRD 5.1 and 5.2): prerequisites, limited proficiencies, caster level and warnings.
+
+type Classes = Pick<Character, 'classes'> & Partial<Pick<Character, 'rulesEdition'>>
 
 /** The fields multiclass rules read; a builder draft has them too. */
-export type MulticlassInput = Pick<Character, 'classes' | 'baseAbilities' | 'raceId' | 'subraceId' | 'freeAbilityBonuses'>
+export type MulticlassInput = Pick<Character, 'classes' | 'baseAbilities' | 'raceId' | 'subraceId' | 'freeAbilityBonuses'> &
+  Partial<Pick<Character, 'rulesEdition' | 'backgroundId' | 'customBackground' | 'improvements' | 'originFeatId' | 'featureChoices'>>
 
 export const MAX_CHARACTER_LEVEL = 20
 
-const classesOf = (c: Pick<Character, 'classes'>) =>
+const classesOf = (c: Classes) =>
   c.classes.flatMap(cl => {
-    const def = classById(cl.classId)
+    const def = classById(cl.classId, rulesEdition(c))
     return def ? [{ def, level: cl.level }] : []
   })
 
-const isMulticlass = (c: Pick<Character, 'classes'>) => classesOf(c).length > 1
+const isMulticlass = (c: Classes) => classesOf(c).length > 1
 
 const minimums = (p: Partial<Abilities>) => Object.entries(p) as [Ability, number][]
 
@@ -40,7 +45,7 @@ export function meetsPrereq(classId: string, scores: Abilities): boolean {
 
 /** Why `classId` can't be added as a new class (empty when it can). Checks the new class and every current one. */
 export function addClassIssues(c: MulticlassInput, classId: string): string[] {
-  const def = classById(classId)
+  const def = classById(classId, rulesEdition(c))
   if (!def) return ['Unknown class.']
   if (c.classes.some(cl => cl.classId === classId)) return [`Already a ${def.name}.`]
   const out: string[] = []
@@ -53,20 +58,25 @@ export function addClassIssues(c: MulticlassInput, classId: string): string[] {
   return out
 }
 
-/** Armor and weapon proficiencies: the first class in full, later classes only their multiclass grant. */
-export function getProficiencies(c: Pick<Character, 'classes'>) {
+/** Armor and weapon proficiencies: the first class in full, later classes only their multiclass grant, plus class choices (Divine Order). */
+export function getProficiencies(c: Classes & Partial<Pick<Character, 'featureChoices'>>) {
   const armor = new Set<ArmorCategory>()
   const weapons = new Set<WeaponCategory>()
   const weaponIds = new Set<string>()
+  const grants = rulesEdition(c) === '2024' ? MULTICLASS_PROFICIENCIES_2024 : MULTICLASS_PROFICIENCIES
   classesOf(c).forEach(({ def }, i) => {
-    const grant: Pick<ClassDef, 'armor' | 'weapons' | 'weaponIds'> = i === 0 ? def : (MULTICLASS_PROFICIENCIES[def.id] ?? def)
+    const grant: Pick<ClassDef, 'armor' | 'weapons' | 'weaponIds'> = i === 0 ? def : (grants[def.id] ?? def)
     grant.armor.forEach(a => armor.add(a))
     grant.weapons.forEach(w => weapons.add(w))
     grant.weaponIds?.forEach(id => weaponIds.add(id))
   })
   for (const cl of c.classes) {
-    const sub = cl.subclassId ? subclassById(cl.subclassId) : undefined
-    if (sub?.classId === cl.classId && cl.level >= (classById(cl.classId)?.subclassLevel ?? 99)) sub.armor?.forEach(a => armor.add(a))
+    const sub = cl.subclassId ? subclassById(cl.subclassId, rulesEdition(c)) : undefined
+    if (sub?.classId === cl.classId && cl.level >= (classById(cl.classId, rulesEdition(c))?.subclassLevel ?? 99)) sub.armor?.forEach(a => armor.add(a))
+  }
+  for (const { picked } of classChoices(c)) {
+    picked?.armor?.forEach(a => armor.add(a))
+    picked?.weapons?.forEach(w => weapons.add(w))
   }
   return { armor, weapons, weaponIds }
 }
@@ -79,14 +89,17 @@ export interface CasterLevel {
   explanation: string
 }
 
-/** Shared spell slot caster level. A single half caster uses its own table (rounds up from level 2); multiclassed half casters round down. Pact magic is separate. */
-export function getCasterLevel(c: Pick<Character, 'classes'>): CasterLevel {
+/**
+ * Shared spell slot caster level. Pact magic is separate. 2014: a single half caster uses its own table (rounds up
+ * from level 2); multiclassed half casters round down. 2024: half casters always round up and cast from level 1.
+ */
+export function getCasterLevel(c: Classes): CasterLevel {
   const casters = classesOf(c).filter(x => x.def.caster === 'full' || x.def.caster === 'half')
-  const single = casters.length === 1 && casters[0].def.caster === 'half'
+  const single = rulesEdition(c) === '2024' || (casters.length === 1 && casters[0].def.caster === 'half')
   const parts = casters.map(({ def, level }) => ({
     className: def.name,
     level,
-    counts: def.caster === 'full' ? level : single ? (level >= 2 ? Math.ceil(level / 2) : 0) : Math.floor(level / 2),
+    counts: def.caster === 'full' ? level : single ? (level >= 2 || rulesEdition(c) === '2024' ? Math.ceil(level / 2) : 0) : Math.floor(level / 2),
   }))
   const casterLevel = Math.min(MAX_CHARACTER_LEVEL, parts.reduce((n, p) => n + p.counts, 0))
   const terms = casters.map(({ def, level }) =>

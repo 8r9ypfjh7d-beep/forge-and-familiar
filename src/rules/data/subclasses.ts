@@ -1,4 +1,5 @@
-import type { ArmorCategory, Subclass } from '../types'
+import type { Ability, ArmorCategory, RulesEdition, Subclass } from '../types'
+import { SUBCLASSES_2024 } from './srd52/subclasses'
 
 /** Subclass with the few mechanics the engine applies. */
 export interface SubclassDef extends Subclass {
@@ -8,6 +9,8 @@ export interface SubclassDef extends Subclass {
   hpPerLevel?: number
   /** Unarmored AC base before DEX (Draconic Resilience: 13). */
   unarmoredBase?: number
+  /** Unarmored AC is 10 + DEX + this ability (2024 Draconic Resilience: CHA). */
+  unarmoredAbility?: Ability
 }
 
 // SRD 5.1 includes one subclass per class.
@@ -31,12 +34,15 @@ let homebrew: SubclassDef[] = []
 
 /** Replace the registered homebrew subclasses. SRD ids always win. */
 export function registerHomebrewSubclasses(list: SubclassDef[]): void {
-  const srd = new Set(SUBCLASSES.map(s => s.id))
+  const srd = new Set([...SUBCLASSES, ...SUBCLASSES_2024].map(s => s.id))
   homebrew = list.filter(s => !srd.has(s.id))
 }
 
-export const subclassesFor = (classId: string): SubclassDef[] =>
-  [...SUBCLASSES, ...homebrew].filter(s => s.classId === classId)
+const srdFor = (edition: RulesEdition) => (edition === '2024' ? SUBCLASSES_2024 : SUBCLASSES)
 
-export const subclassById = (id: string): SubclassDef | undefined =>
-  SUBCLASSES.find(s => s.id === id) ?? homebrew.find(s => s.id === id)
+/** SRD subclasses of the edition, then homebrew ones (offered in both editions). */
+export const subclassesFor = (classId: string, edition: RulesEdition = '2014'): SubclassDef[] =>
+  [...srdFor(edition), ...homebrew].filter(s => s.classId === classId)
+
+export const subclassById = (id: string, edition: RulesEdition = '2014'): SubclassDef | undefined =>
+  srdFor(edition).find(s => s.id === id) ?? homebrew.find(s => s.id === id)

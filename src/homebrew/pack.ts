@@ -343,5 +343,10 @@ export function describeEffect(e: FeatEffect): string {
     case 'speed': return `Speed ${sign(e.amount)} ft.`
     case 'initiative': return `Initiative ${sign(e.amount)}`
     case 'ac': return `AC ${sign(e.amount)}`
+    case 'armoredAc': return `AC ${sign(e.amount)} while wearing armor`
+    case 'rangedAttack': return `Ranged attacks ${sign(e.amount)}`
+    case 'initiativeProficiency': return 'Proficiency bonus to initiative'
+    case 'skillPicks': return `${e.count} skill${e.count > 1 ? 's' : ''} of your choice`
+    case 'abilityChoice': return `+1 to ${e.from.map(a => ABILITY_NAMES[a]).join(' or ')} (max ${e.max})`
   }
 }

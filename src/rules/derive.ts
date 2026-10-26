@@ -1,6 +1,6 @@
 import type { Character, HitDie } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
-import { featBonus, getFeats, getLanguages, getTools } from './choices'
+import { classChoices, featBonus, featEffects, getFeats, getLanguages, getTools } from './choices'
 import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { entryItem } from './data/items'
@@ -8,6 +8,7 @@ import { NON_STACKING_RESOURCES } from './data/multiclass'
 import { raceById } from './data/races'
 import { subclassById, type SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
+import { rulesEdition, uses2024Spells } from './edition'
 import { itemBonus } from './itemEffects'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { ABILITIES, type Abilities, type Ability, type ClassDef, type InventoryEntry, type Item, type RestType, type SkillId } from './types'
@@ -15,11 +16,11 @@ import { ABILITIES, type Abilities, type Ability, type ClassDef, type InventoryE
 type Weapon = Extract<Item, { kind: 'weapon' }>
 type Armor = Extract<Item, { kind: 'armor' }>
 
-const classesOf = (c: Character) =>
+const classesOf = (c: Pick<Character, 'classes' | 'rulesEdition'>) =>
   c.classes.flatMap(cl => {
-    const def = classById(cl.classId)
+    const def = classById(cl.classId, rulesEdition(c))
     if (!def) return []
-    const sub = cl.subclassId ? subclassById(cl.subclassId) : undefined
+    const sub = cl.subclassId ? subclassById(cl.subclassId, rulesEdition(c)) : undefined
     const subclass: SubclassDef | undefined = sub?.classId === cl.classId && cl.level >= def.subclassLevel ? sub : undefined
     return [{ def, level: cl.level, subclass }]
   })
@@ -39,7 +40,7 @@ export const xpForNextLevel = (level: number): number | undefined => XP_THRESHOL
 /** Max HP: max die at 1st level, fixed average after, plus CON and racial extras. */
 export function getMaxHp(c: Character): number {
   const con = getAbilityMods(getAbilityScores(c)).con
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
   const perLevelBonus = (race?.hpPerLevel ?? 0) + (race?.subraces?.find(s => s.id === c.subraceId)?.hpPerLevel ?? 0) + featBonus(c, 'hpPerLevel')
   let hp = 0
   let first = true
@@ -110,15 +111,22 @@ export function getResources(c: Character): ResourceInfo[] {
   return out
 }
 
+/** Weapon Mastery (2024): how many kinds of weapon the character can use mastery properties with. 0 in 2014. */
+export function getWeaponMasteryCount(c: Pick<Character, 'classes' | 'rulesEdition'>): number {
+  if (rulesEdition(c) !== '2024') return 0
+  return Math.max(0, ...classesOf(c).map(({ def, level }) => (def.weaponMastery ?? []).reduce((n, [from, v]) => (level >= from ? v : n), 0)))
+}
+
 // ---------- Equipment ----------
 
+// SRD 5.1 race and subrace weapon training. 2024 species have none.
 const RACIAL_WEAPONS: Record<string, string[]> = {
   dwarf: ['battleaxe', 'handaxe', 'warhammer'],
   'high-elf': ['longsword', 'shortsword', 'shortbow', 'longbow'],
 }
 
 function isWeaponProficient(c: Character, w: Weapon) {
-  const racial = [...(RACIAL_WEAPONS[c.raceId] ?? []), ...(RACIAL_WEAPONS[c.subraceId ?? ''] ?? [])]
+  const racial = rulesEdition(c) === '2024' ? [] : [...(RACIAL_WEAPONS[c.raceId] ?? []), ...(RACIAL_WEAPONS[c.subraceId ?? ''] ?? [])]
   if (racial.includes(w.id)) return true
   const { weapons, weaponIds } = getProficiencies(c)
   return weapons.has(w.category) || weaponIds.has(w.id)
@@ -170,13 +178,14 @@ export function getArmorClass(c: Character): { value: number; source: string } {
       }
     }
     for (const { subclass } of classesOf(c)) {
-      if (subclass?.unarmoredBase && subclass.unarmoredBase + mods.dex > value) {
-        value = subclass.unarmoredBase + mods.dex
+      const sub = subclass?.unarmoredAbility ? 10 + mods[subclass.unarmoredAbility] : (subclass?.unarmoredBase ?? 0)
+      if (subclass && sub && sub + mods.dex > value) {
+        value = sub + mods.dex
         source = subclass.name
       }
     }
   }
-  const featAc = featBonus(c, 'ac')
+  const featAc = featBonus(c, 'ac') + (armor ? featBonus(c, 'armoredAc') : 0)
   if (featAc) {
     value += featAc
     source += ' + feats'
@@ -215,8 +224,17 @@ export interface Attack {
   range?: string
 }
 
-const martialArtsDie = (monkLevel: number) =>
-  monkLevel >= 17 ? '1d10' : monkLevel >= 11 ? '1d8' : monkLevel >= 5 ? '1d6' : '1d4'
+const martialArtsDie = (monkLevel: number, edition: string) =>
+  edition === '2024'
+    ? monkLevel >= 17 ? '1d12' : monkLevel >= 11 ? '1d10' : monkLevel >= 5 ? '1d8' : '1d6'
+    : monkLevel >= 17 ? '1d10' : monkLevel >= 11 ? '1d8' : monkLevel >= 5 ? '1d6' : '1d4'
+
+/** Monk weapons: 2014 simple melee and shortswords; 2024 simple melee and martial Light melee weapons. Never heavy or two-handed. */
+function isMonkWeapon(w: Weapon, edition: string) {
+  if (w.properties.includes('heavy') || w.properties.includes('two-handed') || w.properties.includes('ranged')) return false
+  if (w.category === 'simple') return true
+  return edition === '2024' ? w.properties.includes('light') : w.id === 'shortsword'
+}
 
 const withMod = (dice: string, mod: number) => (mod === 0 ? dice : `${dice}${mod > 0 ? '+' : '−'}${Math.abs(mod)}`)
 
@@ -226,6 +244,8 @@ export function getAttacks(c: Character): Attack[] {
   const monk = classesOf(c).find(x => x.def.id === 'monk')
   const { armor, shield } = getEquippedArmor(c)
   const martialArts = monk && !armor && !shield
+  const edition = rulesEdition(c)
+  const rangedBonus = featBonus(c, 'rangedAttack')
   const out: Attack[] = []
   const seen = new Set<string>()
 
@@ -237,11 +257,10 @@ export function getAttacks(c: Character): Attack[] {
     const ranged = item.properties.includes('ranged')
     let ability: Ability = ranged ? 'dex' : 'str'
     if (item.properties.includes('finesse')) ability = mods.dex > mods.str ? 'dex' : 'str'
-    const monkWeapon = martialArts && !item.properties.includes('heavy') && !item.properties.includes('two-handed') &&
-      (item.id === 'shortsword' || (item.category === 'simple' && !ranged))
+    const monkWeapon = martialArts && isMonkWeapon(item, edition)
     if (monkWeapon && mods.dex > mods[ability]) ability = 'dex'
     // Pact of the Blade: proficient with the pact weapon; the 2024 rules let it use Charisma.
-    if (entry.pact && c.spellEdition === '2024' && mods.cha > mods[ability]) ability = 'cha'
+    if (entry.pact && uses2024Spells(c) && mods.cha > mods[ability]) ability = 'cha'
     const proficient = entry.pact || isWeaponProficient(c, item)
     const magic = entry.magicBonus ?? 0
     const dmgMod = mods[ability] + magic + itemBonus(c, 'damage')
@@ -254,7 +273,7 @@ export function getAttacks(c: Character): Attack[] {
     if (!proficient) notes.push('not proficient')
     out.push({
       name: item.name,
-      bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack'),
+      bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack') + (ranged ? rangedBonus : 0),
       damage: withMod(item.damage, dmgMod),
       damageType: item.damageType,
       ability,
@@ -274,7 +293,7 @@ export function getAttacks(c: Character): Attack[] {
     name: 'Unarmed Strike',
     bonus: mods[unarmedAbility] + prof + itemBonus(c, 'attack'),
     damage: martialArts
-      ? withMod(martialArtsDie(monk.level), mods[unarmedAbility] + itemBonus(c, 'damage'))
+      ? withMod(martialArtsDie(monk.level, edition), mods[unarmedAbility] + itemBonus(c, 'damage'))
       : `${Math.max(0, 1 + mods.str + itemBonus(c, 'damage'))}`,
     damageType: 'bludgeoning',
     ability: unarmedAbility,
@@ -319,7 +338,7 @@ export interface DerivedStats {
 
 /** All proficient skills: chosen + race + background + feats. */
 export function getSkillProficiencies(c: Character): Set<SkillId> {
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
   const bg = getBackground(c)
   const fromFeats = getFeats(c).flatMap(f => f.effects.flatMap(e => (e.kind === 'skill' ? [e.skill] : [])))
   return new Set([...c.chosenSkills, ...(race?.skillProficiencies ?? []), ...(bg?.skillProficiencies ?? []), ...fromFeats])
@@ -334,11 +353,12 @@ export function derive(c: Character): DerivedStats {
   const prof = proficiencyBonus(level)
   const classes = classesOf(c)
   const firstClass: ClassDef | undefined = classes[0]?.def
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
   const subrace = race?.subraces?.find(s => s.id === c.subraceId)
   const bard = classes.find(x => x.def.id === 'bard')
   const jackOfAllTrades = bard && bard.level >= 2 ? Math.floor(prof / 2) : 0
   const warnings: string[] = []
+  const choices = classChoices(c)
 
   const itemSaves = itemBonus(c, 'saves')
   const itemChecks = itemBonus(c, 'checks')
@@ -358,7 +378,7 @@ export function derive(c: Character): DerivedStats {
   }
 
   const { armor, shield } = getEquippedArmor(c)
-  let speed = (race?.speed ?? 30) + featBonus(c, 'speed') + itemBonus(c, 'speed')
+  let speed = (subrace?.speed ?? race?.speed ?? 30) + featBonus(c, 'speed') + itemBonus(c, 'speed')
   if (armor?.category === 'heavy' && armor.strengthReq && abilities.str < armor.strengthReq) {
     speed -= 10
     warnings.push(`${armor.name} needs STR ${armor.strengthReq}: speed −10 ft.`)
@@ -387,7 +407,8 @@ export function derive(c: Character): DerivedStats {
     saves,
     skills,
     passivePerception: 10 + skills.perception.bonus,
-    initiative: mods.dex + jackOfAllTrades + featBonus(c, 'initiative') + itemChecks + itemBonus(c, 'initiative'),
+    // 2024 Alert adds the proficiency bonus instead of Jack of All Trades' half.
+    initiative: mods.dex + (featEffects(c, 'initiativeProficiency').length ? prof : jackOfAllTrades) + featBonus(c, 'initiative') + itemChecks + itemBonus(c, 'initiative'),
     speed,
     armorClass: getArmorClass(c),
     maxHp: getMaxHp(c),
@@ -402,7 +423,11 @@ export function derive(c: Character): DerivedStats {
     carryingCapacity,
     carriedWeight: Math.round(carriedWeight * 100) / 100,
     features: classes.flatMap(({ def, level: l, subclass }) =>
-      [...def.features, ...(subclass?.features ?? [])].filter(f => f.level <= l).sort((a, b) => a.level - b.level).map(f => ({ ...f, className: def.name })),
+      [...def.features, ...(subclass?.features ?? [])].filter(f => f.level <= l).sort((a, b) => a.level - b.level).map(f => {
+        // A class choice shows its pick: "Divine Order (Protector)".
+        const picked = choices.find(x => x.classId === def.id && x.choice.name === f.name)?.picked
+        return { ...f, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name }
+      }),
     ),
     traits: [...(race?.traits ?? []), ...(subrace?.traits ?? [])].map(t => {
       const choice = race?.traitChoice

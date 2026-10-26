@@ -296,7 +296,7 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, on
                 {c.portrait ? <img src={c.portrait} alt="" /> : <div className="portrait-empty small">{c.name.slice(0, 1)}</div>}
                 <div>
                   <h3>{c.name}</h3>
-                  <p className="muted small">{raceName(c.raceId, c.subraceId)} · {classLine(c.classes)}</p>
+                  <p className="muted small">{raceName(c.raceId, c.subraceId, c.rulesEdition)} · {classLine(c.classes)}</p>
                   <div className="row">
                     <button className="btn primary small" onClick={() => onOpen(c.id)}>{t('common.openSheet')}</button>
                     <button className="btn small" onClick={() => onEdit(c.id)} aria-label={`${t('list.edit')}: ${c.name}`}>{t('list.edit')}</button>

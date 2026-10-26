@@ -1,4 +1,5 @@
-import type { Race, Subrace } from '../types'
+import type { Race, RulesEdition, Subrace } from '../types'
+import { SPECIES } from './srd52/species'
 
 // SRD 5.1 races and subraces only.
 export const RACES: Race[] = [
@@ -93,19 +94,22 @@ export const RACES: Race[] = [
 ]
 
 // Homebrew races and subraces registered at runtime (ids namespaced `hb:<packId>:<slug>`).
-let merged: Race[] = RACES
+// Homebrew is offered with both editions; homebrew subraces attach to the edition's race of that id.
+let merged: Record<RulesEdition, Race[]> = { '2014': RACES, '2024': SPECIES }
 
 /** Replace the registered homebrew races. Subraces (parentRaceId set) attach to their race; SRD ids always win. */
 export function registerHomebrewRaces(races: Race[], subraces: Subrace[]): void {
-  const srd = new Set(RACES.map(r => r.id))
-  const all = [...RACES, ...races.filter(r => !srd.has(r.id))]
-  merged = all.map(r => {
-    const extra = subraces.filter(s => s.parentRaceId === r.id)
-    return extra.length ? { ...r, subraces: [...(r.subraces ?? []), ...extra] } : r
-  })
+  const build = (srdList: Race[]) => {
+    const srd = new Set([...RACES, ...SPECIES].map(r => r.id))
+    return [...srdList, ...races.filter(r => !srd.has(r.id))].map(r => {
+      const extra = subraces.filter(s => s.parentRaceId === r.id)
+      return extra.length ? { ...r, subraces: [...(r.subraces ?? []), ...extra] } : r
+    })
+  }
+  merged = { '2014': build(RACES), '2024': build(SPECIES) }
 }
 
-/** SRD races followed by homebrew ones, with homebrew subraces attached. */
-export const allRaces = (): Race[] => merged
+/** SRD races (2024: species) followed by homebrew ones, with homebrew subraces attached. */
+export const allRaces = (edition: RulesEdition = '2014'): Race[] => merged[edition]
 
-export const raceById = (id: string) => merged.find(r => r.id === id)
+export const raceById = (id: string, edition: RulesEdition = '2014') => merged[edition].find(r => r.id === id)

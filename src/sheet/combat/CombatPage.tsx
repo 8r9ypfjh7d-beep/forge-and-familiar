@@ -98,7 +98,7 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
   const bg = getBackground(character)
   const next = xpForNextLevel(d.level)
   const classes = character.classes.map(cl => {
-    const sub = cl.subclassId ? subclassById(cl.subclassId) : undefined
+    const sub = cl.subclassId ? subclassById(cl.subclassId, character.rulesEdition) : undefined
     const base = `${className(cl.classId)} ${cl.level}`
     return sub ? `${base} - ${term('subclass', sub.id, sub.name)}` : base
   }).join(' / ')
@@ -116,7 +116,7 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
         <div className="cs-who">
           <h1 id="cs-name">{character.name}</h1>
           <p className="cs-class">{classes}</p>
-          <p>{[raceName(character.raceId, character.subraceId), bg && term('background', bg.id, bg.name)].filter(Boolean).join(' · ')}</p>
+          <p>{[raceName(character.raceId, character.subraceId, character.rulesEdition), bg && term('background', bg.id, bg.name)].filter(Boolean).join(' · ')}</p>
           <p className="cs-xp">{next ? t('cs.xp', { xp: character.xp, next }) : t('cs.xpMax', { xp: character.xp })}</p>
         </div>
         <dl className="cs-stats">

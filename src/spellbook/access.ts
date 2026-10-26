@@ -23,7 +23,8 @@ export interface SpellAccess {
 }
 
 export const DEFAULT_EDITION: Edition = '2014'
-export const editionOf = (c: Pick<Character, 'spellEdition'>): Edition => c.spellEdition ?? DEFAULT_EDITION
+/** The character's spell rules: its own spell setting, else its rules edition. */
+export const editionOf = (c: Pick<Character, 'spellEdition' | 'rulesEdition'>): Edition => c.spellEdition ?? c.rulesEdition ?? DEFAULT_EDITION
 export const sourceFor = (edition: Edition) => (edition === '2024' ? 'srd-5.2' : 'srd-5.1')
 
 /** Mystic Arcanum: one spell each of levels 6–9 at warlock levels 11, 13, 15, 17 (both editions). */

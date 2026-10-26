@@ -56,6 +56,8 @@ export interface Improvement {
   level: number
   abilities?: Partial<Abilities>
   featId?: string
+  /** The ability a feat with a +1 choice raises (2024 Grappler, Epic Boons). */
+  featAbility?: Ability
 }
 
 /** A spell the character knows or has prepared, from the content library (src/content). */
@@ -112,6 +114,8 @@ export interface Character {
   portrait?: string
   /** Visual theme id from src/themes; missing or unknown means the app's default look. */
   theme?: string
+  /** Rules edition for the whole character: '2024' uses the SRD 5.2. Missing means 2014 (SRD 5.1). */
+  rulesEdition?: '2024'
   raceId: string
   subraceId?: string
   /** SRD background id, or 'custom' with customBackground filled in. */
@@ -123,7 +127,10 @@ export interface Character {
   abilityMethod: AbilityMethod
   /** Scores before racial bonuses. Use getAbilityScores() for final scores. */
   baseAbilities: Abilities
-  /** Abilities chosen for free racial +1s (Half-Elf). */
+  /**
+   * Abilities chosen for free +1s. 2014: racial picks (Half-Elf). 2024: the background's three +1s,
+   * one entry per +1, so ['wis', 'wis', 'cha'] is +2 WIS and +1 CHA.
+   */
   freeAbilityBonuses: Ability[]
   /** Skills picked from class and free race choices. Race and background skills are added by the engine. */
   chosenSkills: SkillId[]
@@ -133,6 +140,10 @@ export interface Character {
   chosenTools?: string[]
   /** Race.traitChoice id → chosen option id (Dragonborn ancestry). */
   traitChoices?: Record<string, string>
+  /** Class choices, keyed `<classId>.<ClassChoice id>` → option id (2024 Fighting Style, Divine Order). */
+  featureChoices?: Record<string, string>
+  /** 2024 Human (Versatile): the Origin feat picked. */
+  originFeatId?: string
   /** Ability Score Improvements or feats, one per slot the class levels grant. */
   improvements?: Improvement[]
   /** Starting gear: per class equipmentChoices entry, the option index and the items picked for its "any" slots. */
@@ -142,7 +153,7 @@ export interface Character {
   notes: string
   /** Known or prepared spells (src/spellbook). Missing on older saves: none chosen. */
   spells?: KnownSpell[]
-  /** Rules edition for spell lists and counts: '2024' uses the SRD 5.2. Missing means 2014 (SRD 5.1). */
+  /** Spell lists and counts: '2024' uses the SRD 5.2. Missing follows rulesEdition. Older saves set it on its own. */
   spellEdition?: '2014' | '2024'
   /** Spells, attacks and resources pinned to the sheet's quick-cast bar, in display order. */
   quickCast?: QuickCastEntry[]

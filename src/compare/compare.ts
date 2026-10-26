@@ -59,7 +59,7 @@ export function expectedHit(attack: Pick<Attack, 'bonus' | 'damage'>, targetAc: 
 export function attacksPerAction(c: Character): number {
   let n = 1
   for (const cl of c.classes) {
-    const def = classById(cl.classId)
+    const def = classById(cl.classId, c.rulesEdition)
     if (!def) continue
     if (def.id === 'fighter') n = Math.max(n, cl.level >= 20 ? 4 : cl.level >= 11 ? 3 : 1)
     if (def.features.some(f => f.name === 'Extra Attack' && f.level <= cl.level)) n = Math.max(n, 2)

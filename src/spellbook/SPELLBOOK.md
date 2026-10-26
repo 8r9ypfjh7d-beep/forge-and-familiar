@@ -23,7 +23,7 @@ The Spells card on the live sheet. It lists the character's own spells by level,
 
 ## Saved data
 
-`Character.spells` (`{ id, classId }[]`) and `Character.spellEdition` (`'2024'`, or missing for 2014). Ids are library slugs, shared by both editions, so switching edition keeps the choices; spells the new edition lacks (Hex is not in SRD 5.1) just don't show.
+`Character.spells` (`{ id, classId }[]`) and `Character.spellEdition` (`'2014'` or `'2024'`; missing follows the character's `rulesEdition`). Ids are library slugs, shared by both editions, so switching edition keeps the choices; spells the new edition lacks (Hex is not in SRD 5.1) just don't show.
 
 ## Story spells
 

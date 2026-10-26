@@ -61,7 +61,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
   const d = derive(c)
   const play = opts.withPlayState
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, c.rulesEdition)
   const subrace = race?.subraces?.find(s => s.id === c.subraceId)
 
   const spellSlots: Pips[] = d.spellSlots.slots.flatMap((max, i) =>
@@ -84,9 +84,9 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
   return {
     name: c.name,
     playerName: c.playerName,
-    classLine: c.classes.map(cl => `${classById(cl.classId)?.name ?? cl.classId} ${cl.level}`).join(' / '),
+    classLine: c.classes.map(cl => `${classById(cl.classId, c.rulesEdition)?.name ?? cl.classId} ${cl.level}`).join(' / '),
     level: d.level,
-    race: subrace?.name ?? race?.name ?? c.raceId,
+    race: c.rulesEdition === '2024' && race && subrace ? `${race.name} (${subrace.name})` : subrace?.name ?? race?.name ?? c.raceId,
     background: getBackground(c)?.name ?? c.backgroundId,
     alignment: c.alignment,
     xp: c.xp,
