@@ -63,6 +63,8 @@ export const en = {
   'list.companions': 'Companions',
   'list.journal': 'Journal',
   'list.print': 'Print',
+  'list.export': 'Export',
+  'list.exportHint': 'Download a file you can import on another profile or device.',
   'list.compare': 'Compare',
   'list.levels': 'Levels',
   'list.confirmDelete': 'Delete {name}?',

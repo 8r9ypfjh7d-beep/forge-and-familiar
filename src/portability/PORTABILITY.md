@@ -11,7 +11,7 @@ Export a character to a `.character.json` file, import one as a new character, a
 | `store.ts` | Snapshot store in localStorage (`ff.snapshots.v1`), async API, max 30 per character |
 | `actions.ts` | `exportToFile()`, `importFromFile()`, `rollBack()` over both stores |
 | `download.ts` | Browser file download |
-| `ui/` | `ImportButton` (character list), `LevelHistory` view (snapshots, rollback, export) |
+| `ui/` | `ImportButton` (character list), `ExportButton` (character cards, sheet header), `LevelHistory` view (snapshots, rollback, export) |
 | `portability.test.ts` | File and snapshot tests |
 
 ## Notes

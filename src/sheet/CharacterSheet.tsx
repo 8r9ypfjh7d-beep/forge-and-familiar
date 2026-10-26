@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n'
+import { ExportButton } from '../portability/ui'
 import type { Character } from '../model/character'
 import { QuickCastBar } from '../quickcast'
 import { ReactionReminders } from '../reactions'
@@ -111,6 +112,7 @@ function Header({ character, apply, onBack, onEdit }: { character: Character; ap
       <button type="button" className="btn ghost" onClick={onBack} aria-label={t('common.backToCharacters')}>{t('common.backArrow')}</button>
       <div className="who"><span className="sr-only">{character.name}</span></div>
       {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
+      <ExportButton character={character} />
       <ThemePicker
         value={character.theme}
         classId={character.classes[0]?.classId}

@@ -10,7 +10,7 @@ import { DmScreen } from './dm'
 import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
-import { ImportButton, LevelHistory } from './portability/ui'
+import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
 import { listParties, onPartiesChanged, PartyView } from './party'
 import { CompanionsView, deleteCompanionsFor } from './companions'
 import { RecapView, SessionRecorder } from './recap'
@@ -320,6 +320,7 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, on
                     <button className="btn small" onClick={() => onCompanions(c.id)}>{t('list.companions')}</button>
                     <button className="btn small" onClick={() => onJournal(c.id)}>{t('list.journal')}</button>
                     <button className="btn small" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
+                    <ExportButton character={c} />
                     <button className="btn small" onClick={() => onCompare(c.id)}>{t('list.compare')}</button>
                     <button className="btn ghost small" onClick={() => confirm(t('list.confirmDelete', { name: c.name })) && onDelete(c.id)}>{t('common.delete')}</button>
                   </div>
