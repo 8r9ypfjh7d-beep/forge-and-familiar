@@ -16,9 +16,8 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
 - `classes` is an array to leave room for multiclassing; the builder creates one entry.
 - `state` is owned by the live sheet; the builder only initialises it (`rules/factory.ts`).
 - `customActions` (optional) are the player's own actions, bonus actions, reactions, free actions and other abilities on the combat page (`{ id, kind, name, description?, roll?, effect? }`: an optional attack/save roll with dice, and an optional damage effect toggled under Effects); see `src/sheet/combat/COMBAT_PAGE.md`.
-- `quickCast` (optional) lists the entries pinned to the sheet's quick-cast bar; see `src/quickcast/QUICKCAST.md`.
+- `quickCast` (optional) lists the entries pinned to the sheet's quick-cast bar (its spell entries are also story mode's Spells card); see `src/quickcast/QUICKCAST.md`.
 - `spells` (optional) lists known or prepared spells as `{ id, classId }`, ids from the content library; `spellEdition` (optional, `'2024'` or missing for 2014) picks which SRD's spell lists and counts apply. See `src/spellbook/SPELLBOOK.md`.
-- `storySpells` (optional) lists library spell ids the player pinned to story mode's Spells card (Detect Magic, Comprehend Languages...). Separate from `quickCast`, which is for combat.
 - `inventory` entries (`InventoryEntry` in `rules/types.ts`): `itemId`, `qty`, `equipped`, plus optional `item` (the full item, embedded for library and custom items so their stats stay editable), `name`, `notes`, `magicBonus` (+1 to +3), `pact` (one warlock pact weapon), `extraDamage` (e.g. `1d6 fire`), `effects` (stat effects that apply while equipped, see `ItemEffect`). All optional, so old saves need no migration. See `src/inventory/INVENTORY.md`.
 - `schemaVersion` lets storage migrate old saves.
 - Old saves may still hold `state.exhaustion`, `state.inspiration`, `state.attuned` and `state.clock`. Those features were removed; `normalize()` in `sheet/engine.ts` drops the fields on load.

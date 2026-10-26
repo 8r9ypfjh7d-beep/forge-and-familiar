@@ -13,7 +13,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 
 ## Layout
 
-- **Story** (default): one top card with HP and Rest and a small line on race, background, alignment and languages (traits and features folded away); the combat page's abilities (`AbilitiesPanel`) and skills rail (`SkillsPanel`); then notes, story spells (`StorySpells` in src/spellbook: only spells the player pinned, from `Character.storySpells`), spell slots, attacks and inventory. No quick-cast, resources, ammo and rations, or session log.
+- **Story** (default): one top card with HP and Rest and a small line on race, background, alignment and languages (traits and features folded away); the combat page's abilities (`AbilitiesPanel`) and skills rail (`SkillsPanel`); then notes, story spells (`StorySpells` in src/spellbook: the pinned spells, i.e. the spell entries of `Character.quickCast`, the same list as combat's quick-cast bar), spell slots, attacks and inventory. No quick-cast, resources, ammo and rations, or session log.
 - **Combat**: laid out like Roll20's character page. A summary on top (who, HP and rests, abilities with Mod and Save, AC and speed), the skills and tools on the side, and tabs: Combat (attacks table, weapon mastery, effects, the player's own actions), Spells (quick-cast, slots, spellbook), Inventory (inventory, supplies), Features & Traits, Notes (notes, identity, history). `sheetLayout` returns these as `vitals` and `tabs`.
 - At 0 HP, both modes put death saves on top.
 
