@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadKind } from '../../content'
 import { derive, xpForNextLevel } from '../../rules'
 import { makeCharacter } from '../fixtures'
-import { actionRoll, actionsOf, addAction, effectToggles, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
+import { actionRoll, actionsOf, addAction, effectToggles, effectsUsed, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
 
 const warlock = (over = {}) => makeCharacter({
   classes: [{ classId: 'warlock', level: 7 }],
@@ -104,5 +104,19 @@ describe('combat page helpers', () => {
     expect(dagger(on).bonus - dagger(off).bonus).toBeGreaterThanOrEqual(1)
     expect(effectToggles(c0, off).find(e => e.id === 'act:r')?.stats).toHaveLength(7)
     expect(derive(setActionActive(setActionActive(c0, 'r', true), 'r', false))).toEqual(off)
+  })
+
+  it('names the effects that went into a roll and only the stats that touch it', () => {
+    const active = [
+      { id: 'hex', name: 'Hex', damage: '1d6', damageType: 'necrotic' },
+      { id: 'act:s', name: 'Battle Stance', stats: [{ kind: 'ac' as const, value: 2 }, { kind: 'attack' as const, value: 1 }] },
+      { id: 'act:z', name: 'Ward', stats: [{ kind: 'ac' as const, value: 1 }] },
+    ]
+    expect(effectsUsed(active, ['hex'], f => f.kind === 'attack')).toEqual([
+      { id: 'hex', name: 'Hex', damage: '1d6', damageType: 'necrotic', stats: [] },
+      { id: 'act:s', name: 'Battle Stance', stats: [{ kind: 'attack', value: 1 }] },
+    ])
+    // A miss rolls no damage, so Hex isn't listed.
+    expect(effectsUsed(active, [], f => f.kind === 'attack').map(e => e.name)).toEqual(['Battle Stance'])
   })
 })

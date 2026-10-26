@@ -874,6 +874,8 @@ const messages: Messages = {
   'cs.form.statsHint': 'הפעילו את הפעולה תחת השפעות כדי להחיל אותם, וכבו כדי להסיר.',
   'cs.log.effectOn': '{name} הופעל',
   'cs.log.effectOff': '{name} כובה',
+  'cs.effectsUsed': 'השפעות בהטלה הזו',
+  'cs.effectDice': '+{dice} נזק{type}',
 }
 
 const terms: Terms = {

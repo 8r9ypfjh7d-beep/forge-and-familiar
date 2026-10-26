@@ -190,6 +190,23 @@ export function effectToggles(c: Character, stats: DerivedStats, spellNames: Rec
   return out
 }
 
+/** An effect that went into one roll: the dice it added and the stat changes that applied. */
+export interface UsedEffect { id: string; name: string; damage?: string; damageType?: string; stats: ItemEffect[] }
+
+/**
+ * Which switched-on effects changed a roll, so the result can say so.
+ * `riderIds` are the effects whose dice were added; `applies` picks the stat changes that touch this roll.
+ */
+export function effectsUsed(active: EffectToggle[], riderIds: Iterable<string>, applies: (f: ItemEffect) => boolean): UsedEffect[] {
+  const riders = new Set(riderIds)
+  return active.flatMap(e => {
+    const stats = (e.stats ?? []).filter(applies)
+    const dice = riders.has(e.id) && e.damage
+    if (!dice && !stats.length) return []
+    return [{ id: e.id, name: e.name, ...(dice ? { damage: e.damage } : {}), ...(dice && e.damageType ? { damageType: e.damageType } : {}), stats }]
+  })
+}
+
 /** Weapon Mastery (SRD 5.2): how many weapons' mastery properties the character can use. 0 without the feature. */
 export function masteryLimit(c: Pick<Character, 'classes' | 'spellEdition'>): number {
   if (c.spellEdition !== '2024') return 0

@@ -18,7 +18,7 @@ import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
   ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteryLimit, matchFeature, newActionId, removeAction, resolveDice, setActionActive, spellAttackRows, updateAction,
-  type ActionKind, type CustomAction, type EffectToggle, type SpellAttackRow,
+  effectsUsed, type ActionKind, type CustomAction, type EffectToggle, type UsedEffect, type SpellAttackRow,
 } from './combat'
 import './combat.css'
 
@@ -257,7 +257,7 @@ export function CombatTabs({ tabs, render }: { tabs: Record<CombatTab, SheetSect
 
 // ---------- Combat tab: attacks, weapon mastery, effects, actions ----------
 
-interface Outcome { name: string; rolls: Shown[]; note?: string }
+interface Outcome { name: string; rolls: Shown[]; note?: string; effects?: UsedEffect[] }
 
 export function Fight({ character, apply }: { character: Character; apply: Apply }) {
   const i18n = useI18n()
@@ -287,7 +287,8 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
 
   const weapon = (a: DerivedStats['attacks'][number]) => {
     const own = getDamageRiders(character, a).map(r => r.id as string)
-    const riders = damaging.filter(e => !e.weaponOnly || own.includes(e.id)).map(e => ({ name: e.name, damage: e.damage }))
+    const used = damaging.filter(e => !e.weaponOnly || own.includes(e.id))
+    const riders = used.map(e => ({ name: e.name, damage: e.damage }))
     const extra = a.extraDamage ? /^(\S+)\s*(.*)$/.exec(a.extraDamage) : null
     const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1] }] : riders
     const r = rolls.attack(a, { mode, critRange, riders: all, twoHanded: twoHanded[a.name] })
@@ -295,6 +296,8 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     setOut({
       name: attackName(a.name),
       rolls: [{ roll: r.attack, what: t('cs.roll.toHit') }, ...(r.damage ? [{ roll: r.damage, what: t('cs.roll.damage', { type }) }] : [])],
+      effects: effectsUsed(active, r.damage ? used.map(e => e.id) : [], f =>
+        f.kind === 'attack' || (f.kind === 'damage' && !!r.damage) || ((f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === a.ability)),
     })
     if (r.damage && active.some(e => e.oncePerTurn)) setOn(o => ({ ...o, ...Object.fromEntries(active.filter(e => e.oncePerTurn).map(e => [e.id, false])) }))
   }
@@ -309,21 +312,27 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     if (r.kind === 'save' && r.save) notes.push(t('cs.saveNote', { dc: r.value, ability: abilityShort(r.save) }))
     const sc = d.spellcasting
     const damage = spellDamage({ ...r.entry, id: '', kind: 'spell' }, choice?.level ?? r.level, d.level, sc ? d.mods[sc.ability] : 0)
-    const riders = r.kind === 'attack' && r.damageType !== 'healing' ? damaging.filter(e => !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage })) : []
+    const used = r.kind === 'attack' && r.damageType !== 'healing' ? damaging.filter(e => !e.weaponOnly) : []
+    const riders = used.map(e => ({ name: e.name, damage: e.damage }))
     const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders })
     const type = r.damageType ? term('damage', r.damageType, r.damageType) : ''
     const list: Shown[] = [
       ...('attack' in res && res.attack ? [{ roll: res.attack, what: t('cs.roll.toHit') }] : []),
       ...(res.damage ? [{ roll: res.damage, what: r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) }] : []),
     ]
-    setOut({ name: r.name, rolls: list, note: notes.join(' · ') || undefined })
+    setOut({
+      name: r.name, rolls: list, note: notes.join(' · ') || undefined,
+      effects: effectsUsed(active, res.damage ? used.map(e => e.id) : [], f =>
+        (r.kind === 'attack' ? f.kind === 'spellAttack' : f.kind === 'spellDc') || ((f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === sc?.ability)),
+    })
   }
 
   /** A custom action: attack roll (with toggled effects on a hit) or save DC, then its dice. */
   const runAction = (a: CustomAction) => {
     const r = actionRoll(a, d)
     const healing = isHealing(a.roll?.type)
-    const riders = r.attackBonus !== undefined && !healing ? damaging.filter(e => !e.weaponOnly && e.id !== `act:${a.id}`).map(e => ({ name: e.name, damage: e.damage })) : []
+    const used = r.attackBonus !== undefined && !healing ? damaging.filter(e => !e.weaponOnly && e.id !== `act:${a.id}`) : []
+    const riders = used.map(e => ({ name: e.name, damage: e.damage }))
     const res = rolls.spell(a.name, { attackBonus: r.attackBonus, damage: r.dice, damageType: a.roll?.type, mode, riders })
     const type = a.roll?.type ? term('damage', a.roll.type, a.roll.type) : ''
     setOut({
@@ -333,6 +342,8 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         ...(res.damage ? [{ roll: res.damage, what: healing ? t('cs.roll.healing') : r.attackBonus !== undefined || r.dc !== undefined ? t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) : t('cs.roll.result') }] : []),
       ],
       note: r.dc !== undefined ? t('cs.saveNote', { dc: r.dc, ability: r.save ? abilityShort(r.save) : '' }) : undefined,
+      effects: effectsUsed(active.filter(e => e.id !== `act:${a.id}`), res.damage ? used.map(e => e.id) : [], f =>
+        (f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === a.roll?.ability),
     })
   }
 
@@ -400,6 +411,22 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         <div ref={outRef} className="cs-out">
           <strong>{out.name}</strong>
           <LastRoll rolls={out.rolls} note={out.note} />
+          {!!out.effects?.length && (
+            <div className="cs-used">
+              <span className="cs-used-title">{t('cs.effectsUsed')}</span>
+              <ul>
+                {out.effects.map(e => (
+                  <li key={e.id}>
+                    <strong>{e.name}</strong>{' '}
+                    <span>{[
+                      e.damage ? t('cs.effectDice', { dice: e.damage, type: e.damageType ? ` ${term('damage', e.damageType, e.damageType)}` : '' }) : '',
+                      ...e.stats.map(f => effectText(i18n, f)),
+                    ].filter(Boolean).join(' · ')}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
