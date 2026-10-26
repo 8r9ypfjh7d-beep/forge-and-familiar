@@ -3,9 +3,13 @@ import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNod
 import { roll as rollNotation } from '../roll'
 import { localHistoryStorage, RollHistory } from '../history'
 import type { RollOptions, RollResult } from '../types'
+import { RollFxBus } from '../fx'
+import { RollFx } from './RollFx'
 
 interface DiceContextValue {
   history: RollHistory
+  /** Every recorded roll, for the tumbling-die overlay. */
+  fx: RollFxBus
   /** Adds a finished roll (from rollSave, rollAttack...) to the history and returns it. */
   record: (result: RollResult) => RollResult
   /** Rolls free notation like "2d6+3" and records it. Throws DiceNotationError on bad input. */
@@ -17,13 +21,21 @@ const DiceContext = createContext<DiceContextValue | null>(null)
 export function DiceProvider({ userId, limit = 100, children }: { userId: string; limit?: number; children: ReactNode }) {
   const value = useMemo<DiceContextValue>(() => {
     const history = new RollHistory(limit, localHistoryStorage(`ff.rolls.v1.${userId}`))
+    const fx = new RollFxBus()
+    const add = (r: RollResult) => { fx.push(r); return history.add(r) }
     return {
       history,
-      record: r => history.add(r),
-      roll: (notation, opts) => history.add(rollNotation(notation, opts)),
+      fx,
+      record: add,
+      roll: (notation, opts) => add(rollNotation(notation, opts)),
     }
   }, [userId, limit])
-  return <DiceContext.Provider value={value}>{children}</DiceContext.Provider>
+  return (
+    <DiceContext.Provider value={value}>
+      {children}
+      <RollFx bus={value.fx} />
+    </DiceContext.Provider>
+  )
 }
 
 export function useDice(): DiceContextValue {

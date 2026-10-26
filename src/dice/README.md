@@ -17,6 +17,7 @@ Up to 100 dice and 1000 sides per term.
 | `rollAttackWithDamage(attack, { critRange, twoHanded, riders, … })` | One tap: to-hit, then damage with the versatile die and riders (rules `getDamageRiders`) added. A crit doubles every die; a natural 1 returns no `damage`. |
 | `rollHitDie(die, conMod)` / `rollDeathSave()` | The death save returns `outcome`. |
 | `RollHistory`, `localHistoryStorage(key)` | Newest-first store, capped, with subscribe. |
+| `headlineDie(r)`, `isNat20(r)`, `pickNat20Line(random, last)`, `RollFxBus` | Roll effects (`fx.ts`): the die face to animate, natural 20 detection (a lone tray d20 counts), and a bus that keeps the to-hit, not the damage, when one tap records both. |
 | `sendSecretRoll(partyId, { roll, fromUserId })`, `secretView(list, dmId, viewerId)` | Secret rolls (`secret.ts`): one log per party (`ff.rolls.secret.v1.<partyId>`). The DM gets every result; the roller gets masked "sent" stubs only. Never written to `ff.rolls.v1.*`, so the group feed can't show them. |
 
 `opts`: `{ mode?, character?, ignoreConditions?, label?, rng? }`. Passing `character` tags the roll with who rolled it. It also merges `getRollMode` from that character's conditions with any situational `mode`. Advantage and disadvantage cancel out, per the SRD. Saves the character fails automatically come back with `autoFail: true`.
@@ -24,6 +25,7 @@ Up to 100 dice and 1000 sides per term.
 ## React (`import … from '../dice/ui'`)
 - `<DiceProvider userId>` wraps the app. Each user gets their own history in localStorage (`ff.rolls.v1.<userId>`), so friends sharing a device keep separate logs.
 - `useDice()` returns `{ record, roll, history }`. The sheet does `record(rollSave(stats, 'dex', { character: c }))`.
+- Every `record`/`roll` also plays `<RollFx>` (rendered by the provider): a die tumbles above the dice button and lands on the natural d20 (or the first die). A natural 20 drops a gold banner with a dancing dragon, confetti and a random joke (`dice.nat20.line1..8`), closed by ✕, Escape or after 5 s. Reduce motion (a11y panel or the OS) skips the tumble and confetti. Secret rolls don't go through `record`, so they never animate.
 - `useRollHistory(characterId?)` gives the live list. `<RollView roll>` shows one roll.
 - `<SecretRolls party userId character? nameOf>` sits on the party page: a player picks a skill, check or save and rolls it for the DM; the DM sees the results log.
 - `<DiceFab open onOpenChange character?>` is the floating dice button App.tsx puts on every screen (there is no dice page). It opens a small window with the `DiceTray`; the `D` shortcut and Escape toggle it. On a character's screen, free rolls are tagged with that character.

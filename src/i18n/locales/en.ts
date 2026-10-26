@@ -378,6 +378,16 @@ export const en = {
   'dice.total': 'Total {total}',
   'dice.crit': 'Critical!',
   'dice.nat1': 'Natural 1',
+  'dice.nat20.title': 'NATURAL 20!',
+  'dice.nat20.dismiss': 'Close',
+  'dice.nat20.line1': 'The DM quietly slides their notes behind the screen.',
+  'dice.nat20.line2': 'Somewhere, a bard is already writing a song about this.',
+  'dice.nat20.line3': 'The goblins have filed a formal complaint.',
+  'dice.nat20.line4': "Your character's mom is very proud.",
+  'dice.nat20.line5': 'Screenshot it before anyone says the die was cocked.',
+  'dice.nat20.line6': "The dice gods smile upon you. Don't get used to it.",
+  'dice.nat20.line7': 'A nearby dragon does a little victory dance.',
+  'dice.nat20.line8': 'Roll it again? No. Never touch that die again.',
   'dice.autoFail': 'Auto-fail',
 
   // Party
