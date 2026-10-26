@@ -140,3 +140,89 @@
 .ff-dice-fab .ff-dice__history { max-height: 200px; }
 @media (prefers-reduced-motion: reduce) { .ff-dice-fab__button { transition: none; } }
 @media print { .ff-dice-fab { display: none; } }
+
+/* Roll effects (RollFx): a die tumbles above the dice button and lands on the result. */
+.ff-rollfx {
+  --ff-rollfx-bg: var(--panel, #fffdf8);
+  --ff-rollfx-fg: var(--ink, #2a2118);
+  --ff-rollfx-line: var(--accent, #8c2f1b);
+  --ff-rollfx-gold: #c99a1e;
+  position: fixed;
+  inset-block-end: 96px;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: fit-content;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  animation: ff-rollfx-in 160ms ease-out, ff-rollfx-out 220ms ease-in forwards;
+  animation-delay: 0ms, 1100ms;
+}
+.ff-rollfx__die { filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.3)); animation: ff-rollfx-tumble 650ms cubic-bezier(.3,.7,.4,1); }
+.ff-rollfx__die polygon { fill: var(--ff-rollfx-bg); stroke: var(--ff-rollfx-line); stroke-width: 5; stroke-linejoin: round; }
+.ff-rollfx__die text { fill: var(--ff-rollfx-fg); font-family: inherit; font-size: 36px; font-weight: 700; }
+.ff-rollfx__sides { font-size: 0.75rem; font-weight: 600; color: var(--ff-rollfx-fg); background: var(--ff-rollfx-bg); padding: 0 6px; border-radius: 6px; opacity: 0.85; }
+.ff-rollfx.is-landed .ff-rollfx__die { animation: ff-rollfx-land 260ms ease-out; }
+.ff-rollfx.is-nat20 .ff-rollfx__die polygon { stroke: var(--ff-rollfx-gold); fill: #fff4cc; }
+.ff-rollfx.is-nat20 .ff-rollfx__die text { fill: #7a5a00; }
+.ff-rollfx.is-nat20 .ff-rollfx__die { filter: drop-shadow(0 0 14px var(--ff-rollfx-gold)); animation: ff-rollfx-land 260ms ease-out, ff-rollfx-glow 500ms ease-in-out 260ms 2 alternate; }
+.ff-rollfx.is-nat20 { animation-delay: 0ms, 1600ms; }
+
+@keyframes ff-rollfx-in { from { opacity: 0; } }
+@keyframes ff-rollfx-out { to { opacity: 0; } }
+@keyframes ff-rollfx-tumble {
+  0% { transform: translateY(-120px) rotate(-200deg) scale(0.6); }
+  45% { transform: translateY(0) rotate(40deg) scale(1); }
+  65% { transform: translateY(-26px) rotate(-30deg); }
+  82% { transform: translateY(0) rotate(12deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+@keyframes ff-rollfx-land { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes ff-rollfx-glow { to { transform: scale(1.12) rotate(6deg); } }
+
+/* Natural 20 easter egg */
+.ff-nat20 {
+  position: fixed;
+  inset-block-start: 16px;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: min(420px, calc(100vw - 32px));
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #fff4cc, #ffe08a);
+  color: #4a3500;
+  border: 2px solid #c99a1e;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.3);
+  animation: ff-nat20-drop 420ms cubic-bezier(.2,1.4,.4,1);
+}
+.ff-nat20__text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.ff-nat20__text strong { font-size: 1.2rem; letter-spacing: 0.04em; }
+.ff-nat20__dragon { font-size: 2.2rem; line-height: 1; animation: ff-nat20-jig 450ms ease-in-out infinite alternate; }
+.ff-nat20__close { background: transparent; border: 0; color: inherit; font: inherit; font-size: 1rem; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+.ff-nat20__close:hover { background: rgb(0 0 0 / 0.08); }
+.ff-nat20__confetti { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.ff-nat20__confetti span {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: calc((var(--i) + 0.5) / var(--n) * 100%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: hsl(calc(var(--i) * 47) 70% 45%);
+  opacity: 0;
+  animation: ff-nat20-pop 1100ms ease-out calc(var(--i) * 30ms) forwards;
+}
+.ff-nat20__confetti span:nth-child(odd) { --dy: -70px; }
+.ff-nat20__confetti span:nth-child(even) { --dy: 70px; }
+@keyframes ff-nat20-drop { from { transform: translateY(-140%) rotate(-4deg); } }
+@keyframes ff-nat20-jig { from { transform: rotate(-14deg) translateY(0); } to { transform: rotate(14deg) translateY(-6px); } }
+@keyframes ff-nat20-pop {
+  0% { opacity: 1; transform: translateY(0) scale(0.4) rotate(0); }
+  100% { opacity: 0; transform: translateY(var(--dy)) scale(1.2) rotate(240deg); }
+}
