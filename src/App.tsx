@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import './a11y'
 import { AccessibilityButton, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
+import { AccountBadge, ActivateScreen, activate, getSession, onSessionChanged, type Session } from './accounts'
 import { Builder, EditCharacter } from './builder/Builder'
 import { CoinsView } from './coins'
 import { CombatTracker } from './combat/ui/CombatTracker'
@@ -35,6 +36,7 @@ loadHomebrew()
 export default function App() {
   const [profiles, setProfiles] = useState<UserProfile[] | null>(null)
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId())
+  const [session, setSession] = useState<Session | null>(getSession)
   const [characters, setCharacters] = useState<Character[]>([])
   const [view, setView] = useState<View>({ kind: 'list' })
   const [diceOpen, setDiceOpen] = useState(false)
@@ -52,6 +54,17 @@ export default function App() {
   useEffect(() => {
     listProfiles().then(setProfiles)
   }, [])
+
+  // Activating a code adds that friend's profile and makes it active.
+  useEffect(() => onSessionChanged(async () => {
+    const s = getSession()
+    setSession(s)
+    setProfiles(await listProfiles())
+    if (s) {
+      setActiveId(s.id)
+      setView({ kind: 'list' })
+    }
+  }), [])
 
   const active = profiles?.find(p => p.id === activeId) ?? profiles?.[0]
 
@@ -76,7 +89,7 @@ export default function App() {
   const onScreen = characters.find(c => c.id === onScreenId)
 
   if (profiles === null) return null
-  if (!active) return <Welcome onCreate={addProfile} />
+  if (!active) return <ActivateScreen onLocal={addProfile} />
 
   return (
     <DiceProvider key={active.id} userId={active.id}>
@@ -95,6 +108,7 @@ export default function App() {
           <LanguagePicker />
           <AccessibilityButton dialogRef={a11yDialog} />
           <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
+          {session?.id === active.id && <AccountBadge session={session} />}
         </div>
       </header>
       <main id="main" ref={mainRef} tabIndex={-1}>
@@ -210,22 +224,6 @@ export default function App() {
   )
 }
 
-function Welcome({ onCreate }: { onCreate: (name: string) => void }) {
-  const [name, setName] = useState('')
-  const { t } = useI18n()
-  return (
-    <main className="welcome panel">
-      <div className="row welcome-lang"><AccessibilityButton /><LanguagePicker /></div>
-      <h1>Forge &amp; Familiar</h1>
-      <p>{t('app.tagline')}</p>
-      <form onSubmit={e => { e.preventDefault(); if (name.trim()) onCreate(name.trim()) }} className="row">
-        <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder={t('app.yourName')} aria-label={t('app.yourName')} />
-        <button className="btn primary" disabled={!name.trim()}>{t('app.start')}</button>
-      </form>
-    </main>
-  )
-}
-
 function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
   profiles: UserProfile[]
   active: UserProfile
@@ -243,11 +241,15 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
           if (e.target.value === '__new') {
             const name = prompt(t('app.newPlayerPrompt'))?.trim()
             if (name) onAdd(name)
+          } else if (e.target.value === '__code') {
+            const code = prompt(t('account.codePrompt'))?.trim()
+            if (code) activate(code).then(s => { if (!s) alert(t('account.badCode')) })
           } else onSwitch(e.target.value)
         }}
       >
         {profiles.map(p => <option key={p.id} value={p.id}>{p.displayName}</option>)}
         <option value="__new">{t('app.addPlayer')}</option>
+        <option value="__code">{t('account.enterCode')}</option>
       </select>
     </div>
   )
