@@ -6,11 +6,12 @@ import { Builder, EditCharacter } from './builder/Builder'
 import { CoinsView } from './coins'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { CompareView } from './compare'
+import { DmScreen } from './dm'
 import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ImportButton, LevelHistory } from './portability/ui'
-import { PartyView } from './party'
+import { listParties, onPartiesChanged, PartyView } from './party'
 import { CompanionsView, deleteCompanionsFor } from './companions'
 import { RecapView, SessionRecorder } from './recap'
 import { deleteJournalFor, JournalView } from './notes'
@@ -26,7 +27,7 @@ import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
+type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
 
 const newId = () => crypto.randomUUID()
 
@@ -38,7 +39,8 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId())
   const [session, setSession] = useState<Session | null>(getSession)
   const [characters, setCharacters] = useState<Character[]>([])
-  const [view, setView] = useState<View>({ kind: 'list' })
+  const [view, setView] = useState<View>(() => (getSession()?.role === 'dm' ? { kind: 'dm' } : { kind: 'list' }))
+  const [leadsParty, setLeadsParty] = useState(false)
   const [diceOpen, setDiceOpen] = useState(false)
   const mainRef = useFocusOnChange<HTMLElement>(JSON.stringify(view))
   const a11yDialog = useRef<HTMLDialogElement>(null)
@@ -62,7 +64,7 @@ export default function App() {
     setProfiles(await listProfiles())
     if (s) {
       setActiveId(s.id)
-      setView({ kind: 'list' })
+      setView(s.role === 'dm' ? { kind: 'dm' } : { kind: 'list' })
     }
   }), [])
 
@@ -72,6 +74,15 @@ export default function App() {
     if (active) listCharacters(active.id).then(setCharacters)
   }, [active])
   useEffect(refresh, [refresh])
+
+  // The DM screen is for the DM account, and for anyone who runs a party on this device.
+  useEffect(() => {
+    if (!active) return
+    const check = () => listParties(active.id).then(ps => setLeadsParty(ps.some(p => p.dmId === active.id)))
+    check()
+    return onPartiesChanged(check)
+  }, [active])
+  const isDm = (session?.id === active?.id && session?.role === 'dm') || leadsParty
 
   const addProfile = async (displayName: string) => {
     const p = { id: newId(), displayName }
@@ -100,6 +111,7 @@ export default function App() {
         <button className="brand" onClick={() => setView({ kind: 'list' })}>Forge &amp; Familiar</button>
         <div className="row">
           <button className={`chip ${view.kind === 'party' ? 'on' : ''}`} aria-current={view.kind === 'party' ? 'page' : undefined} onClick={() => setView({ kind: 'party' })}>{t('app.party')}</button>
+          {isDm && <button className={`chip ${view.kind === 'dm' ? 'on' : ''}`} aria-current={view.kind === 'dm' ? 'page' : undefined} onClick={() => setView({ kind: 'dm' })}>{t('app.dm')}</button>}
           <button className={`chip ${view.kind === 'homebrew' ? 'on' : ''}`} aria-current={view.kind === 'homebrew' ? 'page' : undefined} onClick={() => setView({ kind: 'homebrew' })}>{t('app.homebrew')}</button>
           <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} aria-current={view.kind === 'combat' ? 'page' : undefined} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
           <button className={`chip ${view.kind === 'coins' ? 'on' : ''}`} aria-current={view.kind === 'coins' ? 'page' : undefined} onClick={() => setView({ kind: 'coins' })}>{t('app.coins')}</button>
@@ -212,7 +224,8 @@ export default function App() {
           />
         )}
         {view.kind === 'rules' && <RulesQA />}
-        {view.kind === 'combat' && <CombatTracker key={active.id} ownerId={active.id} />}
+        {view.kind === 'combat' && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
+        {view.kind === 'dm' && <DmScreen key={active.id} userId={active.id} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
         {view.kind === 'coins' && <CoinsView userId={active.id} />}
         {view.kind === 'recap' && <RecapView userId={active.id} />}

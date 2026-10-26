@@ -12,7 +12,7 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 | `storage.ts` | Encounters in localStorage (`ff.encounters.v1`), async API, filtered by `ownerId` |
 | `ui/useEncounter.ts` | Loads an encounter and its party characters, saves both, undo |
 | `ui/rolls.ts` | Initiative and concentration rolls through `src/dice`, recorded in the dice history |
-| `ui/CombatTracker.tsx` | Encounter list and the open encounter |
+| `ui/CombatTracker.tsx` | Encounter list and the open encounter (`initialOpenId` opens one straight away, used by the DM screen) |
 | `ui/CombatantRow.tsx`, `AddCombatants.tsx`, `Effects.tsx`, `PendingChecks.tsx` | Parts of the encounter screen |
 
 ## Rules
