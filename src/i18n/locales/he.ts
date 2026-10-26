@@ -63,6 +63,8 @@ const messages: Messages = {
   'list.companions': 'בני לוויה',
   'list.journal': 'יומן',
   'list.print': 'הדפסה',
+  'list.export': 'ייצוא',
+  'list.exportHint': 'הורדת קובץ שאפשר לייבא בפרופיל או במכשיר אחר.',
   'list.compare': 'השוואה',
   'list.levels': 'דרגות',
   'list.confirmDelete': 'למחוק את {name}?',
