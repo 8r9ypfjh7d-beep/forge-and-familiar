@@ -10,7 +10,7 @@
 .cs-summary { display: grid; gap: 16px; grid-template-columns: 1fr; }
 @media (min-width: 820px) {
   .cs-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .cs-summary .cs-hero, .cs-summary .cs-vitals { grid-column: span 2; }
+  .cs-summary .cs-top { grid-column: 1 / -1; }
   .cs-summary .cs-abilities { grid-column: span 3; }
   .cs-summary .cs-acspeed { grid-column: span 1; }
 }
@@ -41,10 +41,15 @@
 .cs-hero .cs-last { grid-column: 1 / -1; }
 .cs-last { margin-top: 8px; display: grid; gap: 6px; }
 
-/* Vitals: the sheet's own HP and rest cards, side by side when there's room */
-.cs-vitals { display: grid; gap: 16px; grid-template-columns: 1fr; min-width: 0; }
+/* Top card: who the character is, HP and Rest in one card (like story mode's). The sheet's own
+   HP and Rest cards sit inside it without their borders. */
+.cs-top { display: grid; gap: 16px 24px; grid-template-columns: 1fr; }
+@media (min-width: 1000px) { .cs-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); } }
+.cs-vitals { display: grid; gap: 16px 24px; grid-template-columns: 1fr; min-width: 0; align-content: start; }
 @media (min-width: 560px) { .cs-vitals { grid-template-columns: 1.4fr 1fr; } }
-@media (min-width: 820px) { .cs-vitals { align-content: start; } }
+.ff-sheet .cs-vitals > .card { border: 0; padding: 0; background: transparent; }
+@media (max-width: 999px) { .cs-top .cs-vitals { border-block-start: 1px solid var(--s-line); padding-block-start: 12px; } }
+@media (min-width: 1000px) { .cs-top .cs-vitals { border-inline-start: 1px solid var(--s-line); padding-inline-start: 24px; } }
 
 /* Abilities: six columns of score, Mod and Save */
 .cs-ability-row { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; }
