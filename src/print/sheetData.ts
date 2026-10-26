@@ -1,7 +1,7 @@
 // Everything the printable sheet shows, flattened from a Character and derive(). Pure, no React.
 import type { Character } from '../model/character'
 import {
-  ABILITIES, ABILITY_NAMES, ALL_SKILLS, SKILLS, backgroundById, classById, derive, formatMod, itemById, raceById,
+  ABILITIES, ABILITY_NAMES, ALL_SKILLS, SKILLS, entryItem, getBackground, classById, derive, formatMod, raceById,
   type Ability,
 } from '../rules'
 
@@ -51,7 +51,6 @@ export interface PrintSheet {
   traits: string[]
   languages: string[]
   conditions: string[]
-  exhaustion: number
   warnings: string[]
   notes: string
 }
@@ -62,7 +61,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
   const d = derive(c)
   const play = opts.withPlayState
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, c.rulesEdition)
   const subrace = race?.subraces?.find(s => s.id === c.subraceId)
 
   const spellSlots: Pips[] = d.spellSlots.slots.flatMap((max, i) =>
@@ -85,10 +84,10 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
   return {
     name: c.name,
     playerName: c.playerName,
-    classLine: c.classes.map(cl => `${classById(cl.classId)?.name ?? cl.classId} ${cl.level}`).join(' / '),
+    classLine: c.classes.map(cl => `${classById(cl.classId, c.rulesEdition)?.name ?? cl.classId} ${cl.level}`).join(' / '),
     level: d.level,
-    race: subrace?.name ?? race?.name ?? c.raceId,
-    background: backgroundById(c.backgroundId)?.name ?? c.backgroundId,
+    race: c.rulesEdition === '2024' && race && subrace ? `${race.name} (${subrace.name})` : subrace?.name ?? race?.name ?? c.raceId,
+    background: getBackground(c)?.name ?? c.backgroundId,
     alignment: c.alignment,
     xp: c.xp,
     portrait: c.portrait,
@@ -117,14 +116,13 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
     attacks: d.attacks.map(a => ({
       name: a.name, bonus: formatMod(a.bonus), damage: `${a.damage} ${a.damageType}`, notes: a.notes.join(', '),
     })),
-    equipment: c.inventory.map(e => ({ name: itemById(e.itemId)?.name ?? e.itemId, qty: e.qty, equipped: e.equipped })),
+    equipment: c.inventory.map(e => ({ name: entryItem(e)?.name ?? e.itemId, qty: e.qty, equipped: e.equipped })),
     coins: c.coins,
     carried: `${d.carriedWeight} / ${d.carryingCapacity} lb`,
-    features: d.features.map(f => `${f.name} (${f.className} ${f.level})`),
+    features: [...d.features.map(f => `${f.name} (${f.className} ${f.level})`), ...d.feats.map(f => `${f} (feat)`)],
     traits: d.traits,
-    languages: d.languages,
+    languages: [...d.languages, ...d.tools],
     conditions: play ? c.state.conditions.map(cap) : [],
-    exhaustion: play ? c.state.exhaustion : 0,
     warnings: d.warnings,
     notes: c.notes,
   }

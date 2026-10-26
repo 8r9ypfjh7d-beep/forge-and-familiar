@@ -17,7 +17,6 @@ export type SessionEventBody =
   | { kind: 'resource'; label: string; delta: number }
   | { kind: 'rest'; rest: 'short' | 'long' }
   | { kind: 'condition'; condition: string; added: boolean }
-  | { kind: 'exhaustion'; from: number; to: number }
   | { kind: 'item'; itemId: string; name: string; delta: number }
   | { kind: 'coins'; delta: { cp: number; sp: number; gp: number } }
   | { kind: 'xp'; amount: number }

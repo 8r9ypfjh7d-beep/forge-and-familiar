@@ -1,5 +1,7 @@
 // Homebrew content: spells, items and feats a group writes themselves, grouped into shareable packs.
-import type { Ability, Item, SkillId } from '../rules/types'
+import type { Abilities, Ability, ArmorCategory, FeatEffect, Item, Size, SkillId } from '../rules/types'
+
+export type { FeatEffect }
 
 export const SPELL_SCHOOLS = [
   'Abjuration', 'Conjuration', 'Divination', 'Enchantment', 'Evocation', 'Illusion', 'Necromancy', 'Transmutation',
@@ -31,21 +33,42 @@ export interface HomebrewSpell {
   save?: Ability
 }
 
-/** Mechanical effects stored with a feat so the level-up flow can apply them later. */
-export type FeatEffect =
-  | { kind: 'ability'; ability: Ability; amount: number }
-  | { kind: 'skill'; skill: SkillId }
-  | { kind: 'hpPerLevel'; amount: number }
-  | { kind: 'speed'; amount: number }
-  | { kind: 'initiative'; amount: number }
-  | { kind: 'ac'; amount: number }
-
 export interface HomebrewFeat {
   id: string
   name: string
   prerequisite?: string
   description: string
   effects: FeatEffect[]
+}
+
+/** A race, or a subrace when parentRaceId is set (then size, speed and languages come from the parent). */
+export interface HomebrewRace {
+  id: string
+  name: string
+  /** SRD or homebrew race id this is a subrace of. */
+  parentRaceId?: string
+  size: Size
+  speed: number
+  abilityBonuses: Partial<Abilities>
+  /** Free +1s the player assigns (any ability). */
+  freeAbilityBonuses: number
+  skillProficiencies: SkillId[]
+  freeSkillChoices: number
+  languages: string[]
+  languageChoices: number
+  traits: string[]
+  hpPerLevel: number
+  description?: string
+}
+
+export interface HomebrewSubclass {
+  id: string
+  name: string
+  classId: string
+  features: { level: number; name: string }[]
+  /** Extra armor proficiencies. */
+  armor: ArmorCategory[]
+  description?: string
 }
 
 /** A rules-engine Item plus flavour. Weapons and armor work in derive() once registered. */
@@ -68,8 +91,12 @@ export interface HomebrewPack {
   spells: HomebrewSpell[]
   items: HomebrewItem[]
   feats: HomebrewFeat[]
+  races: HomebrewRace[]
+  subclasses: HomebrewSubclass[]
   /** Author's change history, only in downloaded pack files. Validated by src/history, never stored in the library. */
   history?: unknown[]
 }
 
-export type ContentKind = 'spells' | 'items' | 'feats'
+export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses'
+
+export type HomebrewEntry = HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass

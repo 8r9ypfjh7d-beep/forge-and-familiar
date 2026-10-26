@@ -15,7 +15,6 @@ export function describeChange(before: Character, after: Character): string[] {
     ...from('Temp HP', s.tempHp, t.tempHp),
     ...from('Death save successes', s.deathSaves.successes, t.deathSaves.successes),
     ...from('Death save failures', s.deathSaves.failures, t.deathSaves.failures),
-    ...from('Exhaustion', s.exhaustion, t.exhaustion),
   ]
   for (let i = 0; i < Math.max(s.spellSlotsUsed.length, t.spellSlotsUsed.length); i++) {
     out.push(...from(`${ORDINAL[i]}-level slots used`, s.spellSlotsUsed[i] ?? 0, t.spellSlotsUsed[i] ?? 0))

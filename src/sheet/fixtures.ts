@@ -13,7 +13,7 @@ export function makeCharacter(overrides: Partial<Character> = {}): Character {
     freeAbilityBonuses: [], chosenSkills: [], inventory: [], coins: { cp: 0, sp: 0, gp: 15 }, notes: '',
     state: {
       currentHp: Infinity, tempHp: 0, deathSaves: { successes: 0, failures: 0 }, hitDiceSpent: {},
-      spellSlotsUsed: [], pactSlotsUsed: 0, resources: {}, conditions: [], exhaustion: 0, counters: [],
+      spellSlotsUsed: [], pactSlotsUsed: 0, resources: {}, conditions: [], counters: [],
     },
     createdAt: now, updatedAt: now,
   }

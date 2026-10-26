@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
-import { Builder } from './builder/Builder'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import './a11y'
+import { AccessibilityButton, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
+import { AccountBadge, ActivateScreen, activate, getSession, onSessionChanged, type Session } from './accounts'
+import { Builder, EditCharacter } from './builder/Builder'
 import { CoinsView } from './coins'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { CompareView } from './compare'
-import { DiceProvider, DiceTray } from './dice/ui'
+import { DmScreen } from './dm'
+import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
-import { ImportButton, LevelHistory } from './portability/ui'
-import { PartyView } from './party'
+import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
+import { listParties, onPartiesChanged, PartyView } from './party'
 import { CompanionsView, deleteCompanionsFor } from './companions'
 import { RecapView, SessionRecorder } from './recap'
 import { deleteJournalFor, JournalView } from './notes'
@@ -23,7 +27,7 @@ import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'starters' } | { kind: 'dice' } | { kind: 'combat' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
+type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
 
 const newId = () => crypto.randomUUID()
 
@@ -33,13 +37,36 @@ loadHomebrew()
 export default function App() {
   const [profiles, setProfiles] = useState<UserProfile[] | null>(null)
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId())
+  const [session, setSession] = useState<Session | null>(getSession)
   const [characters, setCharacters] = useState<Character[]>([])
-  const [view, setView] = useState<View>({ kind: 'list' })
+  const [view, setView] = useState<View>(() => (getSession()?.role === 'dm' ? { kind: 'dm' } : { kind: 'list' }))
+  const [leadsParty, setLeadsParty] = useState(false)
+  const [diceOpen, setDiceOpen] = useState(false)
+  const mainRef = useFocusOnChange<HTMLElement>(JSON.stringify(view))
+  const a11yDialog = useRef<HTMLDialogElement>(null)
+  useShortcuts({
+    c: () => setView({ kind: 'list' }),
+    b: () => setView({ kind: 'build' }),
+    d: () => setDiceOpen(o => !o),
+    p: () => setView({ kind: 'party' }),
+    a: () => a11yDialog.current?.showModal(),
+  })
   const { t } = useI18n()
 
   useEffect(() => {
     listProfiles().then(setProfiles)
   }, [])
+
+  // Activating a code adds that friend's profile and makes it active.
+  useEffect(() => onSessionChanged(async () => {
+    const s = getSession()
+    setSession(s)
+    setProfiles(await listProfiles())
+    if (s) {
+      setActiveId(s.id)
+      setView(s.role === 'dm' ? { kind: 'dm' } : { kind: 'list' })
+    }
+  }), [])
 
   const active = profiles?.find(p => p.id === activeId) ?? profiles?.[0]
 
@@ -47,6 +74,15 @@ export default function App() {
     if (active) listCharacters(active.id).then(setCharacters)
   }, [active])
   useEffect(refresh, [refresh])
+
+  // The DM screen is for the DM account, and for anyone who runs a party on this device.
+  useEffect(() => {
+    if (!active) return
+    const check = () => listParties(active.id).then(ps => setLeadsParty(ps.some(p => p.dmId === active.id)))
+    check()
+    return onPartiesChanged(check)
+  }, [active])
+  const isDm = (session?.id === active?.id && session?.role === 'dm') || leadsParty
 
   const addProfile = async (displayName: string) => {
     const p = { id: newId(), displayName }
@@ -60,28 +96,34 @@ export default function App() {
     setView({ kind: 'list' })
   }
 
+  const onScreenId = 'id' in view ? view.id : undefined
+  const onScreen = characters.find(c => c.id === onScreenId)
+
   if (profiles === null) return null
-  if (!active) return <Welcome onCreate={addProfile} />
+  if (!active) return <ActivateScreen onLocal={addProfile} />
 
   return (
     <DiceProvider key={active.id} userId={active.id}>
     <SessionRecorder userId={active.id} />
     <div className="app">
+      <SkipLink />
       <header className="topbar">
         <button className="brand" onClick={() => setView({ kind: 'list' })}>Forge &amp; Familiar</button>
         <div className="row">
-          <button className={`chip ${view.kind === 'party' ? 'on' : ''}`} onClick={() => setView({ kind: 'party' })}>{t('app.party')}</button>
-          <button className={`chip ${view.kind === 'homebrew' ? 'on' : ''}`} onClick={() => setView({ kind: 'homebrew' })}>{t('app.homebrew')}</button>
-          <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
-          <button className={`chip ${view.kind === 'coins' ? 'on' : ''}`} onClick={() => setView({ kind: 'coins' })}>{t('app.coins')}</button>
-          <button className={`chip ${view.kind === 'recap' ? 'on' : ''}`} onClick={() => setView({ kind: 'recap' })}>{t('app.recap')}</button>
-          <button className={`chip ${view.kind === 'dice' ? 'on' : ''}`} onClick={() => setView({ kind: 'dice' })}>{t('app.dice')}</button>
-          <button className={`chip ${view.kind === 'rules' ? 'on' : ''}`} onClick={() => setView({ kind: 'rules' })}>{t('app.rules')}</button>
+          <button className={`chip ${view.kind === 'party' ? 'on' : ''}`} aria-current={view.kind === 'party' ? 'page' : undefined} onClick={() => setView({ kind: 'party' })}>{t('app.party')}</button>
+          {isDm && <button className={`chip ${view.kind === 'dm' ? 'on' : ''}`} aria-current={view.kind === 'dm' ? 'page' : undefined} onClick={() => setView({ kind: 'dm' })}>{t('app.dm')}</button>}
+          <button className={`chip ${view.kind === 'homebrew' ? 'on' : ''}`} aria-current={view.kind === 'homebrew' ? 'page' : undefined} onClick={() => setView({ kind: 'homebrew' })}>{t('app.homebrew')}</button>
+          <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} aria-current={view.kind === 'combat' ? 'page' : undefined} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
+          <button className={`chip ${view.kind === 'coins' ? 'on' : ''}`} aria-current={view.kind === 'coins' ? 'page' : undefined} onClick={() => setView({ kind: 'coins' })}>{t('app.coins')}</button>
+          <button className={`chip ${view.kind === 'recap' ? 'on' : ''}`} aria-current={view.kind === 'recap' ? 'page' : undefined} onClick={() => setView({ kind: 'recap' })}>{t('app.recap')}</button>
+          <button className={`chip ${view.kind === 'rules' ? 'on' : ''}`} aria-current={view.kind === 'rules' ? 'page' : undefined} onClick={() => setView({ kind: 'rules' })}>{t('app.rules')}</button>
           <LanguagePicker />
+          <AccessibilityButton dialogRef={a11yDialog} />
           <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
+          {session?.id === active.id && <AccountBadge session={session} />}
         </div>
       </header>
-      <main>
+      <main id="main" ref={mainRef} tabIndex={-1}>
         {view.kind === 'list' && (
           <CharacterList
             owner={active}
@@ -89,6 +131,7 @@ export default function App() {
             onNew={() => setView({ kind: 'build' })}
             onStarter={() => setView({ kind: 'starters' })}
             onOpen={id => setView({ kind: 'sheet', id })}
+            onEdit={id => setView({ kind: 'edit', id })}
             onTable={id => setView({ kind: 'table', id })}
             onLevels={id => setView({ kind: 'levels', id })}
             onCompanions={id => setView({ kind: 'companions', id })}
@@ -116,6 +159,17 @@ export default function App() {
             }}
           />
         )}
+        {view.kind === 'edit' && (
+          <EditCharacter
+            key={view.id}
+            characterId={view.id}
+            onCancel={() => setView({ kind: 'list' })}
+            onSaved={id => {
+              refresh()
+              setView({ kind: 'sheet', id })
+            }}
+          />
+        )}
         {view.kind === 'starters' && (
           <StarterPicker
             ownerId={active.id}
@@ -132,6 +186,7 @@ export default function App() {
         {view.kind === 'sheet' && (
           <CharacterSheet
             characterId={view.id}
+            onEdit={() => setView({ kind: 'edit', id: view.id })}
             onBack={() => {
               refresh()
               setView({ kind: 'list' })
@@ -168,32 +223,17 @@ export default function App() {
             onBack={() => setView({ kind: 'list' })}
           />
         )}
-        {view.kind === 'dice' && <DiceTray showAll />}
         {view.kind === 'rules' && <RulesQA />}
-        {view.kind === 'combat' && <CombatTracker key={active.id} ownerId={active.id} />}
+        {view.kind === 'combat' && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
+        {view.kind === 'dm' && <DmScreen key={active.id} userId={active.id} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
         {view.kind === 'coins' && <CoinsView userId={active.id} />}
         {view.kind === 'recap' && <RecapView userId={active.id} />}
         {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}
       </main>
+      <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen} />
     </div>
     </DiceProvider>
-  )
-}
-
-function Welcome({ onCreate }: { onCreate: (name: string) => void }) {
-  const [name, setName] = useState('')
-  const { t } = useI18n()
-  return (
-    <div className="welcome panel">
-      <div className="row welcome-lang"><LanguagePicker /></div>
-      <h1>Forge &amp; Familiar</h1>
-      <p>{t('app.tagline')}</p>
-      <form onSubmit={e => { e.preventDefault(); if (name.trim()) onCreate(name.trim()) }} className="row">
-        <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder={t('app.yourName')} aria-label={t('app.yourName')} />
-        <button className="btn primary" disabled={!name.trim()}>{t('app.start')}</button>
-      </form>
-    </div>
   )
 }
 
@@ -214,22 +254,27 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
           if (e.target.value === '__new') {
             const name = prompt(t('app.newPlayerPrompt'))?.trim()
             if (name) onAdd(name)
+          } else if (e.target.value === '__code') {
+            const code = prompt(t('account.codePrompt'))?.trim()
+            if (code) activate(code).then(s => { if (!s) alert(t('account.badCode')) })
           } else onSwitch(e.target.value)
         }}
       >
         {profiles.map(p => <option key={p.id} value={p.id}>{p.displayName}</option>)}
         <option value="__new">{t('app.addPlayer')}</option>
+        <option value="__code">{t('account.enterCode')}</option>
       </select>
     </div>
   )
 }
 
-function CharacterList({ owner, characters, onNew, onStarter, onOpen, onTable, onLevels, onCompanions, onJournal, onPrint, onCompare, onImported, onDelete }: {
+function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, onTable, onLevels, onCompanions, onJournal, onPrint, onCompare, onImported, onDelete }: {
   owner: UserProfile
   characters: Character[]
   onNew: () => void
   onStarter: () => void
   onOpen: (id: string) => void
+  onEdit: (id: string) => void
   onTable: (id: string) => void
   onLevels: (id: string) => void
   onCompanions: (id: string) => void
@@ -266,14 +311,16 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onTable, o
                 {c.portrait ? <img src={c.portrait} alt="" /> : <div className="portrait-empty small">{c.name.slice(0, 1)}</div>}
                 <div>
                   <h3>{c.name}</h3>
-                  <p className="muted small">{raceName(c.raceId, c.subraceId)} · {classLine(c.classes)}</p>
+                  <p className="muted small">{raceName(c.raceId, c.subraceId, c.rulesEdition)} · {classLine(c.classes)}</p>
                   <div className="row">
                     <button className="btn primary small" onClick={() => onOpen(c.id)}>{t('common.openSheet')}</button>
+                    <button className="btn small" onClick={() => onEdit(c.id)} aria-label={`${t('list.edit')}: ${c.name}`}>{t('list.edit')}</button>
                     <button className="btn small" onClick={() => onTable(c.id)}>{t('list.table')}</button>
                     <button className="btn small" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
                     <button className="btn small" onClick={() => onCompanions(c.id)}>{t('list.companions')}</button>
                     <button className="btn small" onClick={() => onJournal(c.id)}>{t('list.journal')}</button>
                     <button className="btn small" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
+                    <ExportButton character={c} />
                     <button className="btn small" onClick={() => onCompare(c.id)}>{t('list.compare')}</button>
                     <button className="btn ghost small" onClick={() => confirm(t('list.confirmDelete', { name: c.name })) && onDelete(c.id)}>{t('common.delete')}</button>
                   </div>

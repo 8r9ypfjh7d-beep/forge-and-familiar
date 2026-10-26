@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
-import { ABILITY_NAMES, ITEMS, SKILLS, classById, raceById, type Ability, type SkillId } from '../rules'
+import { ABILITY_NAMES, ITEMS, SKILLS, classById, raceById, type Ability, type RulesEdition, type SkillId } from '../rules'
 import type { MessageKey } from './locales/en'
 import { getLocale, setLocale, subscribeLocale } from './store'
 import { LOCALES, term, translate, type Vars } from './translate'
@@ -19,10 +19,13 @@ export function useI18n() {
       t,
       term: tr,
       className,
-      raceName: (raceId: string, subraceId?: string) => {
-        const race = raceById(raceId)
+      /** 2014: the subrace's name ("High Elf"). 2024: species and lineage ("Elf (Drow)"). */
+      raceName: (raceId: string, subraceId?: string, edition?: RulesEdition) => {
+        const race = raceById(raceId, edition)
         const sub = race?.subraces?.find(s => s.id === subraceId)
-        return sub ? tr('race', sub.id, sub.name) : race ? tr('race', race.id, race.name) : raceId
+        if (!race) return raceId
+        if (edition === '2024') return sub ? `${tr('race', race.id, race.name)} (${tr('race', sub.id, sub.name)})` : tr('race', race.id, race.name)
+        return sub ? tr('race', sub.id, sub.name) : tr('race', race.id, race.name)
       },
       ability: (a: Ability) => tr('ability', a, ABILITY_NAMES[a]),
       abilityShort: (a: Ability) => tr('abilityShort', a, a.toUpperCase()),

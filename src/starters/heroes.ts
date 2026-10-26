@@ -36,6 +36,7 @@ export const STARTER_HEROES: StarterHero[] = [
     draft: {
       ...BASE, name: 'Brannoc Steelheart', alignment: 'Lawful Good',
       raceId: 'human', classes: [{ classId: 'fighter', level: 1 }],
+      chosenLanguages: ['Dwarvish', 'Celestial', 'Giant'],
       baseAbilities: { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 },
       chosenSkills: ['athletics', 'perception'],
     },
@@ -54,6 +55,7 @@ export const STARTER_HEROES: StarterHero[] = [
     draft: {
       ...BASE, name: 'Pip Tealeaf', alignment: 'Chaotic Good',
       raceId: 'halfling', subraceId: 'lightfoot', classes: [{ classId: 'rogue', level: 1 }],
+      chosenLanguages: ['Elvish', 'Celestial'],
       baseAbilities: { str: 8, dex: 15, con: 14, int: 12, wis: 13, cha: 10 },
       chosenSkills: ['stealth', 'acrobatics', 'perception', 'sleightOfHand'],
     },
@@ -72,7 +74,8 @@ export const STARTER_HEROES: StarterHero[] = [
     spells: ['Cantrips: Sacred Flame, Guidance, Spare the Dying', '1st level: Cure Wounds, Healing Word, Bless'],
     draft: {
       ...BASE, name: 'Thora Ironhearth', alignment: 'Neutral Good',
-      raceId: 'dwarf', subraceId: 'hill-dwarf', classes: [{ classId: 'cleric', level: 1 }],
+      raceId: 'dwarf', subraceId: 'hill-dwarf', classes: [{ classId: 'cleric', level: 1, subclassId: 'life' }],
+      chosenLanguages: ['Celestial', 'Giant'], chosenTools: ["Smith's tools"],
       baseAbilities: { str: 13, dex: 10, con: 14, int: 8, wis: 15, cha: 12 },
       chosenSkills: ['medicine', 'persuasion'],
     },
@@ -92,6 +95,7 @@ export const STARTER_HEROES: StarterHero[] = [
     draft: {
       ...BASE, name: 'Elara Moonwhisper', alignment: 'Neutral Good',
       raceId: 'elf', subraceId: 'high-elf', classes: [{ classId: 'wizard', level: 1 }],
+      chosenLanguages: ['Draconic', 'Celestial', 'Sylvan'],
       baseAbilities: { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 },
       chosenSkills: ['arcana', 'investigation'],
     },
@@ -110,6 +114,7 @@ export const STARTER_HEROES: StarterHero[] = [
     draft: {
       ...BASE, name: 'Grukk Stonefist', alignment: 'Chaotic Neutral',
       raceId: 'half-orc', classes: [{ classId: 'barbarian', level: 1 }],
+      chosenLanguages: ['Giant', 'Goblin'],
       baseAbilities: { str: 15, dex: 13, con: 14, int: 10, wis: 12, cha: 8 },
       chosenSkills: ['athletics', 'survival'],
     },
@@ -128,6 +133,7 @@ export const STARTER_HEROES: StarterHero[] = [
     draft: {
       ...BASE, name: 'Kethra Flamecrest', alignment: 'Lawful Good',
       raceId: 'dragonborn', classes: [{ classId: 'paladin', level: 1 }],
+      chosenLanguages: ['Celestial', 'Dwarvish'], traitChoices: { draconicAncestry: 'gold' },
       baseAbilities: { str: 15, dex: 10, con: 13, int: 8, wis: 12, cha: 14 },
       chosenSkills: ['athletics', 'persuasion'],
     },
@@ -146,7 +152,8 @@ export const STARTER_HEROES: StarterHero[] = [
     spells: ['Cantrips: Eldritch Blast, Minor Illusion', '1st level: Charm Person, Protection from Evil and Good'],
     draft: {
       ...BASE, name: 'Vex Emberlyn', alignment: 'Chaotic Neutral',
-      raceId: 'tiefling', classes: [{ classId: 'warlock', level: 1 }],
+      raceId: 'tiefling', classes: [{ classId: 'warlock', level: 1, subclassId: 'fiend' }],
+      chosenLanguages: ['Abyssal', 'Elvish'],
       baseAbilities: { str: 8, dex: 13, con: 14, int: 12, wis: 10, cha: 15 },
       chosenSkills: ['deception', 'arcana'],
     },
@@ -166,6 +173,7 @@ export const STARTER_HEROES: StarterHero[] = [
     draft: {
       ...BASE, name: 'Lyric Aldane', alignment: 'Chaotic Good',
       raceId: 'half-elf', classes: [{ classId: 'bard', level: 1 }],
+      chosenLanguages: ['Halfling', 'Sylvan', 'Celestial'], chosenTools: ['Lute', 'Flute', 'Lyre'],
       baseAbilities: { str: 8, dex: 14, con: 13, int: 10, wis: 12, cha: 15 },
       freeAbilityBonuses: ['dex', 'con'],
       chosenSkills: ['performance', 'persuasion', 'deception', 'acrobatics', 'perception'],

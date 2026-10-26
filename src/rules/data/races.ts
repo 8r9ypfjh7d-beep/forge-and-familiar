@@ -1,4 +1,5 @@
-import type { Race } from '../types'
+import type { Race, RulesEdition, Subrace } from '../types'
+import { SPECIES } from './srd52/species'
 
 // SRD 5.1 races and subraces only.
 export const RACES: Race[] = [
@@ -6,6 +7,7 @@ export const RACES: Race[] = [
     id: 'dwarf', name: 'Dwarf', size: 'Medium', speed: 25,
     abilityBonuses: { con: 2 },
     languages: ['Common', 'Dwarvish'],
+    toolChoices: { count: 1, from: ["Smith's tools", "Brewer's supplies", "Mason's tools"] },
     traits: ['Darkvision', 'Dwarven Resilience', 'Dwarven Combat Training', 'Stonecunning'],
     subraces: [
       { id: 'hill-dwarf', name: 'Hill Dwarf', abilityBonuses: { wis: 1 }, traits: ['Dwarven Toughness'], hpPerLevel: 1 },
@@ -18,7 +20,7 @@ export const RACES: Race[] = [
     languages: ['Common', 'Elvish'],
     traits: ['Darkvision', 'Keen Senses', 'Fey Ancestry', 'Trance'],
     subraces: [
-      { id: 'high-elf', name: 'High Elf', abilityBonuses: { int: 1 }, traits: ['Elf Weapon Training', 'Cantrip', 'Extra Language'] },
+      { id: 'high-elf', name: 'High Elf', abilityBonuses: { int: 1 }, traits: ['Elf Weapon Training', 'Cantrip', 'Extra Language'], languageChoices: 1 },
     ],
   },
   {
@@ -33,13 +35,29 @@ export const RACES: Race[] = [
   {
     id: 'human', name: 'Human', size: 'Medium', speed: 30,
     abilityBonuses: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
-    languages: ['Common', 'One extra language'],
+    languages: ['Common'],
+    languageChoices: 1,
     traits: [],
   },
   {
     id: 'dragonborn', name: 'Dragonborn', size: 'Medium', speed: 30,
     abilityBonuses: { str: 2, cha: 1 },
     languages: ['Common', 'Draconic'],
+    traitChoice: {
+      id: 'draconicAncestry', name: 'Draconic Ancestry',
+      options: [
+        { id: 'black', name: 'Black', detail: 'Acid, 5 by 30 ft. line (DEX save)' },
+        { id: 'blue', name: 'Blue', detail: 'Lightning, 5 by 30 ft. line (DEX save)' },
+        { id: 'brass', name: 'Brass', detail: 'Fire, 5 by 30 ft. line (DEX save)' },
+        { id: 'bronze', name: 'Bronze', detail: 'Lightning, 5 by 30 ft. line (DEX save)' },
+        { id: 'copper', name: 'Copper', detail: 'Acid, 5 by 30 ft. line (DEX save)' },
+        { id: 'gold', name: 'Gold', detail: 'Fire, 15 ft. cone (DEX save)' },
+        { id: 'green', name: 'Green', detail: 'Poison, 15 ft. cone (CON save)' },
+        { id: 'red', name: 'Red', detail: 'Fire, 15 ft. cone (DEX save)' },
+        { id: 'silver', name: 'Silver', detail: 'Cold, 15 ft. cone (CON save)' },
+        { id: 'white', name: 'White', detail: 'Cold, 15 ft. cone (CON save)' },
+      ],
+    },
     traits: ['Draconic Ancestry', 'Breath Weapon', 'Damage Resistance'],
   },
   {
@@ -56,7 +74,8 @@ export const RACES: Race[] = [
     abilityBonuses: { cha: 2 },
     freeAbilityBonuses: { count: 2, exclude: ['cha'] },
     freeSkillChoices: 2,
-    languages: ['Common', 'Elvish', 'One extra language'],
+    languages: ['Common', 'Elvish'],
+    languageChoices: 1,
     traits: ['Darkvision', 'Fey Ancestry', 'Skill Versatility'],
   },
   {
@@ -74,4 +93,23 @@ export const RACES: Race[] = [
   },
 ]
 
-export const raceById = (id: string) => RACES.find(r => r.id === id)
+// Homebrew races and subraces registered at runtime (ids namespaced `hb:<packId>:<slug>`).
+// Homebrew is offered with both editions; homebrew subraces attach to the edition's race of that id.
+let merged: Record<RulesEdition, Race[]> = { '2014': RACES, '2024': SPECIES }
+
+/** Replace the registered homebrew races. Subraces (parentRaceId set) attach to their race; SRD ids always win. */
+export function registerHomebrewRaces(races: Race[], subraces: Subrace[]): void {
+  const build = (srdList: Race[]) => {
+    const srd = new Set([...RACES, ...SPECIES].map(r => r.id))
+    return [...srdList, ...races.filter(r => !srd.has(r.id))].map(r => {
+      const extra = subraces.filter(s => s.parentRaceId === r.id)
+      return extra.length ? { ...r, subraces: [...(r.subraces ?? []), ...extra] } : r
+    })
+  }
+  merged = { '2014': build(RACES), '2024': build(SPECIES) }
+}
+
+/** SRD races (2024: species) followed by homebrew ones, with homebrew subraces attached. */
+export const allRaces = (edition: RulesEdition = '2014'): Race[] => merged[edition]
+
+export const raceById = (id: string, edition: RulesEdition = '2014') => merged[edition].find(r => r.id === id)

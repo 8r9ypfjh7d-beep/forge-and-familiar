@@ -5,17 +5,23 @@ import { setPactUsed, setSlotUsed } from '../engine'
 import type { Apply } from '../types'
 import { Pips } from './Pips'
 
+/** Whether the character has any spell slots (regular or pact). */
+export function hasSlots(character: Character): boolean {
+  const { slots, pact } = getSpellSlots(character)
+  return !!pact || slots.some(n => n > 0)
+}
 
+/** Spell slot pips by level, plus warlock pact slots. Lives inside the Spells card in both sheet modes. */
 export function SpellSlots({ character, apply }: { character: Character; apply: Apply }) {
   const { slots, pact } = getSpellSlots(character)
   const { spellSlotsUsed, pactSlotsUsed } = character.state
   const { t } = useI18n()
   const ordinal = (level: number) => t(`sheet.slot.${level}` as MessageKey)
-  if (!pact && slots.every(n => n === 0)) return null
+  if (!hasSlots(character)) return null
 
   return (
-    <section className="card" aria-labelledby="slots-title">
-      <h2 id="slots-title">{t('sheet.slots')}</h2>
+    <div className="spell-slots" role="group" aria-labelledby="slots-title">
+      <h3 id="slots-title" className="sub-title">{t('sheet.slots')}</h3>
       <ul className="track-list">
         {slots.map((total, i) => total > 0 && (
           <li key={i}>
@@ -35,6 +41,6 @@ export function SpellSlots({ character, apply }: { character: Character; apply: 
         )}
       </ul>
       {pact && <p className="hint">{t('sheet.pactHint')}</p>}
-    </section>
+    </div>
   )
 }

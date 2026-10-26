@@ -1,0 +1,14 @@
+.why { position: relative; display: inline-block; margin-inline-start: 6px; vertical-align: baseline; font-weight: normal; }
+.why-btn { font: inherit; font-size: 0.72rem; line-height: 1; padding: 2px 7px; border-radius: 999px; border: 1px dashed var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.why-btn:hover, .why-btn[aria-expanded='true'] { background: var(--accent-soft); border-style: solid; }
+.why-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
+  display: grid; gap: 4px; width: max-content; max-width: min(300px, calc(100vw - 48px));
+  padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  font-size: 0.85rem; font-weight: normal; line-height: 1.4; text-align: start; white-space: normal;
+}
+.why-pop.right { left: auto; right: 0; } /* physical on purpose: Why.tsx measures the screen edge */
+.why-pop strong { font-family: Georgia, 'Iowan Old Style', serif; color: var(--accent); }
+.why.compact { margin-inline-start: 3px; }
+.why.compact .why-btn { padding: 2px 5px; }

@@ -1,9 +1,9 @@
 // Homebrew pack library. Async like src/storage so a backend can replace localStorage later.
 // Every pack on this device is active: its items are registered with the rules engine so
 // characters holding them keep their attacks, AC and weight.
-import { registerHomebrewItems } from '../rules'
+import { registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses, type Race, type Subrace } from '../rules'
 import { sanitizePack } from './pack'
-import type { HomebrewPack } from './types'
+import type { HomebrewPack, HomebrewRace } from './types'
 
 const KEY = 'ff.homebrew.v1'
 const CHANGED = 'ff:homebrew-changed'
@@ -24,8 +24,26 @@ function readPacks(): HomebrewPack[] {
   }
 }
 
+const toRace = (r: HomebrewRace): Race => ({
+  id: r.id, name: r.name, size: r.size, speed: r.speed, abilityBonuses: r.abilityBonuses,
+  freeAbilityBonuses: r.freeAbilityBonuses ? { count: r.freeAbilityBonuses, exclude: [] } : undefined,
+  skillProficiencies: r.skillProficiencies, freeSkillChoices: r.freeSkillChoices || undefined,
+  languages: r.languages, languageChoices: r.languageChoices || undefined, traits: r.traits,
+  hpPerLevel: r.hpPerLevel || undefined,
+})
+
+const toSubrace = (r: HomebrewRace): Subrace => ({
+  id: r.id, name: r.name, abilityBonuses: r.abilityBonuses, traits: r.traits, parentRaceId: r.parentRaceId,
+  hpPerLevel: r.hpPerLevel || undefined, languageChoices: r.languageChoices || undefined,
+})
+
+/** Hands every pack's content to the rules engine. */
 function register(packs: HomebrewPack[]) {
   registerHomebrewItems(packs.flatMap(p => p.items))
+  registerHomebrewFeats(packs.flatMap(p => p.feats))
+  const races = packs.flatMap(p => p.races)
+  registerHomebrewRaces(races.filter(r => !r.parentRaceId).map(toRace), races.filter(r => r.parentRaceId).map(toSubrace))
+  registerHomebrewSubclasses(packs.flatMap(p => p.subclasses))
 }
 
 function writePacks(packs: HomebrewPack[]) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
 import {
-  abilityMod, createCharacter, derive, getAbilityScores, getArmorClass, getAttacks, getMaxHp,
+  abilityMod, createCharacter, derive, getCritRange, getDamageRiders, getAbilityScores, getArmorClass, getAttacks, getMaxHp,
   getResources, getSpellSlots, pointBuyCost, type CharacterDraft,
 } from './index'
 
@@ -63,11 +63,6 @@ describe('hit points', () => {
     const c = make()
     expect(c.state.currentHp).toBe(getMaxHp(c))
   })
-
-  it('halves max HP at exhaustion 4', () => {
-    const c = make({}, ch => { ch.state.exhaustion = 4 })
-    expect(derive(c).maxHp).toBe(Math.floor(getMaxHp(c) / 2))
-  })
 })
 
 describe('armor class', () => {
@@ -105,6 +100,26 @@ describe('attacks', () => {
   it('drops proficiency for unproficient weapons', () => {
     const c = make({ classes: [{ classId: 'wizard', level: 1 }] }, ch => equipOnly(ch, 'greatsword'))
     expect(getAttacks(c)[0]).toMatchObject({ proficient: false, bonus: 3 })
+  })
+
+  it('carries versatile damage and properties', () => {
+    const c = make({}, ch => equipOnly(ch, 'longsword'))
+    expect(getAttacks(c)[0]).toMatchObject({ damage: '1d8+3', versatile: '1d10+3', properties: ['versatile'] })
+  })
+
+  it('offers Rage on STR melee and Sneak Attack on finesse or ranged', () => {
+    const rapier = { ability: 'dex' as const, properties: ['finesse'] }
+    const axe = { ability: 'str' as const, properties: ['heavy', 'two-handed'] }
+    expect(getDamageRiders({ classes: [{ classId: 'barbarian', level: 9 }] }, axe)).toEqual([{ id: 'rage', name: 'Rage', damage: '+3' }])
+    expect(getDamageRiders({ classes: [{ classId: 'barbarian', level: 9 }] }, rapier)).toEqual([])
+    expect(getDamageRiders({ classes: [{ classId: 'rogue', level: 5 }] }, rapier)[0]).toMatchObject({ id: 'sneakAttack', damage: '3d6' })
+    expect(getDamageRiders({ classes: [{ classId: 'rogue', level: 5 }] }, axe)).toEqual([])
+  })
+
+  it('widens the crit range for a Champion', () => {
+    expect(getCritRange({ classes: [{ classId: 'fighter', level: 3, subclassId: 'champion' }] })).toBe(19)
+    expect(getCritRange({ classes: [{ classId: 'fighter', level: 15, subclassId: 'champion' }] })).toBe(18)
+    expect(getCritRange({ classes: [{ classId: 'fighter', level: 5 }] })).toBe(20)
   })
 })
 
@@ -151,7 +166,7 @@ describe('derive', () => {
 })
 
 describe('roll mode', () => {
-  it('applies conditions and exhaustion', async () => {
+  it('applies conditions', async () => {
     const { getRollMode, autoFailsSave } = await import('./index')
     const c = make({}, ch => { ch.state.conditions = ['poisoned'] })
     expect(getRollMode(c, 'attack')).toBe('disadvantage')

@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { rollAttack, rollDamage, rollInitiative, type RollResult } from '../dice'
+import { rollAttackWithDamage, rollDamage, rollInitiative } from '../dice'
 import { RollView, useDice, useRollHistory } from '../dice/ui'
 import type { Character } from '../model/character'
-import { derive, formatMod, type Attack } from '../rules'
+import { derive, formatMod, getCritRange, type Attack } from '../rules'
 import { useSheetRolls } from '../sheet/dice'
 import { effectiveMaxHp, grantTempHp, heal, rollDeathSave, stabilize, takeDamage, vitals } from '../sheet/engine'
 import type { Apply } from '../sheet/types'
@@ -100,18 +100,16 @@ function LastRoll({ characterId }: { characterId: string }) {
 function Rolls({ character }: { character: Character }) {
   const { record } = useDice()
   const stats = derive(character)
-  // A crit on an attack makes that attack's next damage roll a crit too.
-  const [critFor, setCritFor] = useState<string | null>(null)
+  const critRange = getCritRange(character)
   const who = { character: { id: character.id, name: character.name, state: character.state } }
 
+  // One tap rolls to-hit and damage; a crit doubles the damage dice.
   const attack = (a: Attack) => {
-    const r: RollResult = record(rollAttack(a, who))
-    setCritFor(r.d20?.crit ? a.name : null)
+    const out = rollAttackWithDamage(a, { ...who, critRange })
+    record(out.attack)
+    if (out.damage) record(out.damage)
   }
-  const damage = (a: Attack) => {
-    record(rollDamage(a, { ...who, crit: critFor === a.name }))
-    setCritFor(null)
-  }
+  const damage = (a: Attack) => record(rollDamage(a, who))
 
   return (
     <section className="tm-rolls" aria-label="Rolls">
@@ -123,8 +121,8 @@ function Rolls({ character }: { character: Character }) {
           <button type="button" className="tm-key" onClick={() => attack(a)}>
             {a.name} <small>{formatMod(a.bonus)}</small>
           </button>
-          <button type="button" className={`tm-key ${critFor === a.name ? 'tm-crit' : ''}`} onClick={() => damage(a)}>
-            {critFor === a.name ? 'Crit dmg' : 'Dmg'} <small>{a.damage}</small>
+          <button type="button" className="tm-key" onClick={() => damage(a)}>
+            Dmg <small>{a.damage}</small>
           </button>
         </div>
       ))}

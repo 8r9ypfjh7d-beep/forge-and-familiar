@@ -1,0 +1,35 @@
+{
+  "format": "ff-content",
+  "version": 1,
+  "source": {
+    "id": "srd-5.1",
+    "title": "System Reference Document 5.1",
+    "edition": "2014",
+    "license": "CC-BY-4.0",
+    "attribution": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC, available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode. Data via the 5e-bits/5e-database project (https://github.com/5e-bits/5e-database)."
+  },
+  "upstream": {
+    "repo": "5e-bits/5e-database",
+    "ref": "a6212beb4b278917c2cff41c2b04c4ef4f3e0d6f",
+    "path": "src/2014/en"
+  },
+  "generatedAt": "2026-10-25T16:07:30.818Z",
+  "counts": {
+    "spells": 319,
+    "equipment": 237,
+    "magic-items": 362,
+    "classes": 12,
+    "subclasses": 12,
+    "features": 407,
+    "races": 9,
+    "subraces": 4,
+    "traits": 38,
+    "feats": 1,
+    "backgrounds": 1,
+    "conditions": 15,
+    "monsters": 334,
+    "languages": 16,
+    "proficiencies": 117,
+    "glossary": 65
+  }
+}

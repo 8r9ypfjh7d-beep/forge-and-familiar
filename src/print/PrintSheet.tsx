@@ -138,7 +138,6 @@ function PageOne({ s }: { s: Sheet }) {
           </Box>
           <Box title="Conditions">
             <div className="p-write">{s.conditions.join(', ')}</div>
-            <p className="p-death">Exhaustion <Circles max={6} used={s.exhaustion} /></p>
           </Box>
         </div>
 
@@ -149,7 +148,7 @@ function PageOne({ s }: { s: Sheet }) {
           <Box title="Racial traits">
             <List items={s.traits} empty="None" />
           </Box>
-          <Box title="Languages">
+          <Box title="Languages and tools">
             <p>{s.languages.join(', ') || '—'}</p>
           </Box>
           {s.warnings.length > 0 && (

@@ -11,9 +11,8 @@
   --s-temp: var(--temp, #3b6fb0);
   --s-radius: 12px;
   color: var(--s-ink);
-  max-width: 1100px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px 0;
   font-variant-numeric: tabular-nums;
 }
 @media (prefers-color-scheme: dark) {
@@ -58,18 +57,23 @@
 
 /* Header */
 .sheet-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.sheet-header .who { flex: 1 1 160px; min-width: 0; }
+.sheet-header .who { flex: 1 1 0; min-width: 0; }
 .sheet-header .who p { margin: 2px 0 0; color: var(--s-muted); }
 .portrait { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--s-line); }
 .portrait.placeholder { display: grid; place-items: center; font-size: 1.5rem; font-weight: 700; background: var(--s-accent); color: #fff; }
-.quick-stats { display: flex; gap: 8px; margin: 0; }
-.quick-stats div { text-align: center; padding: 6px 10px; border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-panel); min-width: 52px; }
-.quick-stats dt { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--s-muted); }
-.quick-stats dd { margin: 0; font-weight: 700; font-size: 1.1rem; }
+
+/* One rhythm for every widget: 16px between cards, small uppercase titles inside them. */
+.ff-sheet > .card, .ff-sheet > section { margin-block-end: 16px; }
+.ff-sheet .sub-title {
+  margin: 16px 0 8px; padding-block-end: 4px; border-block-end: 1px solid var(--s-line);
+  font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--s-muted); font-family: inherit;
+}
+.ff-sheet .card > .sub-title:first-child, .ff-sheet .card-head + * > .sub-title:first-child { margin-block-start: 4px; }
 
 .sheet-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .sheet-grid .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-@media (min-width: 820px) { .sheet-grid { grid-template-columns: 1fr 1fr; } }
+/* Both modes: the skills rail and Spells card on the side, the mode's own widgets in the main column. */
+@media (min-width: 820px) { .sheet-grid { grid-template-columns: minmax(280px, 320px) minmax(0, 1fr); } }
 
 /* Hit points */
 .hp-numbers { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -136,7 +140,7 @@
 form.inline { display: flex; gap: 4px; }
 form.inline input { width: 84px; }
 
-/* Exhaustion */
+/* Segmented control */
 .segmented { display: flex; border: 1px solid var(--s-line); border-radius: 8px; overflow: hidden; }
 .segmented button { flex: 1; min-height: 40px; border: 0; border-inline-end: 1px solid var(--s-line); background: transparent; color: var(--s-ink); font: inherit; font-weight: 600; cursor: pointer; }
 .segmented button:last-child { border-inline-end: 0; }
@@ -147,16 +151,49 @@ form.inline input { width: 84px; }
 .log li { padding: 2px 0; }
 .log li:first-child { font-weight: 600; }
 
-/* Inspiration and attunement */
-.inspiration { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--s-line); border-radius: 8px; background: transparent; color: var(--s-muted); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
-.inspiration .star { font-size: 1.4rem; line-height: 1; }
-.inspiration.on { border-color: var(--s-accent); color: var(--s-ink); }
-.inspiration.on .star { color: var(--s-accent); }
-.attune-slots { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.attune-slots li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 4px 4px 4px 12px; border: 1px dashed var(--s-line); border-radius: 8px; }
-.attune-slots li.filled { border-style: solid; }
-.attune-slots .hint { margin: 0; }
-.attune-add { display: flex; gap: 8px; margin-top: 10px; }
-.attune-add input { flex: 1; min-width: 0; }
 .add-counter .wide { grid-column: 1 / -1; }
 .ff-sheet .btn.dawn { margin-top: 12px; }
+
+.add-counter .hint { grid-column: 1 / -1; }
+
+/* Attacks: one tap rolls to-hit and damage */
+.attacks .segmented { margin-bottom: 8px; max-inline-size: 280px; }
+.attacks .riders { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0; }
+.attacks .rider { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: .875rem; }
+.attack-rows { list-style: none; margin: 0; padding: 0; }
+.attack-rows li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 4px 0; border-bottom: 1px solid var(--s-line); }
+.attack-roll {
+  flex: 1 1 200px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-height: 44px;
+  padding: 6px 12px; border: 1px solid var(--s-line); border-radius: 8px; background: transparent;
+  color: var(--s-ink); font: inherit; text-align: start; cursor: pointer;
+}
+.attack-roll:hover { border-color: var(--s-accent); }
+.attack-roll:active { transform: scale(.98); }
+.attack-roll .name { font-weight: 600; flex: 1 1 100px; }
+.attack-roll .dmg { color: var(--s-muted); }
+.attack-result { display: grid; gap: 6px; margin-top: 10px; }
+.attack-rows li .rider { flex-basis: 100%; min-height: 28px; padding-inline-start: 12px; }
+
+/* Story / combat mode switch */
+.mode-switch-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: -4px 0 16px; }
+.mode-switch-row .hint { margin: 0; }
+.mode-switch { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid var(--s-line); border-radius: 10px; background: var(--s-panel); }
+.mode-btn {
+  font: inherit; font-weight: 700; font-size: .9rem; min-height: 40px; padding: 0 16px;
+  border: 0; border-radius: 8px; background: transparent; color: var(--s-muted); cursor: pointer;
+}
+.mode-btn.on { background: var(--s-accent); color: #fff; }
+
+/* Story mode */
+.story-notes h2 label { cursor: text; }
+.story-notes textarea {
+  font: inherit; inline-size: 100%; min-block-size: 8em; padding: 10px; resize: vertical;
+  border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink);
+}
+.spell-card .sb-browse > .sb-list { max-block-size: 26rem; overflow-y: auto; }
+
+/* Spell slots inside the Spells card */
+.spell-slots .track-list { gap: 8px; }
+.spell-slots .track-list li { display: grid; grid-template-columns: minmax(3.5em, auto) 1fr auto; gap: 8px; }
+.spell-slots .track-label { flex: none; }
+.spell-slots .pip { width: 22px; height: 22px; }

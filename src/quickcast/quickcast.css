@@ -43,7 +43,8 @@
 .qc-roll-label { font-weight: 600; font-size: .9rem; }
 .qc-roll-label small { color: var(--s-accent); font-weight: 700; }
 .qc-roll-break { color: var(--s-muted); font-size: .8rem; overflow-wrap: anywhere; }
-.qc-roll-total { font-size: 1.5rem; font-weight: 800; min-width: 2ch; text-align: right; }
+.qc-roll-total { font-size: 1.5rem; font-weight: 800; min-width: 2ch; text-align: end; }
+.qc-roll-meaning { grid-column: 1 / -1; font-size: .85rem; color: var(--s-muted); margin-top: -4px; }
 .qc-roll.crit .qc-roll-total { color: var(--s-good); }
 .qc-roll.fumble .qc-roll-total { color: var(--s-bad); }
 
@@ -54,3 +55,5 @@
 .qc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
 .qc-grid .wide { grid-column: 1 / -1; }
 .qc-error { margin: 0; color: var(--s-bad); font-size: .875rem; }
+.qc-picker { display: flex; flex-direction: column; gap: 8px; }
+.qc-attrib { margin: 0; font-size: .7rem; color: var(--s-muted); }

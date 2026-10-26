@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Character } from '../model/character'
+import { announce } from '../a11y'
 import { getCharacter, onCharactersChanged, saveCharacter } from '../storage'
 import { describeChange } from '../explain/changes'
 import { normalize } from './engine'
@@ -90,6 +91,7 @@ export function useLiveCharacter(characterId: string) {
     const entry = { id: Date.now() + Math.random(), text, before: prev, changes: describeChange(prev, next), at: Date.now() }
     show(next, [entry, ...history.current].slice(0, MAX_LOG), [])
     persist(next)
+    announce(text)
   }, [show, persist])
 
   /** Reverts the entry with this id and every change made after it. */
@@ -103,6 +105,7 @@ export function useLiveCharacter(characterId: string) {
     const target = playState(now, entries[i].before)
     show(target, entries.slice(i + 1), [...undone.reverse(), ...redoStack.current])
     persist(target)
+    announce(`Undid: ${entries[i].text}`)
   }, [show, persist])
 
   const undo = useCallback(() => {
@@ -116,6 +119,7 @@ export function useLiveCharacter(characterId: string) {
     const target = playState(now, next.after)
     show(target, [{ ...next.entry, before: now }, ...history.current].slice(0, MAX_LOG), rest)
     persist(target)
+    announce(`Redid: ${next.entry.text}`)
   }, [show, persist])
 
   /** undefined while loading, null when the character does not exist. */

@@ -1,0 +1,70 @@
+/* Inventory card on the live sheet. Scoped inside .ff-sheet, uses the sheet's tokens. */
+.inventory .card-head { align-items: center; }
+.inv-weight { margin: 0; white-space: nowrap; }
+.inv-weight.over { color: var(--s-bad); font-weight: 700; }
+
+.inv-coins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 12px; }
+.inv-coins label { display: flex; flex-direction: column; gap: 2px; font-size: .7rem; font-weight: 700; letter-spacing: .04em; color: var(--s-muted); text-align: center; }
+.inv-coins input { width: 100%; min-width: 0; min-height: 40px; text-align: center; font-size: 1.05rem; font-weight: 700; }
+
+.inv-list, .inv-results { list-style: none; margin: 0 0 12px; padding: 0; }
+.inv-row { border-bottom: 1px solid var(--s-line); }
+.inv-row:last-child { border-bottom: 0; }
+.inv-row.equipped .inv-name bdi { color: var(--s-accent); }
+.inv-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-height: 48px; }
+.inv-name {
+  flex: 1 1 160px; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px;
+  padding: 6px 0; border: 0; background: transparent; color: var(--s-ink); font: inherit; font-weight: 600;
+  text-align: start; cursor: pointer;
+}
+.inv-name:disabled { cursor: default; opacity: 1; }
+.inv-name small { flex-basis: 100%; font-weight: 400; color: var(--s-muted); font-size: .8rem; }
+.inv-name small:empty { display: none; }
+.inv-qty { font-size: .8rem; color: var(--s-muted); }
+.inv-badge { font-size: .65rem; font-weight: 700; border: 1px solid var(--s-accent); color: var(--s-accent); border-radius: 4px; padding: 0 4px; }
+.inv-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-inline-start: auto; padding-block-end: 4px; }
+.ff-sheet .inv-actions .btn.small { max-width: none; }
+.ff-sheet .inv-actions .inv-edit { width: 36px; padding: 0; text-overflow: clip; }
+.inv-stepper { display: flex; }
+.inv-stepper button {
+  width: 32px; min-height: 32px; border: 1px solid var(--s-line); background: transparent; color: var(--s-ink); font: inherit; cursor: pointer;
+}
+.inv-stepper button:first-child { border-start-start-radius: 8px; border-end-start-radius: 8px; }
+.inv-stepper button:last-child { border-start-end-radius: 8px; border-end-end-radius: 8px; border-inline-start: 0; }
+.inv-notes { margin: 0 0 12px; font-size: .9rem; line-height: 1.45; white-space: pre-line; text-align: start; }
+
+.inv-editor { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 12px; padding: 12px 0; }
+.inv-editor label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--s-muted); min-width: 0; }
+.inv-editor input, .inv-editor select, .inv-editor textarea { width: 100%; min-width: 0; font: inherit; color: var(--s-ink); }
+.inv-editor .wide { grid-column: 1 / -1; }
+.inv-editor label.check { flex-direction: row; align-items: center; gap: 6px; font-weight: 400; color: var(--s-ink); }
+.inv-editor label.check input { width: auto; }
+.inv-props { display: flex; flex-wrap: wrap; gap: 4px 14px; border: 1px solid var(--s-line); border-radius: 8px; padding: 6px 10px 8px; margin: 0; }
+.inv-props legend { font-size: .8rem; font-weight: 600; color: var(--s-muted); padding: 0 4px; }
+.inv-pact { align-items: flex-start !important; }
+.inv-pact span { display: flex; flex-direction: column; font-weight: 600; }
+.inv-pact small { font-weight: 400; color: var(--s-muted); }
+.inv-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ff-sheet .inv-editor-actions .inv-delete { margin-inline-start: auto; color: var(--s-bad); }
+
+.inv-add { width: 100%; }
+.inv-panel { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--s-line); padding-top: 12px; }
+.inv-panel-head .segmented button { white-space: nowrap; }
+.inv-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.inv-panel input[type='search'] { width: 100%; }
+.inv-results { max-height: min(420px, 55vh); overflow-y: auto; overscroll-behavior: contain; margin: 0; }
+.inv-results li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-bottom: 1px solid var(--s-line); }
+.inv-results li > span { display: flex; flex-direction: column; min-width: 0; text-align: start; }
+.inv-results small { color: var(--s-muted); font-size: .75rem; }
+.inv-source { margin: 0; font-size: .75rem; }
+
+.inv-effects { color: var(--s-muted); }
+.inv-effects.on { color: var(--s-good); font-weight: 600; }
+.inv-effects-editor { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--s-line); border-radius: 8px; padding: 6px 10px 10px; margin: 0; }
+.inv-effects-editor legend { font-size: .8rem; font-weight: 600; color: var(--s-muted); padding: 0 4px; }
+.inv-effects-editor > .hint { margin: 0; }
+.inv-effects-editor > .btn { align-self: flex-start; }
+.inv-effect { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.inv-effect select { flex: 1 1 140px; min-width: 0; width: auto; }
+.inv-effect input[type='number'] { width: 72px; flex: 0 0 auto; }
+.inv-effect .inv-effect-remove { width: 36px; padding: 0; margin-inline-start: auto; }

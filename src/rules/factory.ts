@@ -1,8 +1,10 @@
 import { CHARACTER_SCHEMA_VERSION, type Character, type CharacterState } from '../model/character'
-import { backgroundById } from './data/backgrounds'
+import { classKit, kitGold } from './choices'
+import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { itemById } from './data/items'
 import { getMaxHp } from './derive'
+import { rulesEdition } from './edition'
 
 /** The choices the builder collects before a character exists. */
 export type CharacterDraft = Omit<Character, 'id' | 'schemaVersion' | 'inventory' | 'state' | 'createdAt' | 'updatedAt' | 'xp' | 'notes' | 'coins'>
@@ -20,16 +22,22 @@ export function freshState(maxHp: number): CharacterState {
     pactSlotsUsed: 0,
     resources: {},
     conditions: [],
-    exhaustion: 0,
     counters: [],
   }
 }
 
 /** Starting gear ids from the class kit and the background, merged into stacks. */
-export function startingItemIds(draft: Pick<CharacterDraft, 'classes' | 'backgroundId'>): string[] {
-  const cls = classById(draft.classes[0]?.classId ?? '')
-  const bg = backgroundById(draft.backgroundId)
-  return [...(cls?.startingEquipment ?? []), ...(bg?.equipment ?? [])]
+export function startingItemIds(draft: Pick<CharacterDraft, 'classes' | 'backgroundId' | 'customBackground' | 'equipmentPicks' | 'rulesEdition'>): string[] {
+  const cls = classById(draft.classes[0]?.classId ?? '', rulesEdition(draft))
+  const bg = getBackground(draft)
+  return [...(cls ? classKit(cls, draft.equipmentPicks) : []), ...(bg?.equipment ?? [])]
+}
+
+/** Starting gold: 15 gp in 2014; in 2024 the class kit's and the background's coins. */
+export function startingGold(draft: Pick<CharacterDraft, 'classes' | 'backgroundId' | 'customBackground' | 'equipmentPicks' | 'rulesEdition'>): number {
+  if (rulesEdition(draft) !== '2024') return 15
+  const cls = classById(draft.classes[0]?.classId ?? '', '2024')
+  return (cls ? kitGold(cls, draft.equipmentPicks) : 0) + (getBackground(draft)?.gold ?? 0)
 }
 
 const AMMO_BUNDLE: Record<string, number> = { arrows: 20, bolts: 20, rations: 5, torch: 5 }
@@ -65,7 +73,7 @@ export function createCharacter(draft: CharacterDraft, now = new Date()): Charac
     schemaVersion: CHARACTER_SCHEMA_VERSION,
     xp: 0,
     notes: '',
-    coins: { cp: 0, sp: 0, gp: 15 },
+    coins: { cp: 0, sp: 0, gp: startingGold(draft) },
     inventory,
     state: freshState(1),
     createdAt: now.toISOString(),

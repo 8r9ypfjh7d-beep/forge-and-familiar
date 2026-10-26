@@ -3,8 +3,9 @@
 // total), and explain.test.ts checks each total against derive() so the two never drift.
 import type { Character } from '../model/character'
 import {
-  ABILITY_NAMES, SKILLS, abilityMod, backgroundById, classById, derive, getAbilityMods, getAbilityScores,
-  getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, totalLevel,
+  applyItemAbilities, entryItem, itemBonuses,
+  ABILITY_NAMES, SKILLS, abilityMod, backgroundBonuses, getBackground, classById, derive, featBonus, featEffects, getAbilityMods, getAbilityScores,
+  getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, rulesEdition, totalLevel,
   type Ability, type ClassDef, type SkillId,
 } from '../rules'
 
@@ -29,9 +30,13 @@ export type StatKey =
 
 const ABBR = (a: Ability) => a.toUpperCase()
 
+/** One line per worn item that adds to this kind of number. */
+const itemLines = (...args: Parameters<typeof itemBonuses>): MathLine[] =>
+  itemBonuses(...args).map(b => ({ label: b.source, value: b.value }))
+
 function classesOf(c: Character): { def: ClassDef; level: number }[] {
   return c.classes.flatMap(cl => {
-    const def = classById(cl.classId)
+    const def = classById(cl.classId, rulesEdition(c))
     return def ? [{ def, level: cl.level }] : []
   })
 }
@@ -51,8 +56,10 @@ function jackOfAllTrades(c: Character): number {
 
 function abilityScore(c: Character, a: Ability): StatMath {
   const lines: MathLine[] = [{ label: 'Base score', value: c.baseAbilities[a] }]
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
   const sub = race?.subraces?.find(s => s.id === c.subraceId)
+  const fromBackground = rulesEdition(c) === '2024' ? backgroundBonuses(c)[a] : 0
+  if (fromBackground) lines.push({ label: `${getBackground(c)?.name ?? 'Background'} (your pick)`, value: fromBackground })
   if (race?.abilityBonuses[a]) lines.push({ label: race.name, value: race.abilityBonuses[a] })
   if (sub?.abilityBonuses[a]) lines.push({ label: sub.name, value: sub.abilityBonuses[a] })
   const free = race?.freeAbilityBonuses
@@ -61,6 +68,8 @@ function abilityScore(c: Character, a: Ability): StatMath {
   }
   const raw = lines.reduce((n, l) => n + l.value, 0)
   if (raw > 20) lines.push({ label: 'Capped at 20', value: 20 - raw })
+  const before = getAbilityScores({ ...c, inventory: [] })
+  for (const l of applyItemAbilities(c, before).lines[a]) lines.push({ label: l.source, value: l.value })
   return make(ABILITY_NAMES[a], lines)
 }
 
@@ -74,13 +83,14 @@ function save(c: Character, a: Ability): StatMath {
   const proficient = !!first?.savingThrows.includes(a)
   const lines = [{ label: `${ABBR(a)} modifier`, value: getAbilityMods(getAbilityScores(c))[a] }]
   if (proficient) lines.push({ ...profLine(c), label: `Proficiency (${first.name})` })
+  lines.push(...itemLines(c, 'saves'))
   const notes = classesOf(c).length > 1 ? ['Saving throw proficiencies come from your first class only.'] : []
   return make(`${ABILITY_NAMES[a]} save`, lines, { signed: true, notes })
 }
 
 function skillSources(c: Character, s: SkillId): string[] {
-  const race = raceById(c.raceId)
-  const bg = backgroundById(c.backgroundId)
+  const race = raceById(c.raceId, rulesEdition(c))
+  const bg = getBackground(c)
   const out: string[] = []
   if (c.chosenSkills.includes(s)) out.push('your choice')
   if (race?.skillProficiencies?.includes(s)) out.push(race.name)
@@ -93,6 +103,7 @@ function skill(c: Character, s: SkillId): StatMath {
   const lines = [{ label: `${ABBR(ability)} modifier`, value: getAbilityMods(getAbilityScores(c))[ability] }]
   if (getSkillProficiencies(c).has(s)) lines.push({ ...profLine(c), label: `Proficiency (${skillSources(c, s).join(', ')})` })
   else if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
+  lines.push(...itemLines(c, 'checks'))
   return make(SKILLS[s].name, lines, { signed: true })
 }
 
@@ -117,23 +128,33 @@ function armorClass(c: Character): StatMath {
     }
     if (from) lines.push({ label: `${ABBR(from.unarmoredDefense!)} modifier (Unarmored Defense, ${from.name})`, value: best })
   }
+  const featAc = featBonus(c, 'ac') + (armor ? featBonus(c, 'armoredAc') : 0)
+  if (featAc) lines.push({ label: 'Feats', value: featAc })
   if (shield) lines.push({ label: shield.name, value: shield.baseAc })
+  const magic = c.inventory.filter(e => e.equipped && e.magicBonus && entryItem(e)?.kind === 'armor').reduce((n, e) => n + (e.magicBonus ?? 0), 0)
+  if (magic) lines.push({ label: 'Magic armor and shield', value: magic })
+  lines.push(...itemLines(c, 'ac', !armor && !shield))
   return make('Armor class', lines, { notes })
 }
 
 function initiative(c: Character): StatMath {
   const lines = [{ label: 'DEX modifier', value: getAbilityMods(getAbilityScores(c)).dex }]
-  if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
+  if (featEffects(c, 'initiativeProficiency').length) lines.push({ ...profLine(c), label: 'Proficiency (Alert)' })
+  else if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
+  if (featBonus(c, 'initiative')) lines.push({ label: 'Feats', value: featBonus(c, 'initiative') })
+  lines.push(...itemLines(c, 'checks'), ...itemLines(c, 'initiative'))
   return make('Initiative', lines, { signed: true })
 }
 
 const MONK_MOVEMENT: [number, number][] = [[18, 30], [14, 25], [10, 20], [6, 15], [2, 10]]
 
 function speed(c: Character): StatMath {
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
+  const sub = race?.subraces?.find(s => s.id === c.subraceId)
   const abilities = getAbilityScores(c)
   const { armor, shield } = getEquippedArmor(c)
-  const lines: MathLine[] = [{ label: race ? `${race.name} walking speed` : 'Walking speed', value: race?.speed ?? 30 }]
+  const lines: MathLine[] = [{ label: race ? `${sub?.speed ? sub.name : race.name} walking speed` : 'Walking speed', value: sub?.speed ?? race?.speed ?? 30 }]
+  if (featBonus(c, 'speed')) lines.push({ label: 'Feats', value: featBonus(c, 'speed') })
   if (armor?.category === 'heavy' && armor.strengthReq && abilities.str < armor.strengthReq) {
     lines.push({ label: `${armor.name} needs STR ${armor.strengthReq}`, value: -10 })
   }
@@ -143,9 +164,7 @@ function speed(c: Character): StatMath {
   }
   const barb = classesOf(c).find(x => x.def.id === 'barbarian')
   if (barb && barb.level >= 5 && armor?.category !== 'heavy') lines.push({ label: 'Fast Movement (Barbarian)', value: 10 })
-  const sum = lines.reduce((n, l) => n + l.value, 0)
-  if (c.state.exhaustion >= 5) lines.push({ label: `Exhaustion ${c.state.exhaustion}: speed 0`, value: -sum })
-  else if (c.state.exhaustion >= 2) lines.push({ label: `Exhaustion ${c.state.exhaustion}: speed halved`, value: Math.floor(sum / 2) - sum })
+  lines.push(...itemLines(c, 'speed'))
   return make('Speed (ft.)', lines)
 }
 
@@ -158,9 +177,9 @@ function proficiency(c: Character): StatMath {
 
 function maxHp(c: Character): StatMath {
   const con = getAbilityMods(getAbilityScores(c)).con
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
   const sub = race?.subraces?.find(s => s.id === c.subraceId)
-  const perLevel = sub?.hpPerLevel ?? 0
+  const perLevel = (sub?.hpPerLevel ?? 0) + (race?.hpPerLevel ?? 0)
   const level = totalLevel(c)
   const lines: MathLine[] = []
   let floor = 0
@@ -177,15 +196,12 @@ function maxHp(c: Character): StatMath {
     }
   }
   lines.push({ label: `CON modifier × ${level} level${level === 1 ? '' : 's'}`, value: con * level })
-  if (perLevel) lines.push({ label: `${sub!.name} × ${level} level${level === 1 ? '' : 's'}`, value: perLevel * level })
+  if (perLevel) lines.push({ label: `${sub?.hpPerLevel ? sub.name : race!.name} × ${level} level${level === 1 ? '' : 's'}`, value: perLevel * level })
   if (floor) lines.push({ label: 'Each level gives at least 1 HP', value: floor })
   const base = getMaxHp(c)
   const sum = lines.reduce((t, l) => t + l.value, 0)
   if (base > sum) lines.push({ label: 'Minimum 1 HP', value: base - sum })
   const notes = ['Uses the fixed average for levels after 1st.']
-  if (c.state.exhaustion >= 4) {
-    lines.push({ label: `Exhaustion ${c.state.exhaustion}: max HP halved`, value: Math.max(1, Math.floor(base / 2)) - base })
-  }
   return make('Max hit points', lines, { notes })
 }
 
@@ -202,6 +218,7 @@ function spellcasting(c: Character, kind: 'spellDc' | 'spellAttack'): StatMath |
     ...(kind === 'spellDc' ? [{ label: 'Base', value: 8 }] : []),
     profLine(c),
     { label: `${ABBR(a)} modifier (${caster.def.name} spellcasting)`, value: getAbilityMods(getAbilityScores(c))[a] },
+    ...itemLines(c, kind),
   ]
   return kind === 'spellDc' ? make('Spell save DC', lines) : make('Spell attack', lines, { signed: true })
 }
@@ -211,6 +228,9 @@ function attack(c: Character, index: number): StatMath | null {
   if (!atk) return null
   const lines = [{ label: `${ABBR(atk.ability)} modifier`, value: getAbilityMods(getAbilityScores(c))[atk.ability] }]
   if (atk.proficient) lines.push(profLine(c))
+  lines.push(...itemLines(c, 'attack'))
+  const magic = atk.bonus - lines.reduce((t, l) => t + l.value, 0)
+  if (magic) lines.push({ label: 'Magic weapon', value: magic })
   const notes = [`Damage ${atk.damage} ${atk.damageType}: weapon die + ${ABBR(atk.ability)} modifier.`]
   if (!atk.proficient) notes.push('Not proficient, so no proficiency bonus.')
   return make(`${atk.name} to hit`, lines, { signed: true, notes })

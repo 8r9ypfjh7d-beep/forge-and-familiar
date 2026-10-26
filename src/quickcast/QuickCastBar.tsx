@@ -1,17 +1,17 @@
 // The sheet's quick-cast bar: one tap to attack, cast a pinned spell (spending the slot) or use a resource.
 // Rolls go to the shared dice history; slot and resource spending goes through apply, so Undo works.
-import { useState } from 'react'
-import { critNotation, isValidNotation, roll, rollAttack, rollDamage, type RollResult } from '../dice'
+import { useEffect, useRef, useState } from 'react'
+import { critNotation, isValidNotation, roll, rollAttack, rollAttackWithDamage, type RollResult } from '../dice'
 import { useDice } from '../dice/ui'
 import type { Character } from '../model/character'
-import { derive, formatMod, getResources, type DerivedStats } from '../rules'
+import { derive, formatMod, getCritRange, getResources, type DerivedStats } from '../rules'
 import { ABILITIES, type Ability } from '../rules/types'
 import type { Apply } from '../sheet/types'
-import { SPELL_PRESETS } from './presets'
 import {
   addEntry, entriesOf, moveEntry, newEntryId, ORDINAL, removeEntry, resourceUse, slotChoices, spellDamage,
   spendResource, spendSlot,
 } from './quickcast'
+import { SpellPicker } from './SpellPicker'
 import type { QuickCastEntry, SlotChoice, SpellEntry } from './types'
 import './quickcast.css'
 
@@ -20,8 +20,11 @@ const SHORT: Record<Ability, string> = { str: 'STR', dex: 'DEX', con: 'CON', int
 interface Outcome {
   title: string
   note?: string
-  rolls: RollResult[]
+  /** Each roll with what it is for ("To hit", "Damage (fire)"), so the two rolls of an attack can't be mixed up. */
+  rolls: { roll: RollResult; what: string }[]
 }
+
+const damageWhat = (type?: string) => (type === 'healing' ? 'Healing' : type ? `Damage (${type})` : 'Damage')
 
 function useRecord() {
   try {
@@ -41,36 +44,39 @@ export function QuickCastBar({ character, apply }: { character: Character; apply
   const [adding, setAdding] = useState(false)
   const [picking, setPicking] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
+  const outRef = useRef<HTMLDivElement>(null)
+  // The result shows under the bar; bring it into view so a tap never looks like it did nothing.
+  useEffect(() => { if (outcome) outRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }) }, [outcome])
   const entries = entriesOf(character)
   const who = { id: character.id, name: character.name, state: character.state }
 
   const attack = (name: string) => {
     const a = stats.attacks.find(x => x.name === name)
     if (!a) return
-    const hit = record(rollAttack(a, { character: who }))
-    const dmg = record(rollDamage(a, { character: who, crit: hit.d20?.crit }))
-    setOutcome({ title: a.name, note: a.notes.join(' · ') || undefined, rolls: [hit, dmg] })
+    const out = rollAttackWithDamage(a, { character: who, critRange: getCritRange(character) })
+    const rolls = [{ roll: record(out.attack), what: 'To hit' }, ...(out.damage ? [{ roll: record(out.damage), what: damageWhat(a.damageType) }] : [])]
+    setOutcome({ title: a.name, note: a.notes.join(' · ') || undefined, rolls })
   }
 
-  const cast = (spell: SpellEntry, choice?: SlotChoice) => {
+  const cast = (spell: SpellEntry, choice?: SlotChoice, warning?: string) => {
     setPicking(null)
     const sc = stats.spellcasting
     const castLevel = choice?.level ?? spell.level
-    const rolls: RollResult[] = []
-    const notes: string[] = []
+    const rolls: Outcome['rolls'] = []
+    const notes: string[] = warning ? [warning] : []
     let crit = false
     if (spell.roll === 'attack') {
       if (sc) {
         const hit = record(rollAttack({ name: spell.name, bonus: sc.attackBonus }, { character: who }))
         crit = !!hit.d20?.crit
-        rolls.push(hit)
+        rolls.push({ roll: hit, what: 'To hit' })
       } else notes.push('No spellcasting ability, so no attack bonus')
     }
     if (spell.roll === 'save' && spell.save) notes.push(sc ? `DC ${sc.saveDc} ${SHORT[spell.save]} save` : `${SHORT[spell.save]} save`)
     const notation = spellDamage(spell, castLevel, stats.level, sc ? stats.mods[sc.ability] : 0)
     if (notation) {
       const label = `${spell.name}${spell.damageType ? ` ${spell.damageType}` : ''}${crit ? ' (crit)' : ''}`
-      rolls.push(record(roll(crit ? critNotation(notation) : notation, { character: who, label }, 'damage')))
+      rolls.push({ roll: record(roll(crit ? critNotation(notation) : notation, { character: who, label }, 'damage')), what: damageWhat(spell.damageType) })
     }
     if (choice) {
       const slot = `${ORDINAL[choice.level]}-level ${choice.source === 'pact' ? 'pact ' : ''}slot`
@@ -83,6 +89,8 @@ export function QuickCastBar({ character, apply }: { character: Character; apply
   const tapSpell = (spell: SpellEntry) => {
     if (spell.level === 0) return cast(spell)
     const choices = slotChoices(character, spell.level)
+    // No slot left: still roll it (the DM may allow it, or a scroll was used) but spend nothing.
+    if (choices.length === 0) return cast(spell, undefined, 'No slot left, so none was spent')
     if (choices.length === 1) return cast(spell, choices[0])
     setOutcome(null)
     setPicking(picking === spell.id ? null : spell.id)
@@ -159,13 +167,13 @@ export function QuickCastBar({ character, apply }: { character: Character; apply
       )}
 
       {outcome && !pickingSpell && (
-        <div className="qc-panel qc-outcome" aria-live="polite">
+        <div ref={outRef} className="qc-panel qc-outcome" aria-live="polite">
           <div className="qc-outcome-head">
             <strong>{outcome.title}</strong>
             <button type="button" className="btn ghost small" aria-label="Dismiss" onClick={() => setOutcome(null)}>×</button>
           </div>
           {outcome.note && <p className="qc-note">{outcome.note}</p>}
-          {outcome.rolls.map(r => <RollLine key={r.id} roll={r} />)}
+          {outcome.rolls.map(r => <RollLine key={r.roll.id} roll={r.roll} what={r.what} />)}
         </div>
       )}
 
@@ -177,19 +185,22 @@ export function QuickCastBar({ character, apply }: { character: Character; apply
   )
 }
 
-function RollLine({ roll: r }: { roll: RollResult }) {
+function RollLine({ roll: r, what }: { roll: RollResult; what: string }) {
   const crit = r.d20?.crit
   const fumble = r.d20?.fumble
   return (
     <div className={`qc-roll${crit ? ' crit' : ''}${fumble ? ' fumble' : ''}`}>
       <span className="qc-roll-label">
-        {r.type === 'attack' ? 'To hit' : r.label}
+        {what}
         {r.d20 && r.d20.mode !== 'normal' && <small> ({r.d20.mode === 'advantage' ? 'adv' : 'dis'})</small>}
         {crit && <small> Critical!</small>}
         {fumble && <small> Natural 1</small>}
       </span>
       <span className="qc-roll-break">{r.breakdown}</span>
       <span className="qc-roll-total">{r.total}</span>
+      {r.type === 'attack' && (
+        <span className="qc-roll-meaning">{fumble ? 'Misses, no damage' : crit ? 'Hits! Damage dice doubled' : `Hits AC ${r.total} or lower`}</span>
+      )}
     </div>
   )
 }
@@ -210,7 +221,8 @@ function describe(c: Character, stats: DerivedStats, e: QuickCastEntry): { name:
   const bits: string[] = [ORDINAL[e.level]]
   if (e.roll === 'attack' && sc) bits.push(formatMod(sc.attackBonus))
   if (e.roll === 'save' && e.save) bits.push(`${SHORT[e.save]}${sc ? ` ${sc.saveDc}` : ''}`)
-  if (e.level > 0 && slotChoices(c, e.level).length === 0) return { name: e.name, sub: '', blocked: 'No slots left' }
+  // Out of slots is shown, not blocked: tapping still rolls the spell (see tapSpell).
+  if (e.level > 0 && slotChoices(c, e.level).length === 0) bits.push('no slots')
   return { name: e.name, sub: bits.join(' · ') }
 }
 
@@ -288,15 +300,7 @@ function AddEntry({ character, stats, onAdd, onCancel }: {
 
       {kind === 'spell' && (
         <>
-          <label>Start from an SRD spell
-            <select value="" onChange={e => {
-              const p = SPELL_PRESETS.find(x => x.name === e.target.value)
-              if (p) { setSpell({ ...p }); setError('') }
-            }}>
-              <option value="">Choose…</option>
-              {SPELL_PRESETS.map(p => <option key={p.name} value={p.name}>{p.name} ({ORDINAL[p.level]})</option>)}
-            </select>
-          </label>
+          <SpellPicker character={character} onPick={p => { setSpell(p); setError('') }} />
           <div className="qc-grid">
             <label className="wide">Name<input value={spell.name} onChange={e => patch({ name: e.target.value })} placeholder="Fireball" /></label>
             <label>Level

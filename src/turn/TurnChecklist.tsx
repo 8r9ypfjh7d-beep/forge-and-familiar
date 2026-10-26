@@ -62,7 +62,6 @@ export function TurnChecklist({ character }: { character: Character }) {
           <button type="button" className="btn small" onClick={() => update(dash)} disabled={!!noMovement || speed === 0}>{t('turn.dash', { n: speed })}</button>
         </div>
         {noMovement && <p className="hint">{t('turn.speedZeroCondition', { condition: condition(noMovement) })}</p>}
-        {!noMovement && speed === 0 && <p className="hint">{t('turn.speedZeroExhaustion')}</p>}
         {turn.dashes > 0 && <p className="hint">{t('turn.dashed', { n: turn.dashes })}</p>}
       </div>
 

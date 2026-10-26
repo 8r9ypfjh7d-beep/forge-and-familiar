@@ -1,25 +1,26 @@
-import { ShowMath } from '../explain/ShowMath'
-import { StatsCard } from '../explain/StatsCard'
 import { useI18n } from '../i18n'
+import { ExportButton } from '../portability/ui'
 import type { Character } from '../model/character'
 import { QuickCastBar } from '../quickcast'
-import { derive, formatMod } from '../rules'
 import { ReactionReminders } from '../reactions'
-import { Attunement } from './components/Attunement'
+import { Attacks } from './components/Attacks'
 import { DEFAULT_THEME_ID, ThemePicker, useCharacterTheme } from '../themes'
 import { DeathSaves } from './components/DeathSaves'
-import { Exhaustion } from './components/Exhaustion'
 import { HitPoints } from './components/HitPoints'
 import { Resources } from './components/Resources'
 import { Rests } from './components/Rests'
-import { SpellSlots } from './components/SpellSlots'
+import { Spellbook, SpellsCard } from '../spellbook'
+import { Inventory } from '../inventory'
 import { Supplies } from '../supplies/Supplies'
 import { TurnChecklist } from '../turn'
 import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
+import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './mode'
+import { Notes } from './components/Story'
+import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, SkillsPanel } from './combat/CombatPage'
 import './sheet.css'
 
-export function CharacterSheet({ characterId, onBack }: { characterId: string; onBack: () => void }) {
+export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
   const { character, apply, undo, undoTo, redo, canRedo, log } = useLiveCharacter(characterId)
   useCharacterTheme(character?.theme)
   const { t } = useI18n()
@@ -34,53 +35,84 @@ export function CharacterSheet({ characterId, onBack }: { characterId: string; o
     )
   }
 
-  const showDeath = character.state.currentHp === 0
+  return <Sheet character={character} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} />
+}
+
+function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
+  character: Character
+  apply: Apply
+  undo: () => void
+  undoTo: (id: number) => void
+  redo?: () => void
+  log: LogEntry[]
+  onBack: () => void
+  onEdit?: () => void
+}) {
+  const [mode, setMode] = useSheetMode(character.id)
+  const layout = sheetLayout(mode, { dying: character.state.currentHp === 0 })
+  const p = { character, apply }
+  const section = (s: SheetSection) => {
+    switch (s) {
+      case 'quickcast': return <QuickCastBar key={s} {...p} />
+      case 'abilities': return <AbilitiesPanel key={s} character={character} />
+      case 'spellCard': return <SpellsCard key={s} {...p} />
+      case 'notes': return <Notes key={s} {...p} />
+      case 'hp': return <HitPoints key={s} {...p} />
+      case 'death': return <DeathSaves key={s} {...p} />
+      case 'rests': return <Rests key={s} {...p} />
+      case 'attacks': return <Attacks key={s} character={character} />
+      case 'turn': return <TurnChecklist key={s} character={character} />
+      case 'reactions': return <ReactionReminders key={s} {...p} />
+      case 'spells': return <Spellbook key={s} {...p} />
+      case 'inventory': return <Inventory key={s} {...p} />
+      case 'resources': return <Resources key={s} {...p} />
+      case 'supplies': return <Supplies key={s} {...p} />
+      case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
+      case 'summary': return <CharacterCard key={s} character={character} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />
+      case 'skills': return <SkillsPanel key={s} character={character} />
+      case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} /> : null
+      case 'fight': return <Fight key={s} {...p} />
+      case 'features': return <FeaturesTraits key={s} character={character} />
+    }
+  }
   return (
-    <div className="ff-sheet">
-      <Header character={character} apply={apply} onBack={onBack} />
-      <QuickCastBar character={character} apply={apply} />
+    <div className={`ff-sheet mode-${mode}`}>
+      <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} />
+      <ModeSwitch mode={mode} onChange={setMode} />
+      {layout.top.map(section)}
       <div className="sheet-grid">
-        <div className="col">
-          <HitPoints character={character} apply={apply} />
-          {showDeath && <DeathSaves character={character} apply={apply} />}
-          <Rests character={character} apply={apply} />
-          <Exhaustion character={character} apply={apply} />
-          <Attunement character={character} apply={apply} />
-          <StatsCard character={character} />
-        </div>
-        <div className="col">
-          <TurnChecklist character={character} />
-          <ReactionReminders character={character} apply={apply} />
-          <SpellSlots character={character} apply={apply} />
-          <Resources character={character} apply={apply} />
-          <Supplies character={character} apply={apply} />
-          <History log={log} onUndo={undo} onUndoTo={undoTo} onRedo={canRedo ? redo : undefined} />
-        </div>
+        <div className="col">{layout.columns[0].map(section)}</div>
+        <div className="col">{layout.columns[1].map(section)}</div>
       </div>
     </div>
   )
 }
 
-function Header({ character, apply, onBack }: { character: Character; apply: Apply; onBack: () => void }) {
-  const stats = derive(character)
-  const { t, classLine } = useI18n()
-  const classes = classLine(character.classes)
+function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMode) => void }) {
+  const { t } = useI18n()
+  return (
+    <div className="mode-switch-row">
+      <div className="mode-switch" role="group" aria-label={t('sheet.mode')}>
+        {(['story', 'combat'] as const).map(m => (
+          <button key={m} type="button" className={`mode-btn${mode === m ? ' on' : ''}`} aria-pressed={mode === m} onClick={() => onChange(m)}>
+            <span aria-hidden="true">{m === 'story' ? '📜' : '⚔️'}</span> {t(`sheet.mode.${m}`)}
+          </button>
+        ))}
+      </div>
+      <span className="hint">{t(mode === 'story' ? 'sheet.mode.storyHint' : 'sheet.mode.combatHint')}</span>
+    </div>
+  )
+}
+
+/** The character card below shows who the character is, so the header keeps only navigation and the theme. */
+function Header({ character, apply, onBack, onEdit }: { character: Character; apply: Apply; onBack: () => void; onEdit?: () => void }) {
+  const { t } = useI18n()
   return (
     <header className="sheet-header">
       <button type="button" className="btn ghost" onClick={onBack} aria-label={t('common.backToCharacters')}>{t('common.backArrow')}</button>
-      {character.portrait
-        ? <img className="portrait" src={character.portrait} alt="" />
-        : <div className="portrait placeholder" aria-hidden="true">{character.name.slice(0, 1)}</div>}
-      <div className="who">
-        <h1>{character.name}</h1>
-        <p>{classes}</p>
-      </div>
-      <dl className="quick-stats">
-        <div><dt>{t('stat.ac')}</dt><dd><ShowMath character={character} stat="ac">{stats.armorClass.value}</ShowMath></dd></div>
-        <div><dt>{t('stat.init')}</dt><dd><ShowMath character={character} stat="initiative">{formatMod(stats.initiative)}</ShowMath></dd></div>
-        <div><dt>{t('stat.speed')}</dt><dd><ShowMath character={character} stat="speed">{stats.speed}</ShowMath></dd></div>
-        <div><dt>{t('stat.prof')}</dt><dd><ShowMath character={character} stat="proficiency">{formatMod(stats.proficiencyBonus)}</ShowMath></dd></div>
-      </dl>
+      <div className="who"><span className="sr-only">{character.name}</span></div>
+      {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
+      <ExportButton character={character} />
       <ThemePicker
         value={character.theme}
         classId={character.classes[0]?.classId}
