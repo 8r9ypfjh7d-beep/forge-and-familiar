@@ -84,9 +84,13 @@ function LastRoll({ rolls, note }: { rolls: Shown[]; note?: string }) {
   )
 }
 
-// ---------- Summary ----------
+// ---------- Character card (both modes) ----------
 
-export function CombatSummary({ character, vitals, onEdit }: { character: Character; vitals: ReactNode; onEdit?: () => void }) {
+/**
+ * The top card in both sheet modes: portrait and level, class, race, background, XP, proficiency,
+ * armor class, speed and passive perception, Level Up and Initiative, with the sheet's HP and Rest.
+ */
+export function CharacterCard({ character, vitals, onEdit }: { character: Character; vitals: ReactNode; onEdit?: () => void }) {
   const { t, term, className, raceName } = useI18n()
   const d = derive(character)
   const rolls = useSheetRolls(character)
@@ -101,47 +105,45 @@ export function CombatSummary({ character, vitals, onEdit }: { character: Charac
   const m = (stat: Parameters<typeof ShowMath>[0]['stat'], text: string | number) => <ShowMath character={character} stat={stat}>{text}</ShowMath>
 
   return (
-    <div className="cs-summary">
-      <section className="card cs-top" aria-labelledby="cs-name">
-        <div className="cs-hero">
-          <div className="cs-portrait">
-            {character.portrait
-              ? <img src={character.portrait} alt="" />
-              : <div className="placeholder" aria-hidden="true">{character.name.slice(0, 1)}</div>}
-            <span className="cs-level" aria-label={t('cs.level', { n: d.level })}>{d.level}</span>
-          </div>
-          <div className="cs-who">
-            <h1 id="cs-name">{character.name}</h1>
-            <p className="cs-class">{classes}</p>
-            <p>{raceName(character.raceId, character.subraceId)}</p>
-            {bg && <p>{term('background', bg.id, bg.name)}</p>}
-            <p className="cs-xp">{next ? t('cs.xp', { xp: character.xp, next }) : t('cs.xpMax', { xp: character.xp })}</p>
-            <p className="cs-prof">{t('cs.prof')} <span className="cs-badge">{m('proficiency', formatMod(d.proficiencyBonus))}</span></p>
-          </div>
-          <div className="cs-hero-actions">
-            {onEdit && <button type="button" className="btn cs-levelup" onClick={onEdit}>{t('cs.levelUp')}</button>}
-            <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
-              {t('cs.initiative', { bonus: formatMod(d.initiative) })}
-            </button>
-          </div>
-          {last && <LastRoll rolls={[last]} />}
+    <section className="card cs-top" aria-labelledby="cs-name">
+      <div className="cs-hero">
+        <div className="cs-portrait">
+          {character.portrait
+            ? <img src={character.portrait} alt="" />
+            : <div className="placeholder" aria-hidden="true">{character.name.slice(0, 1)}</div>}
+          <span className="cs-level" aria-label={t('cs.level', { n: d.level })}>{d.level}</span>
         </div>
-        <div className="cs-vitals">{vitals}</div>
-      </section>
-
-      <AbilitiesPanel character={character} onRoll={setLast} />
-      <AcSpeed character={character} />
-    </div>
+        <div className="cs-who">
+          <h1 id="cs-name">{character.name}</h1>
+          <p className="cs-class">{classes}</p>
+          <p>{[raceName(character.raceId, character.subraceId), bg && term('background', bg.id, bg.name)].filter(Boolean).join(' · ')}</p>
+          <p className="cs-xp">{next ? t('cs.xp', { xp: character.xp, next }) : t('cs.xpMax', { xp: character.xp })}</p>
+        </div>
+        <dl className="cs-stats">
+          <div><dt>{t('stat.ac')}</dt><dd className="cs-shield">{m('ac', d.armorClass.value)}</dd></div>
+          <div><dt>{t('stat.speed')}</dt><dd className="cs-hex">{m('speed', d.speed)}</dd></div>
+          <div><dt>{t('stat.prof')}</dt><dd>{m('proficiency', formatMod(d.proficiencyBonus))}</dd></div>
+          <div><dt>{t('stat.passivePerception')}</dt><dd>{m('passivePerception', d.passivePerception)}</dd></div>
+        </dl>
+        <div className="cs-hero-actions">
+          {onEdit && <button type="button" className="btn cs-levelup" onClick={onEdit}>{t('cs.levelUp')}</button>}
+          <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
+            {t('cs.initiative', { bonus: formatMod(d.initiative) })}
+          </button>
+        </div>
+        {last && <LastRoll rolls={[last]} />}
+      </div>
+      <div className="cs-vitals">{vitals}</div>
+    </section>
   )
 }
 
-/** The six abilities, each with a Mod (check) and Save roll. Shows its own last roll unless `onRoll` takes it. */
-export function AbilitiesPanel({ character, onRoll }: { character: Character; onRoll?: (shown: Shown) => void }) {
+/** The six abilities, each with a Mod (check) and Save roll, and the last roll made from them. */
+export function AbilitiesPanel({ character }: { character: Character }) {
   const { t, abilityShort } = useI18n()
   const d = derive(character)
   const rolls = useSheetRolls(character)
-  const [own, setOwn] = useState<Shown | null>(null)
-  const setLast = onRoll ?? setOwn
+  const [last, setLast] = useState<Shown | null>(null)
   const m = (stat: Parameters<typeof ShowMath>[0]['stat'], text: string | number) => <ShowMath character={character} stat={stat}>{text}</ShowMath>
   return (
     <section className="card cs-abilities" aria-labelledby="cs-abilities-title">
@@ -166,24 +168,7 @@ export function AbilitiesPanel({ character, onRoll }: { character: Character; on
           </li>
         ))}
       </ul>
-      {own && <LastRoll rolls={[own]} />}
-    </section>
-  )
-}
-
-/** Armor class, speed and passive perception. */
-export function AcSpeed({ character }: { character: Character }) {
-  const { t } = useI18n()
-  const d = derive(character)
-  const m = (stat: Parameters<typeof ShowMath>[0]['stat'], text: string | number) => <ShowMath character={character} stat={stat}>{text}</ShowMath>
-  return (
-    <section className="card cs-acspeed" aria-labelledby="cs-ac-title">
-      <h2 id="cs-ac-title">{t('cs.acSpeed')}</h2>
-      <dl>
-        <div><dt>{t('cs.armorClass')}</dt><dd className="cs-shield">{m('ac', d.armorClass.value)}</dd></div>
-        <div><dt>{t('cs.speedFt')}</dt><dd className="cs-hex">{m('speed', d.speed)}</dd></div>
-        <div><dt>{t('stat.passivePerception')}</dt><dd>{m('passivePerception', d.passivePerception)}</dd></div>
-      </dl>
+      {last && <LastRoll rolls={[last]} />}
     </section>
   )
 }

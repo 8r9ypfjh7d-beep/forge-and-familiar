@@ -1,20 +1,7 @@
 /* Combat page (Roll20-style layout). Scoped inside .ff-sheet, uses the sheet's tokens. Logical properties for RTL. */
 
-/* Page grid: summary on top, skills rail beside the tabbed panel. */
-.ff-sheet.mode-combat .sheet-grid { margin-top: 16px; }
-@media (min-width: 820px) {
-  .ff-sheet.mode-combat .sheet-grid { grid-template-columns: minmax(220px, 260px) 1fr; }
-}
-.ff-sheet.mode-combat { max-width: 1280px; }
-
-.cs-summary { display: grid; gap: 16px; grid-template-columns: 1fr; }
-@media (min-width: 820px) {
-  .cs-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .cs-summary .cs-top { grid-column: 1 / -1; }
-  .cs-summary .cs-abilities { grid-column: span 3; }
-  .cs-summary .cs-acspeed { grid-column: span 1; }
-}
-.cs-summary > .card, .cs-vitals > .card { min-width: 0; }
+/* The character card, abilities and skills are shared by story and combat mode (see ../mode.ts). */
+.cs-vitals > .card { min-width: 0; }
 
 /* Hero: portrait with level badge, who, buttons */
 .cs-hero { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: start; }
@@ -34,14 +21,22 @@
 .cs-who h1 { color: var(--s-accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: .02em; }
 .cs-who p { margin: 2px 0 0; color: var(--s-muted); font-size: .9rem; }
 .cs-who .cs-class { color: var(--s-ink); font-weight: 600; }
-.cs-badge .show-math { font-weight: 700; padding: 0 6px; border-radius: 4px; background: var(--s-bg); }
+
+/* AC, speed, proficiency and passive perception: four equal tiles under the name */
+.cs-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.cs-stats > div {
+  display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0;
+  padding: 8px 4px; border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg);
+}
+.cs-stats dt { font-size: .65rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--s-muted); text-align: center; overflow-wrap: anywhere; }
+.cs-stats dd { margin: 0; font-size: 1.25rem; font-weight: 800; line-height: 1; min-block-size: 40px; display: grid; place-items: center; }
 .cs-hero-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
 .cs-hero-actions .btn { flex: 1 1 120px; }
 .cs-init { font-size: 1rem; }
 .cs-hero .cs-last { grid-column: 1 / -1; }
 .cs-last { margin-top: 8px; display: grid; gap: 6px; }
 
-/* Top card: who the character is, HP and Rest in one card (like story mode's). The sheet's own
+/* Character card: who the character is, AC and speed, HP and Rest in one card. The sheet's own
    HP and Rest cards sit inside it without their borders. */
 .cs-top { display: grid; gap: 16px 24px; grid-template-columns: 1fr; }
 @media (min-width: 1000px) { .cs-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); } }
@@ -75,14 +70,9 @@
 }
 .ff-sheet .prof .dot, .ff-sheet .prof > .dot { border: 1px solid var(--s-accent); background: var(--s-accent); }
 
-/* AC / speed */
-.cs-acspeed dl { margin: 0; display: grid; gap: 8px; }
-.cs-acspeed dl > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-block: 6px; border-block-end: 1px solid var(--s-line); }
-.cs-acspeed dl > div:last-child { border-block-end: 0; }
-.cs-acspeed dt { font-weight: 700; font-size: .85rem; text-transform: uppercase; }
-.cs-acspeed dd { margin: 0; font-size: 1.4rem; font-weight: 800; }
+/* AC shield and speed hexagon */
 .cs-shield .show-math, .cs-hex .show-math {
-  display: grid; place-items: center; inline-size: 48px; block-size: 52px; border: 2px solid var(--s-ink); background: var(--s-bg);
+  display: grid; place-items: center; inline-size: 38px; block-size: 40px; border: 2px solid var(--s-ink); background: var(--s-panel);
 }
 .cs-shield .show-math { border-radius: 6px 6px 50% 50% / 6px 6px 40% 40%; }
 .cs-hex .show-math { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); border: 0; background: var(--s-line); }
