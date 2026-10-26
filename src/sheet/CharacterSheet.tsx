@@ -1,8 +1,6 @@
-import { ShowMath } from '../explain/ShowMath'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import { QuickCastBar } from '../quickcast'
-import { derive, formatMod } from '../rules'
 import { ReactionReminders } from '../reactions'
 import { Attacks } from './components/Attacks'
 import { DEFAULT_THEME_ID, ThemePicker, useCharacterTheme } from '../themes'
@@ -10,16 +8,15 @@ import { DeathSaves } from './components/DeathSaves'
 import { HitPoints } from './components/HitPoints'
 import { Resources } from './components/Resources'
 import { Rests } from './components/Rests'
-import { SpellSlots } from './components/SpellSlots'
-import { Spellbook, StorySpells } from '../spellbook'
+import { Spellbook, SpellsCard } from '../spellbook'
 import { Inventory } from '../inventory'
 import { Supplies } from '../supplies/Supplies'
 import { TurnChecklist } from '../turn'
 import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
 import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './mode'
-import { Identity, Notes } from './components/Story'
-import { AbilitiesPanel, CombatSummary, CombatTabs, FeaturesTraits, Fight, SkillsPanel } from './combat/CombatPage'
+import { Notes } from './components/Story'
+import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, SkillsPanel } from './combat/CombatPage'
 import './sheet.css'
 
 export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
@@ -56,9 +53,8 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   const section = (s: SheetSection) => {
     switch (s) {
       case 'quickcast': return <QuickCastBar key={s} {...p} />
-      case 'identity': return <Identity key={s} character={character} vitals={(layout.vitals ?? []).map(section)} />
       case 'abilities': return <AbilitiesPanel key={s} character={character} />
-      case 'storySpells': return <StorySpells key={s} {...p} />
+      case 'spellCard': return <SpellsCard key={s} {...p} />
       case 'notes': return <Notes key={s} {...p} />
       case 'hp': return <HitPoints key={s} {...p} />
       case 'death': return <DeathSaves key={s} {...p} />
@@ -66,13 +62,12 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'attacks': return <Attacks key={s} character={character} />
       case 'turn': return <TurnChecklist key={s} character={character} />
       case 'reactions': return <ReactionReminders key={s} {...p} />
-      case 'slots': return <SpellSlots key={s} {...p} />
       case 'spells': return <Spellbook key={s} {...p} />
       case 'inventory': return <Inventory key={s} {...p} />
       case 'resources': return <Resources key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
       case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
-      case 'summary': return <CombatSummary key={s} character={character} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />
+      case 'summary': return <CharacterCard key={s} character={character} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />
       case 'skills': return <SkillsPanel key={s} character={character} />
       case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} /> : null
       case 'fight': return <Fight key={s} {...p} />
@@ -81,7 +76,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   }
   return (
     <div className={`ff-sheet mode-${mode}`}>
-      <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} compact={mode === 'combat'} />
+      <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} />
       <ModeSwitch mode={mode} onChange={setMode} />
       {layout.top.map(section)}
       <div className="sheet-grid">
@@ -108,27 +103,14 @@ function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMo
   )
 }
 
-/** In combat mode the summary card shows who the character is, so the header keeps only navigation. */
-function Header({ character, apply, onBack, onEdit, compact }: { character: Character; apply: Apply; onBack: () => void; onEdit?: () => void; compact?: boolean }) {
-  const stats = derive(character)
-  const { t, classLine } = useI18n()
-  const classes = classLine(character.classes)
+/** The character card below shows who the character is, so the header keeps only navigation and the theme. */
+function Header({ character, apply, onBack, onEdit }: { character: Character; apply: Apply; onBack: () => void; onEdit?: () => void }) {
+  const { t } = useI18n()
   return (
     <header className="sheet-header">
       <button type="button" className="btn ghost" onClick={onBack} aria-label={t('common.backToCharacters')}>{t('common.backArrow')}</button>
-      {!compact && (character.portrait
-        ? <img className="portrait" src={character.portrait} alt="" />
-        : <div className="portrait placeholder" aria-hidden="true">{character.name.slice(0, 1)}</div>)}
-      <div className="who">
-        {compact ? <span className="sr-only">{character.name}</span> : <><h1>{character.name}</h1><p>{classes}</p></>}
-      </div>
+      <div className="who"><span className="sr-only">{character.name}</span></div>
       {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
-      {!compact && <dl className="quick-stats">
-        <div><dt>{t('stat.ac')}</dt><dd><ShowMath character={character} stat="ac">{stats.armorClass.value}</ShowMath></dd></div>
-        <div><dt>{t('stat.init')}</dt><dd><ShowMath character={character} stat="initiative">{formatMod(stats.initiative)}</ShowMath></dd></div>
-        <div><dt>{t('stat.speed')}</dt><dd><ShowMath character={character} stat="speed">{stats.speed}</ShowMath></dd></div>
-        <div><dt>{t('stat.prof')}</dt><dd><ShowMath character={character} stat="proficiency">{formatMod(stats.proficiencyBonus)}</ShowMath></dd></div>
-      </dl>}
       <ThemePicker
         value={character.theme}
         classId={character.classes[0]?.classId}

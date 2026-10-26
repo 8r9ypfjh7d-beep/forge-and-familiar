@@ -27,7 +27,7 @@ The Spells card on the live sheet. It lists the character's own spells by level,
 
 ## Story spells
 
-`StorySpells` is story mode's Spells card. It shows the pinned spells: the spell entries of `Character.quickCast`, so pinning in story mode, in the Spells card or on the quick-cast bar shows in both modes. "+ Pin spells" picks from every spell the character's classes can take (their own spells first). Pin buttons toggle (`toggleSpellPin`).
+`SpellsCard` is the sheet's Spells card in both modes (beside the skills). It shows the spell slots (`sheet/components/SpellSlots.tsx`), then the pinned spells: the spell entries of `Character.quickCast`, so pinning in story mode, in the Spells card or on the quick-cast bar shows in both modes. "+ Pin spells" picks from every spell the character's classes can take (their own spells first). Pin buttons toggle (`toggleSpellPin`).
 
 ## Quick cast
 

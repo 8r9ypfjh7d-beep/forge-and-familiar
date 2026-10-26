@@ -6,6 +6,7 @@ import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
 import { derive, formatMod } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
+import { SpellSlots, hasSlots } from '../sheet/components/SpellSlots'
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, sourceFor, spellAccess, type SpellAccess } from './access'
 import { addSpell, isPinned, pinnedSpells, removeSpell, setEdition, spellsOf, toggleSpellPin } from './spellbook'
@@ -97,17 +98,20 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
 }
 
 /**
- * Story mode's Spells card: the pinned spells, the same list as the combat quick-cast bar,
- * with a picker over every spell their classes can take (their own spells first).
+ * The sheet's Spells card, the same in story and combat mode: spell slots on top, then the pinned
+ * spells (the same list as the combat quick-cast bar) with a picker over every spell their classes
+ * can take (their own spells first).
  */
-export function StorySpells({ character, apply }: { character: Character; apply: Apply }) {
+export function SpellsCard({ character, apply }: { character: Character; apply: Apply }) {
   const { t } = useI18n()
   const lib = useLibrary(editionOf(character))
   const stats = derive(character)
   const [picking, setPicking] = useState(false)
   const [query, setQuery] = useState('')
   const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities) : []
-  if (lib && lib !== 'error' && access.length === 0) return null
+  const slots = hasSlots(character)
+  const noSpells = !!lib && lib !== 'error' && access.length === 0
+  if (noSpells && !slots) return null
 
   const spells = lib && lib !== 'error' ? lib.spells : []
   const byName = new Map(spells.map(s => [s.name.toLowerCase(), s]))
@@ -122,19 +126,21 @@ export function StorySpells({ character, apply }: { character: Character; apply:
   const isOn = (s: Spell) => isPinned(character, s.name)
 
   return (
-    <section className="card spellbook story-spells" aria-labelledby="story-spells-title">
+    <section className="card spellbook spell-card" aria-labelledby="spell-card-title">
       <div className="card-head">
-        <h2 id="story-spells-title">{t('spells.title')}</h2>
-        {lib && lib !== 'error' && (
+        <h2 id="spell-card-title">{t('spells.title')}</h2>
+        {lib && lib !== 'error' && !noSpells && (
           <button type="button" className="btn small" aria-expanded={picking} onClick={() => setPicking(p => !p)}>
             {picking ? t('spells.story.done') : t('spells.story.pick')}
           </button>
         )}
       </div>
+      <SpellSlots character={character} apply={apply} />
       {lib === null && <p className="hint">{t('spells.loading')}</p>}
       {lib === 'error' && <p className="hint">{t('spells.failed')}</p>}
-      {lib && lib !== 'error' && (
-        <>
+      {lib && lib !== 'error' && !noSpells && (
+        <div className="sb-pinned" role="group" aria-labelledby="pinned-title">
+          {slots && <h3 id="pinned-title" className="sub-title">{t('spells.story.pinnedTitle')}</h3>}
           {pinned.length === 0 && !picking && <p className="hint">{t('spells.story.empty')}</p>}
           {pinned.length > 0 && (
             <ul className="sb-list">
@@ -176,7 +182,7 @@ export function StorySpells({ character, apply }: { character: Character; apply:
               </ul>
             </div>
           )}
-        </>
+        </div>
       )}
     </section>
   )

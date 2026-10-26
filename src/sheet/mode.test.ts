@@ -7,22 +7,28 @@ const all = (mode: SheetMode, dying = false) => {
 }
 
 describe('sheet modes', () => {
-  it('story mode: HP, rests and who you are in one top card, then abilities, skills, notes and story spells', () => {
-    const l = sheetLayout('story', { dying: false })
-    expect(l.top).toEqual(['identity', 'abilities'])
-    expect(l.vitals).toEqual(['hp', 'rests'])
-    expect(l.columns).toEqual([['skills'], ['notes', 'storySpells', 'slots', 'attacks', 'inventory']])
+  it('both modes show the same widgets in the same places', () => {
+    const story = sheetLayout('story', { dying: false })
+    const combat = sheetLayout('combat', { dying: false })
+    for (const l of [story, combat]) {
+      expect(l.top).toEqual(['summary', 'abilities'])
+      expect(l.vitals).toEqual(['hp', 'rests'])
+      expect(l.columns[0]).toEqual(['spellCard', 'skills'])
+    }
+  })
+
+  it('story mode: notes, attacks and inventory beside the shared widgets', () => {
+    expect(sheetLayout('story', { dying: false }).columns[1]).toEqual(['notes', 'attacks', 'inventory'])
     for (const s of ['turn', 'reactions', 'quickcast', 'resources', 'supplies', 'history', 'spells'] as const) expect(all('story')).not.toContain(s)
   })
 
-  it('combat mode is the Roll20 page: summary with HP, skills rail, tabs', () => {
+  it('combat mode: Roll20-style tabs beside the shared widgets, spell slots on the page', () => {
     const l = sheetLayout('combat', { dying: false })
-    expect(l.top).toEqual(['summary'])
-    expect(l.columns).toEqual([['skills'], ['tabs']])
-    expect(l.vitals).toEqual(['hp', 'rests'])
+    expect(l.columns[1]).toEqual(['tabs'])
     expect(Object.keys(l.tabs ?? {})).toEqual(['combat', 'spells', 'inventory', 'features', 'notes'])
     expect(l.tabs?.combat[0]).toBe('fight')
-    for (const s of ['turn', 'reactions', 'storySpells', 'resources'] as const) expect(all('combat')).not.toContain(s)
+    expect([...l.top, ...l.columns[0]]).toContain('spellCard')
+    for (const s of ['turn', 'reactions', 'resources'] as const) expect(all('combat')).not.toContain(s)
   })
 
   it('death saves show only at 0 HP, first in both modes', () => {
@@ -32,12 +38,12 @@ describe('sheet modes', () => {
     expect(sheetLayout('combat', { dying: true }).top[0]).toBe('death')
   })
 
-  it('never shows a section twice, and both modes keep HP, rests, slots, skills and notes', () => {
+  it('never shows a section twice, and both modes keep HP, rests, the Spells card, skills and notes', () => {
     for (const mode of ['story', 'combat'] as const) {
       for (const dying of [false, true]) {
         const s = all(mode, dying)
         expect(new Set(s).size).toBe(s.length)
-        for (const need of ['hp', 'rests', 'slots', 'skills', 'notes'] as const) expect(s).toContain(need)
+        for (const need of ['hp', 'rests', 'spellCard', 'skills', 'notes'] as const) expect(s).toContain(need)
       }
     }
   })
