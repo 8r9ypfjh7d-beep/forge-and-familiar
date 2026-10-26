@@ -875,6 +875,8 @@ export const en = {
   'cs.form.statsHint': 'Switch the action on under Effects to apply these, and off to remove them.',
   'cs.log.effectOn': '{name} on',
   'cs.log.effectOff': '{name} off',
+  'cs.effectsUsed': 'Effects in this roll',
+  'cs.effectDice': '+{dice}{type} damage',
 } as const
 
 export type MessageKey = keyof typeof en
