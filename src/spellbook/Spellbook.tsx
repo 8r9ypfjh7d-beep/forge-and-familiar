@@ -3,12 +3,12 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { loadKind, searchEntries, type CharacterClass, type Edition, type SourceInfo, type Spell, type Subclass, BUNDLED } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
-import { addEntry, newEntryId } from '../quickcast'
+import { removeEntry, type SpellEntry } from '../quickcast'
 import { derive, formatMod } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, sourceFor, spellAccess, type SpellAccess } from './access'
-import { addSpell, isPinned, removeSpell, setEdition, spellsOf, storySpellsOf, toggleStorySpell, toQuickCast } from './spellbook'
+import { addSpell, isPinned, pinnedSpells, removeSpell, setEdition, spellsOf, toggleSpellPin } from './spellbook'
 import './spellbook.css'
 
 interface Library {
@@ -97,7 +97,7 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
 }
 
 /**
- * Story mode's Spells card: only the spells the player pinned for roleplay and exploration,
+ * Story mode's Spells card: the pinned spells, the same list as the combat quick-cast bar,
  * with a picker over every spell their classes can take (their own spells first).
  */
 export function StorySpells({ character, apply }: { character: Character; apply: Apply }) {
@@ -110,15 +110,16 @@ export function StorySpells({ character, apply }: { character: Character; apply:
   if (lib && lib !== 'error' && access.length === 0) return null
 
   const spells = lib && lib !== 'error' ? lib.spells : []
-  const byId = new Map(spells.map(s => [s.id, s]))
-  const pinned = storySpellsOf(character).map(id => byId.get(id)).filter((s): s is Spell => !!s)
+  const byName = new Map(spells.map(s => [s.name.toLowerCase(), s]))
+  const pinned = pinnedSpells(character)
   const toggle = (s: Spell, on: boolean) =>
-    apply(t(on ? 'spells.story.log.unpin' : 'spells.story.log.pin', { name: s.name }), c => toggleStorySpell(c, s.id))
+    apply(t(on ? 'spells.story.log.unpin' : 'spells.story.log.pin', { name: s.name }), c => toggleSpellPin(c, s))
+  const unpin = (e: SpellEntry) => apply(t('spells.story.log.unpin', { name: e.name }), c => removeEntry(c, e.id))
   const mine = new Set([...spellsOf(character).map(k => k.id), ...access.flatMap(a => a.alwaysPrepared)])
   const pool = [...new Map(access.flatMap(a => availableSpells(spells, a)).map(s => [s.id, s])).values()]
     .sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || a.level - b.level || a.name.localeCompare(b.name))
   const shown = searchEntries(pool, query).slice(0, 60)
-  const isOn = (s: Spell) => storySpellsOf(character).includes(s.id)
+  const isOn = (s: Spell) => isPinned(character, s.name)
 
   return (
     <section className="card spellbook story-spells" aria-labelledby="story-spells-title">
@@ -137,11 +138,24 @@ export function StorySpells({ character, apply }: { character: Character; apply:
           {pinned.length === 0 && !picking && <p className="hint">{t('spells.story.empty')}</p>}
           {pinned.length > 0 && (
             <ul className="sb-list">
-              {pinned.map(s => (
-                <SpellRow key={s.id} spell={s} badge={s.level === 0 ? t('spells.cantrip') : t(`sheet.slot.${s.level}` as MessageKey)}>
-                  <button type="button" className="btn ghost small sb-remove" aria-label={t('spells.story.unpinName', { name: s.name })} onClick={() => toggle(s, true)}>✕</button>
-                </SpellRow>
-              ))}
+              {pinned.map(e => {
+                const s = byName.get(e.name.toLowerCase())
+                const badge = e.level === 0 ? t('spells.cantrip') : t(`sheet.slot.${e.level}` as MessageKey)
+                const remove = (
+                  <button type="button" className="btn ghost small sb-remove" aria-label={t('spells.story.unpinName', { name: e.name })} onClick={() => unpin(e)}>✕</button>
+                )
+                // Spells typed into quick-cast by hand have no library text, so they show as a plain row.
+                return s
+                  ? <SpellRow key={e.id} spell={s} badge={badge}>{remove}</SpellRow>
+                  : (
+                    <li key={e.id} className="sb-row">
+                      <div className="sb-line">
+                        <span className="sb-name"><bdi>{e.name}</bdi><span className="sb-badge">{badge}</span></span>
+                        <div className="sb-actions">{remove}</div>
+                      </div>
+                    </li>
+                  )
+              })}
             </ul>
           )}
           {picking && (
@@ -216,7 +230,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
       </div>
     )
   }
-  const pin = (s: Spell) => apply(t('spells.log.pin', { name: s.name }), c => addEntry(c, { id: newEntryId(), kind: 'spell', ...toQuickCast(s) }))
+  const pin = (s: Spell, on: boolean) => apply(t(on ? 'spells.story.log.unpin' : 'spells.log.pin', { name: s.name }), c => toggleSpellPin(c, s))
   return (
     <div className="sb-groups">
       {groupByLevel(list).map(([level, group]) => (
@@ -228,8 +242,8 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
               const pinned = isPinned(character, s.name)
               return (
                 <SpellRow key={s.id} spell={s} badge={always ? t('spells.always') : undefined}>
-                  <button type="button" className="btn small" disabled={pinned} onClick={() => pin(s)}
-                    aria-label={pinned ? t('spells.pinnedName', { name: s.name }) : t('spells.pinName', { name: s.name })}>
+                  <button type="button" className="btn small" aria-pressed={pinned} onClick={() => pin(s, pinned)}
+                    aria-label={pinned ? t('spells.story.unpinName', { name: s.name }) : t('spells.pinName', { name: s.name })}>
                     {pinned ? t('spells.pinned') : t('spells.pin')}
                   </button>
                   {!always && (

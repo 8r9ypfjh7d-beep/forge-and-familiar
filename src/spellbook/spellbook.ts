@@ -1,6 +1,7 @@
 // Changes to a character's chosen spells, and turning a library spell into a quick-cast entry.
 import type { Edition, Spell } from '../content'
 import type { Character, KnownSpell } from '../model/character'
+import { addEntry, newEntryId } from '../quickcast/quickcast'
 import type { SpellEntry } from '../quickcast/types'
 
 export const spellsOf = (c: Character, classId?: string): KnownSpell[] =>
@@ -15,16 +16,6 @@ export function addSpell(c: Character, classId: string, id: string): Character {
 
 export function removeSpell(c: Character, classId: string, id: string): Character {
   return { ...c, spells: spellsOf(c).filter(s => !(s.classId === classId && s.id === id)) }
-}
-
-/** Spells pinned to story mode's card. */
-export const storySpellsOf = (c: Character): string[] => c.storySpells ?? []
-
-/** Pins a spell to story mode's card, or unpins it. */
-export function toggleStorySpell(c: Character, id: string): Character {
-  const now = storySpellsOf(c)
-  const next = now.includes(id) ? now.filter(x => x !== id) : [...now, id]
-  return { ...c, storySpells: next.length ? next : undefined }
 }
 
 /** Switching rules editions keeps the chosen spells; ids are shared slugs, and ones the new list lacks just don't show. */
@@ -71,3 +62,12 @@ export function toQuickCast(s: Spell): Omit<SpellEntry, 'id' | 'kind'> {
 }
 
 export const isPinned = (c: Character, name: string) => (c.quickCast ?? []).some(e => e.kind === 'spell' && e.name === name)
+
+/** Pinned spells, in quick-cast order. Story mode and the combat quick-cast bar share this one list. */
+export const pinnedSpells = (c: Character): SpellEntry[] => (c.quickCast ?? []).filter((e): e is SpellEntry => e.kind === 'spell')
+
+/** Pins a library spell (to quick-cast, so it shows in both modes), or unpins every entry with its name. */
+export function toggleSpellPin(c: Character, s: Spell): Character {
+  if (!isPinned(c, s.name)) return addEntry(c, { id: newEntryId(), kind: 'spell', ...toQuickCast(s) })
+  return { ...c, quickCast: (c.quickCast ?? []).filter(e => !(e.kind === 'spell' && e.name === s.name)) }
+}

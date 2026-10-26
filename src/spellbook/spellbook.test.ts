@@ -3,7 +3,7 @@ import { getEntry, loadKind, type Edition } from '../content'
 import type { Character } from '../model/character'
 import type { Abilities } from '../rules/types'
 import { availableSpells, sourceFor, spellAccess } from './access'
-import { addSpell, removeSpell, setEdition, spellsOf, storySpellsOf, toQuickCast, toggleStorySpell, upcastStep } from './spellbook'
+import { addSpell, removeSpell, setEdition, spellsOf, isPinned, pinnedSpells, toQuickCast, toggleSpellPin, upcastStep } from './spellbook'
 
 const scores: Abilities = { str: 10, dex: 14, con: 12, int: 16, wis: 14, cha: 16 }
 
@@ -68,14 +68,18 @@ describe('chosen spells', () => {
   })
 })
 
-describe('story spells', () => {
-  it('pins in order, unpins, and clears the field when empty', () => {
-    let c = { id: 'c1' } as Character
-    c = toggleStorySpell(toggleStorySpell(c, 'detect-magic'), 'comprehend-languages')
-    expect(storySpellsOf(c)).toEqual(['detect-magic', 'comprehend-languages'])
-    c = toggleStorySpell(c, 'detect-magic')
-    expect(storySpellsOf(c)).toEqual(['comprehend-languages'])
-    expect(toggleStorySpell(c, 'comprehend-languages').storySpells).toBeUndefined()
+describe('pinned spells', () => {
+  it('story and combat share the quick-cast list: pin adds an entry, pin again removes it', async () => {
+    const detect = await getEntry('spells', 'detect-magic')
+    const missile = await getEntry('spells', 'magic-missile')
+    if (!detect || !missile) throw new Error('library spells missing')
+    let c = { id: 'c1', quickCast: [{ id: 'a', kind: 'attack', name: 'Longsword' }] } as Character
+    c = toggleSpellPin(toggleSpellPin(c, detect), missile)
+    expect(pinnedSpells(c).map(e => e.name)).toEqual(['Detect Magic', 'Magic Missile'])
+    expect(isPinned(c, 'Detect Magic')).toBe(true)
+    c = toggleSpellPin(c, detect)
+    expect(pinnedSpells(c).map(e => e.name)).toEqual(['Magic Missile'])
+    expect(c.quickCast?.[0]).toEqual({ id: 'a', kind: 'attack', name: 'Longsword' })
   })
 })
 
