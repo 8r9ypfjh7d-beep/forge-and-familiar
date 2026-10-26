@@ -14,9 +14,25 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `rollMode.ts` | Advantage/disadvantage from own conditions |
 | `attackRiders.ts` | `getDamageRiders` (Rage, Sneak Attack) and `getCritRange` (Champion) for one-tap attacks |
 | `choices.ts` | ASI slots and feats, languages, tools, starting-gear choices (`classKit`) |
+| `edition.ts` | `rulesEdition(c)` ('2014' or '2024') and `uses2024Spells(c)` |
 | `multiclass.ts` | Prerequisites, multiclass proficiencies, caster level breakdown, per-class spell DCs, multiclass warnings |
 | `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one per class), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (languages, tools), items |
-| `rules.test.ts`, `multiclass.test.ts`, `choices.test.ts` | Engine tests |
+| `data/srd52/*.ts` | SRD 5.2 (2024) content: `SPECIES`, `CLASSES_2024`, `SUBCLASSES_2024`, `BACKGROUNDS_2024`, `FEATS_2024` |
+| `rules.test.ts`, `multiclass.test.ts`, `choices.test.ts`, `srd52.test.ts` | Engine tests |
+
+## Rules editions (2014 and 2024)
+
+Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missing for 2014). Lookups take the edition: `raceById(id, edition)`, `classById`, `subclassById`, `subclassesFor`, `backgroundById`, `featById`, `allRaces`, `allFeats`, `classesFor`, `backgroundsFor`. Without one they return SRD 5.1. Ids are shared where the thing is the same (`fighter`, `dwarf`, `acolyte`); 2024 subclass ids match the content library (`college-of-lore`). Homebrew races, subclasses and feats are offered with both editions.
+
+2024 differences the engine applies:
+- Origin: species give no ability bonuses or languages. The background lists three abilities; `freeAbilityBonuses` holds one entry per +1 (`backgroundBonuses`: at most +2 to one, +3 in total). Backgrounds teach Common + 2 picked languages and grant an Origin feat (`Background.feat`, shown as "Magic Initiate (Cleric)"). A Human also picks one (`Character.originFeatId`).
+- `getFeats(c)` = background feat + Human's feat + Fighting Style feats + ASI feats. Feat effects: `initiativeProficiency` (Alert), `skillPicks` (Skilled), `abilityChoice` (Grappler, Epic Boons up to 30; the pick is `Improvement.featAbility`), `rangedAttack` (Archery), `armoredAc` (Defense).
+- Class choices (`ClassDef.choices`, saved in `Character.featureChoices` as `<classId>.<choiceId>`): Fighting Style (feat options), Divine Order and Primal Order (extra armor and weapon proficiencies). `classChoices(c)` lists them; picks show in `features` as "Divine Order (Protector)".
+- Classes: subclass at 3, Epic Boon slot at 19, 2024 resources (Second Wind uses, Indomitable, Focus Points, Favored Enemy...), Monk and Rogue Light/Finesse martial weapons, Martial Arts d6 to d12, Draconic Sorcery 10 + DEX + CHA. `getWeaponMasteryCount(c)` reads `ClassDef.weaponMastery`.
+- Half casters get slots from level 1 and always round their levels up (also when multiclassed). Multiclass grants come from `MULTICLASS_PROFICIENCIES_2024`.
+- Starting gear is the class's option A kit with its coins or option B coins only (`EquipmentChoice` options carry `gold`); `startingGold` adds the background's coins. 2014 characters start with 15 gp.
+- Not modelled yet: Weapon Mastery picks, Eldritch Invocations, Expertise and Metamagic picks, Elf Keen Senses limited to three skills (any skill is accepted), Skilled's tool option, Heroic Inspiration, background option B (50 gp).
+- Older saves that only set `spellEdition: '2024'` keep 2014 rules; `uses2024Spells` still gives their pact weapon CHA.
 
 ## Key rules implemented
 

@@ -220,13 +220,17 @@ export function ItemForm({ initial, onSave, onCancel }: { initial: HomebrewItem;
   )
 }
 
-const EFFECT_LABELS: Record<FeatEffect['kind'], string> = {
+const EFFECT_LABELS: Partial<Record<FeatEffect['kind'], string>> = {
   ability: 'Ability score', skill: 'Skill proficiency', hpPerLevel: 'HP per level', speed: 'Speed (ft.)', initiative: 'Initiative', ac: 'Armor class',
+  armoredAc: 'Armor class while armored', rangedAttack: 'Ranged attack rolls', initiativeProficiency: 'Proficiency bonus to initiative',
 }
 
 function newEffect(kind: FeatEffect['kind']): FeatEffect {
   if (kind === 'ability') return { kind, ability: 'str', amount: 1 }
   if (kind === 'skill') return { kind, skill: 'athletics' }
+  if (kind === 'initiativeProficiency') return { kind }
+  if (kind === 'skillPicks') return { kind, count: 1 }
+  if (kind === 'abilityChoice') return { kind, from: [...ABILITIES], max: 20 }
   return { kind, amount: kind === 'speed' ? 5 : 1 }
 }
 
@@ -256,7 +260,7 @@ export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat;
               <select value={e.skill} aria-label="Skill" onChange={ev => setEffect(i, { ...e, skill: ev.target.value as SkillId })}>
                 {ALL_SKILLS.map(s => <option key={s} value={s}>{SKILLS[s].name}</option>)}
               </select>
-            ) : (
+            ) : 'amount' in e && (
               <input type="number" aria-label="Amount" className="hb-amount" value={e.amount} onChange={ev => setEffect(i, { ...e, amount: numOr(ev.target.value, 0) })} />
             )}
             <button type="button" className="btn ghost small" onClick={() => set({ effects: f.effects.filter((_, j) => j !== i) })} aria-label="Remove effect">✕</button>

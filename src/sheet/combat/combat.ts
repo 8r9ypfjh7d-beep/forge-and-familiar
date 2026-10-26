@@ -1,7 +1,7 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction } from '../../model/character'
-import { getDamageRiders, type DerivedStats } from '../../rules'
+import { getDamageRiders, getWeaponMasteryCount, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { spellDamage } from '../../quickcast/quickcast'
@@ -208,7 +208,9 @@ export function effectsUsed(active: EffectToggle[], riderIds: Iterable<string>, 
 }
 
 /** Weapon Mastery (SRD 5.2): how many weapons' mastery properties the character can use. 0 without the feature. */
-export function masteryLimit(c: Pick<Character, 'classes' | 'spellEdition'>): number {
+export function masteryLimit(c: Pick<Character, 'classes' | 'spellEdition' | 'rulesEdition'>): number {
+  if (c.rulesEdition === '2024') return getWeaponMasteryCount(c)
+  // Older saves that only switched their spells to 2024.
   if (c.spellEdition !== '2024') return 0
   const per = (id: string, level: number) => {
     if (id === 'fighter') return level >= 16 ? 6 : level >= 10 ? 5 : level >= 4 ? 4 : 3

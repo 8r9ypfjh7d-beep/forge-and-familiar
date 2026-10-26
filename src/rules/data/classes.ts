@@ -1,4 +1,5 @@
-import type { ClassDef } from '../types'
+import type { ClassDef, RulesEdition } from '../types'
+import { CLASSES_2024 } from './srd52/classes'
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from './proficiencies'
 import { ALL_SKILLS } from './skills'
 
@@ -200,4 +201,7 @@ export const CLASSES: ClassDef[] = [
   },
 ]
 
-export const classById = (id: string) => CLASSES.find(c => c.id === id)
+/** SRD classes of an edition: CLASSES (2014) or CLASSES_2024. */
+export const classesFor = (edition: RulesEdition = '2014'): ClassDef[] => (edition === '2024' ? CLASSES_2024 : CLASSES)
+
+export const classById = (id: string, edition: RulesEdition = '2014') => classesFor(edition).find(c => c.id === id)

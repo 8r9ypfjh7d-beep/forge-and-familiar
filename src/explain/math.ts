@@ -4,8 +4,8 @@
 import type { Character } from '../model/character'
 import {
   applyItemAbilities, entryItem, itemBonuses,
-  ABILITY_NAMES, SKILLS, abilityMod, getBackground, classById, derive, getAbilityMods, getAbilityScores,
-  getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, totalLevel,
+  ABILITY_NAMES, SKILLS, abilityMod, backgroundBonuses, getBackground, classById, derive, featBonus, featEffects, getAbilityMods, getAbilityScores,
+  getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, rulesEdition, totalLevel,
   type Ability, type ClassDef, type SkillId,
 } from '../rules'
 
@@ -36,7 +36,7 @@ const itemLines = (...args: Parameters<typeof itemBonuses>): MathLine[] =>
 
 function classesOf(c: Character): { def: ClassDef; level: number }[] {
   return c.classes.flatMap(cl => {
-    const def = classById(cl.classId)
+    const def = classById(cl.classId, rulesEdition(c))
     return def ? [{ def, level: cl.level }] : []
   })
 }
@@ -56,8 +56,10 @@ function jackOfAllTrades(c: Character): number {
 
 function abilityScore(c: Character, a: Ability): StatMath {
   const lines: MathLine[] = [{ label: 'Base score', value: c.baseAbilities[a] }]
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
   const sub = race?.subraces?.find(s => s.id === c.subraceId)
+  const fromBackground = rulesEdition(c) === '2024' ? backgroundBonuses(c)[a] : 0
+  if (fromBackground) lines.push({ label: `${getBackground(c)?.name ?? 'Background'} (your pick)`, value: fromBackground })
   if (race?.abilityBonuses[a]) lines.push({ label: race.name, value: race.abilityBonuses[a] })
   if (sub?.abilityBonuses[a]) lines.push({ label: sub.name, value: sub.abilityBonuses[a] })
   const free = race?.freeAbilityBonuses
@@ -87,7 +89,7 @@ function save(c: Character, a: Ability): StatMath {
 }
 
 function skillSources(c: Character, s: SkillId): string[] {
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
   const bg = getBackground(c)
   const out: string[] = []
   if (c.chosenSkills.includes(s)) out.push('your choice')
@@ -126,6 +128,8 @@ function armorClass(c: Character): StatMath {
     }
     if (from) lines.push({ label: `${ABBR(from.unarmoredDefense!)} modifier (Unarmored Defense, ${from.name})`, value: best })
   }
+  const featAc = featBonus(c, 'ac') + (armor ? featBonus(c, 'armoredAc') : 0)
+  if (featAc) lines.push({ label: 'Feats', value: featAc })
   if (shield) lines.push({ label: shield.name, value: shield.baseAc })
   const magic = c.inventory.filter(e => e.equipped && e.magicBonus && entryItem(e)?.kind === 'armor').reduce((n, e) => n + (e.magicBonus ?? 0), 0)
   if (magic) lines.push({ label: 'Magic armor and shield', value: magic })
@@ -135,7 +139,9 @@ function armorClass(c: Character): StatMath {
 
 function initiative(c: Character): StatMath {
   const lines = [{ label: 'DEX modifier', value: getAbilityMods(getAbilityScores(c)).dex }]
-  if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
+  if (featEffects(c, 'initiativeProficiency').length) lines.push({ ...profLine(c), label: 'Proficiency (Alert)' })
+  else if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
+  if (featBonus(c, 'initiative')) lines.push({ label: 'Feats', value: featBonus(c, 'initiative') })
   lines.push(...itemLines(c, 'checks'), ...itemLines(c, 'initiative'))
   return make('Initiative', lines, { signed: true })
 }
@@ -143,10 +149,12 @@ function initiative(c: Character): StatMath {
 const MONK_MOVEMENT: [number, number][] = [[18, 30], [14, 25], [10, 20], [6, 15], [2, 10]]
 
 function speed(c: Character): StatMath {
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
+  const sub = race?.subraces?.find(s => s.id === c.subraceId)
   const abilities = getAbilityScores(c)
   const { armor, shield } = getEquippedArmor(c)
-  const lines: MathLine[] = [{ label: race ? `${race.name} walking speed` : 'Walking speed', value: race?.speed ?? 30 }]
+  const lines: MathLine[] = [{ label: race ? `${sub?.speed ? sub.name : race.name} walking speed` : 'Walking speed', value: sub?.speed ?? race?.speed ?? 30 }]
+  if (featBonus(c, 'speed')) lines.push({ label: 'Feats', value: featBonus(c, 'speed') })
   if (armor?.category === 'heavy' && armor.strengthReq && abilities.str < armor.strengthReq) {
     lines.push({ label: `${armor.name} needs STR ${armor.strengthReq}`, value: -10 })
   }
@@ -169,9 +177,9 @@ function proficiency(c: Character): StatMath {
 
 function maxHp(c: Character): StatMath {
   const con = getAbilityMods(getAbilityScores(c)).con
-  const race = raceById(c.raceId)
+  const race = raceById(c.raceId, rulesEdition(c))
   const sub = race?.subraces?.find(s => s.id === c.subraceId)
-  const perLevel = sub?.hpPerLevel ?? 0
+  const perLevel = (sub?.hpPerLevel ?? 0) + (race?.hpPerLevel ?? 0)
   const level = totalLevel(c)
   const lines: MathLine[] = []
   let floor = 0
@@ -188,7 +196,7 @@ function maxHp(c: Character): StatMath {
     }
   }
   lines.push({ label: `CON modifier × ${level} level${level === 1 ? '' : 's'}`, value: con * level })
-  if (perLevel) lines.push({ label: `${sub!.name} × ${level} level${level === 1 ? '' : 's'}`, value: perLevel * level })
+  if (perLevel) lines.push({ label: `${sub?.hpPerLevel ? sub.name : race!.name} × ${level} level${level === 1 ? '' : 's'}`, value: perLevel * level })
   if (floor) lines.push({ label: 'Each level gives at least 1 HP', value: floor })
   const base = getMaxHp(c)
   const sum = lines.reduce((t, l) => t + l.value, 0)

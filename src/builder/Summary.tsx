@@ -10,8 +10,8 @@ import {
  * When editing, `preview` is the edited character, so AC and attacks use its real gear.
  */
 export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: Character }) {
-  const race = raceById(draft.raceId)
-  const cls = classById(draft.classes[0]?.classId ?? '')
+  const race = raceById(draft.raceId, draft.rulesEdition)
+  const cls = classById(draft.classes[0]?.classId ?? '', draft.rulesEdition)
   const d = useMemo(() => {
     if (preview) return derive(preview)
     if (!race || !cls) return null
@@ -23,7 +23,7 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
   // Prerequisite warnings are noise until scores are assigned.
   const warnings = d?.warnings.filter(w => scoresSet || !w.startsWith('Multiclass prerequisite')) ?? []
   // d.abilities are final scores, so pass them with no race to avoid adding racial bonuses twice.
-  const casters = d ? getSpellcastingByClass({ ...draft, baseAbilities: d.abilities, freeAbilityBonuses: [], raceId: '' }) : []
+  const casters = d ? getSpellcastingByClass({ ...draft, baseAbilities: d.abilities, freeAbilityBonuses: [], raceId: '', improvements: [] }) : []
   const { t, term, raceName, abilityShort, attackName, classLine } = useI18n()
 
   return (
@@ -31,7 +31,7 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
       {draft.portrait && <img className="summary-portrait" src={draft.portrait} alt="" />}
       <h3>{draft.name || t('summary.unnamed')}</h3>
       <p className="muted small">
-        {[race && raceName(race.id, draft.subraceId), cls && classLine(draft.classes)]
+        {[race && raceName(race.id, draft.subraceId, draft.rulesEdition), cls && classLine(draft.classes)]
           .filter(Boolean).join(' · ') || t('summary.choose')}
       </p>
       {d && (

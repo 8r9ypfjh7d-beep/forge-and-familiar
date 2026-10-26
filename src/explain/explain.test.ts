@@ -31,6 +31,18 @@ const CASES: [string, Character][] = [
   ['half-elf sorcerer, frail', make({ raceId: 'half-elf', freeAbilityBonuses: ['con', 'dex'], classes: [{ classId: 'sorcerer', level: 3 }], baseAbilities: { str: 8, dex: 8, con: 3, int: 10, wis: 10, cha: 20 } })],
   ['rogue 5', make({ classes: [{ classId: 'rogue', level: 5 }] })],
   ['multiclass fighter/wizard', makeCharacter()],
+  ['2024 dwarf fighter with Defense and Archery', make({
+    rulesEdition: '2024', raceId: 'dwarf', backgroundId: 'soldier', freeAbilityBonuses: ['str', 'str', 'con'],
+    classes: [{ classId: 'fighter', level: 3 }], featureChoices: { 'fighter.fightingStyle': 'archery' },
+  }, ['chain-mail', 'longbow', 'longsword'])],
+  ['2024 wood elf rogue with Alert', make({
+    rulesEdition: '2024', raceId: 'elf', subraceId: 'wood-elf', backgroundId: 'criminal', freeAbilityBonuses: ['dex', 'dex', 'con'],
+    classes: [{ classId: 'rogue', level: 3 }],
+  }, ['leather', 'rapier'])],
+  ['2024 fighter with Defense', make({
+    rulesEdition: '2024', raceId: 'orc', backgroundId: 'soldier', freeAbilityBonuses: ['str', 'con', 'dex'],
+    classes: [{ classId: 'fighter', level: 1 }], featureChoices: { 'fighter.fightingStyle': 'defense' },
+  }, ['chain-mail', 'shield', 'longsword'])],
   ['magic gear and a 2024 pact weapon', (() => {
     const c = make({ classes: [{ classId: 'warlock', level: 7 }], baseAbilities: { str: 10, dex: 14, con: 12, int: 8, wis: 10, cha: 18 } })
     c.spellEdition = '2024'

@@ -1,8 +1,8 @@
 import { translate, type Translate } from '../i18n/translate'
 import {
-  ABILITIES, CUSTOM_BACKGROUND, activeImprovements, POINT_BUY_BUDGET, STANDARD_ARRAY, classById, featById, fixedLanguages, fixedTools, getAbilityScores,
-  getBackground, improvementSlots, languagePickCount, meetsPrereq, pointBuyCost, prereqLabel, raceById, racialBonuses,
-  subclassesFor, toolPickGroups,
+  ABILITIES, CUSTOM_BACKGROUND, activeImprovements, POINT_BUY_BUDGET, STANDARD_ARRAY, classById, classChoices, featById, featSkillPicks,
+  fixedLanguages, fixedTools, getAbilityScores, getBackground, improvementSlots, languagePickCount, meetsPrereq, pointBuyCost, prereqLabel,
+  raceById, racialBonuses, rulesEdition, subclassesFor, toolPickGroups,
   type CharacterDraft, type SkillId,
 } from '../rules'
 
@@ -11,21 +11,23 @@ export type StepId = 'race' | 'class' | 'abilities' | 'skills' | 'equipment' | '
 /** Skills granted automatically by race and background (not choosable). */
 export function grantedSkills(d: CharacterDraft): Set<SkillId> {
   return new Set([
-    ...(raceById(d.raceId)?.skillProficiencies ?? []),
+    ...(raceById(d.raceId, d.rulesEdition)?.skillProficiencies ?? []),
     ...(getBackground(d)?.skillProficiencies ?? []),
   ])
 }
 
+/** Skill picks: the first class's list, plus picks of any skill from the race and feats (2024 Skilled) as `raceCount`. */
 export function skillPicks(d: CharacterDraft) {
-  const cls = classById(d.classes[0]?.classId ?? '')
-  return { classCount: cls?.skillChoices.count ?? 0, classFrom: cls?.skillChoices.from ?? [], raceCount: raceById(d.raceId)?.freeSkillChoices ?? 0 }
+  const cls = classById(d.classes[0]?.classId ?? '', d.rulesEdition)
+  const free = (raceById(d.raceId, d.rulesEdition)?.freeSkillChoices ?? 0) + featSkillPicks(d)
+  return { classCount: cls?.skillChoices.count ?? 0, classFrom: cls?.skillChoices.from ?? [], raceCount: free }
 }
 
 /** Class entries at or past their subclass level. Classes with no subclass to choose from are skipped. */
 export function subclassSlots(d: CharacterDraft) {
   return d.classes.filter(cl => {
-    const def = classById(cl.classId)
-    return def && cl.level >= def.subclassLevel && subclassesFor(cl.classId).length > 0
+    const def = classById(cl.classId, d.rulesEdition)
+    return def && cl.level >= def.subclassLevel && subclassesFor(cl.classId, d.rulesEdition).length > 0
   })
 }
 
@@ -34,7 +36,9 @@ const english: Translate = (key, vars) => translate('en', key, vars)
 /** Problems that block leaving a step. Empty means the step is complete. */
 export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = english): string[] {
   const out: string[] = []
-  const race = raceById(d.raceId)
+  const edition = rulesEdition(d)
+  const race = raceById(d.raceId, edition)
+  const className = (id: string) => classById(id, edition)?.name ?? id
   switch (step) {
     case 'race':
       if (!race) out.push(t('builder.issue.race'))
@@ -42,13 +46,17 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       if (race?.traitChoice && !race.traitChoice.options.some(o => o.id === d.traitChoices?.[race.traitChoice!.id])) {
         out.push(t('builder.issue.traitChoice', { trait: race.traitChoice.name }))
       }
+      if (race?.originFeatChoice && featById(d.originFeatId ?? '', edition)?.category !== 'origin') out.push(t('builder.issue.originFeat'))
       break
     case 'class':
-      if (!classById(d.classes[0]?.classId ?? '')) out.push(t('builder.issue.class'))
+      if (!classById(d.classes[0]?.classId ?? '', edition)) out.push(t('builder.issue.class'))
       for (const cl of subclassSlots(d)) {
-        if (!subclassesFor(cl.classId).some(s => s.id === cl.subclassId)) {
-          out.push(t('builder.issue.subclass', { className: classById(cl.classId)!.name, title: classById(cl.classId)!.subclassTitle }))
+        if (!subclassesFor(cl.classId, edition).some(s => s.id === cl.subclassId)) {
+          out.push(t('builder.issue.subclass', { className: className(cl.classId), title: classById(cl.classId, edition)!.subclassTitle }))
         }
+      }
+      for (const x of classChoices(d)) {
+        if (!x.picked) out.push(t('builder.issue.classChoice', { className: className(x.classId), choice: x.choice.name }))
       }
       break
     case 'abilities': {
@@ -63,14 +71,21 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       } else if (scores.some(s => s < 3 || s > 20)) {
         out.push(t('builder.issue.manualRange'))
       }
-      const free = race?.freeAbilityBonuses
+      const free = edition === '2014' ? race?.freeAbilityBonuses : undefined
       if (free && d.freeAbilityBonuses.length !== free.count) out.push(t('builder.issue.freeBonus', { count: free.count }))
+      if (edition === '2024') {
+        const allowed = getBackground(d)?.abilityScores ?? []
+        const n = (a: string) => d.freeAbilityBonuses.filter(x => x === a).length
+        if (d.freeAbilityBonuses.length !== 3 || d.freeAbilityBonuses.some(a => !allowed.includes(a) || n(a) > 2)) out.push(t('builder.issue.bgBonus'))
+      }
       const racial = racialBonuses(d)
       for (const slot of improvementSlots(d)) {
         const imp = d.improvements?.find(i => i.classId === slot.classId && i.level === slot.level)
         const points = ABILITIES.reduce((n, a) => n + (imp?.abilities?.[a] ?? 0), 0)
-        const done = imp?.featId ? !!featById(imp.featId) : points === 2
-        if (!done) out.push(t('builder.issue.asi', { className: classById(slot.classId)?.name ?? slot.classId, level: slot.level }))
+        const feat = imp?.featId ? featById(imp.featId, edition) : undefined
+        const choice = feat?.effects.find(e => e.kind === 'abilityChoice')
+        const done = imp?.featId ? !!feat && (!choice || (choice.kind === 'abilityChoice' && !!imp.featAbility && choice.from.includes(imp.featAbility))) : points === 2
+        if (!done) out.push(t('builder.issue.asi', { className: className(slot.classId), level: slot.level }))
       }
       if (scores.every(s => s > 0)) {
         const asi = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
@@ -82,7 +97,7 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       if (d.classes.length > 1 && scores.every(s => s > 0)) {
         const final = getAbilityScores(d)
         for (const cl of d.classes) {
-          if (!meetsPrereq(cl.classId, final)) out.push(t('builder.issue.multiclass', { className: classById(cl.classId)?.name ?? cl.classId, prereq: prereqLabel(cl.classId) }))
+          if (!meetsPrereq(cl.classId, final)) out.push(t('builder.issue.multiclass', { className: className(cl.classId), prereq: prereqLabel(cl.classId) }))
         }
       }
       break
@@ -97,7 +112,8 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
           ? t('builder.issue.skillsMixed', { classCount, raceCount })
           : t('builder.issue.skillsClass', { classCount }))
       }
-      if (d.backgroundId === CUSTOM_BACKGROUND) {
+      if (!getBackground(d)) out.push(t('builder.issue.background'))
+      if (d.backgroundId === CUSTOM_BACKGROUND && edition === '2014') {
         const cb = d.customBackground
         if (!cb?.name.trim()) out.push(t('builder.issue.customName'))
         if (new Set(cb?.skills ?? []).size !== 2) out.push(t('builder.issue.customSkills'))

@@ -21,6 +21,9 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 
 ## Notes
 
+- Rules: the Race step starts with a 2014 / 2024 switch (`rulesEdition`). Switching clears race, background, skills, languages, tools, ASIs, gear picks and class choices; classes keep their levels and drop their subclass. New characters default to 2014.
+- 2024: species show traits only; a Human picks an Origin feat. The Abilities step picks the background and its +2/+1 or +1/+1/+1 (`BackgroundBonuses`). The Class step asks for Fighting Style, Divine Order or Primal Order when the level unlocks it (`ClassChoices`). ASI feats above the slot's level are hidden (Epic Boons at 19); feats with a +1 choice ask for the ability. Skilled adds three picks of any skill. Gear choices show their coins; option B is coins only. No custom background in 2024.
+
 - Ability methods: standard array (with "suggest for my class"), point buy (27), manual/rolled (3–20). Unassigned standard scores are 0.
 - Changing race or class clears chosen skills, since the allowed picks change.
 - Portraits are resized to 320px JPEG data URLs before saving.

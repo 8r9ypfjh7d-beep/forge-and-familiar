@@ -1,6 +1,6 @@
 import type { Abilities, ArmorCategory, WeaponCategory } from '../types'
 
-// SRD 5.1 multiclassing tables.
+// Multiclassing tables. Prerequisites are the same in SRD 5.1 and 5.2; what a later class grants differs.
 
 /** Ability minimums. `all` must all be met; `any` needs one of them (Fighter). */
 export interface MulticlassPrereq {
@@ -45,6 +45,22 @@ export const MULTICLASS_PROFICIENCIES: Record<string, MulticlassGrant> = {
   rogue: { armor: ['light'], weapons: [], skills: 1, other: ["thieves' tools"] },
   sorcerer: { armor: [], weapons: [] },
   warlock: { armor: ['light'], weapons: ['simple'] },
+  wizard: { armor: [], weapons: [] },
+}
+
+/** SRD 5.2 (2024): what a class grants when it is not the first. */
+export const MULTICLASS_PROFICIENCIES_2024: Record<string, MulticlassGrant> = {
+  barbarian: { armor: ['shield'], weapons: ['martial'] },
+  bard: { armor: ['light'], weapons: [], skills: 1, other: ['one musical instrument'] },
+  cleric: { armor: ['light', 'medium', 'shield'], weapons: [] },
+  druid: { armor: ['light', 'shield'], weapons: [] },
+  fighter: { armor: ['light', 'medium', 'shield'], weapons: ['martial'] },
+  monk: { armor: [], weapons: [] },
+  paladin: { armor: ['light', 'medium', 'shield'], weapons: ['martial'] },
+  ranger: { armor: ['light', 'medium', 'shield'], weapons: ['martial'], skills: 1 },
+  rogue: { armor: ['light'], weapons: [], skills: 1, other: ["thieves' tools"] },
+  sorcerer: { armor: [], weapons: [] },
+  warlock: { armor: ['light'], weapons: [] },
   wizard: { armor: [], weapons: [] },
 }
 

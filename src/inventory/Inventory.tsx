@@ -5,7 +5,7 @@ import { BUNDLED, loadKind, searchEntries, type Edition, type Equipment, type Ma
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import {
-  ABILITIES, ABILITY_NAMES, derive, ITEMS, type Ability, type InventoryEntry, type Item, type ItemEffect, type WeaponProperty,
+  ABILITIES, ABILITY_NAMES, derive, ITEMS, uses2024Spells, type Ability, type InventoryEntry, type Item, type ItemEffect, type WeaponProperty,
 } from '../rules'
 import type { Apply } from '../sheet/types'
 import { editionOf, sourceFor } from '../spellbook/access'
@@ -282,7 +282,7 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
       {item.kind === 'weapon' && isWarlock(character) && (
         <label className="check wide inv-pact">
           <input type="checkbox" checked={pact} onChange={ev => setPact(ev.target.checked)} />
-          <span>{t('inv.f.pact')}<small>{t(character.spellEdition === '2024' ? 'inv.pactHint2024' : 'inv.pactHint')}</small></span>
+          <span>{t('inv.f.pact')}<small>{t(uses2024Spells(character) ? 'inv.pactHint2024' : 'inv.pactHint')}</small></span>
         </label>
       )}
       <EffectsEditor effects={effects} onChange={setEffects} />

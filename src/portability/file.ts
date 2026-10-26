@@ -38,11 +38,12 @@ export function checkCharacter(x: unknown): string | Character {
   if (!isStr(x.name) || !x.name.trim()) return 'The character has no name.'
   if (typeof x.schemaVersion === 'number' && x.schemaVersion > CHARACTER_SCHEMA_VERSION)
     return 'This character was saved by a newer version of Forge & Familiar.'
-  if (!isStr(x.raceId) || !raceById(x.raceId)) return `Unknown race "${String(x.raceId)}".`
+  const edition = x.rulesEdition === '2024' ? '2024' : '2014'
+  if (!isStr(x.raceId) || !raceById(x.raceId, edition)) return `Unknown race "${String(x.raceId)}".`
   if (!isStr(x.backgroundId)) return 'The character has no background.'
   if (!Array.isArray(x.classes) || x.classes.length === 0) return 'The character has no class.'
   for (const cl of x.classes) {
-    if (!isObj(cl) || !isStr(cl.classId) || !classById(cl.classId)) return `Unknown class "${String(isObj(cl) ? cl.classId : cl)}".`
+    if (!isObj(cl) || !isStr(cl.classId) || !classById(cl.classId, edition)) return `Unknown class "${String(isObj(cl) ? cl.classId : cl)}".`
     if (!Number.isInteger(cl.level) || (cl.level as number) < 1 || (cl.level as number) > 20) return `Class level must be 1 to 20.`
   }
   if (!isObj(x.baseAbilities) || ABILITIES.some(a => typeof (x.baseAbilities as Record<string, unknown>)[a] !== 'number'))

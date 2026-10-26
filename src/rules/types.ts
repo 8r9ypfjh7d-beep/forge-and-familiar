@@ -21,6 +21,9 @@ export type SkillId =
 
 export type Size = 'Small' | 'Medium'
 
+/** Rules edition: '2014' is SRD 5.1, '2024' is SRD 5.2. */
+export type RulesEdition = '2014' | '2024'
+
 export interface Subrace {
   id: string
   name: string
@@ -32,6 +35,8 @@ export interface Subrace {
   languageChoices?: number
   /** Set on homebrew subraces: the race they belong to. */
   parentRaceId?: string
+  /** Walking speed instead of the race's (2024 Wood Elf: 35). */
+  speed?: number
 }
 
 export interface Race {
@@ -43,8 +48,10 @@ export interface Race {
   /** Number of +1 bonuses the player assigns freely (Half-Elf). */
   freeAbilityBonuses?: { count: number; exclude: Ability[] }
   skillProficiencies?: SkillId[]
-  /** Number of skills of the player's choice (Half-Elf). */
+  /** Number of skills of the player's choice (Half-Elf, 2024 Human and Elf). */
   freeSkillChoices?: number
+  /** 2024 Human (Versatile): the player picks an Origin feat. */
+  originFeatChoice?: boolean
   /** Languages every member knows. Choices are counted in languageChoices. */
   languages: string[]
   /** Extra languages of the player's choice (Human, Half-Elf). */
@@ -74,6 +81,22 @@ export interface ResourceDef {
   recharge: RestType
   /** At this level and above, the resource recharges on a short rest instead. */
   shortRestFromLevel?: number
+}
+
+/** A pick a class makes at a level that changes the sheet: Fighting Style, Divine Order, Primal Order. */
+export interface ClassChoice {
+  id: string
+  name: string
+  level: number
+  options: {
+    id: string
+    name: string
+    detail: string
+    /** Fighting Style options are feats; their effects apply through the feat. */
+    featId?: string
+    armor?: ArmorCategory[]
+    weapons?: WeaponCategory[]
+  }[]
 }
 
 export interface ClassDef {
@@ -107,11 +130,18 @@ export interface ClassDef {
   /** Class levels with an Ability Score Improvement (or a feat). */
   asiLevels: number[]
   features: { level: number; name: string }[]
+  /** Level-gated picks (2024: Fighting Style, Divine Order, Primal Order). Saved in Character.featureChoices. */
+  choices?: ClassChoice[]
+  /** Weapon Mastery (2024): [class level, weapons] steps. */
+  weaponMastery?: [number, number][]
+  /** Gold in the starting kit (2024 kits list it; 2014 characters start with 15 gp). */
+  startingGold?: number
 }
 
 /** One starting-equipment choice. An option lists item ids; `any:<filter>` asks the player for one item. */
 export interface EquipmentChoice {
-  options: { items: string[] }[]
+  /** `gold` is the coin that comes with the option (2024 kits). */
+  options: { items: string[]; gold?: number }[]
 }
 
 export interface Subclass {
@@ -129,6 +159,19 @@ export type FeatEffect =
   | { kind: 'speed'; amount: number }
   | { kind: 'initiative'; amount: number }
   | { kind: 'ac'; amount: number }
+  /** Adds the proficiency bonus to initiative (2024 Alert). */
+  | { kind: 'initiativeProficiency' }
+  /** Extra skill picks of any skill (2024 Skilled). */
+  | { kind: 'skillPicks'; count: number }
+  /** +1 to one ability the player picks from `from`, up to `max` (2024 Grappler, Epic Boons). */
+  | { kind: 'abilityChoice'; from: Ability[]; max: number }
+  /** Bonus to attack rolls with ranged weapons (Archery). */
+  | { kind: 'rangedAttack'; amount: number }
+  /** AC bonus while wearing armor (Defense). */
+  | { kind: 'armoredAc'; amount: number }
+
+/** 2024 feat categories. 2014 feats have none. */
+export type FeatCategory = 'origin' | 'general' | 'fighting-style' | 'epic-boon'
 
 export interface Feat {
   id: string
@@ -136,6 +179,9 @@ export interface Feat {
   prerequisite?: string
   description: string
   effects: FeatEffect[]
+  category?: FeatCategory
+  /** Lowest character level that may take it (2024 general feats 4, Epic Boons 19). */
+  minLevel?: number
 }
 
 export interface Background {
@@ -147,8 +193,16 @@ export interface Background {
   languages?: string[]
   /** Extra languages of the player's choice. */
   languageChoices?: number
+  /** Tool proficiency picks (2024 Soldier: one gaming set). */
+  toolChoices?: { count: number; from: string[] }
   feature: string
   equipment: string[]
+  /** 2024: the three abilities the background raises (+2/+1 or +1/+1/+1). */
+  abilityScores?: Ability[]
+  /** 2024: the Origin feat the background grants, with a note such as "Cleric" for Magic Initiate. */
+  feat?: { id: string; note?: string }
+  /** Gold that comes with the background's gear (2024). */
+  gold?: number
 }
 
 export type Item =
