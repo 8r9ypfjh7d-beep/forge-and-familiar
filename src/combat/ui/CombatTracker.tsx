@@ -19,9 +19,9 @@ function elapsedText(seconds: number, t: Translate): string {
 }
 
 /** Encounter list, and the open encounter. Each player profile keeps its own encounters. */
-export function CombatTracker({ ownerId }: { ownerId: string }) {
+export function CombatTracker({ ownerId, initialOpenId }: { ownerId: string; initialOpenId?: string }) {
   const [list, setList] = useState<Encounter[] | null>(null)
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(initialOpenId ?? null)
   const { t } = useI18n()
   const refresh = useCallback(() => { listEncounters(ownerId).then(setList) }, [ownerId])
   useEffect(refresh, [refresh])

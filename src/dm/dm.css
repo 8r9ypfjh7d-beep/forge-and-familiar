@@ -1,0 +1,120 @@
+/* DM screen. Lives inside .ff-sheet so cards, buttons, tabs and titles match the sheet. Logical properties for RTL. */
+.ff-dm > .card { margin-block-end: 16px; }
+.ff-dm .plain { list-style: none; margin: 0; padding: 0; }
+.ff-dm h3 { margin: 0; font-size: 1.2rem; }
+.ff-dm textarea {
+  font: inherit; inline-size: 100%; padding: 8px 10px; resize: vertical;
+  border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink);
+}
+.ff-dm .link-btn {
+  font: inherit; font-weight: 600; padding: 0; border: 0; background: none; color: var(--s-ink);
+  cursor: pointer; text-align: start; min-width: 0; overflow-wrap: anywhere;
+}
+.ff-dm .link-btn:hover { color: var(--s-accent); text-decoration: underline; }
+.ff-dm .btn.small { max-width: none; }
+
+/* Top card: party on one side, budget tiles on the other (same split as the character card) */
+.dm-top { display: grid; gap: 16px 24px; grid-template-columns: 1fr; }
+@media (min-width: 1000px) {
+  .dm-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+  .dm-top .dm-budget { border-inline-start: 1px solid var(--s-line); padding-inline-start: 24px; }
+}
+@media (max-width: 999px) { .dm-top .dm-budget { border-block-start: 1px solid var(--s-line); padding-block-start: 12px; } }
+.dm-top h1 { color: var(--s-accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: .02em; }
+.dm-groups { display: grid; gap: 8px; margin-block-end: 8px !important; }
+.dm-groups li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dm-groups input { inline-size: 4.5em; }
+.dm-stats dt { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--s-muted); text-align: center; overflow-wrap: anywhere; }
+.dm-stats dd { margin: 0; font-weight: 800; font-size: 1.15rem; }
+.dm-now { border-color: var(--s-accent) !important; }
+
+/* Difficulty colours, shared by the tile and the meter */
+.ff-dm .diff-trivial, .ff-dm .diff-low { --d: var(--s-good); }
+.ff-dm .diff-moderate { --d: #b7791f; }
+.ff-dm .diff-high { --d: var(--s-accent); }
+.ff-dm .diff-beyond { --d: var(--s-bad); }
+.ff-dm .diff-none { --d: var(--s-muted); }
+.dm-now dd { color: var(--d); }
+
+.dm-meter { margin-block: 8px 12px; }
+.dm-meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.dm-meter-head b { color: var(--d); }
+.dm-meter-bar { position: relative; block-size: 10px; border-radius: 99px; background: var(--s-bg); border: 1px solid var(--s-line); margin-block-start: 6px; overflow: hidden; }
+.dm-meter-bar .fill { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--d); }
+.dm-meter-bar .tick { position: absolute; inset-block: 0; inline-size: 2px; background: var(--s-muted); opacity: .5; }
+
+/* Plans */
+.dm-plan-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dm-plan-bar input { flex: 1 1 160px; }
+.dm-plan-list li, .dm-monster-list li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
+  padding-block: 6px; border-block-end: 1px solid var(--s-line);
+}
+.dm-count { display: inline-flex; align-items: center; gap: 6px; }
+.dm-count b { min-inline-size: 2ch; text-align: center; }
+.dm-count .btn { min-inline-size: 32px; }
+
+/* Monster browser */
+.dm-filters { display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block-end: 8px; }
+.dm-filters input { grid-column: 1 / -1; }
+.dm-monster-list { max-block-size: 28rem; overflow-y: auto; }
+.dm-monster-list li.on { background: color-mix(in srgb, var(--s-accent) 10%, transparent); }
+.dm-two { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .dm-two { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; } }
+
+/* Stat block */
+.dm-statblock { border-block-start: 4px solid var(--s-accent); }
+.dm-statblock h3 { color: var(--s-accent); }
+.dm-sb-core { display: grid; gap: 4px; margin: 8px 0; }
+.dm-sb-core div { display: flex; gap: 8px; flex-wrap: wrap; }
+.dm-sb-core dt { font-weight: 700; }
+.dm-sb-core dd { margin: 0; }
+.dm-sb-abilities { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-block: 8px; }
+.dm-sb-abilities button {
+  display: grid; justify-items: center; gap: 2px; padding: 6px 2px; min-width: 0; cursor: pointer;
+  border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg); color: var(--s-ink); font: inherit;
+}
+.dm-sb-abilities button:hover { border-color: var(--s-accent); }
+.dm-sb-abilities span { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--s-muted); }
+.dm-sb-abilities small { font-weight: 700; }
+.dm-sb-lines p { margin: 4px 0; font-size: .9rem; }
+.chip-roll {
+  font: inherit; font-size: .8rem; padding: 2px 8px; margin: 2px; border-radius: 99px; cursor: pointer;
+  border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink); text-transform: capitalize;
+}
+.chip-roll:hover { border-color: var(--s-accent); }
+.dm-roll { margin-block: 8px; }
+.dm-actions li { padding-block: 6px; border-block-end: 1px solid var(--s-line); }
+.dm-actions li:last-child { border-block-end: 0; }
+.dm-actions p { margin: 0; font-size: .9rem; white-space: pre-line; }
+.dm-action-rolls { display: flex; flex-wrap: wrap; gap: 6px; margin-block-start: 6px; }
+
+/* Quick rules: a grid of small cards, like panels of a paper DM screen */
+.dm-ref-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); align-items: start; }
+.dm-ref-grid .card { margin: 0; }
+.dm-pairs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.dm-pairs div { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg); }
+.dm-pairs dt { font-size: .7rem; color: var(--s-muted); text-align: center; }
+.dm-pairs dd { margin: 0; font-weight: 800; font-size: 1.2rem; }
+.dm-rules { margin: 0; display: grid; gap: 8px; }
+.dm-rules dt { font-weight: 700; }
+.dm-rules dd { margin: 0; font-size: .9rem; color: var(--s-ink); }
+.dm-table { inline-size: 100%; border-collapse: collapse; font-size: .9rem; }
+.dm-table th, .dm-table td { padding: 6px 4px; border-block-end: 1px solid var(--s-line); text-align: start; vertical-align: top; }
+.dm-table thead th { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--s-muted); }
+.dm-table tbody th small { display: block; font-weight: 400; color: var(--s-muted); }
+
+/* NPCs */
+.dm-idea-name { font-size: 1.3rem; font-weight: 800; color: var(--s-accent); margin: 0 0 4px; }
+.dm-idea p { margin-block: 4px; }
+.dm-npcs { display: grid; gap: 12px; }
+.dm-npcs li { display: grid; gap: 6px; padding-block-end: 12px; border-block-end: 1px solid var(--s-line); }
+.dm-npc-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; }
+@media (max-width: 520px) {
+  .dm-npc-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .dm-npc-head input:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .dm-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dm-filters select:last-child { grid-column: 1 / -1; }
+  .dm-sb-abilities { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.dm-credit { font-size: .75rem; }
