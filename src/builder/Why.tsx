@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { WHY, type WhyId } from './why'
+import { useI18n } from '../i18n'
+import type { WhyId } from './why'
 import './why.css'
 
 /** A small "why?" button that opens a plain-language explanation for new players. */
@@ -8,7 +9,8 @@ export function Why({ id, compact }: { id: WhyId; compact?: boolean }) {
   const [alignRight, setAlignRight] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
   const popId = useId()
-  const t = WHY[id]
+  const { t } = useI18n()
+  const title = t(`why.${id}.title`)
 
   useEffect(() => {
     if (!open) return
@@ -34,15 +36,15 @@ export function Why({ id, compact }: { id: WhyId; compact?: boolean }) {
         className="why-btn"
         aria-expanded={open}
         aria-controls={popId}
-        aria-label={`Why? ${t.title}`}
+        aria-label={t('why.label', { title })}
         onClick={e => { e.preventDefault(); setOpen(o => !o) }}
       >
-        {compact ? '?' : 'why?'}
+        {compact ? '?' : t('why.button')}
       </button>
       {open && (
         <span id={popId} role="note" className={`why-pop ${alignRight ? 'right' : ''}`}>
-          <strong>{t.title}</strong>
-          {t.text}
+          <strong>{title}</strong>
+          {t(`why.${id}.text`)}
         </span>
       )}
     </span>

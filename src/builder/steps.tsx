@@ -11,7 +11,7 @@ import {
 import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Why } from './Why'
-import { CLASS_WHY, RACE_WHY } from './why'
+import { pitchKey } from './why'
 
 export interface StepProps {
   draft: CharacterDraft
@@ -26,6 +26,7 @@ const bonusText = (b: Partial<Record<Ability, number>>, short: (a: Ability) => s
 function RaceStep({ draft, update }: StepProps) {
   const race = raceById(draft.raceId)
   const { t, term, abilityShort } = useI18n()
+  const racePitch = race && pitchKey('race', race.id)
   return (
     <>
       <div className="card-grid">
@@ -77,7 +78,7 @@ function RaceStep({ draft, update }: StepProps) {
       <p className="muted small">{t('builder.race.homebrewHint')}</p>
       {race && (
         <p className="small">
-          {RACE_WHY[race.id] && <><strong>Why a {race.name}?</strong> {RACE_WHY[race.id]}<br /></>}
+          {racePitch && <><strong>{t('why.pick', { name: term('race', race.id, race.name) })}</strong> {t(racePitch)}<br /></>}
           <strong>{t('builder.traits')}</strong><Why id="traits" /> {[...race.traits, ...(race.subraces?.find(s => s.id === draft.subraceId)?.traits ?? [])].map(x => term('trait', x, x)).join(', ') || t('common.none')}
           <br />
           <strong>{t('builder.languages')}</strong><Why id="languages" /> {race.languages.map(x => term('language', x, x)).join(', ')}
@@ -97,6 +98,7 @@ function ClassStep({ draft, update }: StepProps) {
   const extras = draft.classes.slice(1)
   const extraLevels = extras.reduce((n, cl) => n + cl.level, 0)
   const { t, term, ability, abilityShort, className, item } = useI18n()
+  const classPitch = cls && pitchKey('class', cls.id)
   return (
     <>
       <div className="card-grid">
@@ -125,7 +127,7 @@ function ClassStep({ draft, update }: StepProps) {
       </div>
       {cls && (
         <p className="small">
-          {CLASS_WHY[cls.id] && <><strong>Why a {cls.name}?</strong> {CLASS_WHY[cls.id]}<br /></>}
+          {classPitch && <><strong>{t('why.pick', { name: className(cls.id) })}</strong> {t(classPitch)}<br /></>}
           <strong>{t('builder.savingThrows')}</strong><Why id="savingThrows" /> {cls.savingThrows.map(ability).join(', ')}
           <br />
           <strong>{t('builder.armor')}</strong><Why id="proficiencies" /> {cls.armor.length ? cls.armor.map(a => term('armor', a, a)).join(', ') : t('common.noneLower')} · <strong>{t('builder.weapons')}</strong>{' '}
@@ -220,7 +222,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
         {METHODS.map(m => (
           <button key={m} className={`chip ${draft.abilityMethod === m ? 'on' : ''}`} onClick={() => setMethod(m)}>{t(`builder.method.${m}`)}</button>
         ))}
-        <Why id={`method:${draft.abilityMethod}`} />
+        <Why id={`method.${draft.abilityMethod}`} />
         {draft.abilityMethod === 'standard' && (
           <button className="btn ghost small" onClick={() => update({ baseAbilities: suggestedArray(draft) })}>{t('builder.suggest')}</button>
         )}

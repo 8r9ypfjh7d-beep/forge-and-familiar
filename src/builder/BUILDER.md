@@ -14,7 +14,7 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 | `MulticlassPicker.tsx` | Optional extra classes on the Class step: prerequisites, proficiencies gained, caster-level math |
 | `builder.css` | Builder-only styles |
 | `Why.tsx`, `why.css` | "why?" button that opens a plain-language explanation |
-| `why.ts` | All "why?" text: per-topic tips plus a pitch for each race and class |
+| `why.ts` | "why?" topic ids and `pitchKey()`; the text is in `i18n/locales` under `why.*` |
 | `validate.test.ts` | Validation tests |
 | `edit.test.ts` | Editing keeps play state and gear |
 | `why.test.ts` | Every step, race and class has an explanation |
@@ -32,7 +32,7 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 - Changing race clears language, tool and trait picks; changing the first class clears skills, tools, gear picks and ASIs.
 - Not in the builder yet: spell selection, Bard (Lore) / Ranger / Rogue extra skill and expertise picks, buying gear with starting gold.
 - Multiclass: `classes[0]` is the starting class (saves, skills, gear). Unmet prerequisites block the Abilities step once all scores are set; extra classes are greyed out on the Class step when scores are known and fall short.
-- "why?" tips are for new players: one short, jargon-light paragraph each. Add a race or class to `rules/data/` and `why.test.ts` will remind you to add its pitch to `why.ts`. The tip text is English only for now (not yet in `i18n/locales`).
+- "why?" tips are for new players: one short, jargon-light paragraph each. Add a race or class to `rules/data/` and `why.test.ts` will remind you to add its `why.race.<id>` / `why.class.<id>` pitch to `en.ts` and `he.ts`.
 - Editing: "Edit" on the character card or sheet header reopens the builder prefilled (`view: 'edit'`). Every step is reachable, Save works from any step once all steps pass, and Cancel asks before discarding changes.
 - An edit keeps id, XP, notes, coins, inventory and play state. Current HP moves by the change in max HP (0 HP stays 0); slots, hit dice and resources are clamped by the sheet's `normalize()`. If the class kit or background gear changes, a checkbox (on by default) swaps the old starting gear for the new; other items stay.
 - Saving an edit takes a "Before edit" level snapshot first, so Levels can roll it back. While editing, the Summary derives from the edited character, so AC uses its real gear.
