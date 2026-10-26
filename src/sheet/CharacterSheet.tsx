@@ -1,5 +1,4 @@
 import { ShowMath } from '../explain/ShowMath'
-import { StatsCard } from '../explain/StatsCard'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import { QuickCastBar } from '../quickcast'
@@ -12,15 +11,15 @@ import { HitPoints } from './components/HitPoints'
 import { Resources } from './components/Resources'
 import { Rests } from './components/Rests'
 import { SpellSlots } from './components/SpellSlots'
-import { Spellbook } from '../spellbook'
+import { Spellbook, StorySpells } from '../spellbook'
 import { Inventory } from '../inventory'
 import { Supplies } from '../supplies/Supplies'
 import { TurnChecklist } from '../turn'
 import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
 import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './mode'
-import { Identity, Notes, SocialSkills } from './components/Story'
-import { CombatSummary, CombatTabs, FeaturesTraits, Fight, SkillsPanel } from './combat/CombatPage'
+import { Identity, Notes } from './components/Story'
+import { AbilitiesPanel, CombatSummary, CombatTabs, FeaturesTraits, Fight, SkillsPanel } from './combat/CombatPage'
 import './sheet.css'
 
 export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
@@ -57,13 +56,13 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   const section = (s: SheetSection) => {
     switch (s) {
       case 'quickcast': return <QuickCastBar key={s} {...p} />
-      case 'identity': return <Identity key={s} character={character} />
-      case 'social': return <SocialSkills key={s} character={character} />
+      case 'identity': return <Identity key={s} character={character} vitals={(layout.vitals ?? []).map(section)} />
+      case 'abilities': return <AbilitiesPanel key={s} character={character} />
+      case 'storySpells': return <StorySpells key={s} {...p} />
       case 'notes': return <Notes key={s} {...p} />
       case 'hp': return <HitPoints key={s} {...p} />
       case 'death': return <DeathSaves key={s} {...p} />
       case 'rests': return <Rests key={s} {...p} />
-      case 'stats': return <StatsCard key={s} character={character} />
       case 'attacks': return <Attacks key={s} character={character} />
       case 'turn': return <TurnChecklist key={s} character={character} />
       case 'reactions': return <ReactionReminders key={s} {...p} />

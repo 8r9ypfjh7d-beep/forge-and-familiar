@@ -8,14 +8,14 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 |------|---------|
 | `mode.ts` | `sheetLayout(mode, { dying })` (pure section order), `useSheetMode` (per-character choice) |
 | `mode.test.ts` | Layout tests |
-| `components/Story.tsx` | Story-only cards: `Identity`, `SocialSkills`, `Notes` |
+| `components/Story.tsx` | `Identity` (story mode's top card: HP and Rest plus one small line on who the character is), `Notes` |
 | `combat/` | The combat page (see `combat/COMBAT_PAGE.md`) |
 
 ## Layout
 
-- **Story** (default): who the character is (race, background and feature, alignment, languages, tools, traits), HP, social and exploration skills, notes, rests, stats, slots, resources. No quick-cast bar, turn checklist or reactions.
+- **Story** (default): one top card with HP and Rest and a small line on race, background, alignment and languages (traits and features folded away); the combat page's abilities (`AbilitiesPanel`) and skills rail (`SkillsPanel`); then notes, story spells (`StorySpells` in src/spellbook: only spells the player pinned, from `Character.storySpells`), spell slots, attacks and inventory. No quick-cast, resources, ammo and rations, or session log.
 - **Combat**: laid out like Roll20's character page. A summary on top (who, HP and rests, abilities with Mod and Save, AC and speed), the skills and tools on the side, and tabs: Combat (attacks table, weapon mastery, effects, the player's own actions), Spells (quick-cast, slots, spellbook), Inventory (inventory, supplies), Features & Traits, Notes (notes, identity, history). `sheetLayout` returns these as `vitals` and `tabs`.
-- At 0 HP, HP and death saves come first in story mode; combat mode puts death saves above the summary.
+- At 0 HP, both modes put death saves on top.
 
 ## Rules
 

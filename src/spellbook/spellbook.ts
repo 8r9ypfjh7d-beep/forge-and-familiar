@@ -17,6 +17,16 @@ export function removeSpell(c: Character, classId: string, id: string): Characte
   return { ...c, spells: spellsOf(c).filter(s => !(s.classId === classId && s.id === id)) }
 }
 
+/** Spells pinned to story mode's card. */
+export const storySpellsOf = (c: Character): string[] => c.storySpells ?? []
+
+/** Pins a spell to story mode's card, or unpins it. */
+export function toggleStorySpell(c: Character, id: string): Character {
+  const now = storySpellsOf(c)
+  const next = now.includes(id) ? now.filter(x => x !== id) : [...now, id]
+  return { ...c, storySpells: next.length ? next : undefined }
+}
+
 /** Switching rules editions keeps the chosen spells; ids are shared slugs, and ones the new list lacks just don't show. */
 export const setEdition = (c: Character, edition: Edition): Character => ({ ...c, spellEdition: edition === '2014' ? undefined : edition })
 

@@ -3,7 +3,7 @@ import { getEntry, loadKind, type Edition } from '../content'
 import type { Character } from '../model/character'
 import type { Abilities } from '../rules/types'
 import { availableSpells, sourceFor, spellAccess } from './access'
-import { addSpell, removeSpell, setEdition, spellsOf, toQuickCast, upcastStep } from './spellbook'
+import { addSpell, removeSpell, setEdition, spellsOf, storySpellsOf, toQuickCast, toggleStorySpell, upcastStep } from './spellbook'
 
 const scores: Abilities = { str: 10, dex: 14, con: 12, int: 16, wis: 14, cha: 16 }
 
@@ -65,6 +65,17 @@ describe('chosen spells', () => {
     expect(spellsOf(removeSpell(c, 'warlock', 'hex')).map(s => s.id)).toEqual(['eldritch-blast'])
     expect(setEdition(c, '2024').spellEdition).toBe('2024')
     expect(setEdition(setEdition(c, '2024'), '2014').spellEdition).toBeUndefined()
+  })
+})
+
+describe('story spells', () => {
+  it('pins in order, unpins, and clears the field when empty', () => {
+    let c = { id: 'c1' } as Character
+    c = toggleStorySpell(toggleStorySpell(c, 'detect-magic'), 'comprehend-languages')
+    expect(storySpellsOf(c)).toEqual(['detect-magic', 'comprehend-languages'])
+    c = toggleStorySpell(c, 'detect-magic')
+    expect(storySpellsOf(c)).toEqual(['comprehend-languages'])
+    expect(toggleStorySpell(c, 'comprehend-languages').storySpells).toBeUndefined()
   })
 })
 

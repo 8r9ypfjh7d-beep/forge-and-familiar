@@ -181,22 +181,20 @@ form.inline input { width: 84px; }
 .mode-btn.on { background: var(--s-accent); color: #fff; }
 
 /* Story mode */
-.story-facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; }
-.story-facts div { display: contents; }
-.story-facts dt { color: var(--s-muted); font-size: .875rem; }
-.story-facts dd { margin: 0; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.story-feature { margin: 12px 0 0; }
-.story-more { margin-top: 12px; }
-.story-more summary { cursor: pointer; font-weight: 600; }
+.story-top { display: grid; gap: 12px; }
+.story-vitals { display: grid; gap: 12px 20px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .story-vitals { grid-template-columns: 1.4fr 1fr; } }
+.story-vitals > .card { border: 0; padding: 0; background: transparent; min-width: 0; }
+.story-who { border-block-start: 1px solid var(--s-line); padding-block-start: 10px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+.story-facts { margin: 0; color: var(--s-muted); font-size: .85rem; flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.story-more summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--s-muted); }
 .story-tags { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 8px 0 0; }
-.story-tags li { padding: 2px 10px; border: 1px solid var(--s-line); border-radius: 99px; font-size: .85rem; }
-.story-skill-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; list-style: none; padding: 0; margin: 0; }
-.story-skill-list li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--s-line); }
-.story-skill-list li.prof span:first-child { font-weight: 700; }
-.story-skill-list li.prof span:first-child::before { content: '● '; color: var(--s-accent); }
-@media (max-width: 420px) { .story-skill-list { grid-template-columns: 1fr; } }
+.story-tags li { padding: 2px 10px; border: 1px solid var(--s-line); border-radius: 99px; font-size: .8rem; }
+.ff-sheet.mode-story > .cs-abilities { margin-block-end: 16px; }
+.ff-sheet.mode-story > .story-top { margin-block-end: 16px; }
 .story-notes h2 label { cursor: text; }
 .story-notes textarea {
   font: inherit; inline-size: 100%; min-block-size: 8em; padding: 10px; resize: vertical;
   border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink);
 }
+.story-spells .sb-browse > .sb-list { max-block-size: 26rem; overflow-y: auto; }

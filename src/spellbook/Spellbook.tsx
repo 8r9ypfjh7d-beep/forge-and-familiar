@@ -8,7 +8,7 @@ import { derive, formatMod } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, sourceFor, spellAccess, type SpellAccess } from './access'
-import { addSpell, isPinned, removeSpell, setEdition, spellsOf, toQuickCast } from './spellbook'
+import { addSpell, isPinned, removeSpell, setEdition, spellsOf, storySpellsOf, toggleStorySpell, toQuickCast } from './spellbook'
 import './spellbook.css'
 
 interface Library {
@@ -89,6 +89,78 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
               <summary>{t('spells.source', { title: lib.source.title })}</summary>
               <p lang="en" dir="ltr">{lib.source.attribution}</p>
             </details>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Story mode's Spells card: only the spells the player pinned for roleplay and exploration,
+ * with a picker over every spell their classes can take (their own spells first).
+ */
+export function StorySpells({ character, apply }: { character: Character; apply: Apply }) {
+  const { t } = useI18n()
+  const lib = useLibrary(editionOf(character))
+  const stats = derive(character)
+  const [picking, setPicking] = useState(false)
+  const [query, setQuery] = useState('')
+  const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities) : []
+  if (lib && lib !== 'error' && access.length === 0) return null
+
+  const spells = lib && lib !== 'error' ? lib.spells : []
+  const byId = new Map(spells.map(s => [s.id, s]))
+  const pinned = storySpellsOf(character).map(id => byId.get(id)).filter((s): s is Spell => !!s)
+  const toggle = (s: Spell, on: boolean) =>
+    apply(t(on ? 'spells.story.log.unpin' : 'spells.story.log.pin', { name: s.name }), c => toggleStorySpell(c, s.id))
+  const mine = new Set([...spellsOf(character).map(k => k.id), ...access.flatMap(a => a.alwaysPrepared)])
+  const pool = [...new Map(access.flatMap(a => availableSpells(spells, a)).map(s => [s.id, s])).values()]
+    .sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || a.level - b.level || a.name.localeCompare(b.name))
+  const shown = searchEntries(pool, query).slice(0, 60)
+  const isOn = (s: Spell) => storySpellsOf(character).includes(s.id)
+
+  return (
+    <section className="card spellbook story-spells" aria-labelledby="story-spells-title">
+      <div className="card-head">
+        <h2 id="story-spells-title">{t('spells.title')}</h2>
+        {lib && lib !== 'error' && (
+          <button type="button" className="btn small" aria-expanded={picking} onClick={() => setPicking(p => !p)}>
+            {picking ? t('spells.story.done') : t('spells.story.pick')}
+          </button>
+        )}
+      </div>
+      {lib === null && <p className="hint">{t('spells.loading')}</p>}
+      {lib === 'error' && <p className="hint">{t('spells.failed')}</p>}
+      {lib && lib !== 'error' && (
+        <>
+          {pinned.length === 0 && !picking && <p className="hint">{t('spells.story.empty')}</p>}
+          {pinned.length > 0 && (
+            <ul className="sb-list">
+              {pinned.map(s => (
+                <SpellRow key={s.id} spell={s} badge={s.level === 0 ? t('spells.cantrip') : t(`sheet.slot.${s.level}` as MessageKey)}>
+                  <button type="button" className="btn ghost small sb-remove" aria-label={t('spells.story.unpinName', { name: s.name })} onClick={() => toggle(s, true)}>✕</button>
+                </SpellRow>
+              ))}
+            </ul>
+          )}
+          {picking && (
+            <div className="sb-browse">
+              <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} lang="en" />
+              <ul className="sb-list">
+                {shown.map(s => {
+                  const on = isOn(s)
+                  return (
+                    <SpellRow key={s.id} spell={s} badge={mine.has(s.id) ? t('spells.story.yours') : undefined}>
+                      <button type="button" className={`btn small${on ? '' : ' primary'}`} aria-pressed={on}
+                        aria-label={t(on ? 'spells.story.unpinName' : 'spells.story.pinName', { name: s.name })} onClick={() => toggle(s, on)}>
+                        {on ? t('spells.pinned') : t('spells.pin')}
+                      </button>
+                    </SpellRow>
+                  )
+                })}
+              </ul>
+            </div>
           )}
         </>
       )}
