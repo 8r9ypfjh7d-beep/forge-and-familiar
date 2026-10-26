@@ -1,10 +1,10 @@
-// Item effects: which equipped items change the character's numbers, and by how much.
+// Item effects: which equipped items, and which custom actions the player switched on, change the character's numbers.
 // derive() and src/explain both read these, so the sheet and "show the math" agree.
 import type { Character } from '../model/character'
 import { entryItem } from './data/items'
 import { ABILITIES, type Abilities, type Ability, type BonusEffectKind, type InventoryEntry, type ItemEffect } from './types'
 
-type Owner = Partial<Pick<Character, 'inventory' | 'state'>>
+type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions'>>
 
 /** An entry's effects work while it is equipped. */
 export const effectsActive = (e: InventoryEntry) => e.equipped
@@ -12,11 +12,14 @@ export const effectsActive = (e: InventoryEntry) => e.equipped
 export interface ActiveEffect { source: string; effect: ItemEffect }
 
 export function activeItemEffects(c: Owner): ActiveEffect[] {
-  return (c.inventory ?? []).flatMap(e => {
+  const items = (c.inventory ?? []).flatMap(e => {
     if (!e.effects?.length || !effectsActive(e)) return []
     const source = entryItem(e)?.name ?? e.name ?? e.itemId
     return e.effects.map(effect => ({ source, effect }))
   })
+  // A custom action's stat changes (Rage-like stances, a blessing) count while it is switched on.
+  const actions = (c.customActions ?? []).flatMap(a => (a.active ? (a.stats ?? []).map(effect => ({ source: a.name, effect })) : []))
+  return [...items, ...actions]
 }
 
 /** Each item's bonus of one kind; `unarmored` bonuses only count when `unarmored` is true. */

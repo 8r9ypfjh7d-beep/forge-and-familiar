@@ -7,7 +7,8 @@ import type { RollMode, RollResult } from '../../dice'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
-import type { Ability } from '../../rules/types'
+import type { Ability, ItemEffect } from '../../rules/types'
+import { EffectsEditor, effectText } from '../../inventory'
 import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
 import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCritRange, getDamageRiders, subclassById, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
@@ -16,8 +17,8 @@ import { useSheetRolls } from '../dice'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
-  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteryLimit, matchFeature, newActionId, removeAction, resolveDice, spellAttackRows, updateAction,
-  type ActionKind, type CustomAction, type SpellAttackRow,
+  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteryLimit, matchFeature, newActionId, removeAction, resolveDice, setActionActive, spellAttackRows, updateAction,
+  type ActionKind, type CustomAction, type EffectToggle, type SpellAttackRow,
 } from './combat'
 import './combat.css'
 
@@ -259,7 +260,8 @@ export function CombatTabs({ tabs, render }: { tabs: Record<CombatTab, SheetSect
 interface Outcome { name: string; rolls: Shown[]; note?: string }
 
 export function Fight({ character, apply }: { character: Character; apply: Apply }) {
-  const { t, term, attackName, abilityShort } = useI18n()
+  const i18n = useI18n()
+  const { t, term, attackName, abilityShort } = i18n
   const lib = useLibrary(character)
   const d = derive(character)
   const rolls = useSheetRolls(character)
@@ -274,11 +276,18 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const effects = effectToggles(character, d, spellNames)
   const spells = spellAttackRows(character, d, lib.spells)
   const critRange = getCritRange(character)
-  const active = effects.filter(e => on[e.id])
+  // Custom action effects are saved on the action (their stat changes reach derive()); the rest are per-session switches.
+  const isOn = (e: EffectToggle) => (e.id.startsWith('act:') ? !!character.customActions?.find(a => `act:${a.id}` === e.id)?.active : !!on[e.id])
+  const toggle = (e: EffectToggle, value: boolean) => {
+    if (!e.id.startsWith('act:')) return setOn(o => ({ ...o, [e.id]: value }))
+    apply(t(value ? 'cs.log.effectOn' : 'cs.log.effectOff', { name: e.name }), c => setActionActive(c, e.id.slice(4), value))
+  }
+  const active = effects.filter(isOn)
+  const damaging = active.filter((e): e is EffectToggle & { damage: string } => !!e.damage)
 
   const weapon = (a: DerivedStats['attacks'][number]) => {
     const own = getDamageRiders(character, a).map(r => r.id as string)
-    const riders = active.filter(e => !e.weaponOnly || own.includes(e.id)).map(e => ({ name: e.name, damage: e.damage }))
+    const riders = damaging.filter(e => !e.weaponOnly || own.includes(e.id)).map(e => ({ name: e.name, damage: e.damage }))
     const extra = a.extraDamage ? /^(\S+)\s*(.*)$/.exec(a.extraDamage) : null
     const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1] }] : riders
     const r = rolls.attack(a, { mode, critRange, riders: all, twoHanded: twoHanded[a.name] })
@@ -300,7 +309,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     if (r.kind === 'save' && r.save) notes.push(t('cs.saveNote', { dc: r.value, ability: abilityShort(r.save) }))
     const sc = d.spellcasting
     const damage = spellDamage({ ...r.entry, id: '', kind: 'spell' }, choice?.level ?? r.level, d.level, sc ? d.mods[sc.ability] : 0)
-    const riders = r.kind === 'attack' && r.damageType !== 'healing' ? active.filter(e => !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage })) : []
+    const riders = r.kind === 'attack' && r.damageType !== 'healing' ? damaging.filter(e => !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage })) : []
     const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders })
     const type = r.damageType ? term('damage', r.damageType, r.damageType) : ''
     const list: Shown[] = [
@@ -314,7 +323,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const runAction = (a: CustomAction) => {
     const r = actionRoll(a, d)
     const healing = isHealing(a.roll?.type)
-    const riders = r.attackBonus !== undefined && !healing ? active.filter(e => !e.weaponOnly && e.id !== `act:${a.id}`).map(e => ({ name: e.name, damage: e.damage })) : []
+    const riders = r.attackBonus !== undefined && !healing ? damaging.filter(e => !e.weaponOnly && e.id !== `act:${a.id}`).map(e => ({ name: e.name, damage: e.damage })) : []
     const res = rolls.spell(a.name, { attackBonus: r.attackBonus, damage: r.dice, damageType: a.roll?.type, mode, riders })
     const type = a.roll?.type ? term('damage', a.roll.type, a.roll.type) : ''
     setOut({
@@ -406,11 +415,16 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
             {effects.map(e => (
               <li key={e.id}>
                 <label className="cs-switch">
-                  <input type="checkbox" role="switch" checked={!!on[e.id]} onChange={ev => setOn(o => ({ ...o, [e.id]: ev.target.checked }))} />
+                  <input type="checkbox" role="switch" checked={isOn(e)} onChange={ev => toggle(e, ev.target.checked)} />
                   <span>{e.weaponOnly ? term('feature', e.name, e.name) : e.name}</span>
                 </label>
-                <span className="dmg" dir="ltr">{e.damage}</span>
-                <span className="hint">{t(e.weaponOnly ? 'cs.affects.weapon' : 'cs.affects.damage')}{e.damageType ? ` (${term('damage', e.damageType, e.damageType)})` : ''}</span>
+                {e.damage && <span className="dmg" dir="ltr">{e.damage}</span>}
+                <span className="hint">
+                  {[
+                    e.damage ? `${t(e.weaponOnly ? 'cs.affects.weapon' : 'cs.affects.damage')}${e.damageType ? ` (${term('damage', e.damageType, e.damageType)})` : ''}` : '',
+                    ...(e.stats ?? []).map(f => effectText(i18n, f)),
+                  ].filter(Boolean).join(' · ')}
+                </span>
               </li>
             ))}
           </ul>
@@ -466,7 +480,7 @@ function CustomActions({ character, apply, onRoll }: { character: Character; app
                   return (
                     <li key={a.id} className="cs-action">
                       <ActionForm kind={a.kind} stats={d} initial={a} onCancel={() => setEditing(null)}
-                        onSave={p => { apply(t('cs.log.actionEdited', { name: p.name }), c => updateAction(c, a.id, { roll: undefined, effect: undefined, description: undefined, ...p })); setEditing(null) }} />
+                        onSave={p => { apply(t('cs.log.actionEdited', { name: p.name }), c => updateAction(c, a.id, { roll: undefined, effect: undefined, stats: undefined, description: undefined, ...p })); setEditing(null) }} />
                     </li>
                   )
                 }
@@ -483,7 +497,7 @@ function CustomActions({ character, apply, onRoll }: { character: Character; app
                             <span aria-hidden="true">🎲</span> <span dir="ltr">{sum}</span>
                           </button>
                         )}
-                        {a.effect && <span className="cs-effect-tag" title={t('cs.effectTagHint')}>{t('cs.effectTag')}</span>}
+                        {(a.effect || a.stats?.length) && <span className={`cs-effect-tag${a.active ? ' on' : ''}`} title={t('cs.effectTagHint')}>{t('cs.effectTag')}</span>}
                         <button type="button" className="btn ghost small" aria-label={t('cs.editAction', { name: a.name })} onClick={() => setEditing(a.id)}>✎</button>
                         <button type="button" className="btn ghost small" aria-label={t('cs.removeAction', { name: a.name })}
                           onClick={() => apply(t('cs.log.actionRemoved', { name: a.name }), c => removeAction(c, a.id))}>×</button>
@@ -521,6 +535,7 @@ function ActionForm({ kind, stats, initial, onSave, onCancel }: {
   const [hasEffect, setHasEffect] = useState(!!initial?.effect)
   const [fx, setFx] = useState(initial?.effect?.damage ?? '')
   const [fxType, setFxType] = useState(initial?.effect?.type ?? '')
+  const [statFx, setStatFx] = useState<ItemEffect[]>(initial?.stats ?? [])
   const diceBad = !!dice.trim() && !resolveDice(dice, stats)
   const fxBad = hasEffect && !resolveDice(fx, stats)
   const ok = !!name.trim() && !diceBad && !fxBad
@@ -539,6 +554,7 @@ function ActionForm({ kind, stats, initial, onSave, onCancel }: {
       ...(text.trim() ? { description: text.trim() } : {}),
       ...(Object.keys(roll).length ? { roll } : {}),
       ...(hasEffect ? { effect: { damage: fx.trim(), ...(fxType.trim() ? { type: fxType.trim() } : {}) } } : {}),
+      ...(statFx.length ? { stats: statFx } : {}),
     })
   }
   const abilitySelect = (value: Ability, set: (a: Ability) => void, label: string) => (
@@ -588,6 +604,11 @@ function ActionForm({ kind, stats, initial, onSave, onCancel }: {
           {fxBad && <p className="hint wide">{t('cs.form.diceBad')}</p>}
         </>}
       </fieldset>
+
+      <div className="wide cs-stats-editor">
+        <EffectsEditor effects={statFx} onChange={setStatFx} legend={t('cs.form.stats')} />
+        <p className="hint">{t('cs.form.statsHint')}</p>
+      </div>
 
       <div className="row">
         <button type="submit" className="btn primary" disabled={!ok}>{t('cs.save.action')}</button>

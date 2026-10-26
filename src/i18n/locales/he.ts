@@ -864,6 +864,16 @@ const messages: Messages = {
   'cs.form.effect': 'השפעה (לא חובה)',
   'cs.form.effectOn': 'מוסיפה נזק להתקפות שלי כשהיא מופעלת, כמו כישוף',
   'cs.form.effectDice': 'נזק נוסף',
+  'inv.fx.kind.attack': 'הטלות התקפה בנשק',
+  'inv.fx.kind.damage': 'נזק נשק',
+  'inv.fx.kind.initiative': 'יוזמה',
+  'inv.fx.text.attack': '{n} לפגיעה',
+  'inv.fx.text.damage': '{n} נזק',
+  'inv.fx.text.initiative': '{n} יוזמה',
+  'cs.form.stats': 'שינויי נתונים כשהיא מופעלת (לא חובה)',
+  'cs.form.statsHint': 'הפעילו את הפעולה תחת השפעות כדי להחיל אותם, וכבו כדי להסיר.',
+  'cs.log.effectOn': '{name} הופעל',
+  'cs.log.effectOff': '{name} כובה',
 }
 
 const terms: Terms = {

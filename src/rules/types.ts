@@ -204,7 +204,8 @@ export interface InventoryEntry {
 }
 
 /** A bonus an item gives while worn: AC, saves, ability checks, spell attack and DC, walking speed. */
-export type BonusEffectKind = 'ac' | 'saves' | 'checks' | 'spellAttack' | 'spellDc' | 'speed'
+/** `attack` and `damage` apply to weapon attacks (and the unarmed strike). */
+export type BonusEffectKind = 'ac' | 'saves' | 'checks' | 'spellAttack' | 'spellDc' | 'speed' | 'attack' | 'damage' | 'initiative'
 
 export type ItemEffect =
   /** `unarmored`: only without armor and shield (Bracers of Defense). */

@@ -865,6 +865,16 @@ export const en = {
   'cs.form.effect': 'Effect (optional)',
   'cs.form.effectOn': 'Adds damage to my attacks while switched on, like Hex',
   'cs.form.effectDice': 'Extra damage',
+  'inv.fx.kind.attack': 'Weapon attack rolls',
+  'inv.fx.kind.damage': 'Weapon damage',
+  'inv.fx.kind.initiative': 'Initiative',
+  'inv.fx.text.attack': '{n} to hit',
+  'inv.fx.text.damage': '{n} damage',
+  'inv.fx.text.initiative': '{n} initiative',
+  'cs.form.stats': 'Stat changes while switched on (optional)',
+  'cs.form.statsHint': 'Switch the action on under Effects to apply these, and off to remove them.',
+  'cs.log.effectOn': '{name} on',
+  'cs.log.effectOff': '{name} off',
 } as const
 
 export type MessageKey = keyof typeof en

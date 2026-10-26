@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadKind } from '../../content'
 import { derive, xpForNextLevel } from '../../rules'
 import { makeCharacter } from '../fixtures'
-import { actionRoll, actionsOf, addAction, effectToggles, resolveDice, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
+import { actionRoll, actionsOf, addAction, effectToggles, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
 
 const warlock = (over = {}) => makeCharacter({
   classes: [{ classId: 'warlock', level: 7 }],
@@ -85,5 +85,24 @@ describe('combat page helpers', () => {
     expect(actionRoll(c.customActions![0], d)).toEqual({ dc: 12, save: 'dex', dice: '5' })
     expect(actionRoll(c.customActions![1], d)).toEqual({ attackBonus: 6, dice: '1d8+3' })
     expect(effectToggles(c, d)).toEqual([{ id: 'act:b', name: 'Smite', damage: '1d4', damageType: 'psychic' }])
+  })
+
+  it('applies an action\'s stat changes only while it is switched on', () => {
+    const c0 = addAction(warlock({ spells: [], inventory: [{ uid: 'd', itemId: 'dagger', qty: 1, equipped: true }] }), {
+      id: 'r', kind: 'bonus', name: 'Battle Stance',
+      stats: [{ kind: 'ac', value: 2 }, { kind: 'attack', value: 1 }, { kind: 'damage', value: 2 }, { kind: 'saves', value: 1 }, { kind: 'ability', ability: 'str', value: 2, max: 20 }, { kind: 'initiative', value: 5 }, { kind: 'speed', value: 10 }],
+    })
+    const off = derive(c0)
+    const on = derive(setActionActive(c0, 'r', true))
+    expect(on.armorClass.value).toBe(off.armorClass.value + 2)
+    expect(on.abilities.str).toBe(off.abilities.str + 2)
+    expect(on.saves.wis.bonus).toBe(off.saves.wis.bonus + 1)
+    expect(on.initiative).toBe(off.initiative + 5)
+    expect(on.speed).toBe(off.speed + 10)
+    const dagger = (d: typeof on) => d.attacks.find(a => a.name === 'Dagger')!
+    // +1 STR mod from the ability bump can't matter for a finesse dagger with DEX higher, so only the flat bonuses show.
+    expect(dagger(on).bonus - dagger(off).bonus).toBeGreaterThanOrEqual(1)
+    expect(effectToggles(c0, off).find(e => e.id === 'act:r')?.stats).toHaveLength(7)
+    expect(derive(setActionActive(setActionActive(c0, 'r', true), 'r', false))).toEqual(off)
   })
 })
