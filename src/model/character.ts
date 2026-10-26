@@ -1,7 +1,7 @@
 // Saved character shape, shared by the builder (creates it) and the live sheet (plays it).
 // Everything not stored here (max HP, AC, modifiers, slots, resource maxima) is derived by src/rules.
 import type { QuickCastEntry } from '../quickcast/types'
-import type { Abilities, Ability, ConditionId, InventoryEntry, SkillId } from '../rules/types'
+import type { Abilities, Ability, ConditionId, InventoryEntry, ItemEffect, SkillId } from '../rules/types'
 
 export type AbilityMethod = 'standard' | 'pointBuy' | 'manual'
 export type HitDie = 'd6' | 'd8' | 'd10' | 'd12'
@@ -85,8 +85,12 @@ export interface CustomAction {
     /** Damage type or "healing". */
     type?: string
   }
-  /** A toggle in Effects that adds this to every attack's damage while it is on (like Hex). */
+  /** Extra damage dice added to every attack while the action is switched on (like Hex). */
   effect?: { damage: string; type?: string }
+  /** Stat changes while switched on (AC, ability scores, saves, checks, attack and damage bonuses…), same shape as item effects. */
+  stats?: ItemEffect[]
+  /** Switched on under Effects. Saved, so stat changes last until the player switches it off. */
+  active?: boolean
 }
 
 export const CHARACTER_SCHEMA_VERSION = 1

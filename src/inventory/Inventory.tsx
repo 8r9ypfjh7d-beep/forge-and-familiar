@@ -87,8 +87,8 @@ export function Inventory({ character, apply }: { character: Character; apply: A
 
 type T = ReturnType<typeof useI18n>
 
-/** "+1 AC", "STR becomes 19", "+2 CON (max 20)"… */
-function effectText({ t, term }: T, f: ItemEffect): string {
+/** "+1 AC", "STR becomes 19", "+2 CON (max 20)"… Also used by custom actions on the combat page. */
+export function effectText({ t, term }: T, f: ItemEffect): string {
   const n = 'value' in f ? f.value : 0
   const signed = `${n >= 0 ? '+' : '−'}${Math.abs(n)}`
   const ability = (a: Ability) => term('ability', a, ABILITY_NAMES[a])
@@ -297,7 +297,7 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
   )
 }
 
-const EFFECT_KINDS = ['ac', 'saves', 'checks', 'spellAttack', 'spellDc', 'speed', 'abilitySet', 'ability'] as const
+const EFFECT_KINDS = ['ac', 'saves', 'checks', 'attack', 'damage', 'initiative', 'spellAttack', 'spellDc', 'speed', 'abilitySet', 'ability'] as const
 
 function blankEffect(kind: ItemEffect['kind'], prev?: ItemEffect): ItemEffect {
   if (kind === prev?.kind) return prev
@@ -306,13 +306,13 @@ function blankEffect(kind: ItemEffect['kind'], prev?: ItemEffect): ItemEffect {
   return { kind, value: kind === 'speed' ? 10 : 1 }
 }
 
-/** Stat effects of an item: pick what it changes and by how much. */
-function EffectsEditor({ effects, onChange }: { effects: ItemEffect[]; onChange: (fx: ItemEffect[]) => void }) {
+/** Stat effects of an item (or a custom action): pick what it changes and by how much. */
+export function EffectsEditor({ effects, onChange, legend }: { effects: ItemEffect[]; onChange: (fx: ItemEffect[]) => void; legend?: string }) {
   const { t, term } = useI18n()
   const put = (i: number, f: ItemEffect) => onChange(effects.map((x, j) => (j === i ? f : x)))
   return (
     <fieldset className="wide inv-effects-editor">
-      <legend>{t('inv.f.effects')}</legend>
+      <legend>{legend ?? t('inv.f.effects')}</legend>
       {effects.length === 0 && <p className="hint">{t('inv.fx.none')}</p>}
       {effects.map((f, i) => (
         <div key={i} className="inv-effect">

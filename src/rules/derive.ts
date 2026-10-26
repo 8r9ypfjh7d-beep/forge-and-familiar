@@ -244,7 +244,7 @@ export function getAttacks(c: Character): Attack[] {
     if (entry.pact && c.spellEdition === '2024' && mods.cha > mods[ability]) ability = 'cha'
     const proficient = entry.pact || isWeaponProficient(c, item)
     const magic = entry.magicBonus ?? 0
-    const dmgMod = mods[ability] + magic
+    const dmgMod = mods[ability] + magic + itemBonus(c, 'damage')
     const notes: string[] = []
     if (entry.pact) notes.push('pact weapon')
     if (magic || entry.pact) notes.push('magical')
@@ -254,7 +254,7 @@ export function getAttacks(c: Character): Attack[] {
     if (!proficient) notes.push('not proficient')
     out.push({
       name: item.name,
-      bonus: mods[ability] + magic + (proficient ? prof : 0),
+      bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack'),
       damage: withMod(item.damage, dmgMod),
       damageType: item.damageType,
       ability,
@@ -272,8 +272,10 @@ export function getAttacks(c: Character): Attack[] {
   const unarmedAbility: Ability = martialArts && mods.dex > mods.str ? 'dex' : 'str'
   out.push({
     name: 'Unarmed Strike',
-    bonus: mods[unarmedAbility] + prof,
-    damage: martialArts ? withMod(martialArtsDie(monk.level), mods[unarmedAbility]) : `${Math.max(0, 1 + mods.str)}`,
+    bonus: mods[unarmedAbility] + prof + itemBonus(c, 'attack'),
+    damage: martialArts
+      ? withMod(martialArtsDie(monk.level), mods[unarmedAbility] + itemBonus(c, 'damage'))
+      : `${Math.max(0, 1 + mods.str + itemBonus(c, 'damage'))}`,
     damageType: 'bludgeoning',
     ability: unarmedAbility,
     proficient: true,
@@ -385,7 +387,7 @@ export function derive(c: Character): DerivedStats {
     saves,
     skills,
     passivePerception: 10 + skills.perception.bonus,
-    initiative: mods.dex + jackOfAllTrades + featBonus(c, 'initiative') + itemChecks,
+    initiative: mods.dex + jackOfAllTrades + featBonus(c, 'initiative') + itemChecks + itemBonus(c, 'initiative'),
     speed,
     armorClass: getArmorClass(c),
     maxHp: getMaxHp(c),

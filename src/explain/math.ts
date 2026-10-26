@@ -136,7 +136,7 @@ function armorClass(c: Character): StatMath {
 function initiative(c: Character): StatMath {
   const lines = [{ label: 'DEX modifier', value: getAbilityMods(getAbilityScores(c)).dex }]
   if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
-  lines.push(...itemLines(c, 'checks'))
+  lines.push(...itemLines(c, 'checks'), ...itemLines(c, 'initiative'))
   return make('Initiative', lines, { signed: true })
 }
 
@@ -220,6 +220,7 @@ function attack(c: Character, index: number): StatMath | null {
   if (!atk) return null
   const lines = [{ label: `${ABBR(atk.ability)} modifier`, value: getAbilityMods(getAbilityScores(c))[atk.ability] }]
   if (atk.proficient) lines.push(profLine(c))
+  lines.push(...itemLines(c, 'attack'))
   const magic = atk.bonus - lines.reduce((t, l) => t + l.value, 0)
   if (magic) lines.push({ label: 'Magic weapon', value: magic })
   const notes = [`Damage ${atk.damage} ${atk.damageType}: weapon die + ${ABBR(atk.ability)} modifier.`]

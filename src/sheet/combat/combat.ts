@@ -2,7 +2,7 @@
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction } from '../../model/character'
 import { getDamageRiders, type DerivedStats } from '../../rules'
-import type { Ability } from '../../rules/types'
+import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { spellDamage } from '../../quickcast/quickcast'
 import type { SpellEntry } from '../../quickcast/types'
@@ -26,6 +26,11 @@ export function addAction(c: Character, action: CustomAction): Character {
 
 export function updateAction(c: Character, id: string, patch: Partial<Omit<CustomAction, 'id'>>): Character {
   return { ...c, customActions: (c.customActions ?? []).map(a => (a.id === id ? { ...a, ...patch } : a)) }
+}
+
+/** Switches an action's effect on or off. Saved, so its stat changes stay until switched off. */
+export function setActionActive(c: Character, id: string, on: boolean): Character {
+  return updateAction(c, id, { active: on || undefined })
 }
 
 export function removeAction(c: Character, id: string): Character {
@@ -140,8 +145,11 @@ export interface EffectToggle {
   id: string
   /** Feature or spell name. */
   name: string
-  damage: string
+  /** Extra damage dice on each hit; a custom action may only change stats. */
+  damage?: string
   damageType?: string
+  /** A custom action's stat changes, applied by the rules engine while it is switched on. */
+  stats?: ItemEffect[]
   /** Weapon attacks only (Rage, Sneak Attack); spell effects also ride on spell attacks. */
   weaponOnly?: boolean
   oncePerTurn?: boolean
@@ -168,10 +176,16 @@ export function effectToggles(c: Character, stats: DerivedStats, spellNames: Rec
   for (const [id, fx] of Object.entries(SPELL_EFFECTS)) {
     if (ids.has(id)) out.push({ id, name: spellNames[id] ?? id, ...fx })
   }
-  // The player's own actions that carry an effect (a curse, a blessing, a stance).
+  // The player's own actions that carry an effect (a curse, a blessing, a stance): extra damage, stat changes or both.
   for (const a of c.customActions ?? []) {
     const damage = a.effect && resolveDice(a.effect.damage, stats)
-    if (damage) out.push({ id: `act:${a.id}`, name: a.name, damage, ...(a.effect?.type ? { damageType: a.effect.type } : {}) })
+    if (!damage && !a.stats?.length) continue
+    out.push({
+      id: `act:${a.id}`, name: a.name,
+      ...(damage ? { damage } : {}),
+      ...(damage && a.effect?.type ? { damageType: a.effect.type } : {}),
+      ...(a.stats?.length ? { stats: a.stats } : {}),
+    })
   }
   return out
 }
