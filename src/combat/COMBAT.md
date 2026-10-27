@@ -1,7 +1,7 @@
 # Combat tracker
 
 Initiative order, turns and rounds, concentration saves, and spell or condition timers that end on their own.
-Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened from the **Combat** chip in the top bar.
+Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened from the **Combat** tab in the top bar, which only the DM and admin accounts get (see src/nav).
 
 ## Files Covered
 

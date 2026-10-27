@@ -15,7 +15,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 
 ## How it works
 
-- **Who sees it.** The "DM screen" chip shows for the DM account (`getSession()?.role === 'dm'`, see src/accounts) and for anyone who runs a party on this device (`party.dmId`). The DM account lands on it after sign-in.
+- **Who sees it.** The DM screen and the combat tracker are for the DM account (`getSession()?.role === 'dm'`, see src/accounts) and the admin account only; players can neither see the tabs nor open the views (`canOpen` in src/nav). The DM account lands on it after sign-in.
 - **Budget.** SRD 5.2 "XP Budget per Character" summed per level group. Difficulty is the plan's total monster XP against Low / Moderate / High (no multiplier for numbers, as in SRD 5.2). Nothing derived is saved.
 - **Monsters.** SRD 5.1 library monsters (`loadKind('monsters')`). Stat block bonuses, saves, skills, attacks and damage roll through `useDice`, so they land in the DM's own history. The party roll feed never shows the DM's rolls (watchers are skipped).
 - **Run in combat tracker.** Makes an encounter with one `npc` row per creature (average HP, first AC, DEX initiative, CON save) and opens it in src/combat. Players are added there as usual.

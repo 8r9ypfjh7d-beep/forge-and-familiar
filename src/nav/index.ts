@@ -1,2 +1,2 @@
 export { AppNav } from './AppNav'
-export { navItems, navKeyFor, type NavItem, type NavKey } from './items'
+export { canOpen, navItems, navKeyFor, type NavItem, type NavKey } from './items'

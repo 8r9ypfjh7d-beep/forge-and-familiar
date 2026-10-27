@@ -11,13 +11,13 @@ import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
-import { listParties, onPartiesChanged, PartyRollRelay, PartyView } from './party'
+import { PartyRollRelay, PartyView } from './party'
 import { RulesQA } from './rulesqa'
 import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
 import { useI18n } from './i18n'
 import type { MessageKey } from './i18n/locales/en'
-import { AppNav } from './nav'
+import { AppNav, canOpen } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
 import { StarterPicker } from './starters'
 import { SyncBadge, useCloudSync } from './sync'
@@ -39,7 +39,6 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(getSession)
   const [characters, setCharacters] = useState<Character[]>([])
   const [view, setView] = useState<View>(() => (getSession()?.role === 'dm' ? { kind: 'dm' } : { kind: 'list' }))
-  const [leadsParty, setLeadsParty] = useState(false)
   const [diceOpen, setDiceOpen] = useState(false)
   const [askEdit, setAskEdit] = useState<Character | null>(null)
   const requests = useRequests()
@@ -77,16 +76,17 @@ export default function App() {
   useEffect(() => onCharactersChanged(refresh), [refresh])
   useCloudSync(active?.id)
 
-  // The DM screen is for the DM account, and for anyone who runs a party on this device.
-  useEffect(() => {
-    if (!active) return
-    const check = () => listParties(active.id).then(ps => setLeadsParty(ps.some(p => p.dmId === active.id)))
-    check()
-    return onPartiesChanged(check)
-  }, [active])
-  // The admin account (Ziv) sees the admin page and the DM screen, whichever profile is open.
+  // The DM pages (DM screen, combat tracker) are for the DM account only, plus the admin account (Ziv),
+  // whichever profile is open. Players never see them, even if they lead a party.
   const admin = isAdmin(session?.id)
-  const isDm = (session?.id === active?.id && session?.role === 'dm') || leadsParty || admin
+  const dmAccount = session?.id === active?.id && session?.role === 'dm'
+  const isDm = dmAccount || admin
+  const nav = { isDm, dmAccount, admin }
+  // A screen this account may not open (a shortcut, a link, a switched profile) falls back to its home screen.
+  const allowed = canOpen(view.kind, nav)
+  useEffect(() => {
+    if (!allowed) setView(isDm ? { kind: 'dm' } : { kind: 'list' })
+  }, [allowed, isDm])
 
   // Players edit a character only with the DM's OK (one edit per approval). The DM and the admin edit freely.
   const editsFreely = isDm
@@ -133,9 +133,7 @@ export default function App() {
         viewKind={view.kind}
         onGo={key => setView({ kind: key })}
         playerName={active.displayName}
-        isDm={isDm}
-        dmAccount={session?.role === 'dm'}
-        admin={admin}
+        {...nav}
         dmBadge={<>{session?.id === active.id && <AccountBadge session={session} />}<SyncBadge compact /></>}
         onAccessibility={() => a11yDialog.current?.showModal()}
       >
@@ -221,8 +219,8 @@ export default function App() {
         )}
         {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView({ kind: 'list' })} />}
         {view.kind === 'rules' && <RulesQA />}
-        {view.kind === 'combat' && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
-        {view.kind === 'dm' && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
+        {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
+        {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
         {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
         {view.kind === 'admin' && admin && (
