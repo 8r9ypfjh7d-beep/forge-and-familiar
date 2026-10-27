@@ -8,12 +8,16 @@ A player asks the DM for something new for their character: an item, an effect, 
 |------|---------|
 | `types.ts` | `DmRequest` (saved shape), `RequestKind`, `RequestStatus` |
 | `logic.ts` | Pure: `newRequest`, `newEditRequest`, `editState`, `spendEditPass`, `problems`, `mechanics`, `decide`, `inbox` / `reminders` / `answered` / `mine`, `grantToCharacter`, link encode/decode (`linkFor`, `codeFrom`, `decodeShared`), `mergeShared` |
-| `store.ts` | Async list per device (localStorage `ff.requests.v1`), `updateRequests`, `onRequestsChanged` (also other tabs) |
+| `store.ts` | Async list per device (localStorage `ff.requests.v1`), `updateRequests`, `onRequestsChanged` (also other tabs); notes each save for the cloud (`ff.requests.sync.v1`) |
+| `sync.ts` | Pure: `toRow` / `fromRow` for the `dm_requests` table, `noteLocalChange`, `mergeRows` |
+| `cloud.ts` | `startRequestsCloud()` (push, pull, realtime), `pushRequests`, `pullRequests`, `isDelivered` |
 | `grants.ts` | `applyGrants(userId)`: adds granted, not yet applied requests to that player's characters, once |
 | `hooks.ts` | `useRequests()` live list |
 | `Requests.tsx` | `RequestsView` (player "Ask the DM" page), `DmRequestsTab`, `StoryReminders`, `RequestsAgent` (opens links, applies grants, shows a notice), `DmRequestPopup`, `EditRequestDialog` |
 | `requests.css` | Styles; both pages sit inside `.ff-sheet` |
 | `requests.test.ts` | Validation, sorting, granting, links and merging |
+| `sync.test.ts` | Rows, merging pulls, push and pull against a fake table |
+| `../../supabase/migrations/20261027110000_dm_requests.sql` | `dm_requests` table, guard trigger, access rules, realtime |
 
 ## How it works
 
@@ -22,10 +26,12 @@ A player asks the DM for something new for their character: an item, an effect, 
 - **Granting.** `grantToCharacter`: an item goes in the inventory (stat changes as `effects`, extra damage as `extraDamage`; its roll also becomes a combat-page action). An effect or ability becomes a custom action (`kind: 'other'`) with roll, extra damage and stats, switched on under Effects. "Something else" goes to the notes unless it has mechanics.
 - **DM pop-up.** `DmRequestPopup` (mounted in App for the DM) pops up every new request once, on any page, to answer right there and send the answer link. "Not now" remembers it was seen (localStorage `ff.requests.popupSeen.v1`); it stays in the Requests tab.
 - **Edit approval.** Players can't edit a character freely. Their Edit button reads "Ask to edit" and opens `EditRequestDialog`, which sends a request of kind `edit` (what they want to change). The DM allows or denies it. An allowed edit unlocks Edit for that character once (`editState` = `approved`); saving the edit spends it (`spendEditPass` sets `applied`). The DM (`role: 'dm'` or a party's DM) and the admin (`isAdmin` in accounts/roster.ts, Ziv) edit directly. Edit requests never go through `grantToCharacter`.
-- **Between devices (no backend).** Each side shares a link `#ff-request=<code>` (phone share sheet, else clipboard). Opening it merges the request or answer into that device's list and opens the right page. Links that open in another browser can be pasted in the box under each list. Same-device play needs no links.
-- **Privacy.** Answer links never carry the DM's story note. Codes are size-limited and every field is checked on decode.
+- **Live through the cloud.** `RequestsAgent` runs `startRequestsCloud()` when the device is signed in to the cloud (`getCloudAccountId()`). Every local save marks what changed; changes are sent to `dm_requests` (a player upserts their own requests, the DM only updates the answer), then the device pulls every row it may see. A realtime subscription pulls again on any change, so the DM's pop-up appears and the answer is applied on the player's device within a second. Offline, changes wait (`dirty`) and are sent on reconnect or when the app comes back to the front. A delivered request or answer shows "Sent to the DM" / "{name} gets this automatically" instead of the share button.
+- **Server rules.** Players read and send only their own requests; DM accounts (`is_dm()`) and the admin read all and answer. A guard trigger keeps each side to its part: new requests always start pending (nobody grants themselves), the DM can't change the request or `applied`, the player can't change the answer. A player can delete a request only while it waits ("Take back"); "Remove" on an answered request, and the DM's "Remove", only hide it on that device (`hidden`), so the other side keeps its copy. `can_answer_request()` is the one place to widen who answers (e.g. a party's DM).
+- **Links (fallback).** Without the cloud (no sign-in, offline, or a request that never reached the server) each side shares a link `#ff-request=<code>` (phone share sheet, else clipboard). Opening it merges the request or answer into that device's list and opens the right page. Links that open in another browser can be pasted in the box under each list. On the first sync of an account, everything already on the device is sent, so requests from before the cloud catch up.
+- **Privacy.** Neither answer links nor the server ever get the DM's story note. Codes are size-limited and every field is checked on decode.
 - An answer replaces the status only if it isn't older than the one already here. A grant is applied once (`applied`), on the device that has the character.
 
 ## Known tasks
 
-- **Backend later:** keep `store.ts`'s API and drop the links; requests would be addressed to the party's DM.
+- **Party DMs answering:** `create or replace` `can_answer_request()` in a later migration.

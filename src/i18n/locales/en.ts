@@ -1210,6 +1210,8 @@ export const en = {
   'req.shareText.request': '{name} asks the DM: {title}',
   'req.shareText.answer': 'The DM answered your request: {title}',
   'req.copied': 'Link copied. Paste it in your chat.',
+  'req.delivered.request': "Sent to the DM. You'll see the answer here.",
+  'req.delivered.answer': '{name} gets this answer automatically.',
   'req.linkLabel': 'Link to copy',
   'req.pasteAnswer': 'Got an answer link from the DM that opened somewhere else? Paste it here.',
   'req.pasteRequest': 'Got a request link that opened somewhere else? Paste it here.',

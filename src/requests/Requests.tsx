@@ -8,6 +8,7 @@ import type { Character, CustomAction } from '../model/character'
 import { derive, type Ability, type ItemEffect } from '../rules'
 import { resolveDice } from '../sheet/combat/combat'
 import { listCharacters } from '../storage'
+import { isDelivered, onDeliveryChanged, startRequestsCloud } from './cloud'
 import { applyGrants } from './grants'
 import {
   answered, codeFrom, hasMechanics, decide, decodeShared, DETAILS_MAX, inbox, linkFor, mergeShared, mine, newEditRequest, newRequest,
@@ -54,6 +55,7 @@ function importMessage(s: Shared, outcome: MergeOutcome): MessageKey {
 function ShareLink({ type, request, primary }: { type: Shared['type']; request: DmRequest; primary?: boolean }) {
   const { t } = useI18n()
   const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle')
+  const delivered = useDelivered(request.id)
   const url = linkFor(pageBase(), type, request)
   const label = type === 'request' ? t('req.shareRequest') : t('req.shareAnswer', { name: request.fromName })
 
@@ -77,6 +79,10 @@ function ShareLink({ type, request, primary }: { type: Shared['type']; request: 
     }
   }
 
+  // Sent live through the cloud: the other side already has it, no link needed.
+  if (delivered) {
+    return <p className="hint req-delivered" role="status">{type === 'request' ? t('req.delivered.request') : t('req.delivered.answer', { name: request.fromName })}</p>
+  }
   return (
     <div className="req-share">
       <button type="button" className={`btn small ${primary ? 'primary' : ''}`} onClick={share}>{label}</button>
@@ -86,6 +92,17 @@ function ShareLink({ type, request, primary }: { type: Shared['type']; request: 
       )}
     </div>
   )
+}
+
+/** Whether the cloud has this request as it is here; updates as it syncs. */
+function useDelivered(id: string): boolean {
+  const [delivered, setDelivered] = useState(() => isDelivered(id))
+  useEffect(() => {
+    const check = () => setDelivered(isDelivered(id))
+    check()
+    return onDeliveryChanged(check)
+  }, [id])
+  return delivered
 }
 
 /** For links that opened in a different browser: paste them here. */
@@ -114,8 +131,8 @@ function PasteLink({ label }: { label: string }) {
 }
 
 /**
- * Mounted once in the app. Opens request links (#ff-request=…) into this device's list and tells
- * the app which page to show, and adds granted requests to this player's characters.
+ * Mounted once in the app. Keeps requests live through the cloud, opens request links (#ff-request=…)
+ * into this device's list and tells the app which page to show, and adds granted requests to this player's characters.
  */
 export function RequestsAgent({ userId, onOpen }: { userId: string; onOpen: (s: Shared) => void }) {
   const { t } = useI18n()
@@ -135,6 +152,8 @@ export function RequestsAgent({ userId, onOpen }: { userId: string; onOpen: (s: 
     window.addEventListener('hashchange', read)
     return () => window.removeEventListener('hashchange', read)
   }, [t, onOpen])
+
+  useEffect(() => startRequestsCloud(), [])
 
   useEffect(() => {
     const run = () => {

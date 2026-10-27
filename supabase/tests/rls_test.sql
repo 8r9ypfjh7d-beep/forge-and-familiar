@@ -20,6 +20,7 @@ grant usage on schema public, extensions to anon, authenticated;
 \ir ../migrations/20261027090000_foundation.sql
 \ir ../migrations/20261027091500_harden_helpers.sql
 \ir ../migrations/20261027100000_sync.sql
+\ir ../migrations/20261027110000_dm_requests.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -116,6 +117,45 @@ select pg_temp.check((select count(*) from snapshots) + (select count(*) from ro
 set test.uid = '00000000-0000-0000-0000-00000000000d';
 select pg_temp.check((select count(*) from snapshots) = 1 and (select count(*) from rolls) = 1, 'admin reads snapshots and rolls');
 
+-- Requests to the DM.
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+insert into dm_requests (id, from_id, character_id, data, status, applied)
+  values ('q-roy', 'acct-roy', 'c-roy', '{"title":"Flame sword"}', 'granted', true);
+select pg_temp.check((select status = 'pending' and not applied from dm_requests where id = 'q-roy'), 'a new request starts pending, not applied');
+update dm_requests set status = 'granted', reply = 'sure' where id = 'q-roy';
+select pg_temp.check((select status from dm_requests where id = 'q-roy') = 'pending', 'player cannot grant their own request');
+do $$ begin
+  insert into dm_requests (id, from_id, character_id, data) values ('q-fake', 'acct-tamir', 'c-x', '{}');
+  raise exception 'FAILED: sent a request as someone else';
+exception when insufficient_privilege then raise notice 'ok: cannot send a request as someone else';
+end $$;
+insert into dm_requests (id, from_id, character_id, data) values ('q-roy2', 'acct-roy', 'c-roy', '{"title":"Withdraw me"}');
+
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select count(*) from dm_requests) = 0, 'another player cannot read Roy''s requests');
+update dm_requests set status = 'granted' where id = 'q-roy';
+
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from dm_requests) = 2, 'the DM reads every request');
+update dm_requests set status = 'granted', reply = 'yes', decided_at = '2026-10-27T10:00:00.000Z', data = '{"title":"hacked"}', applied = true
+  where id = 'q-roy';
+select pg_temp.check((select status = 'granted' and reply = 'yes' and data->>'title' = 'Flame sword' and not applied from dm_requests where id = 'q-roy'),
+  'DM answers but cannot change the request or applied');
+delete from dm_requests where id = 'q-roy2';
+select pg_temp.check((select count(*) from dm_requests) = 2, 'DM clearing a request does not delete it');
+
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+update dm_requests set applied = true where id = 'q-roy';
+select pg_temp.check((select applied and status = 'granted' from dm_requests where id = 'q-roy'), 'player marks the grant applied, answer kept');
+delete from dm_requests where id = 'q-roy';
+select pg_temp.check((select count(*) from dm_requests where id = 'q-roy') = 1, 'player cannot delete an answered request');
+delete from dm_requests where id = 'q-roy2';
+select pg_temp.check((select count(*) from dm_requests where id = 'q-roy2') = 0, 'player takes back a waiting request');
+
+set test.uid = '00000000-0000-0000-0000-00000000000d';
+delete from dm_requests where id = 'q-roy';
+select pg_temp.check((select count(*) from dm_requests) = 0, 'admin deletes any request');
+
 -- Signed out: nothing.
 reset role;
 set role anon;
@@ -134,6 +174,11 @@ do $$ begin
   perform * from rolls;
   raise exception 'FAILED: anon read rolls';
 exception when insufficient_privilege then raise notice 'ok: anon cannot read rolls';
+end $$;
+do $$ begin
+  perform * from dm_requests;
+  raise exception 'FAILED: anon read requests';
+exception when insufficient_privilege then raise notice 'ok: anon cannot read requests';
 end $$;
 reset role;
 select pg_temp.check(true, 'all RLS checks passed');

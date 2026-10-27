@@ -1208,6 +1208,8 @@ const messages: Messages = {
   'req.shareText.request': '{name} מבקש/ת משה"מ: {title}',
   'req.shareText.answer': 'שה"מ ענה על הבקשה שלך: {title}',
   'req.copied': 'הקישור הועתק. הדביקו אותו בצ\'אט.',
+  'req.delivered.request': 'נשלח לשה"מ. התשובה תופיע כאן.',
+  'req.delivered.answer': 'התשובה תגיע ל{name} אוטומטית.',
   'req.linkLabel': 'קישור להעתקה',
   'req.pasteAnswer': 'קיבלתם קישור תשובה משה"מ שנפתח במקום אחר? הדביקו אותו כאן.',
   'req.pasteRequest': 'קיבלתם קישור בקשה שנפתח במקום אחר? הדביקו אותו כאן.',
