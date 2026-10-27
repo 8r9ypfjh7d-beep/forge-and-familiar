@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isAdmin } from '../accounts/roster'
-import { buildBackup, describeKey, keyRows, parseBackup, people, restorePlan } from './logic'
+import { buildBackup, cloudPeople, describeKey, deviceOnly, keyRows, parseBackup, people, restorePlan } from './logic'
 
 describe('admin', () => {
   it('makes only Ziv the admin, by account id', () => {
@@ -55,5 +55,39 @@ describe('admin', () => {
     expect(list.map(p => [p.id, p.account, p.local, p.characters])).toEqual([
       ['acct-a', true, true, 2], ['acct-d', true, false, 0], ['local-1', false, true, 1], ['gone', false, false, 1],
     ])
+  })
+
+  it('keeps the server sign-in out of backups and in place on restore', () => {
+    const b = buildBackup([{ key: 'ff.supabase.auth', value: 'token' }, { key: 'ff.cloud.v1', value: 'link' }], 'now')
+    expect(Object.keys(b.data)).toEqual(['ff.cloud.v1'])
+    expect(parseBackup(JSON.stringify({ ...b, data: { 'ff.supabase.auth': 'stolen' } }))?.data).toEqual({})
+    const plan = restorePlan(['ff.supabase.auth', 'ff.cloud.v1', 'ff.x'], { ...b, data: {} })
+    expect(plan.remove).toEqual(['ff.x'])
+    expect(describeKey('ff.dm.pending.v1.acct-noa')).toEqual({ kind: 'dmPending', ownerId: 'acct-noa' })
+  })
+
+  it('lists server accounts with devices, characters and DM screen', () => {
+    const list = cloudPeople(
+      [{ id: 'acct-a', name: 'A', role: 'player', is_admin: true }, { id: 'acct-d', name: 'D', role: 'dm', is_admin: false }],
+      [
+        { user_id: 'u1', account_id: 'acct-a', linked_at: '2026-10-01' },
+        { user_id: 'u2', account_id: 'acct-a', linked_at: '2026-10-05' },
+        { user_id: 'u3', account_id: 'acct-d', linked_at: '2026-10-02' },
+      ],
+      [
+        { owner_id: 'acct-a', updated_at: '2026-10-03', deleted: false },
+        { owner_id: 'acct-a', updated_at: '2026-10-09', deleted: false },
+        { owner_id: 'acct-a', updated_at: '2026-10-20', deleted: true },
+      ],
+      [{ account_id: 'acct-d', updated_at: '2026-10-04' }],
+    )
+    expect(list[0]).toMatchObject({ characters: 2, lastSaved: '2026-10-09', dmSavedAt: undefined, admin: true })
+    expect(list[0].devices.map(d => d.userId)).toEqual(['u2', 'u1'])
+    expect(list[1]).toMatchObject({ characters: 0, dmSavedAt: '2026-10-04', role: 'dm' })
+  })
+
+  it('finds characters the server does not have', () => {
+    const local = [{ id: 'c1' }, { id: 'c2' }] as Parameters<typeof deviceOnly>[0]
+    expect(deviceOnly(local, [{ id: 'c1' }]).map(c => c.id)).toEqual(['c2'])
   })
 })

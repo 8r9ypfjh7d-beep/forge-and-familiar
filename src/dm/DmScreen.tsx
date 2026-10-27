@@ -15,7 +15,7 @@ import {
   NPC_TABLES, partyBudget, partySize, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
-import { loadDm, saveDm } from './store'
+import { loadDm, onDmChanged, saveDm, syncDm } from './store'
 import type { DmState, EncounterPlan, Npc } from './types'
 import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
@@ -48,7 +48,13 @@ export function DmScreen({ userId, onRunEncounter, initialTab }: { userId: strin
   useEffect(() => { if (initialTab) document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [initialTab, state])
   const [openMonster, setOpenMonster] = useState<string | null>(null)
 
-  useEffect(() => { loadDm(userId).then(setState) }, [userId])
+  useEffect(() => {
+    let live = true
+    // This device's copy first, then the server's (other devices' edits) once it answers.
+    loadDm(userId).then(s => { if (live) setState(s) }).then(() => syncDm(userId)).then(s => { if (live) setState(s) })
+    const off = onDmChanged(userId, s => { if (live) setState(s) })
+    return () => { live = false; off() }
+  }, [userId])
   useEffect(() => {
     let live = true
     loadKind('monsters', { sources: [SOURCE] }).then(list => { if (live) setMonsters(list) }).catch(() => {})

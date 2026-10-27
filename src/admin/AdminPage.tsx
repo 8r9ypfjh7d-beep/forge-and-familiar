@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ROSTER } from '../accounts/roster'
+import { getCloudStatus, onCloudChanged, type CharacterRow } from '../cloud'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character, UserProfile } from '../model/character'
 import { deleteSnapshotsFor, downloadText } from '../portability'
@@ -7,15 +8,21 @@ import { decide, removeRequest, updateRequests, useRequests, type RequestStatus 
 import {
   deleteCharacter, listAllCharacters, listProfiles, onCharactersChanged, saveCharacter, saveProfile,
 } from '../storage'
-import { buildBackup, keyRows, parseBackup, people } from './logic'
+import {
+  deleteCloudCharacter, deleteCloudDm, loadCloud, moveCloudCharacter, unlinkCloudDevice, watchCloud, type CloudData,
+} from './cloud'
+import { buildBackup, cloudPeople, deviceOnly, keyRows, parseBackup, people } from './logic'
 import { readDevice, removeKey, restoreDevice } from './store'
 import './admin.css'
 
-type Tab = 'people' | 'characters' | 'requests' | 'device'
-const TABS: Tab[] = ['people', 'characters', 'requests', 'device']
+type Tab = 'people' | 'characters' | 'requests' | 'dmScreens' | 'device'
+const TABS: Tab[] = ['people', 'characters', 'requests', 'dmScreens', 'device']
 const STATUSES: RequestStatus[] = ['pending', 'later', 'granted', 'denied']
 
-/** Everything saved on this device, for the admin account: people, characters, DM requests and raw data. */
+/**
+ * For the admin account: everyone's accounts, characters and DM screens live from the server when
+ * this device is signed in to it, plus DM requests and this device's raw data.
+ */
 export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm }: {
   /** Switches the app to that profile, making it first if it is a roster account with none here. */
   onOpenAs: (id: string) => void
@@ -34,13 +41,30 @@ export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm }: {
     return onCharactersChanged(load)
   }, [])
 
+  // The server's copy of everyone, reloaded whenever a character or DM screen changes there.
+  const [status, setStatus] = useState(getCloudStatus)
+  useEffect(() => onCloudChanged(() => setStatus(getCloudStatus())), [])
+  const [cloud, setCloud] = useState<CloudData | null | undefined>(undefined)
+  const reloadCloud = useCallback(() => loadCloud().then(setCloud), [])
+  useEffect(() => {
+    if (status !== 'linked') { setCloud(undefined); return }
+    void reloadCloud()
+    return watchCloud(() => void reloadCloud())
+  }, [status, reloadCloud])
+
   const everyone = people(ROSTER, profiles, characters)
-  const nameOf = (id: string) => everyone.find(p => p.id === id)?.name ?? id
+  const nameOf = (id: string) => cloud?.accounts.find(a => a.id === id)?.name ?? everyone.find(p => p.id === id)?.name ?? id
 
   const openAs = async (id: string) => {
     if (!profiles.some(p => p.id === id)) await saveProfile({ id, displayName: nameOf(id) })
     onOpenAs(id)
   }
+
+  const tabs = TABS.filter(k => k !== 'dmScreens' || cloud)
+  const note: MessageKey = status === 'off' ? 'admin.deviceOnly'
+    : status === 'unlinked' ? 'admin.signInToServer'
+    : cloud === null ? 'admin.serverDown'
+    : 'admin.serverLive'
 
   return (
     <section className="ff-admin">
@@ -48,15 +72,19 @@ export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm }: {
         <h2>{t('admin.title')}</h2>
         <button className="btn small" onClick={onOpenDm}>{t('admin.openDm')}</button>
       </div>
-      <p className="panel admin-note small">{t('admin.deviceOnly')}</p>
+      <p className="panel admin-note small">
+        {t(note)}
+        {cloud === null && <> <button className="btn small" onClick={reloadCloud}>{t('admin.retry')}</button></>}
+      </p>
       <div className="row" role="tablist">
-        {TABS.map(k => (
+        {tabs.map(k => (
           <button key={k} role="tab" aria-selected={tab === k} className={`chip ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>
             {t(`admin.tab.${k}` as MessageKey)}
           </button>
         ))}
       </div>
-      {tab === 'people' && (
+      {tab === 'people' && cloud && <CloudPeopleTab cloud={cloud} onOpenAs={openAs} onChanged={reloadCloud} />}
+      {tab === 'people' && !cloud && (
         <div className="panel">
           <table className="admin-table">
             <thead><tr><th>{t('admin.name')}</th><th>{t('admin.role')}</th><th>{t('admin.characters')}</th><th /></tr></thead>
@@ -76,12 +104,196 @@ export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm }: {
           </table>
         </div>
       )}
-      {tab === 'characters' && (
+      {tab === 'characters' && cloud && (
+        <CloudCharactersTab
+          cloud={cloud} local={characters} nameOf={nameOf} onOpenSheet={onOpenSheet} onEdit={onEdit} onChanged={reloadCloud}
+          deviceList={<CharactersTab characters={deviceOnly(characters, cloud.characters)} owners={everyone} nameOf={nameOf} onOpenSheet={onOpenSheet} onEdit={onEdit} />}
+        />
+      )}
+      {tab === 'characters' && !cloud && (
         <CharactersTab characters={characters} owners={everyone} nameOf={nameOf} onOpenSheet={onOpenSheet} onEdit={onEdit} />
       )}
       {tab === 'requests' && <RequestsTab />}
+      {tab === 'dmScreens' && cloud && <CloudDmTab cloud={cloud} nameOf={nameOf} onOpenAs={openAs} onChanged={reloadCloud} />}
       {tab === 'device' && <DeviceTab nameOf={nameOf} />}
     </section>
+  )
+}
+
+function CloudPeopleTab({ cloud, onOpenAs, onChanged }: {
+  cloud: CloudData
+  onOpenAs: (id: string) => void
+  onChanged: () => void
+}) {
+  const { t, date } = useI18n()
+  const list = cloudPeople(cloud.accounts, cloud.devices, cloud.characters, cloud.dm)
+  return (
+    <div className="panel">
+      <table className="admin-table">
+        <thead><tr><th>{t('admin.name')}</th><th>{t('admin.role')}</th><th>{t('admin.onServer')}</th><th>{t('admin.devices')}</th><th /></tr></thead>
+        <tbody>
+          {list.map(p => (
+            <tr key={p.id}>
+              <td>{p.name}<div className="muted small" dir="ltr">{p.id}</div></td>
+              <td>{t(p.role === 'dm' ? 'admin.role.dm' : 'admin.role.player')}{p.admin && <> · {t('admin.role.admin')}</>}</td>
+              <td className="small">
+                {t('admin.characterCount', { count: p.characters })}
+                {p.lastSaved && <div className="muted">{t('admin.lastSaved', { when: date(p.lastSaved) })}</div>}
+                {p.dmSavedAt && <div className="muted">{t('admin.hasDm', { when: date(p.dmSavedAt) })}</div>}
+              </td>
+              <td className="small">
+                {p.devices.length === 0 && <span className="muted">{t('admin.noDevices')}</span>}
+                {p.devices.map(d => (
+                  <div key={d.userId} className="row">
+                    <span>{date(d.linkedAt)}</span>
+                    <button
+                      className="btn ghost small"
+                      onClick={async () => { if (confirm(t('admin.confirmUnlink', { name: p.name }))) { await unlinkCloudDevice(d.userId); onChanged() } }}
+                    >{t('admin.unlink')}</button>
+                  </div>
+                ))}
+              </td>
+              <td><button className="btn small" onClick={() => onOpenAs(p.id)}>{t('admin.openAs')}</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChanged, deviceList }: {
+  cloud: CloudData
+  local: Character[]
+  nameOf: (id: string) => string
+  onOpenSheet: (id: string) => void
+  onEdit: (id: string) => void
+  onChanged: () => void
+  /** Characters only this device has, shown below the server's. */
+  deviceList: ReactNode
+}) {
+  const { t, classLine, date } = useI18n()
+  const [busy, setBusy] = useState(false)
+  const sorted = [...cloud.characters].sort((a, b) => nameOf(a.owner_id).localeCompare(nameOf(b.owner_id)) || a.data.name.localeCompare(b.data.name))
+  const onDevice = (id: string) => local.find(c => c.id === id)
+
+  // The sheet and builder read this device's store, so bring the server's copy here first if it is newer.
+  const bringHere = async (row: CharacterRow) => {
+    const mine = onDevice(row.id)
+    if (!mine || (mine.updatedAt ?? '') < row.updated_at) await saveCharacter(row.data)
+  }
+  const act = async (fn: () => Promise<boolean>) => {
+    setBusy(true)
+    const ok = await fn()
+    setBusy(false)
+    if (!ok) alert(t('admin.serverFailed'))
+    onChanged()
+  }
+
+  return (
+    <>
+      <div className="panel">
+        {sorted.length === 0 && <p className="muted">{t('admin.noServerCharacters')}</p>}
+        {sorted.length > 0 && (
+          <table className="admin-table">
+            <thead><tr><th>{t('admin.character')}</th><th>{t('admin.owner')}</th><th>{t('admin.updated')}</th><th /></tr></thead>
+            <tbody>
+              {sorted.map(row => (
+                <tr key={row.id}>
+                  <td>{row.data.name}<div className="muted small">{classLine(row.data.classes ?? [])}</div></td>
+                  <td>
+                    <select
+                      value={row.owner_id}
+                      disabled={busy}
+                      aria-label={t('admin.moveTo', { name: row.data.name })}
+                      onChange={e => {
+                        const owner = e.target.value
+                        void act(async () => {
+                          const ok = await moveCloudCharacter(row, owner)
+                          const mine = onDevice(row.id)
+                          if (ok && mine) await saveCharacter({ ...mine, ownerId: owner })
+                          return ok
+                        })
+                      }}
+                    >
+                      {cloud.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </td>
+                  <td className="small">{date(row.updated_at)}</td>
+                  <td>
+                    <div className="row">
+                      <button className="btn primary small" onClick={async () => { await bringHere(row); onOpenSheet(row.id) }}>{t('common.openSheet')}</button>
+                      <button className="btn small" onClick={async () => { await bringHere(row); onEdit(row.id) }}>{t('list.edit')}</button>
+                      <button
+                        className="btn ghost small"
+                        disabled={busy}
+                        onClick={() => {
+                          if (!confirm(t('admin.confirmDeleteEverywhere', { name: row.data.name }))) return
+                          void act(async () => {
+                            const ok = await deleteCloudCharacter(row)
+                            if (ok && onDevice(row.id)) {
+                              await deleteCharacter(row.id)
+                              await deleteSnapshotsFor(row.id)
+                            }
+                            return ok
+                          })
+                        }}
+                      >{t('common.delete')}</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {local.some(c => !cloud.characters.some(r => r.id === c.id)) && (
+        <>
+          <h3>{t('admin.deviceOnlyCharacters')}</h3>
+          {deviceList}
+        </>
+      )}
+    </>
+  )
+}
+
+function CloudDmTab({ cloud, nameOf, onOpenAs, onChanged }: {
+  cloud: CloudData
+  nameOf: (id: string) => string
+  onOpenAs: (id: string) => void
+  onChanged: () => void
+}) {
+  const { t, date } = useI18n()
+  if (cloud.dm.length === 0) return <p className="panel muted">{t('admin.noDmScreens')}</p>
+  return (
+    <div className="panel">
+      <p className="muted small">{t('admin.dmScreensHint')}</p>
+      <table className="admin-table">
+        <thead><tr><th>{t('admin.name')}</th><th>{t('admin.dmContents')}</th><th>{t('admin.updated')}</th><th /></tr></thead>
+        <tbody>
+          {cloud.dm.map(d => (
+            <tr key={d.account_id}>
+              <td>{nameOf(d.account_id)}</td>
+              <td className="small">{t('admin.dmCounts', { plans: d.data.plans?.length ?? 0, npcs: d.data.npcs?.length ?? 0 })}</td>
+              <td className="small">{date(d.updated_at)}</td>
+              <td>
+                <div className="row">
+                  <button className="btn small" onClick={() => onOpenAs(d.account_id)}>{t('admin.openAs')}</button>
+                  <button
+                    className="btn ghost small"
+                    onClick={async () => {
+                      if (!confirm(t('admin.confirmDeleteDm', { name: nameOf(d.account_id) }))) return
+                      if (!(await deleteCloudDm(d.account_id))) alert(t('admin.serverFailed'))
+                      onChanged()
+                    }}
+                  >{t('common.delete')}</button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 

@@ -181,3 +181,12 @@ export function normalizeDm(raw: unknown, fallback: DmState): DmState {
     npcs: Array.isArray(r.npcs) ? r.npcs : [],
   }
 }
+
+/**
+ * Which copy the DM screen uses after reaching the server: edits this device hasn't sent yet
+ * win, otherwise the server's copy. `push` says this device's copy should be sent up.
+ */
+export function pickDm(local: DmState, localPending: boolean, server: DmState | null): { state: DmState; push: boolean } {
+  if (localPending || !server) return { state: local, push: localPending || !server }
+  return { state: server, push: false }
+}
