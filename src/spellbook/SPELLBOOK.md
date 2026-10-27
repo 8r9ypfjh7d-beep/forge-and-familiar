@@ -1,6 +1,6 @@
 # Spellbook
 
-The Spells card on the live sheet. It lists the character's own spells by level, and every spell their class can take right now, pulled from the content library (`src/content`). Each character can use the 2014 rules (SRD 5.1) or the 2024 rules (SRD 5.2) for spell lists and counts.
+Combat mode's Spells tab and story mode's Spells card. The tab shows the spell slots, then lists the character's own spells by level, and every spell their class can take right now, pulled from the content library (`src/content`). Each character can use the 2014 rules (SRD 5.1) or the 2024 rules (SRD 5.2) for spell lists and counts.
 
 ## Files Covered
 
@@ -9,7 +9,7 @@ The Spells card on the live sheet. It lists the character's own spells by level,
 | `index.ts` | Public API |
 | `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells), `canTake`, `availableSpells`, `editionOf`, `sourceFor` |
 | `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `pinnedSpells`, `toggleSpellPin`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
-| `Spellbook.tsx` | The card: summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
+| `Spellbook.tsx` | `Spellbook` (combat's Spells tab): spell slots, summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
 | `spellbook.css` | Styles, scoped inside `.ff-sheet` |
 | `spellbook.test.ts` | Access for both editions, multiclass, subclass spells, quick-cast mapping |
 
@@ -27,11 +27,11 @@ The Spells card on the live sheet. It lists the character's own spells by level,
 
 ## Story spells
 
-`SpellsCard` is the sheet's Spells card in both modes (beside the skills). It shows the spell slots (`sheet/components/SpellSlots.tsx`), then the pinned spells: the spell entries of `Character.quickCast`, so pinning in story mode, in the Spells card or on the quick-cast bar shows in both modes. "+ Pin spells" picks from every spell the character's classes can take (their own spells first). Pin buttons toggle (`toggleSpellPin`).
+`SpellsCard` (also in `Spellbook.tsx`) is story mode's Spells card, above the skills. It shows the spell slots (`sheet/components/SpellSlots.tsx`), then the pinned spells: the spell entries of `Character.quickCast`. Combat mode has no Spells card; its Spells tab pins with the same list, and pinned attack or save spells show in the Combat tab's attacks table. "+ Pin spells" picks from every spell the character's classes can take (their own spells first). Pin buttons toggle (`toggleSpellPin`).
 
 ## Quick cast
 
-"Pin" adds the spell to the quick-cast bar with its attack or save, damage or healing, upcast step and cantrip scaling filled in from the library (`toQuickCast`). Changes go through the sheet's `apply`, so they show in the session log and Undo reverts them.
+"Pin" adds the spell to `Character.quickCast` with its attack or save, damage or healing, upcast step and cantrip scaling filled in from the library (`toQuickCast`). Changes go through the sheet's `apply`, so they show in the session log and Undo reverts them.
 
 ## Licence
 

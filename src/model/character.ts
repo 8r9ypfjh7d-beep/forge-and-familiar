@@ -153,7 +153,7 @@ export interface Character {
   spells?: KnownSpell[]
   /** Spell lists and counts: '2024' uses the SRD 5.2. Missing follows rulesEdition. Older saves set it on its own. */
   spellEdition?: '2014' | '2024'
-  /** Spells, attacks and resources pinned to the sheet's quick-cast bar, in display order. */
+  /** Pinned entries in display order; the spell entries are the sheet's pinned spells. */
   quickCast?: QuickCastEntry[]
   /** Actions, bonus actions, reactions and the like the player added on the combat page. */
   customActions?: CustomAction[]

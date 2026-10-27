@@ -5,11 +5,11 @@ import { useCallback, useState } from 'react'
 export type SheetMode = 'story' | 'combat'
 
 export type SheetSection =
-  | 'quickcast' | 'notes' | 'abilities'
+  | 'notes' | 'abilities'
   | 'hp' | 'death' | 'rests' | 'attacks'
   | 'spells' | 'inventory' | 'resources' | 'supplies' | 'history'
-  // Shared by both modes: the character card (who, AC and speed, HP and Rest), the skills rail and the
-  // Spells card (spell slots and pinned spells).
+  // Shared by both modes: the character card (who, AC and speed, HP and Rest) and the skills rail.
+  // Story mode's side also has the Spells card (spell slots and pinned spells).
   | 'summary' | 'skills' | 'spellCard'
   // Combat page (src/sheet/combat): tabbed panel and its fight and features views.
   | 'tabs' | 'fight' | 'features'
@@ -29,7 +29,7 @@ export interface SheetLayout {
 
 export const COMBAT_TABS: Record<CombatTab, SheetSection[]> = {
   combat: ['fight'],
-  spells: ['quickcast', 'spells'],
+  spells: ['spells'],
   inventory: ['inventory', 'supplies'],
   features: ['features'],
   notes: ['notes', 'history'],
@@ -37,20 +37,21 @@ export const COMBAT_TABS: Record<CombatTab, SheetSection[]> = {
 
 /** Widgets both modes show, identically and in the same place. */
 const SHARED_TOP: SheetSection[] = ['summary', 'abilities']
-const SHARED_SIDE: SheetSection[] = ['spellCard', 'skills']
+const SHARED_SIDE: SheetSection[] = ['skills']
 
 /**
  * Both modes share the same widgets in the same places: the character card (who, AC and speed,
- * HP and Rest) and the abilities on top, the Spells card (slots and pinned spells) and the skills
- * on the side. Story mode fills the main column with notes, attacks and inventory; combat mode
- * with Roll20-style tabs for combat, spells, inventory, features and notes. A character at 0 HP
- * gets death saves on top in either mode.
+ * HP and Rest) and the abilities on top, the skills on the side. Story mode adds the Spells card
+ * (slots and pinned spells) above the skills and fills the main column with notes, attacks and
+ * inventory; combat mode fills it with Roll20-style tabs for combat, spells, inventory, features
+ * and notes, whose Spells tab already holds the slots and spells, so it has no Spells card.
+ * A character at 0 HP gets death saves on top in either mode.
  */
 export function sheetLayout(mode: SheetMode, { dying }: { dying: boolean }): SheetLayout {
   const top = dying ? ['death' as const, ...SHARED_TOP] : SHARED_TOP
   const vitals: SheetSection[] = ['hp', 'rests']
   if (mode === 'combat') return { top, columns: [SHARED_SIDE, ['tabs']], vitals, tabs: COMBAT_TABS }
-  return { top, columns: [SHARED_SIDE, ['notes', 'attacks', 'inventory']], vitals }
+  return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'attacks', 'inventory']], vitals }
 }
 
 export const DEFAULT_MODE: SheetMode = 'story'

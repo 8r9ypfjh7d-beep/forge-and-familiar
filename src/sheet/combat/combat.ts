@@ -92,7 +92,7 @@ export interface SpellAttackRow {
 
 /**
  * Spells that attack or force a save: the character's known library spells first, then spells
- * typed into the quick-cast bar that aren't in the library (homebrew, other books).
+ * pinned by hand that aren't in the library (homebrew, other books).
  */
 export function spellAttackRows(c: Character, stats: DerivedStats, library: Spell[]): SpellAttackRow[] {
   const sc = stats.spellcasting
