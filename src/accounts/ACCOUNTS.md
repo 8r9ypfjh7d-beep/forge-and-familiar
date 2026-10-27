@@ -29,8 +29,8 @@ Pick a code like `NAME-XXXX-XXXX` (letters from `CODE_ALPHABET` in `party/code.t
 node -e 'console.log(require("crypto").createHash("sha256").update(process.argv[1].toUpperCase().replace(/[\s-]/g,"")).digest("hex"))' NAME-XXXX-XXXX
 ```
 
-Add `{ id: 'acct-name', name, role, hash }` to `ROSTER`. Ids must never change: characters are owned by them.
+Add `{ id: 'acct-name', name, role, hash }` to `ROSTER`, and the same row to the database `accounts` table in a new migration (`src/cloud/CLOUD.md`). Ids must never change: characters are owned by them.
 
 ## Limits
 
-There is no backend, so codes are checked in the browser and characters stay on the device they were made on. The codes stop casual sign-ups, not a determined visitor. Signing in on a second device starts with an empty list (use Export/Import from `portability`).
+Codes are checked in the browser, so activation works offline. When the cloud is set up, activating also signs the device in to Supabase as that account (`src/cloud/CLOUD.md`); until other modules sync through it, characters stay on the device they were made on. The codes stop casual sign-ups, not a determined visitor. Signing in on a second device starts with an empty list (use Export/Import from `portability`).

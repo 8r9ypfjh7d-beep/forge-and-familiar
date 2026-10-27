@@ -1,5 +1,6 @@
 // The activated account on this device (ff.account.v1). Codes are checked against the
 // bundled roster, so activation works offline.
+import { linkCloudAccount } from '../cloud'
 import { setActiveProfileId, saveProfile } from '../storage'
 import { findInRoster, normalizeActivationCode } from './codes'
 import { ROSTER } from './roster'
@@ -42,5 +43,7 @@ export async function activate(input: string): Promise<Session | null> {
   await saveProfile({ id: account.id, displayName: account.name })
   setActiveProfileId(account.id)
   setSession(session)
+  // Also signs the device in to the cloud when it is set up; offline that just waits for the next activation.
+  void linkCloudAccount(code)
   return session
 }
