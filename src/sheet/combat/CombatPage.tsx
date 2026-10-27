@@ -13,6 +13,7 @@ import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
 import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCritRange, getDamageRiders, subclassById, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor } from '../../spellbook/access'
+import { FadingResult } from '../../dice/ui'
 import { useSheetRolls } from '../dice'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
@@ -55,13 +56,13 @@ interface Shown { roll: RollResult; what: string }
 
 /**
  * The last roll a panel made, one labeled line per roll so "to hit" and "damage" can't be mixed up.
- * The dice history keeps them all.
+ * The dice history keeps them all. With `onDone` it fades away on its own (see FadingResult).
  */
-function LastRoll({ rolls, note }: { rolls: Shown[]; note?: string }) {
+function LastRoll({ rolls, note, onDone }: { rolls: Shown[]; note?: string; onDone?: () => void }) {
   const { t } = useI18n()
   if (!rolls.length && !note) return null
-  return (
-    <div className="cs-last" aria-live="polite">
+  const body = (
+    <>
       {rolls.map(({ roll: r, what }) => {
         const crit = r.d20?.crit
         const fumble = r.d20?.fumble
@@ -80,8 +81,11 @@ function LastRoll({ rolls, note }: { rolls: Shown[]; note?: string }) {
         )
       })}
       {note && <p className="hint">{note}</p>}
-    </div>
+    </>
   )
+  return onDone
+    ? <FadingResult className="cs-last" onDone={onDone}>{body}</FadingResult>
+    : <div className="cs-last" aria-live="polite">{body}</div>
 }
 
 // ---------- Character card (both modes) ----------
@@ -131,7 +135,7 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
             {t('cs.initiative', { bonus: formatMod(d.initiative) })}
           </button>
         </div>
-        {last && <LastRoll rolls={[last]} />}
+        {last && <LastRoll key={last.roll.id} rolls={[last]} onDone={() => setLast(null)} />}
       </div>
       <div className="cs-vitals">{vitals}</div>
     </section>
@@ -168,7 +172,7 @@ export function AbilitiesPanel({ character }: { character: Character }) {
           </li>
         ))}
       </ul>
-      {last && <LastRoll rolls={[last]} />}
+      {last && <LastRoll key={last.roll.id} rolls={[last]} onDone={() => setLast(null)} />}
     </section>
   )
 }
@@ -196,7 +200,7 @@ export function SkillsPanel({ character }: { character: Character }) {
           </li>
         ))}
       </ul>
-      {last && <LastRoll rolls={[last]} />}
+      {last && <LastRoll key={last.roll.id} rolls={[last]} onDone={() => setLast(null)} />}
       <h2 className="cs-tools-title">{t('cs.tools')}</h2>
       {d.tools.length
         ? <ul className="cs-tools">{d.tools.map(x => <li key={x}>{term('tool', x, x)}</li>)}</ul>
@@ -255,6 +259,9 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const [on, setOn] = useState<Record<string, boolean>>({})
   const [twoHanded, setTwoHanded] = useState<Record<string, boolean>>({})
   const [out, setOut] = useState<Outcome | null>(null)
+  const [outKey, setOutKey] = useState(0)
+  // Every tap gets a fresh card, so a repeat roll restarts its fade clock.
+  const show = (o: Outcome) => { setOut(o); setOutKey(k => k + 1) }
   const outRef = useRef<HTMLDivElement>(null)
   // Actions sit far below the result box, so bring the result into view after every roll.
   useEffect(() => { if (out) outRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }) }, [out])
@@ -279,7 +286,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1] }] : riders
     const r = rolls.attack(a, { mode, critRange, riders: all, twoHanded: twoHanded[a.name] })
     const type = term('damage', a.damageType, a.damageType)
-    setOut({
+    show({
       name: attackName(a.name),
       rolls: [{ roll: r.attack, what: t('cs.roll.toHit') }, ...(r.damage ? [{ roll: r.damage, what: t('cs.roll.damage', { type }) }] : [])],
       effects: effectsUsed(active, r.damage ? used.map(e => e.id) : [], f =>
@@ -306,7 +313,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
       ...('attack' in res && res.attack ? [{ roll: res.attack, what: t('cs.roll.toHit') }] : []),
       ...(res.damage ? [{ roll: res.damage, what: r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) }] : []),
     ]
-    setOut({
+    show({
       name: r.name, rolls: list, note: notes.join(' · ') || undefined,
       effects: effectsUsed(active, res.damage ? used.map(e => e.id) : [], f =>
         (r.kind === 'attack' ? f.kind === 'spellAttack' : f.kind === 'spellDc') || ((f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === sc?.ability)),
@@ -321,7 +328,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const riders = used.map(e => ({ name: e.name, damage: e.damage }))
     const res = rolls.spell(a.name, { attackBonus: r.attackBonus, damage: r.dice, damageType: a.roll?.type, mode, riders })
     const type = a.roll?.type ? term('damage', a.roll.type, a.roll.type) : ''
-    setOut({
+    show({
       name: a.name,
       rolls: [
         ...('attack' in res && res.attack ? [{ roll: res.attack, what: t('cs.roll.toHit') }] : []),
@@ -394,7 +401,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         ))}
       </ul>
       {out && (
-        <div ref={outRef} className="cs-out">
+        <FadingResult key={outKey} ref={outRef} className="cs-out" onDone={() => setOut(null)}>
           <strong>{out.name}</strong>
           <LastRoll rolls={out.rolls} note={out.note} />
           {!!out.effects?.length && (
@@ -413,7 +420,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
               </ul>
             </div>
           )}
-        </div>
+        </FadingResult>
       )}
 
       <h3 className="cs-sub">{t('cs.mastery')} <span className="cs-count" dir="ltr">{mastered.length}/{masteries}</span></h3>

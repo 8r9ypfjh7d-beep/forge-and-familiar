@@ -226,3 +226,12 @@
   0% { opacity: 1; transform: translateY(0) scale(0.4) rotate(0); }
   100% { opacity: 0; transform: translateY(var(--dy)) scale(1.2) rotate(240deg); }
 }
+
+/* Roll result cards (FadingResult): fade out after a few seconds, follow a sideways swipe. */
+.fading-result { touch-action: pan-y; transition: opacity .3s ease, transform .3s ease; cursor: pointer; }
+.fading-result.pressed { transition: none; }
+.fading-result.out { opacity: 0; }
+.fading-result:focus { outline: none; }
+.fading-result:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+:root[data-motion="reduce"] .fading-result { transition: none; }
+@media (prefers-reduced-motion: reduce) { .fading-result { transition: none; } }
