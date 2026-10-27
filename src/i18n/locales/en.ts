@@ -384,6 +384,7 @@ export const en = {
   'dice.nat1': 'Natural 1',
   'dice.nat20.title': 'NATURAL 20!',
   'dice.nat20.dismiss': 'Close',
+  'dice.dismissHint': 'Fades by itself. Tap or swipe to close now; hold to keep reading. Every roll stays in the dice history.',
   'dice.nat20.line1': 'The DM quietly slides their notes behind the screen.',
   'dice.nat20.line2': 'Somewhere, a bard is already writing a song about this.',
   'dice.nat20.line3': 'The goblins have filed a formal complaint.',

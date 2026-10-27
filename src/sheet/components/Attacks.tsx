@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AttackOutcome, RollMode } from '../../dice'
-import { RollView } from '../../dice/ui'
+import { FadingResult, RollView } from '../../dice/ui'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
@@ -90,10 +90,10 @@ export function Attacks({ character }: { character: Character }) {
       </ul>
 
       {last && (
-        <div className="attack-result" aria-live="polite">
+        <FadingResult key={last.attack.id} className="attack-result" onDone={() => setLast(null)}>
           <RollView roll={last.attack} compact />
           {last.damage ? <RollView roll={last.damage} compact /> : <p className="hint">{t('sheet.attacks.miss')}</p>}
-        </div>
+        </FadingResult>
       )}
     </section>
   )
