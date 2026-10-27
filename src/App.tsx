@@ -20,8 +20,10 @@ import type { MessageKey } from './i18n/locales/en'
 import { AppNav } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
 import { StarterPicker } from './starters'
+import { SyncBadge, useCloudSync } from './sync'
 import {
-  deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
+  deleteCharacter, getActiveProfileId, listCharacters, listProfiles, onCharactersChanged, saveCharacter, saveProfile,
+  setActiveProfileId,
 } from './storage'
 
 type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
@@ -71,6 +73,9 @@ export default function App() {
     if (active) listCharacters(active.id).then(setCharacters)
   }, [active])
   useEffect(refresh, [refresh])
+  // Characters pulled from the cloud show up without a reload.
+  useEffect(() => onCharactersChanged(refresh), [refresh])
+  useCloudSync(active?.id)
 
   // The DM screen is for the DM account, and for anyone who runs a party on this device.
   useEffect(() => {
@@ -130,9 +135,10 @@ export default function App() {
         isDm={isDm}
         dmAccount={session?.role === 'dm'}
         admin={admin}
-        dmBadge={session?.id === active.id && <AccountBadge session={session} />}
+        dmBadge={<>{session?.id === active.id && <AccountBadge session={session} />}<SyncBadge compact /></>}
         onAccessibility={() => a11yDialog.current?.showModal()}
       >
+        <SyncBadge />
         <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
       </AppNav>
       <AccessibilityDialog ref={a11yDialog} />

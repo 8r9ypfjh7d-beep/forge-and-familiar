@@ -5,3 +5,4 @@
 .sync-error .sync-dot { background: #c0392b; }
 @keyframes sync-pulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .sync-syncing .sync-dot { animation: none; } }
+.nav-player .sync-badge { margin-inline-start: 4px; }

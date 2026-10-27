@@ -31,6 +31,8 @@ export interface RemoteStore {
   pushRolls(ownerId: string, rolls: RollResult[]): Promise<void>
   /** Newest first. */
   recentRolls(ownerId: string, limit: number): Promise<RollResult[]>
+  /** Optional live updates: calls onChange when another device writes. Returns unsubscribe. */
+  subscribe?(ownerId: string, onChange: () => void): () => void
 }
 
 export type SyncState = 'off' | 'idle' | 'syncing' | 'offline' | 'error'

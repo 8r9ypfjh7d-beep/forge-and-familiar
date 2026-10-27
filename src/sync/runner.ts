@@ -1,5 +1,6 @@
 // Keeps the signed-in account in sync: on start, shortly after every local change, when the
-// connection comes back, when the app is reopened and every 30 s while it is open.
+// connection comes back, when the app is reopened, when another device writes (realtime)
+// and every 30 s while it is open.
 import { OUTBOX_CHANGED, pendingCount } from './outbox'
 import { syncOnce } from './engine'
 import type { RemoteStore, SyncStatus } from './types'
@@ -64,6 +65,7 @@ export function startSync(remote: RemoteStore, ownerId: string): () => void {
   window.addEventListener(OUTBOX_CHANGED, soon)
   window.addEventListener('online', run)
   document.addEventListener('visibilitychange', visible)
+  const unsubscribe = remote.subscribe?.(ownerId, soon)
   const poll = setInterval(() => { if (document.visibilityState !== 'hidden') void run() }, POLL_MS)
   void run()
 
@@ -71,6 +73,7 @@ export function startSync(remote: RemoteStore, ownerId: string): () => void {
     stopped = true
     clearTimeout(timer)
     clearInterval(poll)
+    unsubscribe?.()
     window.removeEventListener(OUTBOX_CHANGED, soon)
     window.removeEventListener('online', run)
     document.removeEventListener('visibilitychange', visible)
