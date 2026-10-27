@@ -231,6 +231,7 @@ export default function App() {
             onOpenSheet={id => setView({ kind: 'sheet', id })}
             onEdit={id => setView({ kind: 'edit', id })}
             onOpenDm={() => setView({ kind: 'dm' })}
+            onOpenCombat={() => setView({ kind: 'combat' })}
           />
         )}
         {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}

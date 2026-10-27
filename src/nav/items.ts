@@ -16,7 +16,7 @@ export interface NavContext {
   isDm: boolean
   /** Signed in with the DM's activation code: the DM gets only the DM pages and Party. */
   dmAccount: boolean
-  /** The admin account (Ziv): everything a player and the DM see, plus the admin page. */
+  /** The admin account (Ziv): a player's tabs plus Admin under More; opens the DM pages from the admin page. */
   admin?: boolean
 }
 
@@ -35,9 +35,9 @@ const ITEM: Record<NavKey, NavItem> = {
 const DM_ONLY: readonly string[] = ['dm', 'combat']
 
 /** Everyday screens get a tab; reference and bookkeeping screens sit under More.
- *  Players: Characters, Party, Ask the DM. The DM: DM screen, Combat, Party. The admin: all of them. */
-export function navItems({ isDm, dmAccount, admin }: NavContext): { main: NavItem[]; more: NavItem[] } {
-  const main: NavKey[] = dmAccount && !admin ? ['dm', 'combat', 'party'] : isDm ? ['list', 'party', 'combat', 'dm', 'requests'] : ['list', 'party', 'requests']
+ *  Players and the admin: Characters, Party, Ask the DM. The DM: DM screen, Combat, Party. */
+export function navItems({ dmAccount, admin }: NavContext): { main: NavItem[]; more: NavItem[] } {
+  const main: NavKey[] = dmAccount && !admin ? ['dm', 'combat', 'party'] : ['list', 'party', 'requests']
   const more: NavKey[] = ['rules', 'homebrew']
   if (admin) more.unshift('admin')
   return { main: main.map(k => ITEM[k]), more: more.map(k => ITEM[k]) }

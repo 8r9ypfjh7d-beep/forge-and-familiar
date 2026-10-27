@@ -16,7 +16,7 @@ A page for the group's admin account (Ziv, `acct-ziv`) to see and manage everyon
 ## How it works
 
 - Admin is `admin: true` on a `ROSTER` entry; `isAdmin(session.id)` checks it by id, so devices signed in earlier get it too. It is separate from `role`, so the admin can still be a player.
-- The admin gets an "Admin" chip in the top bar and the DM screen chip, whichever profile is open (`App.tsx`).
+- The admin has a player's tabs plus "Admin" under More, only while their own profile is open. The admin page header opens the DM screen and the combat tracker; those tabs never show for the admin (`src/nav`).
 - "Open as" switches the active profile, creating it for a roster account that has none on this device.
 - Restore replaces every `ff.*` key except `ff.account.v1`, then reloads.
 
