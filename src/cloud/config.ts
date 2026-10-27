@@ -1,5 +1,5 @@
 // Supabase settings, baked in at build time from VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
-// (Render environment variables). Missing means the app runs on this device only, as before.
+// (the repo's .env, overridable in .env.local). Missing means the app runs on this device only.
 export interface CloudConfig {
   url: string
   anonKey: string

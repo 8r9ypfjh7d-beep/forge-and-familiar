@@ -3,8 +3,11 @@
 \set ON_ERROR_STOP on
 
 -- Stand-in for what Supabase provides.
-create role anon nologin;
-create role authenticated nologin;
+-- Roles are server-wide, so a second run finds them already there.
+do $$ begin
+  if not exists (select from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+  if not exists (select from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
+end $$;
 create schema auth;
 create table auth.users (id uuid primary key);
 create function auth.uid() returns uuid language sql stable as
@@ -15,6 +18,7 @@ create publication supabase_realtime;
 grant usage on schema public, extensions to anon, authenticated;
 
 \ir ../migrations/20261027090000_foundation.sql
+\ir ../migrations/20261027091500_harden_helpers.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -96,6 +100,11 @@ do $$ begin
   perform * from characters;
   raise exception 'FAILED: anon read characters';
 exception when insufficient_privilege then raise notice 'ok: anon cannot read characters';
+end $$;
+do $$ begin
+  perform is_admin();
+  raise exception 'FAILED: anon called is_admin';
+exception when insufficient_privilege then raise notice 'ok: anon cannot call the helpers';
 end $$;
 reset role;
 select pg_temp.check(true, 'all RLS checks passed');
