@@ -1273,6 +1273,7 @@ export const en = {
   'app.admin': 'Admin',
   'admin.title': 'Admin',
   'admin.openDm': 'Open DM screen',
+  'admin.openCombat': 'Open combat tracker',
   'admin.deviceOnly': "This page shows everything saved on this device, in this browser. There is no server yet, so your friends' characters and requests live on their own phones. To see them here, ask them for a backup file (Device data tab, or Export on a character) and restore or import it.",
   'admin.tab.people': 'People',
   'admin.tab.characters': 'Characters',

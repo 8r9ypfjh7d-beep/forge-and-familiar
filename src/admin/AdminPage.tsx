@@ -23,12 +23,13 @@ const STATUSES: RequestStatus[] = ['pending', 'later', 'granted', 'denied']
  * For the admin account: everyone's accounts, characters and DM screens live from the server when
  * this device is signed in to it, plus DM requests and this device's raw data.
  */
-export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm }: {
+export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm, onOpenCombat }: {
   /** Switches the app to that profile, making it first if it is a roster account with none here. */
   onOpenAs: (id: string) => void
   onOpenSheet: (id: string) => void
   onEdit: (id: string) => void
   onOpenDm: () => void
+  onOpenCombat: () => void
 }) {
   const { t } = useI18n()
   const [tab, setTab] = useState<Tab>('people')
@@ -70,7 +71,10 @@ export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm }: {
     <section className="ff-admin">
       <div className="row spread">
         <h2>{t('admin.title')}</h2>
-        <button className="btn small" onClick={onOpenDm}>{t('admin.openDm')}</button>
+        <span className="row">
+          <button className="btn small" onClick={onOpenDm}>{t('admin.openDm')}</button>
+          <button className="btn small" onClick={onOpenCombat}>{t('admin.openCombat')}</button>
+        </span>
       </div>
       <p className="panel admin-note small">
         {t(note)}

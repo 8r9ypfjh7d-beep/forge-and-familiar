@@ -15,9 +15,9 @@ describe('navItems', () => {
     expect(keys(navItems({ isDm: true, dmAccount: true }).main)).toEqual(['dm', 'combat', 'party'])
   })
 
-  it('gives the admin account everything, with the admin page first under More', () => {
+  it('gives the admin account a player\'s tabs, with the admin page first under More', () => {
     const { main, more } = navItems({ isDm: true, dmAccount: false, admin: true })
-    expect(keys(main)).toEqual(['list', 'party', 'combat', 'dm', 'requests'])
+    expect(keys(main)).toEqual(['list', 'party', 'requests'])
     expect(keys(more)[0]).toBe('admin')
   })
 
