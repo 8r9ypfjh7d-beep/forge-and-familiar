@@ -1,15 +1,12 @@
-// Roll effects overlay: a die tumbles and lands on every recorded roll; a natural 20 gets a short, dismissable surprise.
-// Reduce motion (a11y panel or the OS) skips the tumble and the confetti; the result and the joke stay.
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { useI18n } from '../../i18n'
-import type { MessageKey } from '../../i18n/locales/en'
-import { headlineDie, isNat20, pickNat20Line, type DieFace, type RollFxBus } from '../fx'
+// Roll effects overlay: a die tumbles and lands on every recorded roll; a natural 20 or natural 1 takes over the screen (CritFx).
+// Reduce motion (a11y panel or the OS) skips the tumble and the effects; the result and the joke stay.
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { critKind, CRIT_LINES, headlineDie, pickLine, type CritKind, type DieFace, type RollFxBus } from '../fx'
+import { CritFx, type Crit } from './CritFx'
 import './dice.css'
 
 const TUMBLE_MS = 650
 const HOLD_MS = 700
-const EGG_MS = 5000
-const CONFETTI = 14
 
 function motionReduced(): boolean {
   if (typeof document === 'undefined') return true
@@ -33,14 +30,12 @@ interface Shown {
   face: DieFace
   value: number
   landed: boolean
-  nat20: boolean
 }
 
 export function RollFx({ bus }: { bus: RollFxBus }) {
-  const { t } = useI18n()
   const [shown, setShown] = useState<Shown | null>(null)
-  const [egg, setEgg] = useState<{ line: number } | null>(null)
-  const lastLine = useRef(0)
+  const [crit, setCrit] = useState<Crit | null>(null)
+  const lastLine = useRef<Record<CritKind, number>>({ nat20: 0, nat1: 0 })
   const timers = useRef<number[]>([])
 
   useEffect(() => {
@@ -50,20 +45,22 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
       const face = headlineDie(r)
       if (!face) return
       clear()
-      const nat20 = isNat20(r)
+      const kind = critKind(r)
       const key = Date.now()
       const land = () => {
-        setShown({ key, face, value: face.value, landed: true, nat20 })
-        if (nat20) {
-          lastLine.current = pickNat20Line(Math.random, lastLine.current)
-          setEgg({ line: lastLine.current })
-          later(() => setEgg(null), EGG_MS)
+        if (kind) {
+          const line = pickLine(Math.random, CRIT_LINES[kind], lastLine.current[kind])
+          lastLine.current[kind] = line
+          setShown(null)
+          setCrit({ key, kind, line })
+          return
         }
-        later(() => setShown(null), HOLD_MS + (nat20 ? 500 : 0))
+        setShown({ key, face, value: face.value, landed: true })
+        later(() => setShown(null), HOLD_MS)
       }
       if (motionReduced()) return land()
-      setEgg(null)
-      setShown({ key, face, value: 1 + Math.floor(Math.random() * face.sides), landed: false, nat20 })
+      setCrit(null)
+      setShown({ key, face, value: 1 + Math.floor(Math.random() * face.sides), landed: false })
       const tick = window.setInterval(() => {
         setShown(s => (s && s.key === key && !s.landed ? { ...s, value: 1 + Math.floor(Math.random() * face.sides) } : s))
       }, 70)
@@ -73,18 +70,11 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
     return () => { unsub(); clear() }
   }, [bus])
 
-  useEffect(() => {
-    if (!egg) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setEgg(null) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [egg])
-
-  const confetti = egg && !motionReduced()
+  const done = useCallback(() => setCrit(null), [])
   return (
     <>
       {shown && (
-        <div key={shown.key} className={`ff-rollfx${shown.landed ? ' is-landed' : ''}${shown.nat20 && shown.landed ? ' is-nat20' : ''}`} aria-hidden="true">
+        <div key={shown.key} className={`ff-rollfx${shown.landed ? ' is-landed' : ''}`} aria-hidden="true">
           <svg className="ff-rollfx__die" viewBox="0 0 100 100" width="88" height="88">
             <polygon points={shapeFor(shown.face.sides)} />
             <text x="50" y="52" dominantBaseline="middle" textAnchor="middle">{shown.value}</text>
@@ -92,23 +82,7 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
           <span className="ff-rollfx__sides">d{shown.face.sides}</span>
         </div>
       )}
-      {egg && (
-        <div className="ff-nat20" role="status">
-          {confetti && (
-            <div className="ff-nat20__confetti" aria-hidden="true">
-              {Array.from({ length: CONFETTI }, (_, i) => (
-                <span key={i} style={{ '--i': i, '--n': CONFETTI } as CSSProperties}>{i % 3 ? '✦' : '20'}</span>
-              ))}
-            </div>
-          )}
-          <span className="ff-nat20__dragon" aria-hidden="true">🐉</span>
-          <div className="ff-nat20__text">
-            <strong>{t('dice.nat20.title')}</strong>
-            <span>{t(`dice.nat20.line${egg.line}` as MessageKey)}</span>
-          </div>
-          <button type="button" className="ff-nat20__close" onClick={() => setEgg(null)} aria-label={t('dice.nat20.dismiss')} title={t('dice.nat20.dismiss')}>✕</button>
-        </div>
-      )}
+      {crit && <CritFx key={crit.key} crit={crit} still={motionReduced()} onDone={done} />}
     </>
   )
 }

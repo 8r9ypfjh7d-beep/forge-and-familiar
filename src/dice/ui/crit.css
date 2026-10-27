@@ -1,0 +1,232 @@
+/* Natural 20 / natural 1 full-screen moments (CritFx). Base styles are the final frame, so reduce motion
+   (.is-still, which drops every animation) still shows a full card with the die and the words. */
+.ff-crit {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  animation: ff-crit-in 180ms ease-out both;
+}
+.ff-crit.is-leaving { animation: ff-crit-out 280ms ease-in forwards; }
+.ff-crit.is-still *, .ff-crit.is-still { animation: none !important; }
+.ff-crit.is-still.is-leaving { opacity: 0; }
+
+.ff-crit__stage { position: absolute; inset: 0; display: grid; place-items: center; }
+.ff-crit__stage > div[aria-hidden] { position: absolute; inset: 0; pointer-events: none; }
+.ff-crit__core {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(92vw, 680px);
+  padding-inline: 16px;
+  text-align: center;
+}
+.ff-crit__die { width: min(46vmin, 260px); height: min(46vmin, 260px); overflow: visible; }
+.ff-crit__die text { font-family: inherit; font-size: 34px; font-weight: 900; }
+.ff-crit__title { font-size: clamp(2.2rem, 10vw, 6rem); white-space: nowrap; line-height: 1; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+.ff-crit__kicker { font-size: clamp(1.05rem, 4.2vw, 1.6rem); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.ff-crit__line { font-size: clamp(0.95rem, 3.4vw, 1.2rem); max-width: 34em; }
+.ff-crit__hint { position: absolute; inset-block-end: max(20px, env(safe-area-inset-bottom)); font-size: 0.8rem; opacity: 0.7; letter-spacing: 0.06em; }
+.ff-crit__close {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: rgb(0 0 0 / 0.25);
+  color: inherit;
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.ff-crit__close:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
+
+/* ---------- Natural 20: the power of a god ---------- */
+.ff-crit--nat20 {
+  color: #fff8dc;
+  background:
+    radial-gradient(circle at 50% 42%, #fff6c8 0, #ffc42e 14%, #a03c00 36%, #2a0636 64%, #07020c 100%);
+}
+.ff-crit--nat20 .ff-crit__stage { animation: ff-crit-shake 520ms linear 420ms both; }
+.ff-crit--nat20 .ff-crit__flash { position: absolute; inset: 0; background: #fff; animation: ff-crit-flash 650ms ease-out both; opacity: 0; }
+.ff-crit--nat20 .ff-crit__rays {
+  position: absolute;
+  inset-block-start: 42%;
+  inset-inline-start: 50%;
+  width: 220vmax;
+  height: 220vmax;
+  margin: -110vmax;
+  background: repeating-conic-gradient(from 0deg, rgb(255 236 160 / 0.3) 0deg 5deg, transparent 5deg 15deg);
+  mask-image: radial-gradient(circle, #000 0, #000 12%, transparent 48%);
+  -webkit-mask-image: radial-gradient(circle, #000 0, #000 12%, transparent 48%);
+  animation: ff-crit-rays-in 900ms ease-out 300ms both, ff-crit-spin 14s linear infinite;
+}
+.ff-crit--nat20 .ff-crit__ring {
+  position: absolute;
+  inset-block-start: 42%;
+  inset-inline-start: 50%;
+  width: 40vmin;
+  height: 40vmin;
+  margin: -20vmin;
+  border-radius: 50%;
+  border: 6px solid #ffe27a;
+  box-shadow: 0 0 40px #ffcf3a, inset 0 0 30px #ffcf3a;
+  opacity: 0;
+  animation: ff-crit-ring 1100ms cubic-bezier(.1,.7,.3,1) calc(420ms + var(--i) * 160ms) both;
+}
+.ff-crit--nat20 .ff-crit__sparks span {
+  position: absolute;
+  inset-block-start: 42%;
+  inset-inline-start: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border-radius: 50%;
+  background: #fff3b0;
+  box-shadow: 0 0 12px 4px #ffc93a;
+  opacity: 0;
+  animation: ff-crit-spark 1300ms cubic-bezier(.15,.8,.3,1) calc(420ms + (var(--i) % 6) * 30ms) both;
+}
+.ff-crit--nat20 .ff-crit__sparks span:nth-child(3n) { width: 6px; height: 22px; border-radius: 3px; }
+.ff-crit--nat20 .ff-crit__bolt { position: absolute; width: min(18vmin, 110px); fill: #fffbe0; filter: drop-shadow(0 0 14px #fff) drop-shadow(0 0 30px #ffcf3a); opacity: 0; }
+.ff-crit--nat20 .ff-crit__bolt--a { inset-block-start: 6%; inset-inline-start: 8%; transform: rotate(-18deg); animation: ff-crit-bolt 900ms steps(1) 460ms both; }
+.ff-crit--nat20 .ff-crit__bolt--b { inset-block-start: 10%; inset-inline-end: 8%; transform: scaleX(-1) rotate(-18deg); animation: ff-crit-bolt 900ms steps(1) 620ms both; }
+.ff-crit--nat20 .ff-crit__die {
+  filter: drop-shadow(0 0 22px #ffd34d) drop-shadow(0 0 60px rgb(255 190 40 / 0.8));
+  animation: ff-crit-slam 460ms cubic-bezier(.5,0,.75,0) both, ff-crit-float 2.4s ease-in-out 1s infinite;
+}
+.ff-crit--nat20 .ff-crit__die polygon { fill: url(#ff-crit-gold); stroke: #fff7c2; stroke-width: 3; stroke-linejoin: round; }
+.ff-crit--nat20 .ff-crit__die path { fill: none; stroke: rgb(120 70 0 / 0.55); stroke-width: 1.4; stroke-linejoin: round; }
+.ff-crit--nat20 .ff-crit__die text { fill: #5a3300; font-size: 30px; }
+.ff-crit--nat20 .ff-crit__title {
+  background: linear-gradient(180deg, #ffffff 0%, #fff1a8 35%, #ffc21f 60%, #c26a00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 0 #6b2c00) drop-shadow(0 0 22px rgb(255 200 60 / 0.9));
+  animation: ff-crit-title-slam 520ms cubic-bezier(.2,1.5,.4,1) 560ms both;
+}
+.ff-crit--nat20 .ff-crit__kicker { color: #ffe9a3; text-shadow: 0 0 14px #ff9d00, 0 2px 0 #4a1d00; animation: ff-crit-rise 500ms ease-out 1000ms both; }
+.ff-crit--nat20 .ff-crit__line { color: #fff8e6; text-shadow: 0 1px 3px #000; animation: ff-crit-rise 500ms ease-out 1350ms both; }
+.ff-crit--nat20 .ff-crit__hint { animation: ff-crit-rise 500ms ease-out 1900ms both; }
+
+/* ---------- Natural 1: the exact opposite ---------- */
+.ff-crit--nat1 {
+  color: #c9d1db;
+  background: radial-gradient(circle at 50% 45%, rgb(70 80 96 / 0.86) 0, rgb(22 26 34 / 0.94) 65%, #07090c 100%);
+  -webkit-backdrop-filter: grayscale(1) blur(3px);
+  backdrop-filter: grayscale(1) blur(3px);
+  animation: ff-crit-lights-out 700ms steps(1) both;
+}
+.ff-crit--nat1.is-leaving { animation: ff-crit-out 280ms ease-in forwards; }
+.ff-crit--nat1 .ff-crit__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, transparent 0, transparent 32%, rgb(0 0 0 / 0.85) 70%);
+  animation: ff-crit-close-in 3.2s ease-in 400ms both;
+}
+.ff-crit--nat1 .ff-crit__die { position: relative; animation: ff-crit-fall 900ms cubic-bezier(.4,0,1,1) both; }
+.ff-crit__die--split { display: block; }
+.ff-crit__half { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ff-crit__half--a { clip-path: polygon(0 0, 70% 0, 62% 30%, 74% 52%, 63% 100%, 0 100%); animation: ff-crit-crack-a 600ms cubic-bezier(.3,1.6,.5,1) 1250ms both; }
+.ff-crit__half--b { clip-path: polygon(70% 0, 100% 0, 100% 100%, 63% 100%, 74% 52%, 62% 30%); animation: ff-crit-crack-b 600ms cubic-bezier(.3,1.6,.5,1) 1250ms both; }
+.ff-crit--nat1 .ff-crit__die polygon { fill: #8a939e; stroke: #3b434d; stroke-width: 3; stroke-linejoin: round; }
+.ff-crit--nat1 .ff-crit__die path { fill: none; stroke: rgb(40 46 54 / 0.5); stroke-width: 1.4; }
+.ff-crit--nat1 .ff-crit__die text { fill: #2b3038; }
+.ff-crit--nat1 .ff-crit__cloud {
+  position: absolute;
+  inset-block-start: calc(45% - min(46vmin, 260px) / 2 - 7rem);
+  inset-inline: 0;
+  text-align: center;
+  font-size: clamp(4rem, 18vmin, 7rem);
+  line-height: 1;
+  filter: grayscale(0.6) drop-shadow(0 6px 10px #000);
+  animation: ff-crit-cloud 900ms ease-out 1500ms both, ff-crit-bob 2s ease-in-out 2.4s infinite;
+}
+.ff-crit--nat1 .ff-crit__rain span {
+  position: absolute;
+  inset-block-start: -10%;
+  inset-inline-start: var(--x);
+  width: 2px;
+  height: 46px;
+  background: linear-gradient(transparent, rgb(170 190 215 / 0.55));
+  opacity: 0;
+  animation: ff-crit-rain var(--s) linear calc(1500ms + var(--i) * 60ms) infinite;
+}
+.ff-crit--nat1 .ff-crit__title {
+  color: #6f7a87;
+  text-shadow: 0 3px 0 #1a1e24;
+  transform-origin: 12% 0;
+  margin-block-end: 0.35em;
+  transform: rotate(7deg) translateY(6px);
+  animation: ff-crit-thud-sag 2100ms 700ms both;
+}
+.ff-crit--nat1 .ff-crit__kicker { color: #8f99a6; font-style: italic; animation: ff-crit-droop 700ms ease-out 2300ms both; }
+.ff-crit--nat1 .ff-crit__line { color: #b7c0cb; animation: ff-crit-rise 500ms ease-out 2600ms both; }
+.ff-crit--nat1 .ff-crit__hint { animation: ff-crit-rise 500ms ease-out 2800ms both; }
+
+/* ---------- Keyframes ---------- */
+@keyframes ff-crit-in { from { opacity: 0; } }
+@keyframes ff-crit-out { to { opacity: 0; } }
+@keyframes ff-crit-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes ff-crit-spin { to { rotate: 360deg; } }
+@keyframes ff-crit-rays-in { from { opacity: 0; scale: 0.2; } }
+@keyframes ff-crit-shake {
+  0%, 100% { transform: none; }
+  10% { transform: translate(-14px, 8px) rotate(-1deg); }
+  25% { transform: translate(12px, -10px) rotate(1deg); }
+  40% { transform: translate(-9px, -6px); }
+  55% { transform: translate(8px, 7px); }
+  70% { transform: translate(-4px, 3px); }
+  85% { transform: translate(3px, -2px); }
+}
+@keyframes ff-crit-ring { 0% { opacity: 1; transform: scale(0.3); border-width: 14px; } 100% { opacity: 0; transform: scale(4.5); border-width: 1px; } }
+@keyframes ff-crit-spark {
+  0% { opacity: 1; transform: rotate(var(--a)) translateX(0) scale(1.4); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) scale(0.4); }
+}
+@keyframes ff-crit-bolt { 0% { opacity: 1; } 12% { opacity: 0; } 22% { opacity: 1; } 40% { opacity: 0; } 55% { opacity: 0.8; } 70%, 100% { opacity: 0; } }
+@keyframes ff-crit-slam {
+  0% { transform: scale(5) rotate(-540deg); opacity: 0; filter: blur(12px); }
+  60% { opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@keyframes ff-crit-float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-10px) scale(1.04); } }
+@keyframes ff-crit-title-slam { 0% { opacity: 0; transform: scale(3.2); letter-spacing: 0.5em; } 100% { opacity: 1; transform: scale(1); } }
+@keyframes ff-crit-rise { from { opacity: 0; transform: translateY(14px); } }
+
+@keyframes ff-crit-lights-out { 0% { opacity: 1; } 15% { opacity: 0.2; } 25% { opacity: 1; } 35% { opacity: 0.4; } 45%, 100% { opacity: 1; } }
+@keyframes ff-crit-close-in { from { opacity: 0; transform: scale(1.8); } }
+@keyframes ff-crit-fall {
+  0% { transform: translateY(-90vh) rotate(-30deg); }
+  55% { transform: translateY(0) rotate(8deg); }
+  70% { transform: translateY(-5%) rotate(4deg); }
+  82% { transform: translateY(0) rotate(0); }
+  90% { transform: translateY(-1.5%); }
+  100% { transform: translateY(0); }
+}
+@keyframes ff-crit-crack-a { from { transform: none; } to { transform: translate(-4%, 2%) rotate(-6deg); } }
+@keyframes ff-crit-crack-b { from { transform: none; } to { transform: translate(10%, 7%) rotate(16deg); } }
+.ff-crit__half--a { transform: translate(-4%, 2%) rotate(-6deg); }
+.ff-crit__half--b { transform: translate(10%, 7%) rotate(16deg); }
+@keyframes ff-crit-cloud { from { opacity: 0; transform: translateY(-60vh); } }
+@keyframes ff-crit-bob { 50% { transform: translateY(6px); } }
+@keyframes ff-crit-rain { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 1; transform: translateY(120vh); } }
+@keyframes ff-crit-thud-sag {
+  0% { opacity: 0; transform: translateY(-50vh); animation-timing-function: cubic-bezier(.5,0,1,1); }
+  20% { opacity: 1; transform: none; }
+  57% { transform: none; animation-timing-function: cubic-bezier(.3,1.8,.5,1); }
+}
+@keyframes ff-crit-droop { from { opacity: 0; transform: translateY(-10px); } }
+
+@media print { .ff-crit { display: none; } }
