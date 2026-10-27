@@ -20,6 +20,7 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
 - `spells` (optional) lists known or prepared spells as `{ id, classId }`, ids from the content library; `spellEdition` (optional, `'2024'` or missing for 2014) picks which SRD's spell lists and counts apply. See `src/spellbook/SPELLBOOK.md`.
 - `inventory` entries (`InventoryEntry` in `rules/types.ts`): `itemId`, `qty`, `equipped`, plus optional `item` (the full item, embedded for library and custom items so their stats stay editable), `name`, `notes`, `magicBonus` (+1 to +3), `pact` (one warlock pact weapon), `extraDamage` (e.g. `1d6 fire`), `effects` (stat effects that apply while equipped, see `ItemEffect`). All optional, so old saves need no migration. See `src/inventory/INVENTORY.md`.
 - `schemaVersion` lets storage migrate old saves.
+- Characters of signed-in accounts sync to the cloud (`src/sync/SYNC.md`); `updatedAt` decides which copy wins a conflict.
 - Old saves may still hold `state.exhaustion`, `state.inspiration`, `state.attuned` and `state.clock`. Those features were removed; `normalize()` in `sheet/engine.ts` drops the fields on load.
 - `state.counters` with `recharge: 'dawn'` are magic item charges; `regain` is dice notation rolled at dawn (blank refills all). Rests never touch them; `dawn()` in `sheet/engine.ts` does.
 - `state.supplies` (optional) holds ammo fired since the last battlefield search and hungry days; see `src/supplies/SUPPLIES.md`.
