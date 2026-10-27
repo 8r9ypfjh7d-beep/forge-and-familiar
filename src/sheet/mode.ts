@@ -7,7 +7,7 @@ export type SheetMode = 'story' | 'combat'
 export type SheetSection =
   | 'quickcast' | 'notes' | 'abilities'
   | 'hp' | 'death' | 'rests' | 'attacks'
-  | 'turn' | 'reactions' | 'spells' | 'inventory' | 'resources' | 'supplies' | 'history'
+  | 'spells' | 'inventory' | 'resources' | 'supplies' | 'history'
   // Shared by both modes: the character card (who, AC and speed, HP and Rest), the skills rail and the
   // Spells card (spell slots and pinned spells).
   | 'summary' | 'skills' | 'spellCard'

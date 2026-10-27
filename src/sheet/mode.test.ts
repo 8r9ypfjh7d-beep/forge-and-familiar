@@ -19,7 +19,7 @@ describe('sheet modes', () => {
 
   it('story mode: notes, attacks and inventory beside the shared widgets', () => {
     expect(sheetLayout('story', { dying: false }).columns[1]).toEqual(['notes', 'attacks', 'inventory'])
-    for (const s of ['turn', 'reactions', 'quickcast', 'resources', 'supplies', 'history', 'spells'] as const) expect(all('story')).not.toContain(s)
+    for (const s of ['quickcast', 'resources', 'supplies', 'history', 'spells'] as const) expect(all('story')).not.toContain(s)
   })
 
   it('combat mode: Roll20-style tabs beside the shared widgets, spell slots on the page', () => {
@@ -28,7 +28,7 @@ describe('sheet modes', () => {
     expect(Object.keys(l.tabs ?? {})).toEqual(['combat', 'spells', 'inventory', 'features', 'notes'])
     expect(l.tabs?.combat[0]).toBe('fight')
     expect([...l.top, ...l.columns[0]]).toContain('spellCard')
-    for (const s of ['turn', 'reactions', 'resources'] as const) expect(all('combat')).not.toContain(s)
+    expect(all('combat')).not.toContain('resources')
   })
 
   it('death saves show only at 0 HP, first in both modes', () => {
