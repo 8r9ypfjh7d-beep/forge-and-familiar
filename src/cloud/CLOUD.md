@@ -6,7 +6,7 @@ The Supabase client, cloud sign-in and the row shapes of the database. Other mod
 
 | File | Purpose |
 |------|---------|
-| `config.ts` | `cloudConfig` from `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; `isCloudEnabled()` |
+| `config.ts` | `cloudConfig` from `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (set in `/.env`); `isCloudEnabled()` |
 | `client.ts` | `getSupabase()`: the one shared client, loaded lazily; `null` when off or offline |
 | `auth.ts` | `linkCloudAccount(code)`, `getCloudAccountId()`, `getCloudStatus()`, `onCloudChanged`, `unlinkCloud()` |
 | `types.ts` | `AccountRow`, `CharacterRow`, `DmStateRow`, `CloudStatus` |
@@ -37,7 +37,9 @@ Add a feature's tables in a new, later migration file that reuses the helpers, a
 
 1. In Supabase, create a project, then Authentication > Sign In / Providers > turn on **Anonymous sign-ins**.
 2. SQL Editor: run the migration files in `supabase/migrations/` in order.
-3. Render > the site > Environment: add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Project Settings > API, the anon public key; never the service_role key), then redeploy. Locally, put them in `.env.local`.
+3. The project URL and publishable key are in the repo's `.env` (public by design, guarded by RLS; never the service_role key). Override in `.env.local` or Render environment variables.
+
+The group's project is `forge-and-familiar` (ref `roqfxquchhlvcivydbxl`, eu-west-1). New migrations must be applied there too (Supabase SQL editor, or the Supabase connector's apply_migration).
 
 Adding a friend: add the account to `src/accounts/roster.ts` and insert the same row into `accounts` (a new migration).
 
