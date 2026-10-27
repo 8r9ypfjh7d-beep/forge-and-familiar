@@ -3,7 +3,9 @@
 import type { CustomAction } from '../model/character'
 import type { ItemEffect } from '../rules/types'
 
-export type RequestKind = 'item' | 'effect' | 'ability' | 'other'
+/** 'edit' asks to reopen the character in the builder; players can't edit without the DM's OK. */
+export type RequestKind = 'item' | 'effect' | 'ability' | 'other' | 'edit'
+/** The kinds a player picks on the "Ask the DM" form. Edit requests start from the Edit button. */
 export const REQUEST_KINDS: RequestKind[] = ['item', 'effect', 'ability', 'other']
 
 /**
@@ -36,6 +38,6 @@ export interface DmRequest {
   /** The DM's private story idea for a "later" request. Never sent to the player. */
   storyNote?: string
   decidedAt?: string
-  /** Player's device: the grant was added to the character. */
+  /** Player's device: the grant was added to the character (for an edit: the edit was used). */
   applied?: boolean
 }

@@ -1,6 +1,6 @@
 // Player requests to the DM: the player's "Ask the DM" page, the DM's Requests tab and story reminders,
 // and RequestsAgent, which opens request links and adds granted requests to characters.
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { EffectsEditor, effectText } from '../inventory'
@@ -10,8 +10,8 @@ import { resolveDice } from '../sheet/combat/combat'
 import { listCharacters } from '../storage'
 import { applyGrants } from './grants'
 import {
-  answered, codeFrom, hasMechanics, decide, decodeShared, DETAILS_MAX, inbox, linkFor, mergeShared, mine, newRequest, problems, reminders,
-  removeRequest, setStoryNote, TITLE_MAX, type MergeOutcome, type Shared,
+  answered, codeFrom, hasMechanics, decide, decodeShared, DETAILS_MAX, inbox, linkFor, mergeShared, mine, newEditRequest, newRequest,
+  openEditRequest, problems, reminders, removeRequest, setStoryNote, TITLE_MAX, type MergeOutcome, type Shared,
 } from './logic'
 import { useRequests } from './hooks'
 import { onRequestsChanged, updateRequests } from './store'
@@ -20,10 +20,10 @@ import '../sheet/sheet.css'
 import './requests.css'
 
 const KIND_KEYS: Record<RequestKind, MessageKey> = {
-  item: 'req.kind.item', effect: 'req.kind.effect', ability: 'req.kind.ability', other: 'req.kind.other',
+  item: 'req.kind.item', effect: 'req.kind.effect', ability: 'req.kind.ability', other: 'req.kind.other', edit: 'req.kind.edit',
 }
 const KIND_HINTS: Record<RequestKind, MessageKey> = {
-  item: 'req.kindHint.item', effect: 'req.kindHint.effect', ability: 'req.kindHint.ability', other: 'req.kindHint.other',
+  item: 'req.kindHint.item', effect: 'req.kindHint.effect', ability: 'req.kindHint.ability', other: 'req.kindHint.other', edit: 'req.kindHint.edit',
 }
 const STATUS_KEYS: Record<RequestStatus, MessageKey> = {
   pending: 'req.status.pending', later: 'req.status.later', granted: 'req.status.granted', denied: 'req.status.denied',
@@ -44,6 +44,7 @@ async function importShared(s: Shared): Promise<MergeOutcome> {
 
 function importMessage(s: Shared, outcome: MergeOutcome): MessageKey {
   if (s.type === 'request') return outcome === 'added' ? 'req.got.request' : 'req.got.requestAgain'
+  if (s.request.kind === 'edit' && outcome !== 'older') return s.request.status === 'granted' ? 'req.got.editOk' : 'req.got.editNo'
   return outcome === 'added' || outcome === 'updated' ? 'req.got.answer' : 'req.got.answerAgain'
 }
 
@@ -116,7 +117,7 @@ function PasteLink({ label }: { label: string }) {
  * Mounted once in the app. Opens request links (#ff-request=…) into this device's list and tells
  * the app which page to show, and adds granted requests to this player's characters.
  */
-export function RequestsAgent({ userId, onOpen }: { userId: string; onOpen: (type: Shared['type']) => void }) {
+export function RequestsAgent({ userId, onOpen }: { userId: string; onOpen: (s: Shared) => void }) {
   const { t } = useI18n()
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -128,7 +129,7 @@ export function RequestsAgent({ userId, onOpen }: { userId: string; onOpen: (typ
       const s = decodeShared(code)
       if (!s) { setNotice(t('req.badLink')); return }
       setNotice(t(importMessage(s, await importShared(s)), { name: s.request.fromName, title: s.request.title }))
-      onOpen(s.type)
+      onOpen(s)
     }
     read()
     window.addEventListener('hashchange', read)
@@ -178,7 +179,7 @@ export function RequestsView({ userId, userName }: { userId: string; userName: s
                 {r.details && <p className="req-details" dir="auto">{r.details}</p>}
                 <Mechanics r={r} />
                 <p className={`req-status st-${r.status}`}>
-                  {r.status === 'granted' && !r.applied ? t('req.status.grantedElsewhere', { character: r.characterName }) : t(STATUS_KEYS[r.status], { character: r.characterName })}
+                  {t(playerStatus(r), { character: r.characterName })}
                 </p>
                 {r.reply && <p className="req-reply"><span className="sub-title">{t('req.dmSays')}</span> <bdi>{r.reply}</bdi></p>}
                 <div className="req-actions">
@@ -195,6 +196,12 @@ export function RequestsView({ userId, userName }: { userId: string; userName: s
       </section>
     </div>
   )
+}
+
+function playerStatus(r: DmRequest): MessageKey {
+  if (r.kind === 'edit' && r.status === 'granted') return r.applied ? 'req.status.edited' : 'req.status.editOk'
+  if (r.status === 'granted' && !r.applied) return 'req.status.grantedElsewhere'
+  return STATUS_KEYS[r.status]
 }
 
 function RequestForm({ characters, userId, userName, onSent }: {
@@ -395,7 +402,7 @@ export function DmRequestsTab({ list }: { list: DmRequest[] }) {
             {done.map(r => (
               <li key={r.id} className={`req-card st-${r.status}`}>
                 <RequestHead r={r} showWho />
-                <p className={`req-status st-${r.status}`}>{t(r.status === 'granted' ? 'req.dm.granted' : 'req.dm.denied')}</p>
+                <p className={`req-status st-${r.status}`}>{t(dmStatus(r))}</p>
                 {r.reply && <p className="req-reply"><span className="sub-title">{t('req.yourReply')}</span> <bdi>{r.reply}</bdi></p>}
                 <div className="req-actions">
                   <ShareLink type="answer" request={r} />
@@ -411,11 +418,32 @@ export function DmRequestsTab({ list }: { list: DmRequest[] }) {
   )
 }
 
-function InboxCard({ r }: { r: DmRequest }) {
+/** How an answered request reads to the DM. */
+function dmStatus(r: DmRequest): MessageKey {
+  if (r.status === 'granted') return r.kind === 'edit' ? 'req.dm.editAllowed' : 'req.dm.granted'
+  return r.status === 'later' ? 'req.dm.later' : 'req.dm.denied'
+}
+
+function InboxCard({ r, onAnswered }: { r: DmRequest; onAnswered?: (id: string) => void }) {
   const { t } = useI18n()
   const id = useId()
   const [reply, setReply] = useState('')
-  const answer = (status: RequestStatus) => updateRequests(l => decide(l, r.id, status, nowIso(), reply))
+  const answer = async (status: RequestStatus) => {
+    await updateRequests(l => decide(l, r.id, status, nowIso(), reply))
+    onAnswered?.(r.id)
+  }
+  if (r.kind === 'edit') return (
+    <li className="req-card st-pending k-edit">
+      <RequestHead r={r} showWho />
+      <p className="req-details" dir="auto">{r.details || t('req.edit.noReason')}</p>
+      <label htmlFor={id} className="sub-title">{t('req.replyLabel')}</label>
+      <textarea id={id} rows={2} maxLength={DETAILS_MAX} value={reply} onChange={e => setReply(e.target.value)} placeholder={t('req.replyPlaceholder')} />
+      <div className="req-actions">
+        <button type="button" className="btn primary small" onClick={() => answer('granted')}>{t('req.edit.allow')}</button>
+        <button type="button" className="btn ghost small" onClick={() => answer('denied')}>{t('req.deny')}</button>
+      </div>
+    </li>
+  )
   return (
     <li className="req-card st-pending">
       <RequestHead r={r} showWho />
@@ -502,5 +530,138 @@ export function StoryReminders({ list, onOpen }: { list: DmRequest[]; onOpen: ()
         </ul>
       )}
     </section>
+  )
+}
+
+// ---------- Pop-ups: the DM sees new requests at once; a player asks before editing ----------
+
+const SEEN_KEY = 'ff.requests.popupSeen.v1'
+const readSeen = (): string[] => {
+  try {
+    const v = JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]')
+    return Array.isArray(v) ? v : []
+  } catch {
+    return []
+  }
+}
+const writeSeen = (ids: string[]) => {
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(ids.slice(-200))) } catch { /* the pop-up just shows again */ }
+}
+
+/** Opens a <dialog> as a modal while `open` is true. */
+function useModal(open: boolean) {
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => {
+    const d = ref.current
+    if (!d) return
+    if (open && !d.open) d.showModal?.()
+    if (!open && d.open) d.close()
+  }, [open])
+  return ref
+}
+
+/**
+ * Mounted for the DM. Every new request pops up once, on any page: answer it right there,
+ * then send the answer link. "Not now" leaves it in the Requests tab.
+ */
+export function DmRequestPopup({ onOpenAll }: { onOpenAll: () => void }) {
+  const { t } = useI18n()
+  const list = useRequests()
+  const [seen, setSeen] = useState(readSeen)
+  const [answeredId, setAnsweredId] = useState<string | null>(null)
+  const done = answeredId ? list?.find(r => r.id === answeredId) : undefined
+  const next = list ? inbox(list).find(r => !seen.includes(r.id)) : undefined
+  const shown = done ?? next
+  const ref = useModal(!!shown)
+
+  const dismiss = () => {
+    if (!shown) return
+    const ids = [...seen, shown.id]
+    setSeen(ids)
+    writeSeen(ids)
+    setAnsweredId(null)
+  }
+
+  return (
+    <dialog ref={ref} className="req-dialog" aria-labelledby="req-pop-title" onCancel={e => { e.preventDefault(); dismiss() }}>
+      {shown && (
+        <div className="ff-sheet ff-requests">
+          <h2 id="req-pop-title">
+            {shown.kind === 'edit' ? t('req.pop.edit', { name: shown.fromName, character: shown.characterName }) : t('req.pop.new', { name: shown.fromName })}
+          </h2>
+          {done ? (
+            <>
+              <p className={`req-status st-${done.status}`}>{t(dmStatus(done))}</p>
+              <p className="hint">{t('req.pop.sendHint', { name: done.fromName })}</p>
+              <div className="req-actions">
+                <ShareLink type="answer" request={done} primary />
+                <button type="button" className="btn ghost small" onClick={dismiss}>{t('req.pop.done')}</button>
+              </div>
+            </>
+          ) : next && (
+            <>
+              <ul className="plain req-list"><InboxCard key={next.id} r={next} onAnswered={setAnsweredId} /></ul>
+              <div className="req-actions">
+                <button type="button" className="btn ghost small" onClick={dismiss}>{t('req.pop.notNow')}</button>
+                <button type="button" className="btn ghost small" onClick={() => { dismiss(); onOpenAll() }}>{t('req.manage')}</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </dialog>
+  )
+}
+
+/**
+ * A player's Edit button opens this when they have no approved edit: say what to change and send
+ * it to the DM. Once the DM approves, the player can edit that character once.
+ */
+export function EditRequestDialog({ character, userId, userName, onClose }: {
+  character: Character | null; userId: string; userName: string; onClose: () => void
+}) {
+  const { t } = useI18n()
+  const list = useRequests()
+  const [details, setDetails] = useState('')
+  const ref = useModal(!!character)
+  const id = useId()
+  const open = character && list ? openEditRequest(list, userId, character.id) : undefined
+
+  const send = async () => {
+    if (!character) return
+    const r = newEditRequest({ fromId: userId, fromName: userName, characterId: character.id, characterName: character.name, details }, crypto.randomUUID(), nowIso())
+    await updateRequests(l => [...l, r])
+    setDetails('')
+  }
+
+  return (
+    <dialog ref={ref} className="req-dialog" aria-labelledby="req-edit-title" onCancel={e => { e.preventDefault(); onClose() }}>
+      {character && (
+        <div className="ff-sheet ff-requests">
+          <h2 id="req-edit-title">{t(open ? 'req.edit.waitingTitle' : 'req.edit.title', { character: character.name })}</h2>
+          {open ? (
+            <>
+              <p>{t('req.edit.waiting')}</p>
+              {open.details && <p className="req-details" dir="auto">{open.details}</p>}
+              <div className="req-actions">
+                <ShareLink type="request" request={open} primary />
+                <button type="button" className="btn ghost small" onClick={() => updateRequests(l => removeRequest(l, open.id))}>{t('req.withdraw')}</button>
+                <button type="button" className="btn ghost small" onClick={onClose}>{t('req.pop.done')}</button>
+              </div>
+            </>
+          ) : (
+            <form className="req-form" onSubmit={e => { e.preventDefault(); send() }}>
+              <p className="hint">{t('req.edit.intro')}</p>
+              <label htmlFor={id} className="sub-title">{t('req.edit.what')}</label>
+              <textarea id={id} rows={3} maxLength={DETAILS_MAX} value={details} onChange={e => setDetails(e.target.value)} placeholder={t('req.edit.placeholder')} autoFocus />
+              <div className="req-actions">
+                <button className="btn primary small">{t('req.send')}</button>
+                <button type="button" className="btn ghost small" onClick={onClose}>{t('common.cancel')}</button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+    </dialog>
   )
 }

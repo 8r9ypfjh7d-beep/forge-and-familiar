@@ -67,3 +67,15 @@
   margin: 8px auto; padding: 8px 12px; max-inline-size: 1200px;
   border: 1px solid var(--accent); border-radius: 10px; background: var(--accent-soft); color: var(--ink);
 }
+
+/* Pop-ups: the DM's new-request pop-up and the player's "ask to edit" dialog */
+.req-dialog { inline-size: min(520px, calc(100vw - 24px)); max-block-size: calc(100vh - 24px); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--ink); box-shadow: 0 24px 60px rgb(0 0 0 / 0.25); overflow: hidden auto; }
+.req-dialog::backdrop { background: rgb(20 12 6 / 0.5); }
+.req-dialog > .ff-sheet { padding: 18px; display: grid; gap: 10px; }
+.req-dialog h2 { margin: 0; font-size: 1.2rem; color: var(--s-accent); }
+.req-dialog p { margin: 0; }
+.req-dialog .req-list { margin: 0 !important; }
+.req-dialog .req-form { display: grid; gap: 8px; }
+.req-dialog .req-actions > * { flex: none; }
+.req-dialog .btn.small { max-width: none; }
+.req-dialog .req-card.k-edit .req-head { display: none; }
