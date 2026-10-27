@@ -18,6 +18,11 @@ describe('navItems', () => {
     expect(keys(navItems({ isDm: true, dmAccount: false }).main)).toEqual(['list', 'party', 'combat', 'dm', 'requests'])
   })
 
+  it('gives the admin account the admin page first under More', () => {
+    expect(keys(navItems({ isDm: true, dmAccount: false, admin: true }).more)[0]).toBe('admin')
+    expect(keys(navItems({ isDm: true, dmAccount: false }).more)).not.toContain('admin')
+  })
+
   it('never lists a screen twice', () => {
     const { main, more } = navItems({ isDm: true, dmAccount: false })
     const all = keys([...main, ...more])

@@ -4,7 +4,7 @@ The app's navigation. No brand header: the first tab, Characters, is home.
 
 | File | What |
 |------|------|
-| `items.ts` | Pure: `navItems({ isDm, dmAccount })` splits screens into tabs and the More menu; `navKeyFor(view.kind)` picks the lit tab (character screens light Characters) |
+| `items.ts` | Pure: `navItems({ isDm, dmAccount, admin })` splits screens into tabs and the More menu; `navKeyFor(view.kind)` picks the lit tab (character screens light Characters). The admin account gets Admin first under More |
 | `AppNav.tsx` | The bar: tabs, More menu, player menu (children from App, language, accessibility). DM tab shows a badge with waiting requests |
 | `icons.tsx` | Line icons per tab |
 | `nav.css` | Wide: one row at the top. At 640px and below: fixed bottom bar with short labels; lifts the dice button and PWA banner above it |

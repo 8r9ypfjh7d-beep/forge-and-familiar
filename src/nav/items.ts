@@ -1,7 +1,7 @@
 // Which screens the top bar offers, and which tab lights up for each view. Pure, no React.
 import type { MessageKey } from '../i18n'
 
-export type NavKey = 'list' | 'party' | 'combat' | 'requests' | 'dm' | 'homebrew' | 'rules'
+export type NavKey = 'list' | 'party' | 'combat' | 'requests' | 'dm' | 'homebrew' | 'rules' | 'admin'
 
 export interface NavItem {
   key: NavKey
@@ -16,6 +16,8 @@ export interface NavContext {
   isDm: boolean
   /** Signed in with the DM's activation code: the DM never asks the DM. */
   dmAccount: boolean
+  /** The admin account (Ziv): gets the admin page. */
+  admin?: boolean
 }
 
 const ITEM: Record<NavKey, NavItem> = {
@@ -26,14 +28,16 @@ const ITEM: Record<NavKey, NavItem> = {
   dm: { key: 'dm', label: 'app.dm', short: 'nav.dmShort' },
   homebrew: { key: 'homebrew', label: 'app.homebrew' },
   rules: { key: 'rules', label: 'app.rules' },
+  admin: { key: 'admin', label: 'app.admin' },
 }
 
 /** Everyday screens get a tab; reference and bookkeeping screens sit under More. */
-export function navItems({ isDm, dmAccount }: NavContext): { main: NavItem[]; more: NavItem[] } {
+export function navItems({ isDm, dmAccount, admin }: NavContext): { main: NavItem[]; more: NavItem[] } {
   const main: NavKey[] = ['list', 'party', 'combat']
   if (isDm) main.push('dm')
   if (!dmAccount) main.push('requests')
   const more: NavKey[] = ['rules', 'homebrew']
+  if (admin) more.unshift('admin')
   return { main: main.map(k => ITEM[k]), more: more.map(k => ITEM[k]) }
 }
 
