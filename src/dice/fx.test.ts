@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { headlineDie, isNat20, NAT20_LINES, pickNat20Line, roll, rollD20, RollFxBus, type RollResult, type Rng } from './index'
+import { critKind, CRIT_LINES, headlineDie, isNat1, isNat20, NAT20_LINES, pickLine, pickNat20Line, roll, rollD20, RollFxBus, type RollResult, type Rng } from './index'
 
 const always = (v: number): Rng => () => v
 
@@ -15,6 +15,23 @@ describe('roll effects', () => {
     expect(isNat20(roll('2d20', { rng: always(20) }))).toBe(false)
     expect(isNat20(roll('d100', { rng: always(20) }))).toBe(false)
     expect(isNat20(roll('d20', { rng: always(19) }))).toBe(false)
+  })
+
+  it('spots a natural 1 the same way, and picks the right full-screen moment', () => {
+    const dis = rollD20(9, { mode: 'disadvantage', rng: (() => { let i = 0; return () => [1, 18][i++ % 2] })() })
+    expect(isNat1(dis)).toBe(true)
+    expect(critKind(dis)).toBe('nat1')
+    expect(isNat1(roll('d20-2', { rng: always(1) }))).toBe(true)
+    expect(isNat1(roll('2d20', { rng: always(1) }))).toBe(false)
+    expect(isNat1(roll('d6', { rng: always(1) }))).toBe(false)
+    expect(critKind(roll('d20', { rng: always(20) }))).toBe('nat20')
+    expect(critKind(roll('d20', { rng: always(10) }))).toBeNull()
+  })
+
+  it('never repeats the last nat 1 line', () => {
+    for (let last = 1; last <= CRIT_LINES.nat1; last++) {
+      for (const x of [0, 0.5, 0.999]) expect(pickLine(() => x, CRIT_LINES.nat1, last)).not.toBe(last)
+    }
   })
 
   it('animates the first die of other rolls', () => {

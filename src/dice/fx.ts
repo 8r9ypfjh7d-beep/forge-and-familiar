@@ -1,4 +1,4 @@
-// Roll effects: which die to animate for a roll, and the natural 20 easter egg. Pure TS; the overlay is ui/RollFx.tsx.
+// Roll effects: which die to animate for a roll, and the natural 20 / natural 1 full-screen moments. Pure TS; the overlays are ui/RollFx.tsx and ui/CritFx.tsx.
 import type { RollResult } from './types'
 
 /** The die face the animation lands on: the d20 for d20 rolls, otherwise the first die rolled. */
@@ -17,22 +17,38 @@ export function headlineDie(r: RollResult): DieFace | null {
   return null
 }
 
-/** A natural 20: the kept d20 on a d20 roll, or a lone d20 rolled from the tray ("d20", "d20+3"). */
-export function isNat20(r: RollResult): boolean {
-  if (r.d20) return r.d20.natural === 20
-  const dice = r.terms.flatMap(t => (t.kind === 'dice' ? t.rolls.filter(d => d.kept) : []))
-  return dice.length === 1 && dice[0].sides === 20 && dice[0].value === 20
+/** The kept dice of a roll that has no d20 metadata (a tray roll). */
+const keptDice = (r: RollResult) => r.terms.flatMap(t => (t.kind === 'dice' ? t.rolls.filter(d => d.kept) : []))
+
+/** The kept d20 shows `face`: on a d20 roll, or a lone d20 rolled from the tray ("d20", "d20+3"). */
+function naturalIs(r: RollResult, face: number): boolean {
+  if (r.d20) return r.d20.natural === face
+  const dice = keptDice(r)
+  return dice.length === 1 && dice[0].sides === 20 && dice[0].value === face
 }
 
-/** How many funny natural 20 lines exist; keys are dice.nat20.line1..N in both locales. */
-export const NAT20_LINES = 8
+export const isNat20 = (r: RollResult): boolean => naturalIs(r, 20)
+export const isNat1 = (r: RollResult): boolean => naturalIs(r, 1)
 
-/** Picks a line index in 1..NAT20_LINES, never the same as `last` so a lucky streak stays fresh. */
-export function pickNat20Line(random: () => number, last = 0): number {
-  if (!last) return 1 + Math.floor(random() * NAT20_LINES)
-  const n = 1 + Math.floor(random() * (NAT20_LINES - 1))
+/** Which full-screen moment a roll earns, if any. */
+export type CritKind = 'nat20' | 'nat1'
+export function critKind(r: RollResult): CritKind | null {
+  return isNat20(r) ? 'nat20' : isNat1(r) ? 'nat1' : null
+}
+
+/** How many lines each moment has; keys are dice.nat20.line1..N and dice.nat1.line1..N in both locales. */
+export const NAT20_LINES = 8
+export const NAT1_LINES = 8
+export const CRIT_LINES: Record<CritKind, number> = { nat20: NAT20_LINES, nat1: NAT1_LINES }
+
+/** Picks a line index in 1..count, never the same as `last` so a streak stays fresh. */
+export function pickLine(random: () => number, count: number, last = 0): number {
+  if (!last || count < 2) return 1 + Math.floor(random() * count)
+  const n = 1 + Math.floor(random() * (count - 1))
   return n >= last ? n + 1 : n
 }
+
+export const pickNat20Line = (random: () => number, last = 0): number => pickLine(random, NAT20_LINES, last)
 
 /**
  * Collects rolls recorded in one tap (an attack records to-hit then damage) and reports the one to animate:
