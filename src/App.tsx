@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './a11y'
 import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
-import { AccountBadge, ActivateScreen, activate, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
+import { AccountBadge, ActivateScreen, activate, activateErrorKey, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
 import { AdminPage } from './admin'
 import { Builder, EditCharacter } from './builder/Builder'
 import { CombatTracker } from './combat/ui/CombatTracker'
@@ -260,7 +260,7 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
             if (name) onAdd(name)
           } else if (e.target.value === '__code') {
             const code = prompt(t('account.codePrompt'))?.trim()
-            if (code) activate(code).then(s => { if (!s) alert(t('account.badCode')) })
+            if (code) activate(code).then(s => { if (typeof s === 'string') alert(t(activateErrorKey(s))) })
           } else onSwitch(e.target.value)
         }}
       >

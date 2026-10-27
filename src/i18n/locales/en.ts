@@ -42,6 +42,8 @@ export const en = {
   'account.codePlaceholder': 'e.g. ROY-XXXX-XXXX',
   'account.activate': 'Activate',
   'account.badCode': "That code doesn't match anyone in the group. Check it and try again.",
+  'account.tooManyTries': 'Too many wrong codes. Wait 15 minutes and try again.',
+  'account.needsConnection': 'Signing in with a code needs an internet connection the first time. Connect and try again.',
   'account.noCode': 'No code? Use this device only',
   'account.haveCode': 'I have an activation code',
   'account.enterCode': '+ Enter activation code…',

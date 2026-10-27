@@ -42,6 +42,8 @@ const messages: Messages = {
   'account.codePlaceholder': 'ROY-XXXX-XXXX',
   'account.activate': 'הפעלה',
   'account.badCode': 'הקוד לא תואם לאף אחד בקבוצה. בדקו אותו ונסו שוב.',
+  'account.tooManyTries': 'יותר מדי קודים שגויים. חכו 15 דקות ונסו שוב.',
+  'account.needsConnection': 'כניסה עם קוד צריכה חיבור לאינטרנט בפעם הראשונה. התחברו ונסו שוב.',
   'account.noCode': 'אין קוד? שימוש במכשיר הזה בלבד',
   'account.haveCode': 'יש לי קוד הפעלה',
   'account.enterCode': '+ הזנת קוד הפעלה…',

@@ -13,9 +13,9 @@ describe('cloud config', () => {
 })
 
 describe('database roster', () => {
-  it('seeds every account with the same id, role, admin flag and code hash as the app', () => {
+  it('seeds every account with the same id, role and admin flag as the app', () => {
     for (const a of ROSTER) {
-      expect(MIGRATION).toContain(`('${a.id}', '${a.name}', '${a.role}', ${a.admin ? 'true' : 'false'}, '${a.hash}')`)
+      expect(MIGRATION).toContain(`('${a.id}', '${a.name}', '${a.role}', ${a.admin ? 'true' : 'false'}, '`)
     }
   })
 })

@@ -1,10 +1,9 @@
-// The activated account on this device (ff.account.v1). Codes are checked against the
-// bundled roster, so activation works offline.
+// The activated account on this device (ff.account.v1). Codes are checked by the server, so
+// activating needs a connection once; after that the session works offline.
 import { linkCloudAccount } from '../cloud'
 import { setActiveProfileId, saveProfile } from '../storage'
-import { findInRoster, normalizeActivationCode } from './codes'
-import { ROSTER } from './roster'
-import type { Session } from './types'
+import { normalizeActivationCode } from './codes'
+import type { ActivateError, Session } from './types'
 
 const KEY = 'ff.account.v1'
 const CHANGED = 'ff:account-changed'
@@ -34,16 +33,18 @@ export function onSessionChanged(fn: () => void): () => void {
 }
 
 /** Signs this device in with a personal code and makes its profile the active one. */
-export async function activate(input: string): Promise<Session | null> {
+export async function activate(input: string): Promise<Session | ActivateError> {
   const code = normalizeActivationCode(input)
-  if (!code) return null
-  const account = await findInRoster(code, ROSTER)
-  if (!account) return null
-  const session = { ...account, activatedAt: new Date().toISOString() }
-  await saveProfile({ id: account.id, displayName: account.name })
-  setActiveProfileId(account.id)
+  if (!code) return 'wrong'
+  const result = await linkCloudAccount(code)
+  if (typeof result === 'string') return result
+  const session: Session = { id: result.id, name: result.name, role: result.role, activatedAt: new Date().toISOString() }
+  await saveProfile({ id: session.id, displayName: session.name })
+  setActiveProfileId(session.id)
   setSession(session)
-  // Also signs the device in to the cloud when it is set up; offline that just waits for the next activation.
-  void linkCloudAccount(code)
   return session
 }
+
+/** The message key for a failed activation. */
+export const activateErrorKey = (e: ActivateError) =>
+  e === 'limited' ? 'account.tooManyTries' : e === 'offline' ? 'account.needsConnection' : 'account.badCode'

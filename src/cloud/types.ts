@@ -27,5 +27,8 @@ export interface DmStateRow {
   updated_at: string
 }
 
+/** What claim_account said about a code: the account, a wrong code, too many tries, or no answer. */
+export type ClaimResult = AccountRow | 'wrong' | 'limited' | 'offline'
+
 /** off: no cloud settings in this build. unlinked: cloud on, this device not signed in yet. */
 export type CloudStatus = 'off' | 'unlinked' | 'linked'
