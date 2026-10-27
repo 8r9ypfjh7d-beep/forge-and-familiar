@@ -76,10 +76,12 @@ export default function App() {
   useEffect(() => onCharactersChanged(refresh), [refresh])
   useCloudSync(active?.id)
 
-  // The DM pages (DM screen, combat tracker) are for the DM account only, plus the admin account (Ziv),
-  // whichever profile is open. Players never see them, even if they lead a party.
-  const admin = isAdmin(session?.id)
-  const dmAccount = session?.id === active?.id && session?.role === 'dm'
+  // The DM pages (DM screen, combat tracker) are for the DM account only, plus the admin account (Ziv).
+  // Roles follow the open profile: the admin opened as a player sees exactly what that player sees.
+  // Players never see the DM pages, even if they lead a party.
+  const ownProfile = !!session && session.id === active?.id
+  const admin = ownProfile && isAdmin(session.id)
+  const dmAccount = ownProfile && session.role === 'dm'
   const isDm = dmAccount || admin
   const nav = { isDm, dmAccount, admin }
   // A screen this account may not open (a shortcut, a link, a switched profile) falls back to its home screen.
