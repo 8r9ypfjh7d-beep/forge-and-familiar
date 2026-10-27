@@ -6,7 +6,7 @@ import { AdminPage } from './admin'
 import { Builder, EditCharacter } from './builder/Builder'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { DmScreen } from './dm'
-import { RequestsAgent, RequestsView } from './requests'
+import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
@@ -16,6 +16,7 @@ import { RulesQA } from './rulesqa'
 import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
 import { useI18n } from './i18n'
+import type { MessageKey } from './i18n/locales/en'
 import { AppNav } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
 import { StarterPicker } from './starters'
@@ -38,6 +39,8 @@ export default function App() {
   const [view, setView] = useState<View>(() => (getSession()?.role === 'dm' ? { kind: 'dm' } : { kind: 'list' }))
   const [leadsParty, setLeadsParty] = useState(false)
   const [diceOpen, setDiceOpen] = useState(false)
+  const [askEdit, setAskEdit] = useState<Character | null>(null)
+  const requests = useRequests()
   const mainRef = useFocusOnChange<HTMLElement>(JSON.stringify(view))
   const a11yDialog = useRef<HTMLDialogElement>(null)
   useShortcuts({
@@ -80,6 +83,14 @@ export default function App() {
   const admin = isAdmin(session?.id)
   const isDm = (session?.id === active?.id && session?.role === 'dm') || leadsParty || admin
 
+  // Players edit a character only with the DM's OK (one edit per approval). The DM and the admin edit freely.
+  const editsFreely = isDm
+  const editStateOf = (id: string): EditState => (editsFreely ? 'approved' : active ? editState(requests ?? [], active.id, id) : 'none')
+  const startEdit = (id: string) => {
+    if (editStateOf(id) === 'approved') setView({ kind: 'edit', id })
+    else setAskEdit(characters.find(c => c.id === id) ?? null)
+  }
+
   const addProfile = async (displayName: string) => {
     const p = { id: newId(), displayName }
     await saveProfile(p)
@@ -93,8 +104,10 @@ export default function App() {
   }
 
   // A request link opens the DM's Requests tab; an answer link opens the player's requests.
-  const openRequestLink = useCallback((type: 'request' | 'answer') => {
-    setView(type === 'request' ? { kind: 'dm', tab: 'requests' } : { kind: 'requests' })
+  // An answer to an edit request opens the character list, where Edit is now unlocked.
+  const openRequestLink = useCallback((s: Shared) => {
+    if (s.type === 'request') setView({ kind: 'dm', tab: 'requests' })
+    else setView(s.request.kind === 'edit' ? { kind: 'list' } : { kind: 'requests' })
   }, [])
 
   const onScreenId = 'id' in view ? view.id : undefined
@@ -106,6 +119,8 @@ export default function App() {
   return (
     <DiceProvider key={active.id} userId={active.id}>
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
+    {isDm && <DmRequestPopup onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
+    <EditRequestDialog key={askEdit?.id} character={askEdit} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
     <div className="app">
       <SkipLink />
       <AppNav
@@ -129,7 +144,8 @@ export default function App() {
             onNew={() => setView({ kind: 'build' })}
             onStarter={() => setView({ kind: 'starters' })}
             onOpen={id => setView({ kind: 'sheet', id })}
-            onEdit={id => setView({ kind: 'edit', id })}
+            editState={editStateOf}
+            onEdit={startEdit}
             onLevels={id => setView({ kind: 'levels', id })}
             onPrint={id => setView({ kind: 'print', id })}
             onImported={refresh}
@@ -157,6 +173,7 @@ export default function App() {
             characterId={view.id}
             onCancel={() => setView({ kind: 'list' })}
             onSaved={id => {
+              if (!editsFreely) updateRequests(l => spendEditPass(l, active.id, id))
               refresh()
               setView({ kind: 'sheet', id })
             }}
@@ -178,7 +195,7 @@ export default function App() {
         {view.kind === 'sheet' && (
           <CharacterSheet
             characterId={view.id}
-            onEdit={() => setView({ kind: 'edit', id: view.id })}
+            onEdit={() => startEdit(view.id)}
             onBack={() => {
               refresh()
               setView({ kind: 'list' })
@@ -248,12 +265,13 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
   )
 }
 
-function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, onLevels, onPrint, onImported, onDelete }: {
+function CharacterList({ owner, characters, onNew, onStarter, onOpen, editState, onEdit, onLevels, onPrint, onImported, onDelete }: {
   owner: UserProfile
   characters: Character[]
   onNew: () => void
   onStarter: () => void
   onOpen: (id: string) => void
+  editState: (id: string) => EditState
   onEdit: (id: string) => void
   onLevels: (id: string) => void
   onPrint: (id: string) => void
@@ -290,7 +308,7 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, on
                   <p className="muted small">{raceName(c.raceId, c.subraceId, c.rulesEdition)} · {classLine(c.classes)}</p>
                   <div className="row">
                     <button className="btn primary small" onClick={() => onOpen(c.id)}>{t('common.openSheet')}</button>
-                    <button className="btn small" onClick={() => onEdit(c.id)} aria-label={`${t('list.edit')}: ${c.name}`}>{t('list.edit')}</button>
+                    <button className="btn small" onClick={() => onEdit(c.id)} aria-label={`${t(EDIT_LABEL[editState(c.id)])}: ${c.name}`}>{t(EDIT_LABEL[editState(c.id)])}</button>
                     <button className="btn small" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
                     <button className="btn small" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
                     <ExportButton character={c} />
@@ -305,3 +323,5 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, on
     </section>
   )
 }
+
+const EDIT_LABEL: Record<EditState, MessageKey> = { approved: 'list.edit', pending: 'list.editRequested', none: 'list.askEdit' }

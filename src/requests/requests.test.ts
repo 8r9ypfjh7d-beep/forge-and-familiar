@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createCharacter, derive, type CharacterDraft } from '../rules'
 import {
   answered, codeFrom, decide, decodeShared, encodeShared, grantToCharacter, inbox, linkFor, markApplied, mergeShared, mine,
-  newRequest, pendingGrants, problems, reminders, setStoryNote, type RequestInput,
+  editState, newEditRequest, newRequest, openEditRequest, pendingGrants, problems, reminders, setStoryNote, spendEditPass, type RequestInput,
 } from './logic'
 
 const fighter = () => {
@@ -128,5 +128,27 @@ describe('request links', () => {
   it('story notes stay on the DM side', () => {
     const list = setStoryNote([req('r1')], 'r1', 'At the inn')
     expect(list[0].storyNote).toBe('At the inn')
+  })
+
+  it('lets a player edit once after the DM approves', () => {
+    const ask = newEditRequest({ fromId: 'acct-roy', fromName: 'Roy', characterId: 'c1', characterName: 'Thorin', details: ' Swap a skill ' }, 'e1', 'now')
+    expect(ask).toMatchObject({ kind: 'edit', title: 'Thorin', details: 'Swap a skill', status: 'pending' })
+    let list = [ask]
+    expect(editState(list, 'acct-roy', 'c1')).toBe('pending')
+    expect(openEditRequest(list, 'acct-roy', 'c1')?.id).toBe('e1')
+    expect(editState(list, 'acct-roy', 'c2')).toBe('none')
+    expect(editState(list, 'acct-tamir', 'c1')).toBe('none')
+
+    // The approval travels as an answer link, like any request.
+    const answer = decodeShared(encodeShared('answer', decide(list, 'e1', 'granted', 'later')[0]))!
+    list = mergeShared(list, answer).list
+    expect(editState(list, 'acct-roy', 'c1')).toBe('approved')
+    // An approved edit is never "granted" onto the sheet.
+    expect(pendingGrants(list, 'acct-roy')).toEqual([])
+    expect(grantToCharacter(fighter(), list[0], 'x')).toEqual(fighter())
+
+    list = spendEditPass(list, 'acct-roy', 'c1')
+    expect(editState(list, 'acct-roy', 'c1')).toBe('none')
+    expect(editState(decide([ask], 'e1', 'denied', 'later'), 'acct-roy', 'c1')).toBe('none')
   })
 })

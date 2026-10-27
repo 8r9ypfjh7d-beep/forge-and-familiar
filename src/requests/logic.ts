@@ -97,9 +97,40 @@ export const answered = (list: DmRequest[]) => list.filter(r => r.status === 'gr
 /** Player: their own requests, newest first. */
 export const mine = (list: DmRequest[], userId: string) => list.filter(r => r.fromId === userId).sort(newestFirst)
 
-/** Player: granted requests not yet added to their character. */
+/** Player: granted requests not yet added to their character. Edits are used in the builder instead. */
 export const pendingGrants = (list: DmRequest[], userId: string) =>
-  list.filter(r => r.fromId === userId && r.status === 'granted' && !r.applied)
+  list.filter(r => r.fromId === userId && r.kind !== 'edit' && r.status === 'granted' && !r.applied)
+
+// ---------- Edit permission ----------
+
+export type EditState = 'none' | 'pending' | 'approved'
+
+const editsFor = (list: DmRequest[], userId: string, characterId: string) =>
+  list.filter(r => r.kind === 'edit' && r.fromId === userId && r.characterId === characterId)
+
+/** Player: whether they may edit this character now (one approved, unused edit), are waiting, or must ask. */
+export function editState(list: DmRequest[], userId: string, characterId: string): EditState {
+  const own = editsFor(list, userId, characterId)
+  if (own.some(r => r.status === 'granted' && !r.applied)) return 'approved'
+  if (own.some(r => r.status === 'pending')) return 'pending'
+  return 'none'
+}
+
+/** The player's open edit request for this character, if any. */
+export const openEditRequest = (list: DmRequest[], userId: string, characterId: string) =>
+  editsFor(list, userId, characterId).find(r => r.status === 'pending')
+
+/** Saving an approved edit uses it up; the next edit needs a new OK. */
+export const spendEditPass = (list: DmRequest[], userId: string, characterId: string): DmRequest[] => {
+  const pass = editsFor(list, userId, characterId).find(r => r.status === 'granted' && !r.applied)
+  return pass ? markApplied(list, [pass.id]) : list
+}
+
+export function newEditRequest(
+  input: Pick<RequestInput, 'fromId' | 'fromName' | 'characterId' | 'characterName' | 'details'>, id: string, now: string,
+): DmRequest {
+  return newRequest({ ...input, kind: 'edit', title: input.characterName || '?' }, id, now)
+}
 
 export const markApplied = (list: DmRequest[], ids: string[]): DmRequest[] =>
   list.map(r => (ids.includes(r.id) ? { ...r, applied: true } : r))
@@ -109,6 +140,7 @@ export const markApplied = (list: DmRequest[], ids: string[]): DmRequest[] =>
  * becomes a custom action on the combat page (switchable under Effects), anything else goes in the notes.
  */
 export function grantToCharacter(c: Character, r: DmRequest, uid: string): Character {
+  if (r.kind === 'edit') return c
   const details = r.details.trim()
   const extra = r.extraDamage ? [r.extraDamage.damage, r.extraDamage.type].filter(Boolean).join(' ') : ''
   const action = (kind: CustomAction['kind'], withEffects: boolean): CustomAction => ({
@@ -194,7 +226,7 @@ function readMechanics(r: Record<string, unknown>): Mechanics {
 }
 
 const STATUSES: RequestStatus[] = ['pending', 'later', 'granted', 'denied']
-const KINDS: RequestKind[] = ['item', 'effect', 'ability', 'other']
+const KINDS: RequestKind[] = ['item', 'effect', 'ability', 'other', 'edit']
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '')
 
 /** Reads a code from a link. Returns null for anything that isn't a well-formed request. */
