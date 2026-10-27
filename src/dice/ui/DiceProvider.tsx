@@ -1,5 +1,5 @@
 // React bindings: one RollHistory per signed-in user, shared by every component that rolls.
-import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react'
 import { roll as rollNotation } from '../roll'
 import { localHistoryStorage, RollHistory } from '../history'
 import type { RollOptions, RollResult } from '../types'
@@ -30,6 +30,11 @@ export function DiceProvider({ userId, limit = 100, children }: { userId: string
       roll: (notation, opts) => add(rollNotation(notation, opts)),
     }
   }, [userId, limit])
+  useEffect(() => {
+    const synced = (e: Event) => { if ((e as CustomEvent<string>).detail === userId) value.history.reload() }
+    window.addEventListener('ff:rolls-synced', synced)
+    return () => window.removeEventListener('ff:rolls-synced', synced)
+  }, [userId, value])
   return (
     <DiceContext.Provider value={value}>
       {children}

@@ -19,6 +19,7 @@ grant usage on schema public, extensions to anon, authenticated;
 
 \ir ../migrations/20261027090000_foundation.sql
 \ir ../migrations/20261027091500_harden_helpers.sql
+\ir ../migrations/20261027100000_sync.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -92,6 +93,29 @@ select pg_temp.check((select count(*) from account_devices) = 4, 'admin sees eve
 update characters set data = '{"name":"Fixed"}' where id = 'c-roy';
 select pg_temp.check((select data->>'name' from characters where id = 'c-roy') = 'Fixed', 'admin edits a character');
 
+-- Sync: snapshots and rolls.
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+insert into snapshots (id, owner_id, character_id, data) values ('s-roy', 'acct-roy', 'c-roy', '{}');
+insert into rolls (id, owner_id, character_id, data, rolled_at) values ('r-roy', 'acct-roy', 'c-roy', '{}', now());
+insert into rolls (id, owner_id, data, rolled_at) values ('r-roy', 'acct-roy', '{}', now()) on conflict do nothing;
+select pg_temp.check((select count(*) from rolls) = 1, 'duplicate roll ignored');
+do $$ begin
+  insert into rolls (id, owner_id, data, rolled_at) values ('r-fake', 'acct-tamir', '{}', now());
+  raise exception 'FAILED: wrote a roll for someone else';
+exception when insufficient_privilege then raise notice 'ok: cannot write rolls as another owner';
+end $$;
+do $$ begin
+  insert into snapshots (id, owner_id, character_id, data) values ('s-fake', 'acct-tamir', 'x', '{}');
+  raise exception 'FAILED: wrote a snapshot for someone else';
+exception when insufficient_privilege then raise notice 'ok: cannot write snapshots as another owner';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select count(*) from snapshots) + (select count(*) from rolls) = 0, 'Tamir cannot read Roy''s snapshots or rolls');
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from snapshots) + (select count(*) from rolls) = 0, 'DM cannot read player snapshots or rolls');
+set test.uid = '00000000-0000-0000-0000-00000000000d';
+select pg_temp.check((select count(*) from snapshots) = 1 and (select count(*) from rolls) = 1, 'admin reads snapshots and rolls');
+
 -- Signed out: nothing.
 reset role;
 set role anon;
@@ -105,6 +129,11 @@ do $$ begin
   perform is_admin();
   raise exception 'FAILED: anon called is_admin';
 exception when insufficient_privilege then raise notice 'ok: anon cannot call the helpers';
+end $$;
+do $$ begin
+  perform * from rolls;
+  raise exception 'FAILED: anon read rolls';
+exception when insufficient_privilege then raise notice 'ok: anon cannot read rolls';
 end $$;
 reset role;
 select pg_temp.check(true, 'all RLS checks passed');

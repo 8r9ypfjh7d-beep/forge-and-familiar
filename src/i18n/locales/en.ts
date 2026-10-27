@@ -1363,6 +1363,14 @@ export const en = {
   'req.pop.notNow': 'Not now',
   'list.askEdit': 'Ask to edit',
   'list.editRequested': 'Edit requested',
+  // Cloud sync
+  'sync.syncing': 'Saving…',
+  'sync.idle': 'Saved to cloud',
+  'sync.offline': 'Offline',
+  'sync.error': 'Sync failed',
+  'sync.pending_one': '{count} change waiting',
+  'sync.pending': '{count} changes waiting',
+  'sync.title': 'Your characters save to the cloud and load on any device you sign in on. Changes made offline upload when you are back online.',
 } as const
 
 export type MessageKey = keyof typeof en

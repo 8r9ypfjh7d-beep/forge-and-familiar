@@ -52,6 +52,14 @@ export class RollHistory {
     return result
   }
 
+  /** Re-reads storage, e.g. after sync merged in rolls from another device. */
+  reload(): void {
+    const rolls = this.storage?.load()
+    if (!rolls) return
+    this.rolls = rolls.slice(0, this.limit)
+    this.listeners.forEach(fn => fn())
+  }
+
   clear(): void {
     this.rolls = []
     this.changed()

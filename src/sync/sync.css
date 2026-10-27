@@ -1,0 +1,8 @@
+.sync-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted, var(--ink)); white-space: nowrap; }
+.sync-dot { inline-size: 8px; block-size: 8px; border-radius: 50%; background: #3a9d5d; }
+.sync-syncing .sync-dot { background: var(--accent); animation: sync-pulse 1s ease-in-out infinite; }
+.sync-offline .sync-dot { background: #b8860b; }
+.sync-error .sync-dot { background: #c0392b; }
+@keyframes sync-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .sync-syncing .sync-dot { animation: none; } }
+.nav-player .sync-badge { margin-inline-start: 4px; }
