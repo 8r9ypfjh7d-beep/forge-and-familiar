@@ -13,22 +13,22 @@ describe('sheet modes', () => {
     for (const l of [story, combat]) {
       expect(l.top).toEqual(['summary', 'abilities'])
       expect(l.vitals).toEqual(['hp', 'rests'])
-      expect(l.columns[0]).toEqual(['spellCard', 'skills'])
+      expect(l.columns[0].at(-1)).toBe('skills')
     }
   })
 
   it('story mode: notes, attacks and inventory beside the shared widgets', () => {
-    expect(sheetLayout('story', { dying: false }).columns[1]).toEqual(['notes', 'attacks', 'inventory'])
-    for (const s of ['quickcast', 'resources', 'supplies', 'history', 'spells'] as const) expect(all('story')).not.toContain(s)
+    expect(sheetLayout('story', { dying: false }).columns).toEqual([['spellCard', 'skills'], ['notes', 'attacks', 'inventory']])
+    for (const s of ['resources', 'supplies', 'history', 'spells'] as const) expect(all('story')).not.toContain(s)
   })
 
-  it('combat mode: Roll20-style tabs beside the shared widgets, spell slots on the page', () => {
+  it('combat mode: Roll20-style tabs beside the skills, spells only in the Spells tab', () => {
     const l = sheetLayout('combat', { dying: false })
-    expect(l.columns[1]).toEqual(['tabs'])
+    expect(l.columns).toEqual([['skills'], ['tabs']])
     expect(Object.keys(l.tabs ?? {})).toEqual(['combat', 'spells', 'inventory', 'features', 'notes'])
     expect(l.tabs?.combat[0]).toBe('fight')
-    expect([...l.top, ...l.columns[0]]).toContain('spellCard')
-    expect(all('combat')).not.toContain('resources')
+    expect(l.tabs?.spells).toEqual(['spells'])
+    for (const s of ['spellCard', 'resources'] as const) expect(all('combat')).not.toContain(s)
   })
 
   it('death saves show only at 0 HP, first in both modes', () => {
@@ -38,12 +38,12 @@ describe('sheet modes', () => {
     expect(sheetLayout('combat', { dying: true }).top[0]).toBe('death')
   })
 
-  it('never shows a section twice, and both modes keep HP, rests, the Spells card, skills and notes', () => {
+  it('never shows a section twice, and both modes keep HP, rests, spells, skills and notes', () => {
     for (const mode of ['story', 'combat'] as const) {
       for (const dying of [false, true]) {
         const s = all(mode, dying)
         expect(new Set(s).size).toBe(s.length)
-        for (const need of ['hp', 'rests', 'spellCard', 'skills', 'notes'] as const) expect(s).toContain(need)
+        for (const need of ['hp', 'rests', mode === 'story' ? 'spellCard' : 'spells', 'skills', 'notes'] as const) expect(s).toContain(need)
       }
     }
   })

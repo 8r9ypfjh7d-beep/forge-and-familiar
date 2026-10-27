@@ -1,7 +1,6 @@
 import { useI18n } from '../i18n'
 import { ExportButton } from '../portability/ui'
 import type { Character } from '../model/character'
-import { QuickCastBar } from '../quickcast'
 import { Attacks } from './components/Attacks'
 import { DeathSaves } from './components/DeathSaves'
 import { HitPoints } from './components/HitPoints'
@@ -49,7 +48,6 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   const p = { character, apply }
   const section = (s: SheetSection) => {
     switch (s) {
-      case 'quickcast': return <QuickCastBar key={s} {...p} />
       case 'abilities': return <AbilitiesPanel key={s} character={character} />
       case 'spellCard': return <SpellsCard key={s} {...p} />
       case 'notes': return <Notes key={s} {...p} />

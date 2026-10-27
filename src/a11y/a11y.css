@@ -84,7 +84,6 @@ main:focus, main [tabindex="-1"]:focus { outline: none; }
 :root[data-contrast="high"] .ff-sheet .btn.heal,
 :root[data-contrast="high"] .ff-sheet .segmented button.on,
 :root[data-contrast="high"] .ff-sheet .portrait.placeholder,
-:root[data-contrast="high"] .qc-chip.on,
 :root[data-contrast="high"] .turn-slot.used .turn-box { color: var(--accent-ink); }
 :root[data-contrast="high"] .btn, :root[data-contrast="high"] .chip,
 :root[data-contrast="high"] input, :root[data-contrast="high"] select, :root[data-contrast="high"] textarea { border-width: 2px; }

@@ -1,4 +1,4 @@
-// The sheet's Spells card: the character's spells by level, and every spell their class can take from the library.
+// Combat's Spells tab: spell slots, the character's spells by level, and every spell their class can take from the library.
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { loadKind, searchEntries, type CharacterClass, type Edition, type SourceInfo, type Spell, type Subclass, BUNDLED } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
@@ -60,6 +60,7 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
           </select>
         </label>
       </div>
+      <SpellSlots character={character} apply={apply} />
       {lib === null && <p className="hint">{t('spells.loading')}</p>}
       {lib === 'error' && <p className="hint">{t('spells.failed')}</p>}
       {lib && lib !== 'error' && current && (
@@ -98,9 +99,8 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
 }
 
 /**
- * The sheet's Spells card, the same in story and combat mode: spell slots on top, then the pinned
- * spells (the same list as the combat quick-cast bar) with a picker over every spell their classes
- * can take (their own spells first).
+ * Story mode's Spells card: spell slots on top, then the pinned spells (they also show in combat's
+ * attacks table) with a picker over every spell their classes can take (their own spells first).
  */
 export function SpellsCard({ character, apply }: { character: Character; apply: Apply }) {
   const { t } = useI18n()
