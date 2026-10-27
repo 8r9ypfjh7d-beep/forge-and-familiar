@@ -2,9 +2,7 @@ import { useI18n } from '../i18n'
 import { ExportButton } from '../portability/ui'
 import type { Character } from '../model/character'
 import { QuickCastBar } from '../quickcast'
-import { ReactionReminders } from '../reactions'
 import { Attacks } from './components/Attacks'
-import { DEFAULT_THEME_ID, ThemePicker, useCharacterTheme } from '../themes'
 import { DeathSaves } from './components/DeathSaves'
 import { HitPoints } from './components/HitPoints'
 import { Resources } from './components/Resources'
@@ -12,7 +10,6 @@ import { Rests } from './components/Rests'
 import { Spellbook, SpellsCard } from '../spellbook'
 import { Inventory } from '../inventory'
 import { Supplies } from '../supplies/Supplies'
-import { TurnChecklist } from '../turn'
 import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
 import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './mode'
@@ -22,7 +19,6 @@ import './sheet.css'
 
 export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
   const { character, apply, undo, undoTo, redo, canRedo, log } = useLiveCharacter(characterId)
-  useCharacterTheme(character?.theme)
   const { t } = useI18n()
 
   if (character === undefined) return <div className="ff-sheet"><p className="hint">{t('common.loading')}</p></div>
@@ -61,8 +57,6 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'death': return <DeathSaves key={s} {...p} />
       case 'rests': return <Rests key={s} {...p} />
       case 'attacks': return <Attacks key={s} character={character} />
-      case 'turn': return <TurnChecklist key={s} character={character} />
-      case 'reactions': return <ReactionReminders key={s} {...p} />
       case 'spells': return <Spellbook key={s} {...p} />
       case 'inventory': return <Inventory key={s} {...p} />
       case 'resources': return <Resources key={s} {...p} />
@@ -77,7 +71,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   }
   return (
     <div className={`ff-sheet mode-${mode}`}>
-      <Header character={character} apply={apply} onBack={onBack} onEdit={onEdit} />
+      <Header character={character} onBack={onBack} onEdit={onEdit} />
       <ModeSwitch mode={mode} onChange={setMode} />
       {layout.top.map(section)}
       <div className="sheet-grid">
@@ -104,8 +98,8 @@ function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMo
   )
 }
 
-/** The character card below shows who the character is, so the header keeps only navigation and the theme. */
-function Header({ character, apply, onBack, onEdit }: { character: Character; apply: Apply; onBack: () => void; onEdit?: () => void }) {
+/** The character card below shows who the character is, so the header keeps only navigation, edit and export. */
+function Header({ character, onBack, onEdit }: { character: Character; onBack: () => void; onEdit?: () => void }) {
   const { t } = useI18n()
   return (
     <header className="sheet-header">
@@ -113,11 +107,6 @@ function Header({ character, apply, onBack, onEdit }: { character: Character; ap
       <div className="who"><span className="sr-only">{character.name}</span></div>
       {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
       <ExportButton character={character} />
-      <ThemePicker
-        value={character.theme}
-        classId={character.classes[0]?.classId}
-        onChange={(id, name) => apply(`Theme: ${name}`, c => ({ ...c, theme: id === DEFAULT_THEME_ID ? undefined : id }))}
-      />
     </header>
   )
 }

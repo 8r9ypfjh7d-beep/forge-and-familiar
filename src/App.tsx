@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './a11y'
 import { AccessibilityButton, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
 import { AccountBadge, ActivateScreen, activate, getSession, onSessionChanged, type Session } from './accounts'
 import { Builder, EditCharacter } from './builder/Builder'
-import { CoinsView } from './coins'
 import { CombatTracker } from './combat/ui/CombatTracker'
-import { CompareView } from './compare'
 import { DmScreen } from './dm'
 import { RequestsAgent, RequestsView } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
@@ -13,22 +11,17 @@ import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
 import { listParties, onPartiesChanged, PartyView } from './party'
-import { CompanionsView, deleteCompanionsFor } from './companions'
-import { RecapView, SessionRecorder } from './recap'
-import { deleteJournalFor, JournalView } from './notes'
 import { RulesQA } from './rulesqa'
 import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
-import { themeById } from './themes'
 import { LanguagePicker, useI18n } from './i18n'
 import { CharacterSheet } from './sheet/CharacterSheet'
-import { TableMode } from './table'
 import { StarterPicker } from './starters'
 import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'recap' } | { kind: 'rules' } | { kind: 'coins' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'companions'; id: string } | { kind: 'journal'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'compare'; id?: string } | { kind: 'table'; id: string }
+type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' }
 
 const newId = () => crypto.randomUUID()
 
@@ -110,7 +103,6 @@ export default function App() {
 
   return (
     <DiceProvider key={active.id} userId={active.id}>
-    <SessionRecorder userId={active.id} />
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <div className="app">
       <SkipLink />
@@ -122,8 +114,6 @@ export default function App() {
           {isDm && <button className={`chip ${view.kind === 'dm' ? 'on' : ''}`} aria-current={view.kind === 'dm' ? 'page' : undefined} onClick={() => setView({ kind: 'dm' })}>{t('app.dm')}</button>}
           <button className={`chip ${view.kind === 'homebrew' ? 'on' : ''}`} aria-current={view.kind === 'homebrew' ? 'page' : undefined} onClick={() => setView({ kind: 'homebrew' })}>{t('app.homebrew')}</button>
           <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} aria-current={view.kind === 'combat' ? 'page' : undefined} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
-          <button className={`chip ${view.kind === 'coins' ? 'on' : ''}`} aria-current={view.kind === 'coins' ? 'page' : undefined} onClick={() => setView({ kind: 'coins' })}>{t('app.coins')}</button>
-          <button className={`chip ${view.kind === 'recap' ? 'on' : ''}`} aria-current={view.kind === 'recap' ? 'page' : undefined} onClick={() => setView({ kind: 'recap' })}>{t('app.recap')}</button>
           <button className={`chip ${view.kind === 'rules' ? 'on' : ''}`} aria-current={view.kind === 'rules' ? 'page' : undefined} onClick={() => setView({ kind: 'rules' })}>{t('app.rules')}</button>
           <LanguagePicker />
           <AccessibilityButton dialogRef={a11yDialog} />
@@ -140,18 +130,12 @@ export default function App() {
             onStarter={() => setView({ kind: 'starters' })}
             onOpen={id => setView({ kind: 'sheet', id })}
             onEdit={id => setView({ kind: 'edit', id })}
-            onTable={id => setView({ kind: 'table', id })}
             onLevels={id => setView({ kind: 'levels', id })}
-            onCompanions={id => setView({ kind: 'companions', id })}
-            onJournal={id => setView({ kind: 'journal', id })}
             onPrint={id => setView({ kind: 'print', id })}
-            onCompare={id => setView({ kind: 'compare', id })}
             onImported={refresh}
             onDelete={async id => {
               await deleteCharacter(id)
               await deleteSnapshotsFor(id)
-              await deleteCompanionsFor(id)
-              await deleteJournalFor(id)
               refresh()
             }}
           />
@@ -212,32 +196,11 @@ export default function App() {
           />
         )}
         {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView({ kind: 'list' })} />}
-        {view.kind === 'compare' && (
-          <CompareView key={view.id} ownerId={active.id} characterId={view.id} onBack={() => setView({ kind: 'list' })} />
-        )}
-        {view.kind === 'table' && <TableMode characterId={view.id} onExit={() => { refresh(); setView({ kind: 'list' }) }} />}
-        {view.kind === 'companions' && (
-          <CompanionsView
-            characterId={view.id}
-            onOpenSheet={id => setView({ kind: 'sheet', id })}
-            onBack={() => setView({ kind: 'list' })}
-          />
-        )}
-        {view.kind === 'journal' && (
-          <JournalView
-            characterId={view.id}
-            userId={active.id}
-            onOpenSheet={id => setView({ kind: 'sheet', id })}
-            onBack={() => setView({ kind: 'list' })}
-          />
-        )}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'combat' && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
         {view.kind === 'dm' && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
         {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
-        {view.kind === 'coins' && <CoinsView userId={active.id} />}
-        {view.kind === 'recap' && <RecapView userId={active.id} />}
         {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}
       </main>
       <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen} />
@@ -277,19 +240,15 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
   )
 }
 
-function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, onTable, onLevels, onCompanions, onJournal, onPrint, onCompare, onImported, onDelete }: {
+function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, onLevels, onPrint, onImported, onDelete }: {
   owner: UserProfile
   characters: Character[]
   onNew: () => void
   onStarter: () => void
   onOpen: (id: string) => void
   onEdit: (id: string) => void
-  onTable: (id: string) => void
   onLevels: (id: string) => void
-  onCompanions: (id: string) => void
-  onJournal: (id: string) => void
   onPrint: (id: string) => void
-  onCompare: (id: string) => void
   onImported: () => void
   onDelete: (id: string) => void
 }) {
@@ -316,7 +275,7 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, on
         <div className="card-grid">
           {characters.map(c => {
             return (
-              <article key={c.id} className="panel char-card" style={themeStripe(c.theme)}>
+              <article key={c.id} className="panel char-card">
                 {c.portrait ? <img src={c.portrait} alt="" /> : <div className="portrait-empty small">{c.name.slice(0, 1)}</div>}
                 <div>
                   <h3>{c.name}</h3>
@@ -324,13 +283,9 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, on
                   <div className="row">
                     <button className="btn primary small" onClick={() => onOpen(c.id)}>{t('common.openSheet')}</button>
                     <button className="btn small" onClick={() => onEdit(c.id)} aria-label={`${t('list.edit')}: ${c.name}`}>{t('list.edit')}</button>
-                    <button className="btn small" onClick={() => onTable(c.id)}>{t('list.table')}</button>
                     <button className="btn small" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
-                    <button className="btn small" onClick={() => onCompanions(c.id)}>{t('list.companions')}</button>
-                    <button className="btn small" onClick={() => onJournal(c.id)}>{t('list.journal')}</button>
                     <button className="btn small" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
                     <ExportButton character={c} />
-                    <button className="btn small" onClick={() => onCompare(c.id)}>{t('list.compare')}</button>
                     <button className="btn ghost small" onClick={() => confirm(t('list.confirmDelete', { name: c.name })) && onDelete(c.id)}>{t('common.delete')}</button>
                   </div>
                 </div>
@@ -341,10 +296,4 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, onEdit, on
       )}
     </section>
   )
-}
-
-/** The character's theme accent as a stripe on the card's leading edge. */
-function themeStripe(id: string | undefined): CSSProperties | undefined {
-  const theme = themeById(id)
-  return theme ? { borderInlineStart: `4px solid ${theme.tokens.accent}` } : undefined
 }

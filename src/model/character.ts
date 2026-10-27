@@ -112,8 +112,6 @@ export interface Character {
   playerName: string
   alignment: string
   portrait?: string
-  /** Visual theme id from src/themes; missing or unknown means the app's default look. */
-  theme?: string
   /** Rules edition for the whole character: '2024' uses the SRD 5.2. Missing means 2014 (SRD 5.1). */
   rulesEdition?: '2024'
   raceId: string
