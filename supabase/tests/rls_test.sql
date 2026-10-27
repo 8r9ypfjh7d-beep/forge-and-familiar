@@ -22,6 +22,7 @@ grant usage on schema public, extensions to anon, authenticated;
 \ir ../migrations/20261027100000_sync.sql
 \ir ../migrations/20261027110000_dm_requests.sql
 \ir ../migrations/20261027120000_parties.sql
+\ir ../migrations/20261027130000_guard_grants.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
