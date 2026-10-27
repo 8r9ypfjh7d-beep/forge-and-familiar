@@ -1,11 +1,30 @@
 import { useEffect, useState } from 'react'
+import type { RollResult } from '../dice'
 import { RollView, useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
-import { mergePartyRolls, onMemberRollsChanged, readMemberRolls, type FeedEntry } from './feed'
+import { fetchPartyRolls, sendRoll, watchPartyRolls } from './cloud'
+import { mergePartyRolls, mergeRollLists, onMemberRollsChanged, readMemberRolls, type FeedEntry } from './feed'
 import type { Party } from './types'
 
+/**
+ * Mounted once in the app: sends each new sheet roll to the cloud right away, so party members see
+ * it in their feed within a second instead of at the next cloud sync.
+ */
+export function PartyRollRelay({ userId }: { userId: string }) {
+  const { history } = useDice()
+  useEffect(() => {
+    let newest = history.all()[0]?.id
+    return history.subscribe(() => {
+      const latest = history.all()[0]
+      if (!latest || latest.id === newest) return
+      newest = latest.id
+      if (!('secret' in latest && latest.secret)) void sendRoll(userId, latest).catch(() => {})
+    })
+  }, [history, userId])
+  return null
+}
 
-/** Live feed of the party's rolls. Updates when anyone rolls, here or in another tab. */
+/** Live feed of the party's rolls. Updates when anyone rolls: here, in another tab, or on another device. */
 export function RollFeed({ party, nameOf }: { party: Party; nameOf: (userId: string) => string }) {
   const { history } = useDice()
   const { t } = useI18n()
@@ -13,14 +32,22 @@ export function RollFeed({ party, nameOf }: { party: Party; nameOf: (userId: str
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
-    const load = () => {
-      setFeed(mergePartyRolls(party, Object.fromEntries(party.members.map(m => [m.userId, readMemberRolls(m.userId)]))))
+    let live = true
+    // Rolls from other devices come from the cloud; this device's own history fills in the rest.
+    let remote: Record<string, RollResult[]> = {}
+    const show = () => {
+      if (!live) return
+      setFeed(mergePartyRolls(party, Object.fromEntries(party.members.map(m =>
+        [m.userId, mergeRollLists(readMemberRolls(m.userId), remote[m.userId] ?? [])]))))
       setNow(Date.now())
     }
-    load()
-    const offOther = onMemberRollsChanged(load)
-    const offMine = history.subscribe(load)
-    return () => { offOther(); offMine() }
+    const fetchRemote = () => fetchPartyRolls(party.members.map(m => m.userId)).then(r => { remote = r; show() })
+    show()
+    fetchRemote()
+    const offOther = onMemberRollsChanged(show)
+    const offMine = history.subscribe(show)
+    const offCloud = watchPartyRolls(fetchRemote)
+    return () => { live = false; offOther(); offMine(); offCloud() }
   }, [party, history])
 
   useEffect(() => {

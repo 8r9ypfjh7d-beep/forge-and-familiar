@@ -1,6 +1,6 @@
 // Party roll feed: every member's rolls with the character they bring, newest first.
-// Reads each member's own dice history, so nothing is copied or stored twice. With a hosted
-// backend, readMemberRolls and onMemberRollsChanged become a subscription to the party's roll stream.
+// Reads each member's dice history on this device, plus (cloud parties) the rolls the server shares
+// with party members (RollFeed via cloud.ts fetchPartyRolls).
 import type { RollResult } from '../dice'
 import type { Party } from './types'
 
@@ -27,6 +27,13 @@ export function mergePartyRolls(party: Party, histories: Record<string, readonly
     }
   }
   return feed.sort((a, b) => b.roll.timestamp.localeCompare(a.roll.timestamp)).slice(0, limit)
+}
+
+/** One member's rolls from two sources (this device, the cloud), each roll once, newest first. */
+export function mergeRollLists(a: readonly RollResult[], b: readonly RollResult[]): RollResult[] {
+  const byId = new Map<string, RollResult>()
+  for (const r of [...a, ...b]) if (!byId.has(r.id)) byId.set(r.id, r)
+  return [...byId.values()].sort((x, y) => y.timestamp.localeCompare(x.timestamp))
 }
 
 export function readMemberRolls(userId: string): RollResult[] {

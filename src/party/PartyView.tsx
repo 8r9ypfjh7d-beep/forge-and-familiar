@@ -7,6 +7,7 @@ import { HandoutBadge, Handouts } from '../handouts'
 import { SessionScheduler } from '../schedule'
 import { vitals } from '../sheet/engine'
 import { getCharacter, listCharacters, listProfiles, onCharactersChanged } from '../storage'
+import { fetchAccountNames, fetchPartyCharacters, watchPartyCharacters } from './cloud'
 import { formatCode } from './code'
 import { PartyStash } from './PartyStash'
 import { RollFeed } from './RollFeed'
@@ -79,7 +80,7 @@ function JoinForm({ userId, onJoined }: { userId: string; onJoined: (partyId: st
   const submit = async () => {
     const res = await joinParty(code, userId, characterId || undefined)
     if (res.ok) onJoined(res.party.id)
-    else setError(t(res.reason === 'invalid' ? 'party.badCode' : 'party.noSuchCode'))
+    else setError(t(res.reason === 'invalid' ? 'party.badCode' : res.reason === 'offline' ? 'party.joinOffline' : 'party.noSuchCode'))
   }
 
   return (
@@ -113,6 +114,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
   const [profiles, setProfiles] = useState<UserProfile[]>([])
   const [characters, setCharacters] = useState<Record<string, Character | undefined>>({})
   const [mine, setMine] = useState<Character[]>([])
+  const [accountNames, setAccountNames] = useState<Record<string, string>>({})
   const [copied, setCopied] = useState(false)
   const { t } = useI18n()
 
@@ -123,20 +125,25 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
 
   useEffect(() => {
     let live = true
+    const ids = party.members.flatMap(m => (m.characterId ? [m.characterId] : []))
     const load = async () => {
-      const ids = party.members.flatMap(m => (m.characterId ? [m.characterId] : []))
       const list = await Promise.all(ids.map(getCharacter))
-      if (live) setCharacters(Object.fromEntries(ids.map((id, i) => [id, list[i]])))
+      // Other members' characters aren't on this device: read them from the cloud party.
+      const missing = ids.filter((_, i) => !list[i])
+      const remote = new Map((await fetchPartyCharacters(missing)).map(c => [c.id, c]))
+      if (live) setCharacters(Object.fromEntries(ids.map((id, i) => [id, list[i] ?? remote.get(id)])))
     }
     load()
     listProfiles().then(p => { if (live) setProfiles(p) })
+    fetchAccountNames().then(n => { if (live) setAccountNames(n) })
     listCharacters(userId).then(l => { if (live) setMine(l) })
     const off = onCharactersChanged(load)
-    return () => { live = false; off() }
+    const offRemote = watchPartyCharacters(ids, load)
+    return () => { live = false; off(); offRemote() }
   }, [party.members, userId])
 
   const me = party.members.find(m => m.userId === userId)
-  const nameOf = (id: string) => profiles.find(p => p.id === id)?.displayName ?? t('party.unknownPlayer')
+  const nameOf = (id: string) => profiles.find(p => p.id === id)?.displayName ?? accountNames[id] ?? t('party.unknownPlayer')
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(formatCode(party.code))

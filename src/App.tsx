@@ -11,7 +11,7 @@ import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
-import { listParties, onPartiesChanged, PartyView } from './party'
+import { listParties, onPartiesChanged, PartyRollRelay, PartyView } from './party'
 import { RulesQA } from './rulesqa'
 import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
@@ -124,6 +124,7 @@ export default function App() {
   return (
     <DiceProvider key={active.id} userId={active.id}>
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
+    <PartyRollRelay userId={active.id} />
     {isDm && <DmRequestPopup onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
     <EditRequestDialog key={askEdit?.id} character={askEdit} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
     <div className="app">
