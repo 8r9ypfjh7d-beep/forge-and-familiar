@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './a11y'
 import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
-import { AccountBadge, ActivateScreen, activate, getSession, onSessionChanged, type Session } from './accounts'
+import { AccountBadge, ActivateScreen, activate, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
+import { AdminPage } from './admin'
 import { Builder, EditCharacter } from './builder/Builder'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { DmScreen } from './dm'
@@ -22,7 +23,7 @@ import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, saveCharacter, saveProfile, setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' }
+type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
 
 const newId = () => crypto.randomUUID()
 
@@ -75,7 +76,9 @@ export default function App() {
     check()
     return onPartiesChanged(check)
   }, [active])
-  const isDm = (session?.id === active?.id && session?.role === 'dm') || leadsParty
+  // The admin account (Ziv) sees the admin page and the DM screen, whichever profile is open.
+  const admin = isAdmin(session?.id)
+  const isDm = (session?.id === active?.id && session?.role === 'dm') || leadsParty || admin
 
   const addProfile = async (displayName: string) => {
     const p = { id: newId(), displayName }
@@ -111,6 +114,7 @@ export default function App() {
         playerName={active.displayName}
         isDm={isDm}
         dmAccount={session?.role === 'dm'}
+        admin={admin}
         dmBadge={session?.id === active.id && <AccountBadge session={session} />}
         onAccessibility={() => a11yDialog.current?.showModal()}
       >
@@ -197,6 +201,14 @@ export default function App() {
         {view.kind === 'dm' && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
         {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
+        {view.kind === 'admin' && admin && (
+          <AdminPage
+            onOpenAs={async id => { setProfiles(await listProfiles()); switchProfile(id) }}
+            onOpenSheet={id => setView({ kind: 'sheet', id })}
+            onEdit={id => setView({ kind: 'edit', id })}
+            onOpenDm={() => setView({ kind: 'dm' })}
+          />
+        )}
         {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}
       </main>
       <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen} />

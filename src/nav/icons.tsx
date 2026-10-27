@@ -9,6 +9,7 @@ const PATHS: Record<NavKey | 'more', string> = {
   dm: 'M3 6l9-3 9 3v6c0 5-4 8-9 9-5-1-9-4-9-9zM9 12l2 2 4-4',
   homebrew: 'M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M7 15h10',
   rules: 'M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11',
+  admin: 'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
 }
 

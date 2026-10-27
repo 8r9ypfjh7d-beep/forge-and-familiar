@@ -38,6 +38,11 @@ export async function listCharacters(ownerId: string): Promise<Character[]> {
   return readCharacters().filter(c => c.ownerId === ownerId)
 }
 
+/** Every character on this device, whoever owns it (the admin page). */
+export async function listAllCharacters(): Promise<Character[]> {
+  return readCharacters()
+}
+
 export async function getCharacter(id: string): Promise<Character | undefined> {
   return readCharacters().find(c => c.id === id)
 }

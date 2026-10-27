@@ -1,0 +1,10 @@
+/* Admin page, scoped to .ff-admin. Uses the app tokens from index.css. */
+.ff-admin { display: grid; gap: 12px; }
+.ff-admin .admin-note { margin: 0; background: var(--accent-soft); border-color: var(--accent); }
+.ff-admin .panel { overflow-x: auto; }
+.ff-admin .admin-table { width: 100%; border-collapse: collapse; margin-block: 8px; }
+.ff-admin .admin-table th { text-align: start; font-weight: 600; font-size: 0.85rem; color: var(--muted); }
+.ff-admin .admin-table th, .ff-admin .admin-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ff-admin .admin-table td .row { flex-wrap: wrap; gap: 6px; }
+.ff-admin .admin-table select { max-width: 12em; }
+.ff-admin [role='alert'] { margin: 0; }

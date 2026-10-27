@@ -7,7 +7,7 @@ Personal activation codes for the group, so each friend signs in as themselves a
 | File | Purpose |
 |------|---------|
 | `types.ts` | `Account` (id, name, role `player` or `dm`), `Session` |
-| `roster.ts` | `ROSTER`: the group's accounts with SHA-256 hashes of their codes |
+| `roster.ts` | `ROSTER`: the group's accounts with SHA-256 hashes of their codes; `isAdmin(id)` for the admin flag |
 | `codes.ts` | `normalizeActivationCode`, `hashActivationCode`, `findInRoster` (pure apart from Web Crypto) |
 | `session.ts` | `activate(code)`, `getSession()`, `onSessionChanged` (localStorage `ff.account.v1`) |
 | `ui.tsx` | `ActivateScreen` (front door on a new device), `CodeForm`, `AccountBadge` (DM badge in the top bar) |
@@ -19,7 +19,7 @@ Personal activation codes for the group, so each friend signs in as themselves a
 - A new device opens on the activation screen. A valid code creates the friend's profile with their fixed account id (`acct-roy`...) and makes it active, so characters they build are owned by that id.
 - "No code? Use this device only" keeps the old local-profile flow. Devices with profiles already never see the screen; the player picker has "Enter activation code…" to add an account there.
 - Codes are typed loosely (case, spaces and dashes ignored). Only hashes are in the code, so the published site doesn't list them.
-- `getSession()?.role === 'dm'` is how other modules tell the DM apart.
+- `getSession()?.role === 'dm'` is how other modules tell the DM apart. `isAdmin(getSession()?.id)` marks the admin (Ziv), who gets the admin page (`src/admin/ADMIN.md`).
 
 ## Adding a friend
 
