@@ -190,3 +190,13 @@ export function deviceOnly(local: Character[], server: Pick<CharacterRow, 'id'>[
   const ids = new Set(server.map(c => c.id))
   return local.filter(c => !ids.has(c.id))
 }
+
+/**
+ * True when this device's copy of a character was edited after the server's and differs from it,
+ * so the admin can send it up. Sync only uploads the signed-in account's own characters.
+ */
+export function hasUnsentEdits(local: Character | undefined, server: Pick<CharacterRow, 'data' | 'updated_at'>): boolean {
+  if (!local?.updatedAt || local.updatedAt <= server.updated_at) return false
+  const strip = (c: Character) => JSON.stringify({ ...c, updatedAt: undefined })
+  return strip(local) !== strip(server.data)
+}

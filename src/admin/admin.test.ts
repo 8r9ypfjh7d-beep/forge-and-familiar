@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isAdmin } from '../accounts/roster'
-import { buildBackup, cloudPeople, describeKey, deviceOnly, keyRows, parseBackup, people, restorePlan } from './logic'
+import { buildBackup, cloudPeople, describeKey, deviceOnly, hasUnsentEdits, keyRows, parseBackup, people, restorePlan } from './logic'
 
 describe('admin', () => {
   it('makes only Ziv the admin, by account id', () => {
@@ -89,5 +89,13 @@ describe('admin', () => {
   it('finds characters the server does not have', () => {
     const local = [{ id: 'c1' }, { id: 'c2' }] as Parameters<typeof deviceOnly>[0]
     expect(deviceOnly(local, [{ id: 'c1' }]).map(c => c.id)).toEqual(['c2'])
+  })
+
+  it('offers to send edits only when this device saved a different, newer copy', () => {
+    const server = { data: { id: 'c', name: 'A', updatedAt: '2026-10-01' } as Parameters<typeof hasUnsentEdits>[0] & object, updated_at: '2026-10-02' }
+    expect(hasUnsentEdits(undefined, server)).toBe(false)
+    expect(hasUnsentEdits({ ...server.data, updatedAt: '2026-10-01' }, server)).toBe(false)
+    expect(hasUnsentEdits({ ...server.data, updatedAt: '2026-10-03' }, server)).toBe(false)
+    expect(hasUnsentEdits({ ...server.data, name: 'B', updatedAt: '2026-10-03' }, server)).toBe(true)
   })
 })

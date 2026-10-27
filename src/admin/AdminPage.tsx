@@ -9,9 +9,9 @@ import {
   deleteCharacter, listAllCharacters, listProfiles, onCharactersChanged, saveCharacter, saveProfile,
 } from '../storage'
 import {
-  deleteCloudCharacter, deleteCloudDm, loadCloud, moveCloudCharacter, unlinkCloudDevice, watchCloud, type CloudData,
+  deleteCloudCharacter, deleteCloudDm, loadCloud, moveCloudCharacter, pushCloudCharacter, unlinkCloudDevice, watchCloud, type CloudData,
 } from './cloud'
-import { buildBackup, cloudPeople, deviceOnly, keyRows, parseBackup, people } from './logic'
+import { buildBackup, cloudPeople, deviceOnly, hasUnsentEdits, keyRows, parseBackup, people } from './logic'
 import { readDevice, removeKey, restoreDevice } from './store'
 import './admin.css'
 
@@ -222,6 +222,14 @@ function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChang
                   <td className="small">{date(row.updated_at)}</td>
                   <td>
                     <div className="row">
+                      {hasUnsentEdits(onDevice(row.id), row) && (
+                        <button
+                          className="btn primary small"
+                          disabled={busy}
+                          title={t('admin.sendEditsHint')}
+                          onClick={() => void act(() => pushCloudCharacter(row, onDevice(row.id)!))}
+                        >{t('admin.sendEdits')}</button>
+                      )}
                       <button className="btn primary small" onClick={async () => { await bringHere(row); onOpenSheet(row.id) }}>{t('common.openSheet')}</button>
                       <button className="btn small" onClick={async () => { await bringHere(row); onEdit(row.id) }}>{t('list.edit')}</button>
                       <button

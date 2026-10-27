@@ -1340,6 +1340,8 @@ const messages: Messages = {
   'admin.key.dmPending': 'שינויים במסך השה"מ שעוד לא נשלחו',
   'admin.key.cloud': 'קישור לחשבון בשרת',
   'admin.key.cloudAuth': 'חיבור לשרת (לא נכנס לגיבוי)',
+  'admin.sendEdits': 'לשלוח את השינויים שלי',
+  'admin.sendEditsHint': 'שיניתם את הדמות הזאת במכשיר הזה. שלחו את השינויים לשרת כדי שהבעלים יקבלו אותם.',
   'admin.key.other': 'הגדרה',
   'req.kind.edit': 'עריכה',
   'req.kindHint.edit': 'מאפשר לשחקן לשנות את הדמות בבונה, פעם אחת.',

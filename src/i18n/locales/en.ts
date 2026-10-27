@@ -1339,6 +1339,8 @@ export const en = {
   'admin.key.dmPending': 'DM screen changes not sent yet',
   'admin.key.cloud': 'Server account link',
   'admin.key.cloudAuth': 'Server sign-in (never backed up)',
+  'admin.sendEdits': 'Send my changes',
+  'admin.sendEditsHint': 'You changed this character on this device. Send the changes to the server so its owner gets them.',
   'admin.key.other': 'Setting',
   'req.kind.edit': 'Edit',
   'req.kindHint.edit': 'Lets the player change the character in the builder, once.',

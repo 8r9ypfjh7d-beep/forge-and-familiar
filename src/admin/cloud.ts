@@ -76,6 +76,10 @@ async function writeCharacter(row: CharacterRow, change: Partial<Pick<CharacterR
 export const moveCloudCharacter = (row: CharacterRow, ownerId: string) =>
   writeCharacter(row, { owner_id: ownerId, data: { ...row.data, ownerId } })
 
+/** Sends the admin's edits to someone else's character (their own sheets sync by themselves, see src/sync). */
+export const pushCloudCharacter = (row: CharacterRow, data: CharacterRow['data']) =>
+  writeCharacter(row, { data: { ...data, ownerId: row.owner_id } })
+
 /** Marks it deleted, so every device drops it on its next sync. */
 export const deleteCloudCharacter = (row: CharacterRow) => writeCharacter(row, { deleted: true })
 

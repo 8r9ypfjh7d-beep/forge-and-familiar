@@ -6,8 +6,8 @@ A page for the group's admin account (Ziv, `acct-ziv`) to see and manage everyon
 
 | File | Purpose |
 |------|---------|
-| `logic.ts` | Pure: `describeKey`, `keyRows`, `buildBackup` / `parseBackup` / `restorePlan`, `people` (roster + profiles + character counts), `cloudPeople` (server accounts + devices + characters + DM screen), `deviceOnly` |
-| `cloud.ts` | Server side: `loadCloud`, `watchCloud` (realtime), `moveCloudCharacter`, `deleteCloudCharacter` (tombstone), `deleteCloudDm`, `unlinkCloudDevice` |
+| `logic.ts` | Pure: `describeKey`, `keyRows`, `buildBackup` / `parseBackup` / `restorePlan`, `people` (roster + profiles + character counts), `cloudPeople` (server accounts + devices + characters + DM screen), `deviceOnly`, `hasUnsentEdits` |
+| `cloud.ts` | Server side: `loadCloud`, `watchCloud` (realtime), `moveCloudCharacter`, `pushCloudCharacter`, `deleteCloudCharacter` (tombstone), `deleteCloudDm`, `unlinkCloudDevice` |
 | `store.ts` | Raw localStorage access for `ff.*` keys: `readDevice`, `removeKey`, `restoreDevice` |
 | `AdminPage.tsx` | Tabs: People (open the app as anyone; on the server also devices and Sign out), Characters (open, edit, move owner, delete), DM requests (change status, delete), DM screens (server only), Device data (every key, backup, restore, delete) |
 | `admin.css` | Styles, scoped to `.ff-admin` |
@@ -25,7 +25,7 @@ A page for the group's admin account (Ziv, `acct-ziv`) to see and manage everyon
 - `getCloudStatus() === 'linked'` switches People and Characters to the server and adds DM screens. The access rules let only the admin read everyone (`is_admin()` in `supabase/migrations`), so no extra checks are needed here.
 - `watchCloud` reloads on any change to `characters` or `dm_state`. Requests come from src/requests, which owns its own sync.
 - Character writes are conditional on `rev`; a failed one shows `admin.serverFailed` and reloads. Delete sets `deleted` so devices drop it on their next sync.
-- Open sheet / Edit copy the server's character to this device first when it is newer, because the sheet reads the device store.
+- Open sheet / Edit copy the server's character to this device first when it is newer, because the sheet reads the device store. src/sync uploads only the signed-in account's own characters, so after the admin edits someone else's, "Send my changes" (`hasUnsentEdits`, `pushCloudCharacter`) puts them on the server.
 - Characters on this device that the server lacks are listed under "Only on this device".
 - Backups never include `ff.supabase.auth`; restore keeps it and `ff.cloud.v1`, so the admin stays signed in.
 
