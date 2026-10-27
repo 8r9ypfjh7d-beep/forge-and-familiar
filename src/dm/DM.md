@@ -8,7 +8,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 |------|---------|
 | `types.ts` | `DmState` (party groups, encounter plans, NPCs), `emptyDmState` |
 | `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters`, NPC generator with an injected picker, `normalizeDm` |
-| `store.ts` | `loadDm` / `saveDm`, localStorage `ff.dm.v1.<userId>` |
+| `store.ts` | `loadDm` / `syncDm` / `saveDm` / `onDmChanged`: device cache `ff.dm.v1.<userId>` synced with Supabase `dm_state` |
 | `DmScreen.tsx` | Top card (party and budget tiles), story reminders (src/requests), and tabs: Encounters, Monsters, Quick rules, NPCs, Requests |
 | `dm.css` | Styles; the page sits inside `.ff-sheet` so cards, tabs and titles match the sheet |
 | `dm.test.ts` | Budget, difficulty, plans, hand-off, search and generator tests |
@@ -23,8 +23,10 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 - **Player requests.** Story reminders card and the Requests tab come from src/requests (see REQUESTS.md).
 - **NPCs.** Generator picks a made-up name plus a translated role, quirk and want (`dm.npc.*`, sizes in `NPC_TABLES`). Kept NPCs are editable text.
 
+- **Sync.** When the device is signed in to the server as that account (or as the admin), `store.ts` keeps the `dm_state` row in step: `loadDm` returns the device copy at once, `syncDm` reconciles (`pickDm`: unsent edits on this device win, else the server copy), `saveDm` writes locally and pushes after a short pause, `onDmChanged` applies other devices' saves live. `ff.dm.pending.v1.<userId>` marks unsent edits, so offline changes go up on the next save or open.
+
 ## Known tasks
 
 - **Add a reference panel:** add its keys to both locales and a `RefCard` in `ReferenceTab`.
 - **Grow the NPC tables:** add `dm.npc.<table>.<n>` keys in both locales and raise `NPC_TABLES`; the test checks they match.
-- **Backend later:** keep the `store.ts` API; DM data is private to the DM.
+- **Change what syncs:** `store.ts` owns it. DM data is private to the DM (and the admin); the DM screen never reads players' characters.

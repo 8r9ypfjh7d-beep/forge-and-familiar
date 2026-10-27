@@ -1,10 +1,13 @@
 // Admin page helpers. Pure: callers pass in the device's saved entries.
+import type { AccountRow, CharacterRow, DmStateRow } from '../cloud/types'
 import type { Character, UserProfile } from '../model/character'
 
 /** Every app key starts with this; other sites' data on the same origin is left alone. */
 export const APP_PREFIX = 'ff.'
-/** Kept on restore, so restoring a backup never signs the admin out. */
-export const KEEP_ON_RESTORE = ['ff.account.v1']
+/** Kept on restore, so restoring a backup never signs the admin out (here or on the server). */
+export const KEEP_ON_RESTORE = ['ff.account.v1', 'ff.cloud.v1', 'ff.supabase.auth']
+/** This browser's server sign-in; never put in a backup file. */
+export const NEVER_BACKED_UP = ['ff.supabase.auth']
 
 export interface SavedEntry {
   key: string
@@ -29,6 +32,9 @@ const KINDS: [prefix: string, kind: string][] = [
   ['ff.account.v1', 'account'],
   ['ff.requests.v1', 'requests'],
   ['ff.dm.v1.', 'dm'],
+  ['ff.dm.pending.v1.', 'dmPending'],
+  ['ff.cloud.v1', 'cloud'],
+  ['ff.supabase.auth', 'cloudAuth'],
   ['ff.parties.v1', 'parties'],
   ['ff.encounters.v1', 'encounters'],
   ['ff.homebrew.v1', 'homebrew'],
@@ -75,7 +81,7 @@ export interface Backup {
 
 export function buildBackup(entries: SavedEntry[], now: string): Backup {
   const data: Record<string, string> = {}
-  for (const e of entries) if (e.key.startsWith(APP_PREFIX)) data[e.key] = e.value
+  for (const e of entries) if (e.key.startsWith(APP_PREFIX) && !NEVER_BACKED_UP.includes(e.key)) data[e.key] = e.value
   return { app: 'forge-and-familiar', kind: 'device-backup', version: 1, createdAt: now, data }
 }
 
@@ -93,7 +99,7 @@ export function parseBackup(text: string): Backup | null {
   if (!b.data || typeof b.data !== 'object') return null
   const data: Record<string, string> = {}
   for (const [k, val] of Object.entries(b.data)) {
-    if (k.startsWith(APP_PREFIX) && typeof val === 'string') data[k] = val
+    if (k.startsWith(APP_PREFIX) && !NEVER_BACKED_UP.includes(k) && typeof val === 'string') data[k] = val
   }
   return { app: b.app, kind: b.kind, version: 1, createdAt: String(b.createdAt ?? ''), data }
 }
@@ -138,4 +144,59 @@ export function people(
   const orphans: Person[] = [...new Set(characters.map(c => c.ownerId).filter(id => !known.has(id)))]
     .map(id => ({ id, name: id, account: false, local: false, characters: count(id) }))
   return [...fromRoster, ...others, ...orphans]
+}
+
+export interface CloudPerson {
+  id: string
+  name: string
+  role: 'player' | 'dm'
+  admin: boolean
+  /** Browsers signed in to this account, newest first. */
+  devices: { userId: string; linkedAt: string }[]
+  characters: number
+  /** When the account's DM screen was last saved on the server, if it has one. */
+  dmSavedAt?: string
+  /** Latest save of any of their characters. */
+  lastSaved?: string
+}
+
+/** One row per server account: devices, characters and DM screen. */
+export function cloudPeople(
+  accounts: AccountRow[],
+  devices: { user_id: string; account_id: string; linked_at: string }[],
+  characters: Pick<CharacterRow, 'owner_id' | 'updated_at' | 'deleted'>[],
+  dm: Pick<DmStateRow, 'account_id' | 'updated_at'>[],
+): CloudPerson[] {
+  return accounts.map(a => {
+    const mine = characters.filter(c => c.owner_id === a.id && !c.deleted)
+    const lastSaved = mine.map(c => c.updated_at).sort().at(-1)
+    return {
+      id: a.id,
+      name: a.name,
+      role: a.role,
+      admin: a.is_admin,
+      devices: devices.filter(d => d.account_id === a.id)
+        .sort((x, y) => y.linked_at.localeCompare(x.linked_at))
+        .map(d => ({ userId: d.user_id, linkedAt: d.linked_at })),
+      characters: mine.length,
+      dmSavedAt: dm.find(d => d.account_id === a.id)?.updated_at,
+      lastSaved,
+    }
+  })
+}
+
+/** Characters saved on this device that the server doesn't have (not signed in when made, or not synced yet). */
+export function deviceOnly(local: Character[], server: Pick<CharacterRow, 'id'>[]): Character[] {
+  const ids = new Set(server.map(c => c.id))
+  return local.filter(c => !ids.has(c.id))
+}
+
+/**
+ * True when this device's copy of a character was edited after the server's and differs from it,
+ * so the admin can send it up. Sync only uploads the signed-in account's own characters.
+ */
+export function hasUnsentEdits(local: Character | undefined, server: Pick<CharacterRow, 'data' | 'updated_at'>): boolean {
+  if (!local?.updatedAt || local.updatedAt <= server.updated_at) return false
+  const strip = (c: Character) => JSON.stringify({ ...c, updatedAt: undefined })
+  return strip(local) !== strip(server.data)
 }

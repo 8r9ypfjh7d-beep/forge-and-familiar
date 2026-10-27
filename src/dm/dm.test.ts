@@ -3,7 +3,7 @@ import { en } from '../i18n/locales/en'
 import { loadKind } from '../content'
 import {
   activePlan, addMonster, addPlan, changeCount, crLabel, difficulty, findMonsters, normalizeDm, NPC_TABLES,
-  partyBudget, partySize, planCombatants, planEntry, planXp, randomName, randomNpc, removePlan, XP_BUDGET,
+  partyBudget, partySize, pickDm, planCombatants, planEntry, planXp, randomName, randomNpc, removePlan, XP_BUDGET,
 } from './logic'
 import { emptyDmState, type EncounterPlan } from './types'
 
@@ -86,5 +86,19 @@ describe('NPC generator', () => {
       for (let i = 0; i < size; i++) expect(en).toHaveProperty(`dm.npc.${kind}.${i}`)
       expect(en).not.toHaveProperty(`dm.npc.${kind}.${size}`)
     }
+  })
+})
+
+describe('DM sync', () => {
+  const local = { ...emptyDmState(), npcs: [{ id: 'n', name: 'Local', role: '', notes: '' }] }
+  const server = { ...emptyDmState(), npcs: [{ id: 'n', name: 'Server', role: '', notes: '' }] }
+  it('keeps unsent edits from this device and sends them', () => {
+    expect(pickDm(local, true, server)).toEqual({ state: local, push: true })
+  })
+  it('takes the server copy otherwise', () => {
+    expect(pickDm(local, false, server)).toEqual({ state: server, push: false })
+  })
+  it('uploads this device copy when the server has none yet', () => {
+    expect(pickDm(local, false, null)).toEqual({ state: local, push: true })
   })
 })
