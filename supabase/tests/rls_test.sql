@@ -16,17 +16,21 @@ grant usage on schema auth to anon, authenticated;
 create schema extensions;
 create publication supabase_realtime;
 grant usage on schema public, extensions to anon, authenticated;
+-- Like Supabase, new tables start with every privilege for anon and authenticated.
+alter default privileges in schema public grant all on tables to anon, authenticated;
 
 \ir ../migrations/20261027090000_foundation.sql
 \ir ../migrations/20261027091500_harden_helpers.sql
 \ir ../migrations/20261027100000_sync.sql
 \ir ../migrations/20261027110000_dm_requests.sql
+\ir ../migrations/20261027113000_security_hardening.sql
 \ir ../migrations/20261027120000_parties.sql
 \ir ../migrations/20261027130000_guard_grants.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
-  ('00000000-0000-0000-0000-00000000000c'), ('00000000-0000-0000-0000-00000000000d');
+  ('00000000-0000-0000-0000-00000000000c'), ('00000000-0000-0000-0000-00000000000d'),
+  ('00000000-0000-0000-0000-00000000000e'), ('00000000-0000-0000-0000-00000000000f');
 
 create function pg_temp.check(ok boolean, what text) returns void language plpgsql as $$
 begin
@@ -40,11 +44,14 @@ select pg_temp.check(
     = 'b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78',
   'code normalization and hash match the app');
 
--- Give two accounts test codes we know.
-update accounts set code_hash = encode(extensions.digest('ROYTEST', 'sha256'), 'hex') where id = 'acct-roy';
-update accounts set code_hash = encode(extensions.digest('TAMIRTEST', 'sha256'), 'hex') where id = 'acct-tamir';
-update accounts set code_hash = encode(extensions.digest('ZIVTEST', 'sha256'), 'hex') where id = 'acct-ziv';
-update accounts set code_hash = encode(extensions.digest('NOATEST', 'sha256'), 'hex') where id = 'acct-noa';
+-- Give accounts test codes we know, stored like the hardening migration: bcrypt(sha256 hex).
+create function pg_temp.code(c text) returns text language sql as
+  $$ select extensions.crypt(encode(extensions.digest(c, 'sha256'), 'hex'), extensions.gen_salt('bf', 4)) $$;
+update accounts set code_hash = pg_temp.code('ROYTEST') where id = 'acct-roy';
+update accounts set code_hash = pg_temp.code('TAMIRTEST') where id = 'acct-tamir';
+update accounts set code_hash = pg_temp.code('ZIVTEST') where id = 'acct-ziv';
+update accounts set code_hash = pg_temp.code('NOATEST') where id = 'acct-noa';
+select pg_temp.check((select count(*) from accounts where code_hash like '$2a$%') = 5, 'every code_hash is bcrypt');
 
 set role authenticated;
 
@@ -79,7 +86,29 @@ select pg_temp.check((select id from claim_account('TAMIRTEST')) = 'acct-tamir',
 select pg_temp.check((select count(*) from characters) = 0, 'Tamir cannot read Roy''s characters');
 select pg_temp.check((select count(*) from dm_state) = 0, 'Tamir cannot read Roy''s DM data');
 update characters set data = '{}' where id = 'c-roy';
+delete from characters where id = 'c-roy';
+delete from account_devices where user_id = '00000000-0000-0000-0000-00000000000a';
 select pg_temp.check((select count(*) from account_devices) = 1, 'Tamir sees only his own device link');
+do $$ begin
+  insert into dm_state (account_id, data) values ('acct-roy', '{}') on conflict (account_id) do update set data = '{}';
+  raise exception 'FAILED: overwrote Roy''s DM data';
+exception when insufficient_privilege then raise notice 'ok: cannot upsert over another account''s row';
+end $$;
+do $$ begin
+  update account_devices set account_id = 'acct-ziv';
+  raise exception 'FAILED: relinked a device to Ziv';
+exception when insufficient_privilege then raise notice 'ok: cannot relink a device without a code';
+end $$;
+do $$ begin
+  update accounts set is_admin = true where id = 'acct-tamir';
+  raise exception 'FAILED: made himself admin';
+exception when insufficient_privilege then raise notice 'ok: cannot grant himself admin';
+end $$;
+do $$ begin
+  truncate characters, dm_requests;
+  raise exception 'FAILED: truncated characters';
+exception when insufficient_privilege then raise notice 'ok: cannot truncate tables';
+end $$;
 
 -- Device c: Noa (DM) has no extra access to sheets.
 set test.uid = '00000000-0000-0000-0000-00000000000c';
@@ -206,6 +235,45 @@ select pg_temp.check((select dm_id from parties where id = 'p-1') = 'acct-tamir'
 select leave_party('p-1');
 reset role;
 select pg_temp.check((select count(*) from parties) = 0, 'last member leaving deletes the party');
+set role authenticated;
+
+-- Roy's data survived Tamir's attempts.
+reset role;
+select pg_temp.check((select data->>'name' from characters where id = 'c-roy') = 'Fixed', 'Roy''s character untouched by Tamir');
+select pg_temp.check((select count(*) from account_devices where account_id = 'acct-roy') = 1, 'Roy''s device link untouched by Tamir');
+set role authenticated;
+
+-- Rate limit: a fresh anonymous device gets 5 wrong codes, then is locked out even with a right one.
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+select pg_temp.check((select count(*) from accounts) = 0, 'unlinked device sees no accounts');
+select pg_temp.check((select count(*) from characters) + (select count(*) from dm_state) = 0, 'unlinked device sees no data');
+select count(*) from generate_series(1, 5) g, lateral claim_account('GUESS' || g);
+do $$ begin
+  perform claim_account('ROYTEST');
+  raise exception 'FAILED: sixth try allowed';
+exception when raise_exception then
+  if sqlerrm <> 'too many tries' then raise; end if;
+  raise notice 'ok: sixth try in 15 minutes is refused';
+end $$;
+-- Another device still gets in, until everyone together passes 30 misses a minute.
+set test.uid = '00000000-0000-0000-0000-00000000000f';
+select pg_temp.check((select id from claim_account('roy test')) = 'acct-roy', 'other devices are not locked out');
+reset role;
+insert into claim_attempts (user_id) select '00000000-0000-0000-0000-00000000000a' from generate_series(1, 30);
+set role authenticated;
+do $$ begin
+  perform claim_account('ROYTEST');
+  raise exception 'FAILED: global limit not applied';
+exception when raise_exception then
+  if sqlerrm <> 'too many tries' then raise; end if;
+  raise notice 'ok: global limit refuses claims during a guessing burst';
+end $$;
+do $$ begin
+  perform * from claim_attempts;
+  raise exception 'FAILED: claim_attempts readable';
+exception when insufficient_privilege then raise notice 'ok: claim_attempts not readable';
+end $$;
+reset role;
 set role authenticated;
 
 -- Signed out: nothing.

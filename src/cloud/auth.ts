@@ -3,7 +3,7 @@
 // it is known offline and on every reload.
 import { getSupabase } from './client'
 import { isCloudEnabled } from './config'
-import type { AccountRow, CloudStatus } from './types'
+import type { AccountRow, ClaimResult, CloudStatus } from './types'
 
 const KEY = 'ff.cloud.v1'
 const CHANGED = 'ff:cloud-changed'
@@ -46,25 +46,26 @@ export function onCloudChanged(fn: () => void): () => void {
 }
 
 /**
- * Signs this device in to the cloud as the code's account. Returns the account, or null for a
- * wrong code, no cloud settings or no connection (the device keeps working locally).
+ * Signs this device in to the cloud as the code's account. This is the only check of a code:
+ * the server answers with the account, or the code is wrong, or it refuses after too many tries.
  */
-export async function linkCloudAccount(code: string): Promise<AccountRow | null> {
+export async function linkCloudAccount(code: string): Promise<ClaimResult> {
   const supabase = await getSupabase()
-  if (!supabase) return null
+  if (!supabase) return 'offline'
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       const { error } = await supabase.auth.signInAnonymously()
-      if (error) return null
+      if (error) return error.status === 429 ? 'limited' : 'offline'
     }
     const { data, error } = await supabase.rpc('claim_account', { code })
+    if (error) return error.message.includes('too many tries') ? 'limited' : 'offline'
     const account = (data as AccountRow[] | null)?.[0]
-    if (error || !account) return null
+    if (!account) return 'wrong'
     writeLink({ accountId: account.id, linkedAt: new Date().toISOString() })
     return account
   } catch {
-    return null
+    return 'offline'
   }
 }
 

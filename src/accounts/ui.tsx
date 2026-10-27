@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { AccessibilityButton } from '../a11y/ui'
 import { LanguagePicker, useI18n } from '../i18n'
-import { activate } from './session'
-import type { Session } from './types'
+import { activate, activateErrorKey } from './session'
+import type { ActivateError, Session } from './types'
 import './accounts.css'
 
 /** Front door on a new device: a personal activation code, or a local-only profile. */
@@ -38,7 +38,7 @@ export function ActivateScreen({ onLocal }: { onLocal: (name: string) => void })
 export function CodeForm({ onDone }: { onDone?: () => void }) {
   const { t } = useI18n()
   const [code, setCode] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<ActivateError | null>(null)
   const [busy, setBusy] = useState(false)
   return (
     <form
@@ -48,18 +48,18 @@ export function CodeForm({ onDone }: { onDone?: () => void }) {
         setBusy(true)
         const s = await activate(code)
         setBusy(false)
-        setError(!s)
-        if (s) onDone?.()
+        setError(typeof s === 'string' ? s : null)
+        if (typeof s !== 'string') onDone?.()
       }}
     >
       <input
         autoFocus dir="ltr" value={code} autoCapitalize="characters" autoComplete="off" spellCheck={false}
-        onChange={e => { setCode(e.target.value); setError(false) }}
+        onChange={e => { setCode(e.target.value); setError(null) }}
         placeholder={t('account.codePlaceholder')} aria-label={t('account.code')}
-        aria-invalid={error} aria-describedby={error ? 'code-error' : undefined}
+        aria-invalid={!!error} aria-describedby={error ? 'code-error' : undefined}
       />
       <button className="btn primary" disabled={!code.trim() || busy}>{t('account.activate')}</button>
-      {error && <p id="code-error" className="bad small" role="alert">{t('account.badCode')}</p>}
+      {error && <p id="code-error" className="bad small" role="alert">{t(activateErrorKey(error))}</p>}
     </form>
   )
 }
