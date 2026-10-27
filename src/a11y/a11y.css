@@ -98,7 +98,6 @@ main:focus, main [tabindex="-1"]:focus { outline: none; }
 /* Easy-read text */
 :root[data-easy-read] { line-height: 1.65; letter-spacing: 0.01em; word-spacing: 0.06em; }
 :root[data-easy-read] h1, :root[data-easy-read] h2, :root[data-easy-read] h3, :root[data-easy-read] h4,
-:root[data-easy-read] .brand { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
 :root[data-easy-read] h2, :root[data-easy-read] h3, :root[data-easy-read] .ff-sheet h2 { text-transform: none; letter-spacing: normal; }
 :root[data-easy-read] .ff-sheet h2 { font-size: 1rem; color: var(--ink); }
 :root[data-easy-read] .small, :root[data-easy-read] small { font-size: 0.92rem; }

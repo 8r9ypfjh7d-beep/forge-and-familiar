@@ -32,8 +32,7 @@ const SHORTCUTS: [string, string][] = [
 export function AccessibilityButton({ dialogRef }: { dialogRef?: React.RefObject<HTMLDialogElement | null> }) {
   const own = useRef<HTMLDialogElement>(null)
   const ref = dialogRef ?? own
-  const s = useA11ySettings()
-  const active = Object.keys(DEFAULT_SETTINGS).filter(k => s[k as keyof A11ySettings] !== DEFAULT_SETTINGS[k as keyof A11ySettings]).length
+  const active = useA11yActiveCount()
   return (
     <>
       <button type="button" className={`chip a11y-chip ${active ? 'on' : ''}`} aria-haspopup="dialog" onClick={() => ref.current?.showModal()}>
@@ -45,7 +44,14 @@ export function AccessibilityButton({ dialogRef }: { dialogRef?: React.RefObject
   )
 }
 
-function AccessibilityDialog({ ref }: { ref: React.RefObject<HTMLDialogElement | null> }) {
+/** How many settings differ from the defaults, for a badge on whatever opens the panel. */
+export function useA11yActiveCount() {
+  const s = useA11ySettings()
+  return Object.keys(DEFAULT_SETTINGS).filter(k => s[k as keyof A11ySettings] !== DEFAULT_SETTINGS[k as keyof A11ySettings]).length
+}
+
+/** The settings panel on its own, for menus that open it with their own button. */
+export function AccessibilityDialog({ ref }: { ref: React.RefObject<HTMLDialogElement | null> }) {
   const s = useA11ySettings()
   const close = () => ref.current?.close()
   return (
