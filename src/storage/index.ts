@@ -1,6 +1,7 @@
 // Character and profile store. Async on purpose: today it is localStorage, later a hosted
 // backend with accounts can implement the same API. Owned by the live sheet thread.
 import type { Character, UserProfile } from '../model/character'
+import { markCharacterDeleted, markCharacterDirty } from '../sync/outbox'
 
 const KEY = 'ff.characters.v1'
 const PROFILES_KEY = 'ff.profiles.v1'
@@ -54,11 +55,30 @@ export async function saveCharacter(c: Character): Promise<Character> {
   if (i >= 0) list[i] = next
   else list.push(next)
   writeCharacters(list, c.id)
+  markCharacterDirty(c.id, c.ownerId)
   return next
 }
 
 export async function deleteCharacter(id: string): Promise<void> {
-  writeCharacters(readCharacters().filter(c => c.id !== id), id)
+  const list = readCharacters()
+  const gone = list.find(c => c.id === id)
+  writeCharacters(list.filter(c => c.id !== id), id)
+  if (gone) markCharacterDeleted(id, gone.ownerId)
+}
+
+/** Sync only: stores the server's copy as is, without queueing it for upload. */
+export function applyRemoteCharacter(c: Character) {
+  const list = readCharacters()
+  const i = list.findIndex(x => x.id === c.id)
+  if (i >= 0) list[i] = c
+  else list.push(c)
+  writeCharacters(list, c.id)
+}
+
+/** Sync only: removes a character another device deleted. */
+export function removeRemoteCharacter(id: string) {
+  const list = readCharacters()
+  if (list.some(c => c.id === id)) writeCharacters(list.filter(c => c.id !== id), id)
 }
 
 export async function listProfiles(): Promise<UserProfile[]> {

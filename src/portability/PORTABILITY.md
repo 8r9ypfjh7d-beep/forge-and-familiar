@@ -22,4 +22,5 @@ Export a character to a `.character.json` file, import one as a new character, a
 - Rollback restores `BUILD_FIELDS` only (race, background, classes, XP, scores, skills, languages, tools, trait picks, ASIs/feats, gear picks). Name, notes, portrait, gear and coins stay; play state is clamped with the sheet's `normalize()`.
 - `rollBack()` snapshots the current build first, so a rollback can itself be rolled back.
 - Snapshots leave out the portrait to save storage.
+- Snapshots sync to the cloud for signed-in accounts (`src/sync/SYNC.md`); a sync conflict saves the losing build as a snapshot.
 - A future level-up flow should call `takeSnapshot()` + `addSnapshots()` before applying the new level.

@@ -1337,6 +1337,14 @@ const messages: Messages = {
   'req.pop.notNow': 'לא עכשיו',
   'list.askEdit': 'בקשת עריכה',
   'list.editRequested': 'נשלחה בקשת עריכה',
+  'sync.syncing': 'שומר…',
+  'sync.idle': 'נשמר בענן',
+  'sync.offline': 'לא מקוון',
+  'sync.error': 'הסנכרון נכשל',
+  'sync.pending_one': 'שינוי אחד ממתין',
+  'sync.pending_two': 'שני שינויים ממתינים',
+  'sync.pending': '{count} שינויים ממתינים',
+  'sync.title': 'הדמויות שלך נשמרות בענן ונטענות בכל מכשיר שמתחברים ממנו. שינויים שנעשו בלי חיבור יעלו כשהחיבור יחזור.',
 }
 
 const terms: Terms = {
