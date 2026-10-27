@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './a11y'
-import { AccessibilityButton, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
+import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
 import { AccountBadge, ActivateScreen, activate, getSession, onSessionChanged, type Session } from './accounts'
 import { Builder, EditCharacter } from './builder/Builder'
 import { CombatTracker } from './combat/ui/CombatTracker'
@@ -14,7 +14,8 @@ import { listParties, onPartiesChanged, PartyView } from './party'
 import { RulesQA } from './rulesqa'
 import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
-import { LanguagePicker, useI18n } from './i18n'
+import { useI18n } from './i18n'
+import { AppNav } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
 import { StarterPicker } from './starters'
 import {
@@ -45,8 +46,6 @@ export default function App() {
     p: () => setView({ kind: 'party' }),
     a: () => a11yDialog.current?.showModal(),
   })
-  const { t } = useI18n()
-
   useEffect(() => {
     listProfiles().then(setProfiles)
   }, [])
@@ -106,21 +105,18 @@ export default function App() {
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <div className="app">
       <SkipLink />
-      <header className="topbar">
-        <button className="brand" onClick={() => setView({ kind: 'list' })}>Forge &amp; Familiar</button>
-        <div className="row">
-          <button className={`chip ${view.kind === 'party' ? 'on' : ''}`} aria-current={view.kind === 'party' ? 'page' : undefined} onClick={() => setView({ kind: 'party' })}>{t('app.party')}</button>
-          {session?.role !== 'dm' && <button className={`chip ${view.kind === 'requests' ? 'on' : ''}`} aria-current={view.kind === 'requests' ? 'page' : undefined} onClick={() => setView({ kind: 'requests' })}>{t('app.requests')}</button>}
-          {isDm && <button className={`chip ${view.kind === 'dm' ? 'on' : ''}`} aria-current={view.kind === 'dm' ? 'page' : undefined} onClick={() => setView({ kind: 'dm' })}>{t('app.dm')}</button>}
-          <button className={`chip ${view.kind === 'homebrew' ? 'on' : ''}`} aria-current={view.kind === 'homebrew' ? 'page' : undefined} onClick={() => setView({ kind: 'homebrew' })}>{t('app.homebrew')}</button>
-          <button className={`chip ${view.kind === 'combat' ? 'on' : ''}`} aria-current={view.kind === 'combat' ? 'page' : undefined} onClick={() => setView({ kind: 'combat' })}>{t('app.combat')}</button>
-          <button className={`chip ${view.kind === 'rules' ? 'on' : ''}`} aria-current={view.kind === 'rules' ? 'page' : undefined} onClick={() => setView({ kind: 'rules' })}>{t('app.rules')}</button>
-          <LanguagePicker />
-          <AccessibilityButton dialogRef={a11yDialog} />
-          <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
-          {session?.id === active.id && <AccountBadge session={session} />}
-        </div>
-      </header>
+      <AppNav
+        viewKind={view.kind}
+        onGo={key => setView({ kind: key })}
+        playerName={active.displayName}
+        isDm={isDm}
+        dmAccount={session?.role === 'dm'}
+        dmBadge={session?.id === active.id && <AccountBadge session={session} />}
+        onAccessibility={() => a11yDialog.current?.showModal()}
+      >
+        <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
+      </AppNav>
+      <AccessibilityDialog ref={a11yDialog} />
       <main id="main" ref={mainRef} tabIndex={-1}>
         {view.kind === 'list' && (
           <CharacterList

@@ -47,7 +47,6 @@ img { max-width: 100%; }
 
 .app { max-width: 1200px; margin: 0 auto; padding: 0 16px 48px; }
 .topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
-.brand { font-family: Georgia, serif; font-size: 1.3rem; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
 
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
 .muted { color: var(--muted); }
