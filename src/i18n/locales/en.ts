@@ -407,6 +407,7 @@ export const en = {
   'party.joinButton': 'Join',
   'party.badCode': 'Codes are 6 letters and numbers, like ABC-234.',
   'party.noSuchCode': 'No party has that code.',
+  'party.joinOffline': "Can't reach the server. Check your connection and try again.",
   'party.unknownPlayer': 'Unknown player',
   'party.backToParties': 'Back to parties',
   'party.dm': 'DM: {name}',

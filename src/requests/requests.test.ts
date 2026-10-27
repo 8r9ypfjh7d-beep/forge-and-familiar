@@ -145,7 +145,8 @@ describe('request links', () => {
     expect(editState(list, 'acct-roy', 'c1')).toBe('approved')
     // An approved edit is never "granted" onto the sheet.
     expect(pendingGrants(list, 'acct-roy')).toEqual([])
-    expect(grantToCharacter(fighter(), list[0], 'x')).toEqual(fighter())
+    const f = fighter()
+    expect(grantToCharacter(f, list[0], 'x')).toEqual(f)
 
     list = spendEditPass(list, 'acct-roy', 'c1')
     expect(editState(list, 'acct-roy', 'c1')).toBe('none')

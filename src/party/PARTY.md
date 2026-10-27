@@ -8,16 +8,19 @@ Join a party with an invite code and see everyone's character at a glance. First
 |------|---------|
 | `types.ts` | `Party`, `PartyMember` (saved shape) |
 | `code.ts` | Invite codes and pure membership updates (`addMember`, `removeMember`, `setMemberCharacter`) |
-| `store.ts` | Async party store (localStorage today), `onPartiesChanged` |
+| `store.ts` | Async party store: cloud parties for the signed-in account, localStorage for local profiles; `onPartiesChanged` |
+| `cloud.ts` | Supabase side: fetch and cache (`ff.parties.cloud.v1`), realtime, members' characters and rolls, `sendRoll` |
 | `stash.ts` | Shared inventory and gold: pure `applyStash(party, userId, action)`, coin maths, even split |
 | `PartyView.tsx` | Party list, create/join forms, read-only party table |
 | `feed.ts` | Party roll feed: merges members' dice histories (`mergePartyRolls`), live via `onMemberRollsChanged` |
-| `RollFeed.tsx` | "Party rolls" panel under the party table |
+| `RollFeed.tsx` | "Party rolls" panel under the party table; `PartyRollRelay` (in App) sends each sheet roll to the cloud at once |
 | `PartyStash.tsx` | Stash panel under the party table: coins, items, change log |
 | `party.css` | Styles scoped to `.ff-party` |
 | `party.test.ts` | Code and membership tests |
 | `feed.test.ts` | Roll feed merge and filter tests |
 | `stash.test.ts` | Stash actions, coin conversion and splitting |
+| `cloud.test.ts` | Create/join on the server, local profiles stay local, stash write races |
+| `../../supabase/migrations/20261027120000_parties.sql` | `parties`, `party_members`, RPCs, access rules, realtime |
 
 ## How it works
 
@@ -37,6 +40,12 @@ Join a party with an invite code and see everyone's character at a glance. First
 - Split hands each member who brings a character an equal share in gp/sp/cp; the copper that doesn't divide evenly stays. Shares are logged, not paid into character sheets: the sheet owns character coins.
 - Items picked by SRD name get an `itemId`. The same item stacks in the bag unless either one has a note. A member can carry an item (`heldBy`) or put it back.
 
-## Limits until accounts exist
+## Across devices (Supabase)
 
-Storage is per browser, so parties only link profiles on the same device. With a hosted backend, `store.ts` keeps its API and codes resolve server-side; members should only be able to read characters of parties they belong to.
+- When the open player is the account this device is signed in to (`getCloudAccountId()`), parties live on the server: create, join by code, switch character, leave and the stash all go there, and every member's screen updates live (realtime on `parties` and `party_members`). The last list is cached, so it still shows offline; changes need a connection.
+- Local profiles ("use this device only") and builds without the cloud keep parties in `ff.parties.v1`, same-device only, as before. Parties made on a device before the cloud stay local.
+- Server rules: only members read a party (codes can't be listed); creating, joining and leaving go through `create_party`, `join_party`, `leave_party` (DM hand-off and deleting the empty party happen there); join times are the server's clock. Members may change the stash (`stash`, `rev` columns only) and their own character.
+- Stash writes are conditional on `rev`; if someone else wrote first, the change is re-applied to the fresh stash (up to 4 tries).
+- Members read the character each other member brings (`characters_party_read`) and its rolls made since joining (`rolls_party_read`); the party table fetches the ones not on this device and watches them live. Player names come from `accounts` when the profile isn't on the device.
+- The party's DM answers requests about characters brought to that party (`can_answer_request`).
+- Still same-device only: secret rolls, hand-outs and session polls.

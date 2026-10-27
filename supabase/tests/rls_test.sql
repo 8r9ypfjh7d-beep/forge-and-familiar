@@ -21,6 +21,7 @@ grant usage on schema public, extensions to anon, authenticated;
 \ir ../migrations/20261027091500_harden_helpers.sql
 \ir ../migrations/20261027100000_sync.sql
 \ir ../migrations/20261027110000_dm_requests.sql
+\ir ../migrations/20261027120000_parties.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -155,6 +156,56 @@ select pg_temp.check((select count(*) from dm_requests where id = 'q-roy2') = 0,
 set test.uid = '00000000-0000-0000-0000-00000000000d';
 delete from dm_requests where id = 'q-roy';
 select pg_temp.check((select count(*) from dm_requests) = 0, 'admin deletes any request');
+
+-- Parties. Roy runs one, Tamir joins with a character, Maayan-less Noa stays out.
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select dm_id from create_party('p-1', 'Heroes', 'ABC234')) = 'acct-roy', 'Roy creates a party as its DM');
+select pg_temp.check((select count(*) from party_members where party_id = 'p-1') = 1, 'creator is a member');
+do $$ begin
+  insert into parties (id, name, code, dm_id, created_at) values ('p-x', 'x', 'XYZ234', 'acct-roy', 'now');
+  raise exception 'FAILED: inserted a party directly';
+exception when insufficient_privilege then raise notice 'ok: parties are created only through create_party';
+end $$;
+
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select count(*) from parties) = 0, 'outsider cannot list parties or codes');
+select pg_temp.check(join_party('zzz-zzz', null) is null, 'unknown code joins nothing');
+insert into characters (id, owner_id, data) values ('c-tamir', 'acct-tamir', '{"name":"Ash"}');
+insert into rolls (id, owner_id, character_id, data, rolled_at) values ('r-old', 'acct-tamir', 'c-tamir', '{}', now() - interval '1 day');
+select pg_temp.check(join_party('abc-234', 'c-tamir') = 'p-1', 'Tamir joins by a loosely typed code');
+insert into rolls (id, owner_id, character_id, data, rolled_at) values ('r-new', 'acct-tamir', 'c-tamir', '{}', now() + interval '1 second');
+insert into rolls (id, owner_id, character_id, data, rolled_at) values ('r-other', 'acct-tamir', 'c-tamir2', '{}', now() + interval '1 second');
+select pg_temp.check((select count(*) from party_members where party_id = 'p-1') = 2, 'members see each other');
+update parties set stash = '{"coins":{"gp":5}}', rev = 2 where id = 'p-1' and rev = 1;
+select pg_temp.check((select stash->'coins'->>'gp' from parties where id = 'p-1') = '5', 'a member changes the stash');
+do $$ begin
+  update parties set dm_id = 'acct-tamir' where id = 'p-1';
+  raise exception 'FAILED: member took over as DM';
+exception when insufficient_privilege then raise notice 'ok: members cannot change the DM';
+end $$;
+update party_members set character_id = 'c-hijack' where party_id = 'p-1' and user_id = 'acct-roy';
+select pg_temp.check((select character_id from party_members where user_id = 'acct-roy') is null, 'cannot change another member''s character');
+insert into dm_requests (id, from_id, character_id, data) values ('q-tamir', 'acct-tamir', 'c-tamir', '{"title":"Shield"}');
+
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select count(*) from characters where id = 'c-tamir') = 1, 'party member reads the character a member brings');
+select pg_temp.check((select array_agg(id order by id) from rolls where owner_id = 'acct-tamir') = '{r-new}', 'party sees only rolls of the brought character since joining');
+select pg_temp.check((select count(*) from dm_requests where id = 'q-tamir') = 1, 'party DM reads the member''s request');
+update dm_requests set status = 'granted' where id = 'q-tamir';
+select pg_temp.check((select status from dm_requests where id = 'q-tamir') = 'granted', 'party DM answers it');
+
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from parties) + (select count(*) from rolls) = 0, 'non-member sees no party or rolls');
+
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select leave_party('p-1');
+select pg_temp.check((select count(*) from characters where id = 'c-tamir') = 0, 'after leaving, Roy no longer sees Tamir''s character');
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select dm_id from parties where id = 'p-1') = 'acct-tamir', 'DM leaving hands the party to the next member');
+select leave_party('p-1');
+reset role;
+select pg_temp.check((select count(*) from parties) = 0, 'last member leaving deletes the party');
+set role authenticated;
 
 -- Signed out: nothing.
 reset role;
