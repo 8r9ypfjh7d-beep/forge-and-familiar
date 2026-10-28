@@ -12,6 +12,8 @@ export interface A11ySettings {
   easyRead: boolean
   /** Turn off transitions and animations, even if the OS setting is off. */
   reduceMotion: boolean
+  /** Solid surfaces instead of see-through glass, even if the OS setting is off. */
+  reduceTransparency: boolean
   /** Thick, high-contrast focus ring on every focusable control. */
   strongFocus: boolean
   /** At least 44px tall buttons and inputs. */
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: A11ySettings = {
   textSize: 100,
   easyRead: false,
   reduceMotion: false,
+  reduceTransparency: false,
   strongFocus: false,
   largeTargets: false,
   shortcuts: true,
@@ -53,6 +56,7 @@ export function toAttributes(s: A11ySettings): Record<string, string | null> {
     'data-contrast': s.highContrast ? 'high' : null,
     'data-easy-read': s.easyRead ? '' : null,
     'data-motion': s.reduceMotion ? 'reduce' : null,
+    'data-transparency': s.reduceTransparency ? 'reduce' : null,
     'data-focus': s.strongFocus ? 'strong' : null,
     'data-targets': s.largeTargets ? 'large' : null,
   }

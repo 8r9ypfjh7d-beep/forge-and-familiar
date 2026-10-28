@@ -13,6 +13,7 @@ const GROUPS: { title: string; options: Option[] }[] = [
       { key: 'highContrast', label: 'High contrast', hint: 'Black and white with strong edges.', icon: '◑' },
       { key: 'easyRead', label: 'Easy-read text', hint: 'Plain headings and roomier lines.', icon: '≡' },
       { key: 'reduceMotion', label: 'Reduce motion', hint: 'No sliding or animated bars.', icon: '◌' },
+      { key: 'reduceTransparency', label: 'Reduce transparency', hint: 'Solid bars and cards instead of glass.', icon: '▢' },
     ],
   },
   {
