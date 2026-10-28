@@ -41,14 +41,14 @@ export function SecretRolls({ party, userId, character, nameOf }: Props) {
 
 function DmLog({ partyId, rolls, nameOf }: { partyId: string; rolls: SecretRoll[]; nameOf: (id: string) => string }) {
   return (
-    <section className="panel ff-secret" aria-label="Secret rolls">
+    <section className="glass ff-secret" aria-label="Secret rolls">
       <div className="row spread">
         <div>
           <h3>Secret rolls</h3>
           <p className="muted small">Only you see these results.</p>
         </div>
         {rolls.length > 0 && (
-          <button className="btn ghost small" onClick={() => confirm('Clear all secret rolls?') && void clearSharedSecretRolls(partyId)}>Clear</button>
+          <button className="glass-btn small ghost" onClick={() => confirm('Clear all secret rolls?') && void clearSharedSecretRolls(partyId)}>Clear</button>
         )}
       </div>
       <ol className="ff-secret__list" aria-live="polite">
@@ -84,11 +84,11 @@ function SecretRoller({ partyId, userId, character, sent }: {
   }
 
   return (
-    <section className="panel ff-secret" aria-label="Secret roll to the DM">
+    <section className="glass ff-secret" aria-label="Secret roll to the DM">
       <h3>Secret roll</h3>
       <p className="muted small">The DM sees the result. You won't.</p>
       <div className="row">
-        <select value={pick} onChange={e => setPick(e.target.value as Choice)} aria-label="What to roll">
+        <select className="glass-field" value={pick} onChange={e => setPick(e.target.value as Choice)} aria-label="What to roll">
           <optgroup label="Skills">
             {SKILL_ORDER.map(s => <option key={s} value={`skill:${s}`}>{SKILLS[s].name}</option>)}
           </optgroup>
@@ -99,15 +99,15 @@ function SecretRoller({ partyId, userId, character, sent }: {
             {ABILITIES.map(a => <option key={a} value={`save:${a}`}>{ABILITY_NAMES[a]} save</option>)}
           </optgroup>
         </select>
-        <div className="row" role="radiogroup" aria-label="Advantage">
+        <div className="glass-segmented" role="radiogroup" aria-label="Advantage">
           {(['disadvantage', 'normal', 'advantage'] as const).map(m => (
             <button key={m} type="button" role="radio" aria-checked={mode === m}
-              className={`chip ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>
+              onClick={() => setMode(m)}>
               {m === 'normal' ? 'Normal' : m === 'advantage' ? 'Adv' : 'Dis'}
             </button>
           ))}
         </div>
-        <button className="btn primary" onClick={roll}>Roll for the DM</button>
+        <button className="glass-btn prominent" onClick={roll}>Roll for the DM</button>
       </div>
       {sent.length > 0 && (
         <ol className="ff-secret__list ff-secret__sent" aria-live="polite">

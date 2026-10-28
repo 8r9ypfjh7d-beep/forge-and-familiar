@@ -49,7 +49,7 @@ export function Handouts({ party, userId, nameOf }: { party: Party; userId: stri
     <section className="ff-handouts" aria-labelledby="handouts-title">
       <div className="row spread">
         <h3 id="handouts-title">Hand-outs</h3>
-        {dm && !editing && <button className="btn primary small" onClick={() => setEditing('new')}>+ New hand-out</button>}
+        {dm && !editing && <button className="glass-btn small prominent" onClick={() => setEditing('new')}>+ New hand-out</button>}
       </div>
 
       {dm && editing && (
@@ -106,7 +106,7 @@ function HandoutCard({ handout: h, party, userId, nameOf, onOpen, onEdit }: {
   const toLabel = h.to === 'all' ? 'Everyone' : reach.map(nameOf).join(', ') || 'Nobody in the party'
 
   return (
-    <article className={`panel handout ${h.sentAt ? '' : 'draft'} ${unread ? 'unread' : ''}`}>
+    <article className={`glass handout ${h.sentAt ? '' : 'draft'} ${unread ? 'unread' : ''}`}>
       <button className="handout-open" onClick={onOpen} aria-label={`Open ${h.title}`}>
         {h.image
           ? <img src={h.image} alt="" />
@@ -130,10 +130,10 @@ function HandoutCard({ handout: h, party, userId, nameOf, onOpen, onEdit }: {
         {dm && (
           <div className="row">
             {h.sentAt
-              ? <button className="btn small" onClick={() => saveHandout(unsend(h))}>Take back</button>
-              : <button className="btn primary small" disabled={problems(h).length > 0} onClick={() => saveHandout(send(h))}>Send</button>}
-            <button className="btn small" onClick={onEdit}>Edit</button>
-            <button className="btn ghost small" onClick={() => confirm(`Delete "${h.title}"?`) && deleteHandout(h.id)}>Delete</button>
+              ? <button className="glass-btn small" onClick={() => saveHandout(unsend(h))}>Take back</button>
+              : <button className="glass-btn small prominent" disabled={problems(h).length > 0} onClick={() => saveHandout(send(h))}>Send</button>}
+            <button className="glass-btn small" onClick={onEdit}>Edit</button>
+            <button className="glass-btn small ghost" onClick={() => confirm(`Delete "${h.title}"?`) && deleteHandout(h.id)}>Delete</button>
           </div>
         )}
       </div>
@@ -195,10 +195,10 @@ function Composer({ party, userId, initial, nameOf, onDone }: {
   }
 
   return (
-    <form className="panel composer" onSubmit={e => { e.preventDefault(); if (!missing.length) save(true) }}>
-      <div className="row" role="radiogroup" aria-label="Kind of hand-out">
+    <form className="glass composer" onSubmit={e => { e.preventDefault(); if (!missing.length) save(true) }}>
+      <div className="glass-segmented" role="radiogroup" aria-label="Kind of hand-out">
         {(Object.keys(KIND_LABEL) as HandoutKind[]).map(k => (
-          <button key={k} type="button" role="radio" aria-checked={kind === k} className={`chip ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>
+          <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)}>
             {KIND_LABEL[k]}
           </button>
         ))}
@@ -206,7 +206,7 @@ function Composer({ party, userId, initial, nameOf, onDone }: {
 
       <div className="field">
         <label htmlFor="handout-title">Title</label>
-        <input id="handout-title" value={title} onChange={e => setTitle(e.target.value)} placeholder={kind === 'map' ? 'Map of Phandalin' : kind === 'image' ? 'The stranger at the inn' : "Letter from Gundren"} />
+        <input id="handout-title" className="glass-field" value={title} onChange={e => setTitle(e.target.value)} placeholder={kind === 'map' ? 'Map of Phandalin' : kind === 'image' ? 'The stranger at the inn' : "Letter from Gundren"} />
       </div>
 
       {kind !== 'note' && (
@@ -220,16 +220,16 @@ function Composer({ party, userId, initial, nameOf, onDone }: {
 
       <div className="field">
         <label htmlFor="handout-text">{kind === 'note' ? 'Text' : 'Caption (optional)'}</label>
-        <textarea id="handout-text" rows={kind === 'note' ? 7 : 2} value={text} onChange={e => setText(e.target.value)}
+        <textarea id="handout-text" className="glass-field" rows={kind === 'note' ? 7 : 2} value={text} onChange={e => setText(e.target.value)}
           placeholder={kind === 'note' ? 'Write it the way the players will read it.' : ''} />
       </div>
 
       <fieldset className="field recipients">
         <legend>Send to</legend>
         <div className="row">
-          <button type="button" className={`chip ${to === 'all' ? 'on' : ''}`} aria-pressed={to === 'all'} onClick={() => setTo('all')}>Everyone</button>
+          <button type="button" className={`glass-chip ${to === 'all' ? 'on' : ''}`} aria-pressed={to === 'all'} onClick={() => setTo('all')}>Everyone</button>
           {players.map(id => (
-            <button key={id} type="button" className={`chip ${to !== 'all' && to.includes(id) ? 'on' : ''}`}
+            <button key={id} type="button" className={`glass-chip ${to !== 'all' && to.includes(id) ? 'on' : ''}`}
               aria-pressed={to !== 'all' && to.includes(id)} onClick={() => togglePlayer(id)}>
               {nameOf(id)}
             </button>
@@ -240,9 +240,9 @@ function Composer({ party, userId, initial, nameOf, onDone }: {
 
       {error && <p className="bad small" role="alert">{error}</p>}
       <div className="row">
-        <button className="btn primary" disabled={missing.length > 0 || busy}>{initial?.sentAt ? 'Save' : 'Send now'}</button>
-        {!initial?.sentAt && <button type="button" className="btn" disabled={missing.length > 0 || busy} onClick={() => save(false)}>Save as draft</button>}
-        <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
+        <button className="glass-btn prominent" disabled={missing.length > 0 || busy}>{initial?.sentAt ? 'Save' : 'Send now'}</button>
+        {!initial?.sentAt && <button type="button" className="glass-btn" disabled={missing.length > 0 || busy} onClick={() => save(false)}>Save as draft</button>}
+        <button type="button" className="glass-btn ghost" onClick={onDone}>Cancel</button>
       </div>
     </form>
   )
@@ -259,10 +259,10 @@ function Viewer({ handout: h, onClose }: { handout: Handout; onClose: () => void
 
   return (
     <div className="ff-handout-viewer" role="dialog" aria-modal="true" aria-label={h.title} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={`viewer-body ${h.kind}`}>
+      <div className={`glass-sheet viewer-body ${h.kind}`}>
         <header className="row spread">
           <h3>{h.title}</h3>
-          <button ref={closeRef} className="btn ghost small" onClick={onClose} aria-label="Close">✕</button>
+          <button ref={closeRef} className="glass-btn small ghost icon" onClick={onClose} aria-label="Close">✕</button>
         </header>
         {h.kind === 'map' && h.image ? <MapView src={h.image} alt={h.title} />
           : h.image ? <img className="viewer-image" src={h.image} alt={h.title} /> : null}
@@ -314,10 +314,10 @@ function MapView({ src, alt }: { src: string; alt: string }) {
         <img src={src} alt={alt} draggable={false} style={{ width: `${ZOOMS[zoom] * 100}%` }} />
       </div>
       <div className="row map-tools">
-        <button className="btn small" onClick={() => setZoomKeepingCentre(Math.max(0, zoom - 1))} disabled={zoom === 0} aria-label="Zoom out">−</button>
+        <button className="glass-btn small" onClick={() => setZoomKeepingCentre(Math.max(0, zoom - 1))} disabled={zoom === 0} aria-label="Zoom out">−</button>
         <span className="small muted num">{ZOOMS[zoom]}×</span>
-        <button className="btn small" onClick={() => setZoomKeepingCentre(Math.min(ZOOMS.length - 1, zoom + 1))} disabled={zoom === ZOOMS.length - 1} aria-label="Zoom in">+</button>
-        <button className="btn ghost small" onClick={() => setZoom(0)} disabled={zoom === 0}>Fit</button>
+        <button className="glass-btn small" onClick={() => setZoomKeepingCentre(Math.min(ZOOMS.length - 1, zoom + 1))} disabled={zoom === ZOOMS.length - 1} aria-label="Zoom in">+</button>
+        <button className="glass-btn small ghost" onClick={() => setZoom(0)} disabled={zoom === 0}>Fit</button>
       </div>
     </div>
   )

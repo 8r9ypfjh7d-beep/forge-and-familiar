@@ -1,83 +1,133 @@
-/* Party view, scoped to .ff-party. Uses the app tokens from index.css. */
-.ff-party { --temp: #3b6fb0; }
-@media (prefers-color-scheme: dark) { .ff-party { --temp: #7aa7e0; } }
-
+/* Party view, scoped to .ff-party. Liquid Glass (src/design/DESIGN.md): glass cards, capsule controls, tokens only. */
+.ff-party { --temp: #3b6fb0; --hurt: #c58a1b; display: grid; gap: var(--sp-4); align-content: start; }
+@media (prefers-color-scheme: dark) { .ff-party { --temp: #7aa7e0; --hurt: #e0a640; } }
+.ff-party h2, .ff-party h3, .ff-party h4 { margin: 0; }
+.ff-party h3 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; letter-spacing: -0.015em; }
+.ff-party .glass-title { font-size: 1.75rem; }
 .ff-party .grow { flex: 1; min-width: 0; }
-.ff-party .party-card { text-align: start; font: inherit; color: inherit; cursor: pointer; display: grid; gap: 4px; }
-.ff-party .party-card:hover { border-color: var(--accent); }
-.ff-party .party-card h3 { margin: 0; }
-.ff-party .party-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 20px; }
-.ff-party .party-forms input, .ff-party .party-forms select { flex: 1; min-width: 0; }
-.ff-party .party-forms .field input, .ff-party .party-forms .field select { width: 100%; }
+
+/* Quiet button for secondary actions (back, leave, remove): glass only on hover. */
+.ff-party .glass-btn.ghost { background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ff-party .glass-btn.ghost:hover:not(:disabled) { background: var(--glass-thin); }
+.ff-party .glass-btn.small.icon { inline-size: 32px; }
+.ff-party .glass-field { min-width: 0; }
+
+/* Party list */
+.ff-party .card-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: var(--sp-3); }
+.ff-party .party-card {
+  text-align: start; font: inherit; color: inherit; cursor: pointer; display: grid; gap: var(--sp-1);
+  padding: var(--sp-4); transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
+}
+.ff-party .party-card:hover { background: var(--glass-thick); }
+.ff-party .party-card:active { transform: scale(0.98); }
+.ff-party .party-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--sp-3); margin-block-start: var(--sp-2); }
+.ff-party .party-form { padding: var(--sp-4); display: grid; gap: var(--sp-3); align-content: start; }
+.ff-party .party-form p { margin: 0; }
+.ff-party .party-form .row { flex-wrap: nowrap; }
+.ff-party .party-form .row input { flex: 1; }
+.ff-party .party-form .field { margin: 0; }
+.ff-party .party-form .field input, .ff-party .party-form .field select { width: 100%; }
+.ff-party .party-form > .glass-btn { justify-self: start; }
 .ff-party .code-input { text-transform: uppercase; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
 
-.ff-party .party-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.ff-party .party-head h2 { margin: 0; }
+/* Party header */
+.ff-party .party-head { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
 .ff-party .party-head p { margin: 0; }
 .ff-party .invite { display: grid; justify-items: end; gap: 2px; }
 .ff-party .code {
-  font: 700 1.25rem/1 ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: 0.12em;
-  padding: 8px 12px; border-radius: 8px; border: 1px dashed var(--accent); background: var(--accent-soft); color: var(--accent); cursor: pointer;
+  font: 700 1.2rem/1 ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: 0.12em; font-variant-numeric: tabular-nums;
+  min-height: 40px; padding: 0 var(--sp-4); border-radius: var(--r-pill); cursor: pointer;
+  border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); background: var(--glass-tint); color: var(--accent);
+  box-shadow: var(--glass-highlight); transition: transform var(--dur-fast) var(--ease-spring);
 }
-.ff-party .party-me { margin-bottom: 16px; }
+.ff-party .code:active { transform: scale(0.96); }
+.ff-party .party-me { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-pill); }
+.ff-party .party-me select { flex: 1 1 160px; border-radius: var(--r-pill); }
+.ff-party .party-me .ghost { margin-inline-start: auto; }
 
-.ff-party .member-grid { display: grid; align-items: start; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-.ff-party .member { display: grid; gap: 12px; align-content: start; padding: 14px; }
-.ff-party .member header { display: flex; gap: 10px; align-items: center; }
-.ff-party .member header img, .ff-party .member .portrait-empty { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; font-size: 1.3rem; flex: none; }
-.ff-party .member h3 { margin: 0; }
+/* Member cards */
+.ff-party .member-grid { display: grid; align-items: start; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--sp-3); }
+.ff-party .member { display: grid; gap: var(--sp-3); align-content: start; padding: var(--sp-4); }
+.ff-party .member header { display: flex; gap: var(--sp-3); align-items: center; }
+.ff-party .member header img, .ff-party .member .portrait-empty {
+  width: 48px; height: 48px; border-radius: var(--r-sm); object-fit: cover; flex: none;
+  box-shadow: 0 0 0 1px var(--glass-stroke), 0 2px 8px rgb(0 0 0 / 0.12);
+}
+.ff-party .member .portrait-empty { display: grid; place-items: center; font: 600 1.3rem var(--font-lore); background: var(--glass-tint); color: var(--accent); }
+.ff-party .member .member-name { font-family: var(--font-lore); font-size: 1.15rem; }
 .ff-party .member p { margin: 0; }
-.ff-party .member.watching { opacity: 0.85; }
-.ff-party .badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); vertical-align: 1px; }
+.ff-party .member .who { display: flex; gap: var(--sp-2); align-items: center; }
+.ff-party .member.watching { padding-block: var(--sp-3); }
+.ff-party .member > .glass-btn { justify-self: start; }
+.ff-party .badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: var(--r-pill); background: var(--accent); color: var(--accent-ink); vertical-align: 1px; }
 
-.ff-party .hp-text { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-variant-numeric: tabular-nums; margin-bottom: 4px; }
-.ff-party .hp-text strong { font-size: 1.2rem; }
+.ff-party .hp-text { display: flex; gap: var(--sp-2); align-items: baseline; flex-wrap: wrap; font-variant-numeric: tabular-nums; margin-block-end: 6px; }
+.ff-party .hp-text strong { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: -0.015em; }
 .ff-party .temp { color: var(--temp); font-weight: 600; font-size: 0.85rem; }
-.ff-party .vital { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--bad); }
+.ff-party .vital { font-size: 0.75rem; font-weight: 700; color: var(--bad); }
 .ff-party .vital.stable { color: var(--muted); }
-.ff-party .bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
-.ff-party .fill { height: 100%; transition: width 0.3s; }
+.ff-party .bar { height: 8px; border-radius: var(--r-pill); background: var(--glass-hairline); overflow: hidden; box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.08); }
+.ff-party .fill { height: 100%; border-radius: inherit; transition: width var(--dur-slow) var(--ease-glass); }
 .ff-party .fill.ok { background: var(--good); }
-.ff-party .fill.hurt { background: #c58a1b; }
+.ff-party .fill.hurt { background: var(--hurt); }
 .ff-party .fill.low { background: var(--bad); }
 
+/* Stat tiles: inner glass, concentric with the card (r-lg minus the 16px padding is about r-xs). */
 .ff-party .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 6px; margin: 0; }
-.ff-party .stats div { text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 4px 2px; }
-.ff-party .stats dt { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-.ff-party .stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ff-party .stats div, .ff-party .coins div {
+  text-align: center; padding: 6px 2px; border-radius: var(--r-sm);
+  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-highlight);
+}
+.ff-party .stats dt, .ff-party .coins dt { font-size: 0.68rem; font-weight: 600; color: var(--muted); }
+.ff-party .stats dd, .ff-party .coins dd { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.ff-party .conds { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 4px; }
-.ff-party .conds li { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); text-transform: capitalize; }
+.ff-party .conds { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.ff-party .conds li {
+  font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: var(--r-pill); text-transform: capitalize;
+  background: var(--glass-tint); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Section cards below the members (roll feed, secret rolls, stash, polls). */
+.ff-party .roll-feed, .ff-party .stash { padding: var(--sp-4); }
 
 /* Shared stash */
-.ff-party .stash { margin-top: 16px; display: grid; gap: 14px; }
-.ff-party .stash h3, .ff-party .stash h4 { margin: 0; }
-.ff-party .stash h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; }
-.ff-party .stash-head { display: flex; gap: 4px 12px; align-items: baseline; flex-wrap: wrap; }
-.ff-party .stash-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 20px; }
+.ff-party .stash { display: grid; gap: var(--sp-4); }
+.ff-party .stash h4 { margin-block-end: var(--sp-2); }
+.ff-party .stash-head { display: flex; gap: var(--sp-1) var(--sp-3); align-items: baseline; flex-wrap: wrap; }
+.ff-party .stash-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: var(--sp-5); }
 @media (max-width: 720px) { .ff-party .stash-cols { grid-template-columns: minmax(0, 1fr); } }
-.ff-party .purse, .ff-party .loot { display: grid; gap: 8px; align-content: start; }
+.ff-party .purse, .ff-party .loot { display: grid; gap: var(--sp-2); align-content: start; }
 .ff-party .purse p { margin: 0; }
 .ff-party .coins { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0; }
-.ff-party .coins div { text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 4px 2px; }
+.ff-party .coins dt { text-transform: uppercase; }
 .ff-party .coins div.none { opacity: 0.5; }
-.ff-party .coins dt { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-.ff-party .coins dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ff-party .stash input.amount { width: 6.5em; }
 .ff-party .stash input.grow { min-width: 8em; }
-.ff-party .purse > .btn { justify-self: start; }
-.ff-party .stash-items { list-style: none; margin: 0 0 8px; padding: 0; }
-.ff-party .stash-items li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line); }
-.ff-party .stash-items li:last-child { border-bottom: 0; }
-.ff-party .qty { display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.ff-party .purse > .glass-btn { justify-self: start; }
+.ff-party .stash-items { list-style: none; margin: 0 0 var(--sp-2); padding: 0; }
+.ff-party .stash-items li { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; padding-block: var(--sp-2); border-block-end: 1px solid var(--glass-hairline); }
+.ff-party .stash-items li:last-child { border-block-end: 0; }
+.ff-party .qty { display: flex; align-items: center; gap: 2px; padding: 2px; border-radius: var(--r-pill); background: var(--glass-thin); border: 1px solid var(--glass-stroke); font-variant-numeric: tabular-nums; }
 .ff-party .qty span { min-width: 2ch; text-align: center; font-weight: 700; }
+.ff-party .qty .glass-btn.small { min-height: 28px; inline-size: 28px; }
 .ff-party .stash-log summary { cursor: pointer; }
-.ff-party .stash-log ul { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; max-height: 220px; overflow-y: auto; }
-.ff-party .stash-log time { margin-left: 6px; }
+.ff-party .stash-log ul { list-style: none; padding: 0; margin: var(--sp-2) 0 0; display: grid; gap: var(--sp-1); max-height: 220px; overflow-y: auto; }
+.ff-party .stash-log time { margin-inline-start: 6px; }
 
-.ff-party .roll-feed { margin-top: 16px; }
-.ff-party .roll-feed h3 { margin: 0 0 8px; }
-.ff-party .roll-feed ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
+/* Roll feed */
+.ff-party .roll-feed h3 { margin-block-end: var(--sp-2); }
+.ff-party .roll-feed ol { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-2); max-height: 420px; overflow-y: auto; }
 .ff-party .roll-feed li { display: grid; gap: 2px; }
-.ff-party .roll-feed li + li { border-top: 1px solid var(--line); padding-top: 8px; }
-.ff-party .feed-meta { display: flex; justify-content: space-between; gap: 8px; }
+.ff-party .roll-feed li + li { border-block-start: 1px solid var(--glass-hairline); padding-block-start: var(--sp-2); }
+.ff-party .feed-meta { display: flex; justify-content: space-between; gap: var(--sp-2); }
+
+@media (max-width: 640px) {
+  .ff-party .glass-title { font-size: 1.5rem; }
+  .ff-party .party-me { border-radius: var(--r-lg); padding: var(--sp-3); }
+  .ff-party .party-me select { flex-basis: 100%; order: 1; }
+  .ff-party .stash-items li > .grow { flex-basis: 100%; }
+}
+
+/* High contrast: state shown only by fill gets an edge. */
+:root[data-contrast="high"] .ff-party .conds li, :root[data-contrast="high"] .ff-party .code { border: 2px solid var(--accent); }
+:root[data-contrast="high"] .ff-party .bar { border: 1px solid var(--ink); }

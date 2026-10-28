@@ -46,10 +46,10 @@ export function SessionScheduler({ party, userId, nameOf }: { party: Party; user
   if (!poll || isFinished(poll, now)) {
     const last = poll && chosenOption(poll)
     return (
-      <section className="panel ff-schedule" aria-labelledby="schedule-title">
+      <section className="glass ff-schedule" aria-labelledby="schedule-title">
         <div className="sched-head">
           <h3 id="schedule-title">{t('schedule.title')}</h3>
-          <button className="btn primary small" onClick={() => startPoll(party.id, userId)}>{t('schedule.plan')}</button>
+          <button className="glass-btn small prominent" onClick={() => startPoll(party.id, userId)}>{t('schedule.plan')}</button>
         </div>
         <p className="muted small">
           {last && `${t('schedule.lastPlayed', { date: longFmt.format(new Date(last.startsAt)) })} `}
@@ -65,16 +65,16 @@ export function SessionScheduler({ party, userId, nameOf }: { party: Party; user
     const soon = reminderDue(poll, now)
     const when = relativeTime(start, now, locale)
     return (
-      <section className={`panel ff-schedule locked ${soon ? 'soon' : ''}`} aria-labelledby="schedule-title">
+      <section className={`glass ff-schedule locked ${soon ? 'soon' : ''}`} aria-labelledby="schedule-title">
         <div className="sched-head">
           <h3 id="schedule-title">{t('schedule.title')}</h3>
-          {isDm && <button className="btn ghost small" onClick={() => lockIn(poll.id, undefined)}>{t('schedule.changeDate')}</button>}
+          {isDm && <button className="glass-btn small ghost" onClick={() => lockIn(poll.id, undefined)}>{t('schedule.changeDate')}</button>}
         </div>
         <p className="when">{longFmt.format(start)}</p>
         <p className={soon ? 'strong' : 'muted'} role={soon ? 'status' : undefined}>
           {!when ? t('schedule.underway') : soon ? t('schedule.reminder', { when }) : t('schedule.starts', { when })}
         </p>
-        <button className="btn small" onClick={() => downloadIcs(poll, party.name, now)}>{t('schedule.addCalendar')}</button>
+        <button className="glass-btn small" onClick={() => downloadIcs(poll, party.name, now)}>{t('schedule.addCalendar')}</button>
         <p className="muted small">{t('schedule.calendarHelp')}</p>
       </section>
     )
@@ -85,7 +85,7 @@ export function SessionScheduler({ party, userId, nameOf }: { party: Party; user
   const best = bestOption(tallies)
 
   return (
-    <section className="panel ff-schedule" aria-labelledby="schedule-title">
+    <section className="glass ff-schedule" aria-labelledby="schedule-title">
       <div className="sched-head">
         <h3 id="schedule-title">{t('schedule.pickTitle')}</h3>
         {best && <span className="small muted">{t('schedule.best')} <strong>{dateFmt.format(new Date(best.option.startsAt))}</strong></span>}
@@ -128,9 +128,9 @@ export function SessionScheduler({ party, userId, nameOf }: { party: Party; user
                       })}
                       <td className="count">{row.yes}<span className="muted">/{memberIds.length}</span>{row.maybe > 0 && <span className="muted small"> +{row.maybe}?</span>}</td>
                       <td className="acts">
-                        {isDm && !row.past && <button className="btn primary small" onClick={() => lockIn(poll.id, o.id)}>{t('schedule.lockIn')}</button>}
+                        {isDm && !row.past && <button className="glass-btn small prominent" onClick={() => lockIn(poll.id, o.id)}>{t('schedule.lockIn')}</button>}
                         {(isDm || o.proposedBy === userId) && (
-                          <button className="btn ghost small" onClick={() => dropDate(poll.id, o.id)} aria-label={t('schedule.remove', { date })}>✕</button>
+                          <button className="glass-btn small ghost" onClick={() => dropDate(poll.id, o.id)} aria-label={t('schedule.remove', { date })}>✕</button>
                         )}
                       </td>
                     </tr>
@@ -154,8 +154,8 @@ function ProposeForm({ onPropose, now }: { onPropose: (d: Date) => void; now: Da
   return (
     <form className="row propose" onSubmit={e => { e.preventDefault(); if (valid) { onPropose(date!); setValue('') } }}>
       <label className="small strong" htmlFor="propose-date">{t('schedule.suggest')}</label>
-      <input id="propose-date" type="datetime-local" dir="ltr" value={value} min={toLocalInput(now)} onChange={e => setValue(e.target.value)} />
-      <button className="btn small" disabled={!valid}>{t('common.add')}</button>
+      <input id="propose-date" className="glass-field" type="datetime-local" dir="ltr" value={value} min={toLocalInput(now)} onChange={e => setValue(e.target.value)} />
+      <button className="glass-btn small" disabled={!valid}>{t('common.add')}</button>
     </form>
   )
 }

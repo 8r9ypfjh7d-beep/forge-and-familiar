@@ -64,7 +64,7 @@ export function RollFeed({ party, nameOf }: { party: Party; nameOf: (userId: str
   }
 
   return (
-    <section className="panel roll-feed" aria-label={t('party.rolls.title')}>
+    <section className="glass roll-feed" aria-label={t('party.rolls.title')}>
       <h3>{t('party.rolls.title')}</h3>
       {feed.length === 0
         ? <p className="muted small">{t('party.rolls.empty')}</p>
