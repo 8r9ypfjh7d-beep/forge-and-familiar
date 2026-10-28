@@ -47,21 +47,21 @@ function Library({ packs, profile, onOpen, onCreate }: {
   const sorted = [...packs].sort((a, b) => Number(b.authorId === profile.id) - Number(a.authorId === profile.id) || a.name.localeCompare(b.name))
   return (
     <section className="hb">
-      <div className="row spread">
+      <div className="row spread hb-hero">
         <div>
-          <h2>Homebrew</h2>
+          <h2 className="glass-title">Homebrew</h2>
           <p className="muted small">Your group's own spells, items, feats, races and subclasses. Share a pack with friends by code or file; nothing is public.</p>
         </div>
-        <button className="btn primary" onClick={onCreate}>+ New pack</button>
+        <button className="glass-btn prominent" onClick={onCreate}>+ New pack</button>
       </div>
       {sorted.length === 0 ? (
-        <div className="panel empty">
+        <div className="glass thin empty">
           <p>No homebrew yet. Start a pack, or import one a friend sent you.</p>
         </div>
       ) : (
         <div className="hb-packs">
           {sorted.map(p => (
-            <button key={p.id} className="panel hb-pack" onClick={() => onOpen(p.id)}>
+            <button key={p.id} className="glass hb-pack" onClick={() => onOpen(p.id)}>
               <strong>{p.name}</strong>
               <span className="muted small">{p.authorId === profile.id ? 'By you' : `From ${p.authorName}`} · {packCounts(p)}</span>
               {p.description && <span className="small hb-clamp">{p.description}</span>}
@@ -105,13 +105,13 @@ function ImportBox({ onImported }: { onImported: (id: string) => void }) {
   }
 
   return (
-    <div className="panel hb-import">
+    <div className="glass hb-import">
       <h3>Import a friend's pack</h3>
       <form className="hb-import-row" onSubmit={e => { e.preventDefault(); if (code.trim()) run(code) }}>
-        <textarea rows={2} value={code} onChange={e => setCode(e.target.value)} placeholder="Paste a share code (FFHB1.…)" aria-label="Share code" />
+        <textarea className="glass-field" rows={2} value={code} onChange={e => setCode(e.target.value)} placeholder="Paste a share code (FFHB1.…)" aria-label="Share code" />
         <div className="row">
-          <button className="btn primary" disabled={!code.trim()}>Import code</button>
-          <button type="button" className="btn" onClick={() => fileRef.current?.click()}>Open file…</button>
+          <button className="glass-btn prominent" disabled={!code.trim()}>Import code</button>
+          <button type="button" className="glass-btn" onClick={() => fileRef.current?.click()}>Open file…</button>
           <input
             ref={fileRef}
             type="file"
@@ -218,21 +218,21 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   return (
     <section className="hb">
       <div className="row hb-head">
-        <button className="btn ghost" onClick={onBack} aria-label="Back to homebrew">←</button>
+        <button className="glass-btn icon" onClick={onBack} aria-label="Back to homebrew">←</button>
         <div className="hb-title">
           {mine ? (
             <input
-              className="hb-name"
+              className="hb-name glass-title"
               defaultValue={pack.name}
               aria-label="Pack name"
               onBlur={e => { const name = e.target.value.trim(); if (name && name !== pack.name) savePack({ ...pack, name }) }}
             />
-          ) : <h2>{pack.name}</h2>}
+          ) : <h2 className="hb-name glass-title">{pack.name}</h2>}
           <p className="muted small">{mine ? 'Your pack' : `From ${pack.authorName}, read-only`} · {packCounts(pack)}</p>
         </div>
-        {!mine && <button className="btn" onClick={duplicate}>Make my own copy</button>}
+        {!mine && <button className="glass-btn" onClick={duplicate}>Make my own copy</button>}
         <button
-          className="btn ghost"
+          className="glass-btn hb-danger"
           onClick={async () => {
             if (confirm(`Remove "${pack.name}" from this device? Characters carrying its items will show them as unknown.`)) {
               await deletePack(pack.id)
@@ -247,7 +247,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
 
       {mine ? (
         <textarea
-          className="hb-desc"
+          className="hb-desc glass-field"
           rows={2}
           defaultValue={pack.description}
           placeholder="What is this pack for? (campaign, setting, house rules)"
@@ -258,13 +258,15 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
 
       <div className="hb-body">
         <div>
-          <div className="row hb-tabs" role="tablist">
-            {(Object.keys(TAB_LABEL) as ContentKind[]).map(k => (
-              <button key={k} role="tab" aria-selected={tab === k} className={`chip ${tab === k ? 'on' : ''}`} onClick={() => { setTab(k); setEditing(null) }}>
-                {TAB_LABEL[k]} ({pack[k].length})
-              </button>
-            ))}
-            {mine && !editing && <button className="btn primary small hb-add" onClick={() => setEditing(blank(tab))}>+ New {SINGULAR[tab]}</button>}
+          <div className="row hb-toolbar">
+            <div className="glass-segmented hb-tabs" role="tablist">
+              {(Object.keys(TAB_LABEL) as ContentKind[]).map(k => (
+                <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setEditing(null) }}>
+                  {TAB_LABEL[k]} ({pack[k].length})
+                </button>
+              ))}
+            </div>
+            {mine && !editing && <button className="glass-btn prominent small hb-add" onClick={() => setEditing(blank(tab))}>+ New {SINGULAR[tab]}</button>}
           </div>
 
           {editing?.kind === 'spells' && <SpellForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'spells', entry })} onCancel={() => setEditing(null)} />}
@@ -303,22 +305,22 @@ function EntryList({ kind, pack, mine, profile, onEdit, onDelete, onRestore }: {
   const [historyFor, setHistoryFor] = useState<string | null>(null)
   const entries = [...(pack[kind] as (HomebrewEntry)[])].sort((a, b) => a.name.localeCompare(b.name))
   if (entries.length === 0) {
-    return <div className="panel empty"><p className="muted">No {TAB_LABEL[kind].toLowerCase()} in this pack yet.</p></div>
+    return <div className="glass thin empty"><p className="muted">No {TAB_LABEL[kind].toLowerCase()} in this pack yet.</p></div>
   }
   return (
     <ul className="plain hb-entries">
       {entries.map(e => (
-        <li key={e.id} className="panel hb-entry">
+        <li key={e.id} className="glass hb-entry">
           <div className="row spread">
             <div>
-              <h3>{e.name}</h3>
+              <h3 className="glass-title">{e.name}</h3>
               <p className="muted small">{subtitle(kind, e)}</p>
             </div>
-            <div className="row">
+            <div className="row hb-entry-actions">
               {kind === 'items' && <GiveToCharacter item={e as HomebrewItem} profile={profile} />}
-              <button className={`btn ghost small ${historyFor === e.id ? 'on' : ''}`} aria-expanded={historyFor === e.id} onClick={() => setHistoryFor(historyFor === e.id ? null : e.id)}>History</button>
-              {mine && <button className="btn small" onClick={() => onEdit(kind, e)}>Edit</button>}
-              {mine && <button className="btn ghost small" onClick={() => onDelete(kind, e.id, e.name)}>Delete</button>}
+              <button className={`glass-btn small hb-ghost ${historyFor === e.id ? 'glass-lens' : ''}`} aria-expanded={historyFor === e.id} onClick={() => setHistoryFor(historyFor === e.id ? null : e.id)}>History</button>
+              {mine && <button className="glass-btn small" onClick={() => onEdit(kind, e)}>Edit</button>}
+              {mine && <button className="glass-btn small hb-ghost hb-danger" onClick={() => onDelete(kind, e.id, e.name)}>Delete</button>}
             </div>
           </div>
           <EntryBody kind={kind} entry={e} />
@@ -436,11 +438,12 @@ function GiveToCharacter({ item, profile }: { item: HomebrewItem; profile: UserP
   const [done, setDone] = useState('')
   if (done) return <span className="small good" role="status">{done}</span>
   if (!chars) {
-    return <button className="btn small" onClick={() => listCharacters(profile.id).then(setChars)}>Give to…</button>
+    return <button className="glass-btn small" onClick={() => listCharacters(profile.id).then(setChars)}>Give to…</button>
   }
   if (chars.length === 0) return <span className="small muted">No characters yet</span>
   return (
     <select
+      className="glass-field"
       autoFocus
       aria-label={`Give ${item.name} to a character`}
       defaultValue=""
@@ -486,13 +489,13 @@ function SharePanel({ pack }: { pack: HomebrewPack }) {
   }
 
   return (
-    <aside className="panel hb-share">
+    <aside className="glass thick hb-share">
       <h3>Share with friends</h3>
       <p className="muted small">Send this code or file to your group. When you update the pack, share again and their import updates their copy.</p>
-      <textarea ref={ref} readOnly rows={4} value={code} aria-label="Share code" onFocus={e => e.target.select()} />
+      <textarea className="glass-field" ref={ref} readOnly rows={4} value={code} aria-label="Share code" onFocus={e => e.target.select()} />
       <div className="row">
-        <button className="btn primary small" onClick={copy}>{copiedCode === code ? 'Copied' : 'Copy code'}</button>
-        <button className="btn small" onClick={download}>Download file</button>
+        <button className="glass-btn prominent small" onClick={copy}>{copiedCode === code ? 'Copied' : 'Copy code'}</button>
+        <button className="glass-btn small" onClick={download}>Download file</button>
       </div>
       <p className="muted small">{Math.ceil(code.length / 1024)} KB · long packs share better as a file.</p>
     </aside>
