@@ -173,7 +173,8 @@ create policy poll_votes_read on public.poll_votes for select to authenticated
 create policy poll_votes_own on public.poll_votes for insert to authenticated
   with check (user_id = current_account_id() and exists (select 1 from session_polls p where p.id = poll_id));
 create policy poll_votes_change on public.poll_votes for update to authenticated
-  using (user_id = current_account_id()) with check (user_id = current_account_id());
+  using (user_id = current_account_id())
+  with check (user_id = current_account_id() and exists (select 1 from session_polls p where p.id = poll_id));
 create policy poll_votes_remove on public.poll_votes for delete to authenticated
   using (user_id = current_account_id());
 
