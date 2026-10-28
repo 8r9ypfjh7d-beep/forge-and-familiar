@@ -69,39 +69,39 @@ export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm, onOpenComba
 
   return (
     <section className="ff-admin">
-      <div className="row spread">
-        <h2>{t('admin.title')}</h2>
+      <div className="admin-head">
+        <h2 className="glass-title">{t('admin.title')}</h2>
         <span className="row">
-          <button className="btn small" onClick={onOpenDm}>{t('admin.openDm')}</button>
-          <button className="btn small" onClick={onOpenCombat}>{t('admin.openCombat')}</button>
+          <button className="glass-btn small" onClick={onOpenDm}>{t('admin.openDm')}</button>
+          <button className="glass-btn small" onClick={onOpenCombat}>{t('admin.openCombat')}</button>
         </span>
       </div>
-      <p className="panel admin-note small">
+      <p className="glass admin-card admin-note small">
         {t(note)}
-        {cloud === null && <> <button className="btn small" onClick={reloadCloud}>{t('admin.retry')}</button></>}
+        {cloud === null && <> <button className="glass-btn small" onClick={reloadCloud}>{t('admin.retry')}</button></>}
       </p>
-      <div className="row" role="tablist">
+      <div className="glass-segmented admin-tabs" role="tablist">
         {tabs.map(k => (
-          <button key={k} role="tab" aria-selected={tab === k} className={`chip ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : undefined} onClick={() => setTab(k)}>
             {t(`admin.tab.${k}` as MessageKey)}
           </button>
         ))}
       </div>
       {tab === 'people' && cloud && <CloudPeopleTab cloud={cloud} onOpenAs={openAs} onChanged={reloadCloud} />}
       {tab === 'people' && !cloud && (
-        <div className="panel">
+        <div className="glass admin-card">
           <table className="admin-table">
             <thead><tr><th>{t('admin.name')}</th><th>{t('admin.role')}</th><th>{t('admin.characters')}</th><th /></tr></thead>
             <tbody>
               {everyone.map(p => (
                 <tr key={p.id}>
                   <td>{p.name}<div className="muted small" dir="ltr">{p.id}</div></td>
-                  <td>
+                  <td data-label={t('admin.role')}>
                     {p.account ? t(p.role === 'dm' ? 'admin.role.dm' : 'admin.role.player') : t(p.local ? 'admin.role.local' : 'admin.role.missing')}
                     {p.admin && <> · {t('admin.role.admin')}</>}
                   </td>
-                  <td>{p.characters}</td>
-                  <td>{(p.account || p.local) && <button className="btn small" onClick={() => openAs(p.id)}>{t('admin.openAs')}</button>}</td>
+                  <td data-label={t('admin.characters')}>{p.characters}</td>
+                  <td className="admin-actions">{(p.account || p.local) && <button className="glass-btn small" onClick={() => openAs(p.id)}>{t('admin.openAs')}</button>}</td>
                 </tr>
               ))}
             </tbody>
@@ -132,32 +132,32 @@ function CloudPeopleTab({ cloud, onOpenAs, onChanged }: {
   const { t, date } = useI18n()
   const list = cloudPeople(cloud.accounts, cloud.devices, cloud.characters, cloud.dm)
   return (
-    <div className="panel">
+    <div className="glass admin-card">
       <table className="admin-table">
         <thead><tr><th>{t('admin.name')}</th><th>{t('admin.role')}</th><th>{t('admin.onServer')}</th><th>{t('admin.devices')}</th><th /></tr></thead>
         <tbody>
           {list.map(p => (
             <tr key={p.id}>
               <td>{p.name}<div className="muted small" dir="ltr">{p.id}</div></td>
-              <td>{t(p.role === 'dm' ? 'admin.role.dm' : 'admin.role.player')}{p.admin && <> · {t('admin.role.admin')}</>}</td>
-              <td className="small">
+              <td data-label={t('admin.role')}>{t(p.role === 'dm' ? 'admin.role.dm' : 'admin.role.player')}{p.admin && <> · {t('admin.role.admin')}</>}</td>
+              <td data-label={t('admin.onServer')} className="small">
                 {t('admin.characterCount', { count: p.characters })}
                 {p.lastSaved && <div className="muted">{t('admin.lastSaved', { when: date(p.lastSaved) })}</div>}
                 {p.dmSavedAt && <div className="muted">{t('admin.hasDm', { when: date(p.dmSavedAt) })}</div>}
               </td>
-              <td className="small">
+              <td data-label={t('admin.devices')} className="small">
                 {p.devices.length === 0 && <span className="muted">{t('admin.noDevices')}</span>}
                 {p.devices.map(d => (
                   <div key={d.userId} className="row">
                     <span>{date(d.linkedAt)}</span>
                     <button
-                      className="btn ghost small"
+                      className="glass-btn small danger"
                       onClick={async () => { if (confirm(t('admin.confirmUnlink', { name: p.name }))) { await unlinkCloudDevice(d.userId); onChanged() } }}
                     >{t('admin.unlink')}</button>
                   </div>
                 ))}
               </td>
-              <td><button className="btn small" onClick={() => onOpenAs(p.id)}>{t('admin.openAs')}</button></td>
+              <td className="admin-actions"><button className="glass-btn small" onClick={() => onOpenAs(p.id)}>{t('admin.openAs')}</button></td>
             </tr>
           ))}
         </tbody>
@@ -196,7 +196,7 @@ function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChang
 
   return (
     <>
-      <div className="panel">
+      <div className="glass admin-card">
         {sorted.length === 0 && <p className="muted">{t('admin.noServerCharacters')}</p>}
         {sorted.length > 0 && (
           <table className="admin-table">
@@ -205,8 +205,9 @@ function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChang
               {sorted.map(row => (
                 <tr key={row.id}>
                   <td>{row.data.name}<div className="muted small">{classLine(row.data.classes ?? [])}</div></td>
-                  <td>
+                  <td data-label={t('admin.owner')}>
                     <select
+                      className="glass-field"
                       value={row.owner_id}
                       disabled={busy}
                       aria-label={t('admin.moveTo', { name: row.data.name })}
@@ -223,21 +224,21 @@ function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChang
                       {cloud.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
                   </td>
-                  <td className="small">{date(row.updated_at)}</td>
-                  <td>
+                  <td data-label={t('admin.updated')} className="small">{date(row.updated_at)}</td>
+                  <td className="admin-actions">
                     <div className="row">
                       {hasUnsentEdits(onDevice(row.id), row) && (
                         <button
-                          className="btn primary small"
+                          className="glass-btn prominent small"
                           disabled={busy}
                           title={t('admin.sendEditsHint')}
                           onClick={() => void act(() => pushCloudCharacter(row, onDevice(row.id)!))}
                         >{t('admin.sendEdits')}</button>
                       )}
-                      <button className="btn primary small" onClick={async () => { await bringHere(row); onOpenSheet(row.id) }}>{t('common.openSheet')}</button>
-                      <button className="btn small" onClick={async () => { await bringHere(row); onEdit(row.id) }}>{t('list.edit')}</button>
+                      <button className="glass-btn small" onClick={async () => { await bringHere(row); onOpenSheet(row.id) }}>{t('common.openSheet')}</button>
+                      <button className="glass-btn small" onClick={async () => { await bringHere(row); onEdit(row.id) }}>{t('list.edit')}</button>
                       <button
-                        className="btn ghost small"
+                        className="glass-btn small danger"
                         disabled={busy}
                         onClick={() => {
                           if (!confirm(t('admin.confirmDeleteEverywhere', { name: row.data.name }))) return
@@ -261,7 +262,7 @@ function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChang
       </div>
       {local.some(c => !cloud.characters.some(r => r.id === c.id)) && (
         <>
-          <h3>{t('admin.deviceOnlyCharacters')}</h3>
+          <h3 className="glass-eyebrow admin-sub">{t('admin.deviceOnlyCharacters')}</h3>
           {deviceList}
         </>
       )}
@@ -276,9 +277,9 @@ function CloudDmTab({ cloud, nameOf, onOpenAs, onChanged }: {
   onChanged: () => void
 }) {
   const { t, date } = useI18n()
-  if (cloud.dm.length === 0) return <p className="panel muted">{t('admin.noDmScreens')}</p>
+  if (cloud.dm.length === 0) return <p className="glass admin-card muted">{t('admin.noDmScreens')}</p>
   return (
-    <div className="panel">
+    <div className="glass admin-card">
       <p className="muted small">{t('admin.dmScreensHint')}</p>
       <table className="admin-table">
         <thead><tr><th>{t('admin.name')}</th><th>{t('admin.dmContents')}</th><th>{t('admin.updated')}</th><th /></tr></thead>
@@ -286,13 +287,13 @@ function CloudDmTab({ cloud, nameOf, onOpenAs, onChanged }: {
           {cloud.dm.map(d => (
             <tr key={d.account_id}>
               <td>{nameOf(d.account_id)}</td>
-              <td className="small">{t('admin.dmCounts', { plans: d.data.plans?.length ?? 0, npcs: d.data.npcs?.length ?? 0 })}</td>
-              <td className="small">{date(d.updated_at)}</td>
-              <td>
+              <td data-label={t('admin.dmContents')} className="small">{t('admin.dmCounts', { plans: d.data.plans?.length ?? 0, npcs: d.data.npcs?.length ?? 0 })}</td>
+              <td data-label={t('admin.updated')} className="small">{date(d.updated_at)}</td>
+              <td className="admin-actions">
                 <div className="row">
-                  <button className="btn small" onClick={() => onOpenAs(d.account_id)}>{t('admin.openAs')}</button>
+                  <button className="glass-btn small" onClick={() => onOpenAs(d.account_id)}>{t('admin.openAs')}</button>
                   <button
-                    className="btn ghost small"
+                    className="glass-btn small danger"
                     onClick={async () => {
                       if (!confirm(t('admin.confirmDeleteDm', { name: nameOf(d.account_id) }))) return
                       if (!(await deleteCloudDm(d.account_id))) alert(t('admin.serverFailed'))
@@ -317,18 +318,19 @@ function CharactersTab({ characters, owners, nameOf, onOpenSheet, onEdit }: {
   onEdit: (id: string) => void
 }) {
   const { t, classLine, date } = useI18n()
-  if (characters.length === 0) return <p className="panel muted">{t('admin.noCharacters')}</p>
+  if (characters.length === 0) return <p className="glass admin-card muted">{t('admin.noCharacters')}</p>
   const sorted = [...characters].sort((a, b) => nameOf(a.ownerId).localeCompare(nameOf(b.ownerId)) || a.name.localeCompare(b.name))
   return (
-    <div className="panel">
+    <div className="glass admin-card">
       <table className="admin-table">
         <thead><tr><th>{t('admin.character')}</th><th>{t('admin.owner')}</th><th>{t('admin.updated')}</th><th /></tr></thead>
         <tbody>
           {sorted.map(c => (
             <tr key={c.id}>
               <td>{c.name}<div className="muted small">{classLine(c.classes)}</div></td>
-              <td>
+              <td data-label={t('admin.owner')}>
                 <select
+                  className="glass-field"
                   value={c.ownerId}
                   aria-label={t('admin.moveTo', { name: c.name })}
                   onChange={e => saveCharacter({ ...c, ownerId: e.target.value })}
@@ -336,13 +338,13 @@ function CharactersTab({ characters, owners, nameOf, onOpenSheet, onEdit }: {
                   {owners.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                 </select>
               </td>
-              <td className="small">{c.updatedAt ? date(c.updatedAt) : ''}</td>
-              <td>
+              <td data-label={t('admin.updated')} className="small">{c.updatedAt ? date(c.updatedAt) : ''}</td>
+              <td className="admin-actions">
                 <div className="row">
-                  <button className="btn primary small" onClick={() => onOpenSheet(c.id)}>{t('common.openSheet')}</button>
-                  <button className="btn small" onClick={() => onEdit(c.id)}>{t('list.edit')}</button>
+                  <button className="glass-btn small" onClick={() => onOpenSheet(c.id)}>{t('common.openSheet')}</button>
+                  <button className="glass-btn small" onClick={() => onEdit(c.id)}>{t('list.edit')}</button>
                   <button
-                    className="btn ghost small"
+                    className="glass-btn small danger"
                     onClick={async () => {
                       if (!confirm(t('list.confirmDelete', { name: c.name }))) return
                       await deleteCharacter(c.id)
@@ -363,10 +365,10 @@ function RequestsTab() {
   const { t, date } = useI18n()
   const list = useRequests()
   if (list === null) return null
-  if (list.length === 0) return <p className="panel muted">{t('admin.noRequests')}</p>
+  if (list.length === 0) return <p className="glass admin-card muted">{t('admin.noRequests')}</p>
   const sorted = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   return (
-    <div className="panel">
+    <div className="glass admin-card">
       <p className="muted small">{t('admin.requestsHint')}</p>
       <table className="admin-table">
         <thead><tr><th>{t('admin.request')}</th><th>{t('admin.from')}</th><th>{t('admin.status')}</th><th /></tr></thead>
@@ -377,9 +379,10 @@ function RequestsTab() {
                 {r.title} <span className="muted small">· {t(`req.kind.${r.kind}` as MessageKey)}</span>
                 {r.details && <div className="muted small">{r.details}</div>}
               </td>
-              <td>{r.fromName}<div className="muted small">{r.characterName} · {date(r.createdAt)}</div></td>
-              <td>
+              <td data-label={t('admin.from')}>{r.fromName}<div className="muted small">{r.characterName} · {date(r.createdAt)}</div></td>
+              <td data-label={t('admin.status')}>
                 <select
+                  className="glass-field"
                   value={r.status}
                   aria-label={t('admin.status')}
                   onChange={e => updateRequests(l => decide(l, r.id, e.target.value as RequestStatus, new Date().toISOString()))}
@@ -387,9 +390,9 @@ function RequestsTab() {
                   {STATUSES.map(s => <option key={s} value={s}>{t(`admin.status.${s}` as MessageKey)}</option>)}
                 </select>
               </td>
-              <td>
+              <td className="admin-actions">
                 <button
-                  className="btn ghost small"
+                  className="glass-btn small danger"
                   onClick={() => confirm(t('admin.confirmDeleteRequest', { title: r.title })) && updateRequests(l => removeRequest(l, r.id))}
                 >{t('common.delete')}</button>
               </td>
@@ -410,14 +413,14 @@ function DeviceTab({ nameOf }: { nameOf: (id: string) => string }) {
   const total = rows.reduce((n, r) => n + r.bytes, 0)
 
   return (
-    <div className="panel">
+    <div className="glass admin-card">
       <p className="muted small">{t('admin.backupHint')}</p>
       <div className="row">
         <button
-          className="btn primary small"
+          className="glass-btn prominent small"
           onClick={() => downloadText(`forge-and-familiar-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(buildBackup(readDevice(), new Date().toISOString()), null, 1))}
         >{t('admin.download')}</button>
-        <button className="btn small" onClick={() => file.current?.click()}>{t('admin.restore')}</button>
+        <button className="glass-btn small" onClick={() => file.current?.click()}>{t('admin.restore')}</button>
         <input
           ref={file} type="file" accept="application/json,.json" hidden
           onChange={async e => {
@@ -443,12 +446,12 @@ function DeviceTab({ nameOf }: { nameOf: (id: string) => string }) {
                 {t(`admin.key.${r.kind}` as MessageKey)}{r.ownerId && <> · {nameOf(r.ownerId)}</>}
                 <div className="muted small" dir="ltr">{r.key}</div>
               </td>
-              <td className="small">
+              <td data-label={t('admin.size')} className="small">
                 <span dir="ltr">{kb(r.bytes)}</span>{r.items !== undefined && <div className="muted">{t('admin.items', { count: r.items })}</div>}
               </td>
-              <td>
+              <td className="admin-actions">
                 <button
-                  className="btn ghost small"
+                  className="glass-btn small danger"
                   onClick={() => { if (confirm(t('admin.confirmDeleteKey', { key: r.key }))) { removeKey(r.key); reload() } }}
                 >{t('common.delete')}</button>
               </td>

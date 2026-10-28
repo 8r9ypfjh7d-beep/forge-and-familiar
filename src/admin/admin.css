@@ -1,10 +1,74 @@
-/* Admin page, scoped to .ff-admin. Uses the app tokens from index.css. */
-.ff-admin { display: grid; gap: 12px; }
-.ff-admin .admin-note { margin: 0; background: var(--accent-soft); border-color: var(--accent); }
-.ff-admin .panel { overflow-x: auto; }
-.ff-admin .admin-table { width: 100%; border-collapse: collapse; margin-block: 8px; }
-.ff-admin .admin-table th { text-align: start; font-weight: 600; font-size: 0.85rem; color: var(--muted); }
-.ff-admin .admin-table th, .ff-admin .admin-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+/* Admin page, scoped to .ff-admin. Liquid Glass (src/design/DESIGN.md): content glass cards, a segmented
+   control for the tabs, capsule buttons. Wide screens keep the tables; phones turn each row into an inset
+   list row with the column name as a small label. */
+.ff-admin { display: grid; gap: var(--sp-3); }
+
+.ff-admin .admin-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.ff-admin .admin-head h2 { margin: 0; font-size: 1.75rem; }
+
+.ff-admin .admin-card { padding: var(--sp-4); overflow-x: auto; }
+.ff-admin .admin-card > p { margin-block: 0 var(--sp-2); }
+.ff-admin .admin-card > p:last-child { margin-block-end: 0; }
+.ff-admin p.admin-card { margin: 0; }
+.ff-admin .admin-card > .row { margin-block-end: var(--sp-3); }
+/* Status note: tinted glass, so it reads as information, not as a card to act on. */
+.ff-admin .admin-note { background: var(--glass-tint); border-color: color-mix(in srgb, var(--accent) 25%, transparent); line-height: 1.5; }
+.ff-admin .admin-note .glass-btn { margin-inline-start: var(--sp-2); }
+
+/* Tabs: a segmented control. On phones it wraps onto a second line rather than hiding tabs off the edge. */
+.ff-admin .admin-tabs { justify-self: start; max-inline-size: 100%; overflow-x: auto; scrollbar-width: none; }
+.ff-admin .admin-tabs::-webkit-scrollbar { display: none; }
+.ff-admin .admin-tabs > button { flex: none; white-space: nowrap; }
+.ff-admin .admin-tabs > button.on { color: var(--accent); }
+
+.ff-admin .admin-sub { margin-block: var(--sp-2) 0; padding-inline: var(--sp-2); font-size: 0.8rem; }
+
+.ff-admin .admin-table { inline-size: 100%; border-collapse: collapse; margin-block: var(--sp-1); font-variant-numeric: tabular-nums; }
+.ff-admin .admin-table th { text-align: start; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
+.ff-admin .admin-table th, .ff-admin .admin-table td { padding: 10px var(--sp-2); border-block-end: 1px solid var(--glass-hairline); vertical-align: top; }
+.ff-admin .admin-table tbody tr:last-child td { border-block-end: 0; }
+.ff-admin .admin-table td:first-child { font-weight: 600; }
+.ff-admin .admin-table td:first-child .muted { font-weight: 400; }
 .ff-admin .admin-table td .row { flex-wrap: wrap; gap: 6px; }
-.ff-admin .admin-table select { max-width: 12em; }
+.ff-admin .admin-table .glass-field { max-inline-size: 12em; min-height: 34px; }
+.ff-admin .admin-actions .row { justify-content: flex-end; }
+
+.ff-admin .glass-btn.danger { color: var(--bad); }
 .ff-admin [role='alert'] { margin: 0; }
+
+@media (max-width: 640px) {
+  .ff-admin .admin-head h2 { font-size: 1.5rem; }
+  .ff-admin .admin-head .row { inline-size: 100%; }
+  .ff-admin .admin-head .glass-btn { flex: 1 1 0; }
+  .ff-admin .admin-card { padding: var(--sp-3); }
+  .ff-admin .admin-tabs { justify-self: stretch; flex-wrap: wrap; overflow: visible; border-radius: var(--r-lg); }
+  .ff-admin .admin-tabs > button { flex: 1 1 auto; min-height: 40px; border-radius: calc(var(--r-lg) - 3px); }
+  .ff-admin .glass-btn.small { min-height: 44px; padding: 0 var(--sp-4); }
+
+  /* Inset list rows: name on top, labelled details in a grid, actions across the bottom. */
+  .ff-admin .admin-table thead { display: none; }
+  .ff-admin .admin-table, .ff-admin .admin-table tbody { display: block; }
+  .ff-admin .admin-table tr {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: var(--sp-2) var(--sp-3);
+    padding-block: var(--sp-3); border-block-end: 1px solid var(--glass-hairline);
+  }
+  .ff-admin .admin-table tbody tr:last-child { border-block-end: 0; padding-block-end: 0; }
+  .ff-admin .admin-table tbody tr:first-child { padding-block-start: 0; }
+  .ff-admin .admin-table td { display: block; padding: 0; border: 0; min-width: 0; }
+  .ff-admin .admin-table td:first-child, .ff-admin .admin-table td.admin-actions { grid-column: 1 / -1; }
+  .ff-admin .admin-table td:first-child { font-size: 1.05rem; }
+  .ff-admin .admin-table td[data-label]::before { content: attr(data-label); display: block; margin-block-end: 2px; font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+  .ff-admin .admin-table td.admin-actions:empty { display: none; }
+  .ff-admin .admin-table .glass-field { inline-size: 100%; max-inline-size: none; min-height: 44px; }
+  .ff-admin .admin-actions .row { justify-content: flex-start; }
+  .ff-admin .admin-actions .glass-btn, .ff-admin td.admin-actions > .glass-btn { flex: 1 1 auto; }
+}
+
+/* Solid fallbacks: the selected tab and the note keep a visible edge without blur or fills to tell them apart. */
+:root[data-transparency="reduce"] .ff-admin .admin-tabs > button.on,
+:root[data-contrast="high"] .ff-admin .admin-tabs > button.on { box-shadow: inset 0 0 0 2px var(--accent); }
+@media (prefers-reduced-transparency: reduce) {
+  .ff-admin .admin-tabs > button.on { box-shadow: inset 0 0 0 2px var(--accent); }
+}
+:root[data-contrast="high"] .ff-admin .admin-note { background: var(--accent-soft); border: 2px solid var(--accent); }
+:root[data-contrast="high"] .ff-admin .glass-btn.danger { border-color: var(--bad); }
