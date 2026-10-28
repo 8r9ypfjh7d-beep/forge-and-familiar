@@ -43,9 +43,9 @@ export function LevelHistory({ characterId, onBack, onOpenSheet }: {
   if (character === undefined) return <p className="muted">{t('common.loading')}</p>
   if (character === null) {
     return (
-      <section className="panel">
+      <section className="glass empty">
         <p>{t('common.notFound')}</p>
-        <button type="button" className="btn" onClick={onBack}>{t('common.back')}</button>
+        <button type="button" className="glass-btn" onClick={onBack}>{t('common.back')}</button>
       </section>
     )
   }
@@ -59,21 +59,21 @@ export function LevelHistory({ characterId, onBack, onOpenSheet }: {
     <section className="ff-levels">
       <div className="row spread">
         <div className="row">
-          <button type="button" className="btn ghost" onClick={onBack} aria-label={t('common.backToCharacters')}>{t('common.backArrow')}</button>
+          <button type="button" className="glass-btn icon" onClick={onBack} aria-label={t('common.backToCharacters')}>{t('common.backArrow')}</button>
           <div>
             <h2>{t('levels.title', { name: character.name })}</h2>
             <p className="muted small">{t('levels.now', { level: totalLevel(character), classes: classLine(character.classes) })}</p>
           </div>
         </div>
         <div className="row">
-          <button type="button" className="btn" onClick={() => onOpenSheet(character.id)}>{t('common.openSheet')}</button>
-          <button type="button" className="btn" onClick={() => run(() => exportToFile(character), t('levels.downloaded'))}>
+          <button type="button" className="glass-btn" onClick={() => onOpenSheet(character.id)}>{t('common.openSheet')}</button>
+          <button type="button" className="glass-btn" onClick={() => run(() => exportToFile(character), t('levels.downloaded'))}>
             {t('levels.export')}
           </button>
         </div>
       </div>
 
-      <form className="panel row" onSubmit={e => { e.preventDefault(); save() }}>
+      <form className="glass row" onSubmit={e => { e.preventDefault(); save() }}>
         <input
           value={label}
           onChange={e => setLabel(e.target.value)}
@@ -81,18 +81,18 @@ export function LevelHistory({ characterId, onBack, onOpenSheet }: {
           aria-label={t('levels.snapshotName')}
           maxLength={60}
         />
-        <button className="btn primary">{t('levels.save')}</button>
+        <button className="glass-btn prominent">{t('levels.save')}</button>
         <span className="muted small">{t('levels.saveHint')}</span>
       </form>
 
       {message && <p role="status" className={`small ${message.bad ? 'bad' : 'good'}`}>{message.text}</p>}
 
       {snaps.length === 0 ? (
-        <div className="panel empty"><p>{t('levels.empty')}</p></div>
+        <div className="glass empty"><p>{t('levels.empty')}</p></div>
       ) : (
         <ol className="plain ff-snaps">
           {snaps.map(s => (
-            <li key={s.id} className="panel">
+            <li key={s.id} className="glass">
               <div>
                 <h3>{s.label}</h3>
                 <p className="muted small">{t('levels.line', { level: s.level, classes: classLine(s.character.classes), when: when(s.takenAt) })}</p>
@@ -100,7 +100,7 @@ export function LevelHistory({ characterId, onBack, onOpenSheet }: {
               <div className="row">
                 <button
                   type="button"
-                  className="btn small"
+                  className="glass-btn small"
                   onClick={() => confirm(t('levels.confirmRollBack', { name: character.name, label: s.label }))
                     && run(() => rollBack(s), t('levels.rolledBack', { label: s.label }))}
                 >
@@ -108,7 +108,7 @@ export function LevelHistory({ characterId, onBack, onOpenSheet }: {
                 </button>
                 <button
                   type="button"
-                  className="btn ghost small"
+                  className="glass-btn small"
                   onClick={() => confirm(t('levels.confirmDelete', { label: s.label })) && run(() => deleteSnapshot(characterId, s.id), t('levels.deleted'))}
                 >
                   {t('common.delete')}

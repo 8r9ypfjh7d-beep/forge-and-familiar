@@ -43,13 +43,12 @@ function EditionPicker({ draft, update }: StepProps) {
   return (
     <div className="field edition-pick">
       <label>{t('builder.edition')} <Why id="edition" /></label>
-      <div className="row" role="radiogroup" aria-label={t('builder.edition')}>
+      <div className="glass-segmented" role="radiogroup" aria-label={t('builder.edition')}>
         {(['2014', '2024'] as const).map(e => (
           <button
             key={e}
             role="radio"
             aria-checked={edition === e}
-            className={`chip ${edition === e ? 'on' : ''}`}
             onClick={() => edition !== e && update(switchEdition(draft, e))}
           >
             {t(`builder.edition.${e}`)}
@@ -92,7 +91,7 @@ function RaceStep({ draft, update }: StepProps) {
           <label>{t(edition === '2024' ? 'builder.lineage' : 'builder.subrace')} <Why id="subrace" /></label>
           <div className="row">
             {race.subraces.map(s => (
-              <button key={s.id} className={`chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [] })}>
+              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [] })}>
                 {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}
               </button>
             ))}
@@ -119,7 +118,7 @@ function RaceStep({ draft, update }: StepProps) {
             {race.traitChoice.options.map(o => (
               <button
                 key={o.id}
-                className={`chip ${draft.traitChoices?.[race.traitChoice!.id] === o.id ? 'on' : ''}`}
+                className={`glass-chip ${draft.traitChoices?.[race.traitChoice!.id] === o.id ? 'on' : ''}`}
                 title={o.detail}
                 onClick={() => update({ traitChoices: { ...draft.traitChoices, [race.traitChoice!.id]: o.id } })}
               >
@@ -217,7 +216,7 @@ function ClassChoices({ draft, update }: StepProps) {
           <label>{term('feature', choice.name, choice.name)} ({className(classId)})</label>
           <div className="row">
             {choice.options.map(o => (
-              <button key={o.id} className={`chip ${picked?.id === o.id ? 'on' : ''}`} title={o.detail} onClick={() => pick(classId, choice.id, o.id)}>
+              <button key={o.id} className={`glass-chip ${picked?.id === o.id ? 'on' : ''}`} title={o.detail} onClick={() => pick(classId, choice.id, o.id)}>
                 {o.featId ? term('feat', o.featId, o.name) : term('feature', o.name, o.name)}
               </button>
             ))}
@@ -250,7 +249,7 @@ function SubclassPicker({ draft, update }: StepProps) {
             <label>{t('builder.subclass', { title: term('feature', def.subclassTitle, def.subclassTitle), className: className(def.id) })}</label>
             <div className="row">
               {subclassesFor(cl.classId, edition).map(sc => (
-                <button key={sc.id} className={`chip ${cl.subclassId === sc.id ? 'on' : ''}`} onClick={() => setSub(cl.classId, sc.id)}>
+                <button key={sc.id} className={`glass-chip ${cl.subclassId === sc.id ? 'on' : ''}`} onClick={() => setSub(cl.classId, sc.id)}>
                   {term('subclass', sc.id, sc.name)}
                 </button>
               ))}
@@ -310,11 +309,11 @@ function AbilitiesStep({ draft, update }: StepProps) {
     <>
       <div className="row tabs">
         {METHODS.map(m => (
-          <button key={m} className={`chip ${draft.abilityMethod === m ? 'on' : ''}`} onClick={() => setMethod(m)}>{t(`builder.method.${m}`)}</button>
+          <button key={m} className={`glass-chip ${draft.abilityMethod === m ? 'on' : ''}`} onClick={() => setMethod(m)}>{t(`builder.method.${m}`)}</button>
         ))}
         <Why id={`method.${draft.abilityMethod}`} />
         {draft.abilityMethod === 'standard' && (
-          <button className="btn ghost small" onClick={() => update({ baseAbilities: suggestedArray(draft) })}>{t('builder.suggest')}</button>
+          <button className="glass-btn small" onClick={() => update({ baseAbilities: suggestedArray(draft) })}>{t('builder.suggest')}</button>
         )}
         {draft.abilityMethod === 'standard' && <Why id="suggest" />}
       </div>
@@ -343,9 +342,9 @@ function AbilitiesStep({ draft, update }: StepProps) {
                 )}
                 {draft.abilityMethod === 'pointBuy' && (
                   <span className="stepper">
-                    <button className="btn ghost small" disabled={draft.baseAbilities[a] <= 8} onClick={() => setScore(a, draft.baseAbilities[a] - 1)} aria-label={t('builder.lower', { ability: ability(a) })}>−</button>
+                    <button className="glass-btn small" disabled={draft.baseAbilities[a] <= 8} onClick={() => setScore(a, draft.baseAbilities[a] - 1)} aria-label={t('builder.lower', { ability: ability(a) })}>−</button>
                     <span className="num">{draft.baseAbilities[a]}</span>
-                    <button className="btn ghost small" disabled={draft.baseAbilities[a] >= 15} onClick={() => setScore(a, draft.baseAbilities[a] + 1)} aria-label={t('builder.raise', { ability: ability(a) })}>+</button>
+                    <button className="glass-btn small" disabled={draft.baseAbilities[a] >= 15} onClick={() => setScore(a, draft.baseAbilities[a] + 1)} aria-label={t('builder.raise', { ability: ability(a) })}>+</button>
                   </span>
                 )}
                 {draft.abilityMethod === 'manual' && (
@@ -565,7 +564,7 @@ function CustomBackgroundForm({ draft, update }: StepProps) {
   }
   const known = fixedLanguages({ ...draft, backgroundId: '' })
   return (
-    <div className="panel custom-bg">
+    <div className="custom-bg">
       <p className="small">{t('builder.custom.intro')}</p>
       <div className="row custom-bg-fields">
         <div className="field">
@@ -580,7 +579,7 @@ function CustomBackgroundForm({ draft, update }: StepProps) {
       <p className="small strong">{t('builder.custom.skills', { chosen: cb.skills.length })}</p>
       <div className="row">
         {ALL_SKILLS.map(s => (
-          <button key={s} className={`chip small ${cb.skills.includes(s) ? 'on' : ''}`} disabled={!cb.skills.includes(s) && cb.skills.length >= 2} onClick={() => toggleSkill(s)}>
+          <button key={s} className={`glass-chip ${cb.skills.includes(s) ? 'on' : ''}`} disabled={!cb.skills.includes(s) && cb.skills.length >= 2} onClick={() => toggleSkill(s)}>
             {skill(s)}
           </button>
         ))}
@@ -775,7 +774,7 @@ function DetailsStep({ draft, update }: StepProps) {
     <div className="details">
       <div className="portrait-pick">
         {draft.portrait ? <img src={draft.portrait} alt={t('builder.portrait')} /> : <div className="portrait-empty">{t('builder.noArt')}</div>}
-        <label className="btn ghost small">
+        <label className="glass-btn small">
           {t('builder.uploadArt')}
           <input
             type="file"
@@ -787,7 +786,7 @@ function DetailsStep({ draft, update }: StepProps) {
             }}
           />
         </label>
-        {draft.portrait && <button className="btn ghost small" onClick={() => update({ portrait: undefined })}>{t('common.remove')}</button>}
+        {draft.portrait && <button className="glass-btn small" onClick={() => update({ portrait: undefined })}>{t('common.remove')}</button>}
       </div>
       <div>
         <div className="field">

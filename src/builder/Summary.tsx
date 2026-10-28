@@ -27,7 +27,7 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
   const { t, term, raceName, abilityShort, attackName, classLine } = useI18n()
 
   return (
-    <aside className="panel summary" aria-label={t('summary.label')}>
+    <aside className="glass summary" aria-label={t('summary.label')}>
       {draft.portrait && <img className="summary-portrait" src={draft.portrait} alt="" />}
       <h3>{draft.name || t('summary.unnamed')}</h3>
       <p className="muted small">

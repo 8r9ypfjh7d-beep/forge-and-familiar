@@ -1,14 +1,24 @@
+/* "why?" tip: a small tinted capsule that opens a glass sheet (src/design/DESIGN.md). */
 .why { position: relative; display: inline-block; margin-inline-start: 6px; vertical-align: baseline; font-weight: normal; }
-.why-btn { font: inherit; font-size: 0.72rem; line-height: 1; padding: 2px 7px; border-radius: 999px; border: 1px dashed var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
-.why-btn:hover, .why-btn[aria-expanded='true'] { background: var(--accent-soft); border-style: solid; }
-.why-pop {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
-  display: grid; gap: 4px; width: max-content; max-width: min(300px, calc(100vw - 48px));
-  padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--line);
-  background: var(--panel); color: var(--ink); box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
-  font-size: 0.85rem; font-weight: normal; line-height: 1.4; text-align: start; white-space: normal;
+.why-btn {
+  font: inherit; font-size: 0.72rem; font-weight: 600; line-height: 1; padding-block: 4px; padding-inline: 8px;
+  border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  background: var(--glass-tint); color: var(--accent); cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
 }
-.why-pop.right { left: auto; right: 0; } /* physical on purpose: Why.tsx measures the screen edge */
-.why-pop strong { font-family: Georgia, 'Iowan Old Style', serif; color: var(--accent); }
+.why-btn:hover, .why-btn[aria-expanded='true'] { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.why-btn:active { transform: scale(0.92); }
+.why-pop {
+  position: absolute; inset-block-start: calc(100% + 8px); inset-inline-start: 0; z-index: 30;
+  display: grid; gap: var(--sp-1); inline-size: max-content; max-inline-size: min(300px, calc(100vw - 48px));
+  padding-block: var(--sp-3); padding-inline: var(--sp-4); border-radius: var(--r-md); color: var(--ink);
+  font-size: 0.875rem; font-weight: normal; line-height: 1.45; text-align: start; white-space: normal;
+  transform-origin: top; animation: why-in var(--dur-med) var(--ease-glass);
+}
+.why-pop.end { inset-inline-start: auto; inset-inline-end: 0; }
+.why-pop strong { font-family: var(--font-display); font-size: 0.95rem; color: var(--accent); }
+@keyframes why-in { from { opacity: 0; transform: scale(0.94); } }
 .why.compact { margin-inline-start: 3px; }
-.why.compact .why-btn { padding: 2px 5px; }
+.why.compact .why-btn { padding-inline: 6px; }
+:root[data-contrast="high"] .why-btn { border: 2px solid var(--accent); }
+:root[data-contrast="high"] .why-pop { border-width: 2px; }

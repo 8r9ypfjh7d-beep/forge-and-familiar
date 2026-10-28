@@ -12,14 +12,17 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 | `validate.ts` | `stepIssues()` per step; a step with issues blocks later steps |
 | `Summary.tsx` | Live preview panel using `derive()` |
 | `MulticlassPicker.tsx` | Optional extra classes on the Class step: prerequisites, proficiencies gained, caster-level math |
-| `builder.css` | Builder-only styles |
+| `builder.css` | Builder-only styles, on the Liquid Glass standard (`src/design/DESIGN.md`) |
 | `Why.tsx`, `why.css` | "why?" button that opens a plain-language explanation |
 | `why.ts` | "why?" topic ids and `pitchKey()`; the text is in `i18n/locales` under `why.*` |
 | `validate.test.ts` | Validation tests |
 | `edit.test.ts` | Editing keeps play state and gear |
 | `why.test.ts` | Every step, race and class has an explanation |
+| `style.test.ts` | Builder, "why?" and level history CSS use logical properties and glass tokens only |
 
 ## Notes
+
+- Look: the step card and summary are `.glass`; tiles inside (race/class choices, stats, kit choices) are thin glass with the lens for the selected one. Buttons are `.glass-btn` (one `.prominent` per surface), picks are `.glass-chip`, the rules switch is `.glass-segmented`. On phones the step bar is one swipeable row that keeps the current step in view. The "why?" bubble is a `.glass-sheet`.
 
 - Rules: the Race step starts with a 2014 / 2024 switch (`rulesEdition`). Switching clears race, background, skills, languages, tools, ASIs, gear picks and class choices; classes keep their levels and drop their subclass. New characters default to 2014.
 - 2024: species show traits only; a Human picks an Origin feat. The Abilities step picks the background and its +2/+1 or +1/+1/+1 (`BackgroundBonuses`). The Class step asks for Fighting Style, Divine Order or Primal Order when the level unlocks it (`ClassChoices`). ASI feats above the slot's level are hidden (Epic Boons at 19); feats with a +1 choice ask for the ability. Skilled adds three picks of any skill. Gear choices show their coins; option B is coins only. No custom background in 2024.

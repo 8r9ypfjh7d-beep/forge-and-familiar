@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import { addSnapshots, takeSnapshot } from '../portability'
@@ -40,6 +40,11 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
   const [replaceGear, setReplaceGear] = useState(true)
   const update = (patch: Partial<CharacterDraft>) => setDraft(d => ({ ...d, ...patch }))
   const { t } = useI18n()
+  const stepsRef = useRef<HTMLElement>(null)
+  // On phones the step bar is one swipeable row: keep the current step in view.
+  useEffect(() => {
+    stepsRef.current?.querySelector('[aria-current="step"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [step])
 
   const issues = useMemo(() => STEPS.map(s => stepIssues(s.id, draft, t)), [draft, t])
   const firstBlocked = issues.findIndex(i => i.length > 0)
@@ -64,7 +69,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
           <p className="small">{t('builder.edit.intro')}</p>
         </div>
       )}
-      <nav className="steps" aria-label={t('builder.steps')}>
+      <nav className="steps" ref={stepsRef} aria-label={t('builder.steps')}>
         {STEPS.map((s, i) => {
           const reachable = firstBlocked === -1 || i <= firstBlocked
           return (
@@ -82,7 +87,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
       </nav>
 
       <div className="builder-body">
-        <section className="panel builder-step">
+        <section className="glass builder-step">
           <h2>{t(`builder.step.${STEPS[step].id}`)}</h2>
           <p className="muted">{t(draft.rulesEdition === '2024' && (STEPS[step].id === 'race' || STEPS[step].id === 'abilities') ? `builder.step.${STEPS[step].id as 'race' | 'abilities'}.blurb2024` : `builder.step.${STEPS[step].id}.blurb`)} <Why id={`step.${STEPS[step].id}`} /></p>
           <Current draft={draft} update={update} />
@@ -100,28 +105,28 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
           {editing && firstBlocked !== -1 && firstBlocked !== step && (
             <p className="edit-blocked small">
               {t('builder.edit.blocked', { step: t(`builder.step.${STEPS[firstBlocked].id}`) })}{' '}
-              <button className="btn ghost small" onClick={() => setStep(firstBlocked)}>{t('builder.edit.goFix')}</button>
+              <button className="glass-btn small" onClick={() => setStep(firstBlocked)}>{t('builder.edit.goFix')}</button>
             </p>
           )}
           <div className="builder-nav">
             {editing ? (
               <div className="row">
-                {step > 0 && <button className="btn ghost" onClick={() => setStep(step - 1)}>{t('builder.back')}</button>}
-                <button className="btn ghost" onClick={cancel}>{t('common.cancel')}</button>
+                {step > 0 && <button className="glass-btn" onClick={() => setStep(step - 1)}>{t('builder.back')}</button>}
+                <button className="glass-btn" onClick={cancel}>{t('common.cancel')}</button>
               </div>
             ) : (
-              <button className="btn ghost" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
+              <button className="glass-btn" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
                 {step === 0 ? t('common.cancel') : t('builder.back')}
               </button>
             )}
             <div className="row">
               {!isLast && (
-                <button className={`btn ${editing ? '' : 'primary'}`} disabled={issues[step].length > 0} onClick={() => setStep(step + 1)}>
+                <button className={`glass-btn ${editing ? '' : 'prominent'}`} disabled={issues[step].length > 0} onClick={() => setStep(step + 1)}>
                   {t('builder.next')}
                 </button>
               )}
               {(isLast || editing) && (
-                <button className="btn primary" disabled={firstBlocked !== -1 || (!!editing && !dirty)} onClick={() => onCreate(result())}>
+                <button className="glass-btn prominent" disabled={firstBlocked !== -1 || (!!editing && !dirty)} onClick={() => onCreate(result())}>
                   {editing ? t('builder.edit.save') : t('builder.create')}
                 </button>
               )}
@@ -149,9 +154,9 @@ export function EditCharacter({ characterId, onSaved, onCancel }: {
   if (character === undefined) return <p className="muted">{t('common.loading')}</p>
   if (character === null) {
     return (
-      <div className="panel empty">
+      <div className="glass empty">
         <p>{t('common.notFound')}</p>
-        <button className="btn" onClick={onCancel}>{t('common.back')}</button>
+        <button className="glass-btn" onClick={onCancel}>{t('common.back')}</button>
       </div>
     )
   }
