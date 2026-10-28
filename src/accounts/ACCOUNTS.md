@@ -11,7 +11,7 @@ Personal activation codes for the group, so each friend signs in as themselves a
 | `codes.ts` | `normalizeActivationCode` |
 | `session.ts` | `activate(code)` (session or `'wrong'`/`'limited'`/`'offline'`), `activateErrorKey`, `getSession()`, `onSessionChanged` (localStorage `ff.account.v1`) |
 | `ui.tsx` | `ActivateScreen` (front door on a new device), `CodeForm`, `AccountBadge` (DM badge in the top bar), `CloudLinkNotice` ("Turn on sync" for devices activated before the server) |
-| `accounts.css` | Badge and front-door tweaks |
+| `accounts.css` | Liquid Glass styles (see `src/design/DESIGN.md`): welcome card, code form, "Turn on sync" card, DM badge |
 | `accounts.test.ts` | Normalizing, error messages and roster shape |
 
 ## How it works
