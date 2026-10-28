@@ -26,3 +26,4 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 - Notes edit `Character.notes` through `setNotes` in `engine.ts`, saved on blur so the history gets one entry per edit.
 - A widget meant for both modes goes in `SHARED_TOP` or `SHARED_SIDE` in `mode.ts`. Before adding a card to combat mode, check that no tab already shows it.
 - Adding a sheet section: add its id to `SheetSection`, render it in `CharacterSheet.tsx`'s `section()` switch, and place it in one or both layouts.
+- Look: Liquid Glass (`src/design/DESIGN.md`). `sheet.css` makes every `.card` content glass and every `.btn` a capsule for both modes; the shared widgets (character card, abilities, skills) are styled in the top block of `combat/combat.css`, the combat-only parts below its `/* Tabs */` line. New sheet cards get glass from `.card`; inner tiles use `--glass-thin`, `--r-md`/`--r-sm` and `--glass-hairline` separators.
