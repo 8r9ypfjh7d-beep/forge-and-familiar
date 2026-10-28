@@ -90,15 +90,17 @@
 .ff-die--dropped { text-decoration: line-through; opacity: 0.55; }
 .ff-die--max { font-weight: 700; }
 
-/* Secret rolls panel (party page). Uses the app's .panel/.btn/.chip primitives. */
-.ff-secret { display: grid; gap: 10px; margin-top: 16px; }
+/* Secret rolls panel (party page). Liquid Glass card with .glass-btn, .glass-segmented and .glass-field. */
+.ff-secret { display: grid; gap: var(--sp-3); padding: var(--sp-4); }
 .ff-secret h3, .ff-secret p { margin: 0; }
-.ff-secret .row.spread { margin-bottom: 0; align-items: flex-start; }
+.ff-secret .row.spread { margin-block-end: 0; align-items: flex-start; }
 .ff-secret select { min-width: 0; flex: 1 1 180px; }
 .ff-secret__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
 .ff-secret__list li { display: grid; gap: 2px; }
+.ff-secret__list li + li { border-block-start: 1px solid var(--glass-hairline); padding-block-start: var(--sp-2); }
 .ff-secret__sent { gap: 2px; }
 .ff-secret__sent li { display: block; }
+.ff-secret h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; }
 
 /* Floating dice button and its window. Sits under full-screen overlays (table mode, handouts). */
 .ff-dice-fab {

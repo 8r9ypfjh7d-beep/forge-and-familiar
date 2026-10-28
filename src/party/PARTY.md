@@ -15,7 +15,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `feed.ts` | Party roll feed: merges members' dice histories (`mergePartyRolls`), live via `onMemberRollsChanged` |
 | `RollFeed.tsx` | "Party rolls" panel under the party table; `PartyRollRelay` (in App) sends each sheet roll to the cloud at once |
 | `PartyStash.tsx` | Stash panel under the party table: coins, items, change log |
-| `party.css` | Styles scoped to `.ff-party` |
+| `party.css` | Styles scoped to `.ff-party`, Liquid Glass (`src/design/DESIGN.md`): `.glass` cards, `.glass-btn`, `.glass-field`; secret rolls, polls and hand-outs on the page use the same utilities |
 | `party.test.ts` | Code and membership tests |
 | `feed.test.ts` | Roll feed merge and filter tests |
 | `stash.test.ts` | Stash actions, coin conversion and splitting |

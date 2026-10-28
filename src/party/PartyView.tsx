@@ -30,13 +30,13 @@ export function PartyView({ userId, onOpenCharacter }: { userId: string; onOpenC
 
   return (
     <section className="ff-party">
-      <h2>{t('party.yours')}</h2>
+      <h2 className="glass-title">{t('party.yours')}</h2>
       {parties.length === 0
         ? <p className="muted">{t('party.none')}</p>
         : (
           <div className="card-grid">
             {parties.map(p => (
-              <button key={p.id} className="panel party-card" onClick={() => setOpenId(p.id)}>
+              <button key={p.id} className="glass party-card" onClick={() => setOpenId(p.id)}>
                 <h3>{p.name}</h3>
                 <span className="muted small">{t('party.members', { count: p.members.length })} · <bdi>{formatCode(p.code)}</bdi></span>
                 <HandoutBadge party={p} userId={userId} />
@@ -56,12 +56,12 @@ function CreateForm({ onCreate }: { onCreate: (name: string) => void }) {
   const [name, setName] = useState('')
   const { t } = useI18n()
   return (
-    <form className="panel" onSubmit={e => { e.preventDefault(); if (name.trim()) onCreate(name.trim()) }}>
+    <form className="glass party-form" onSubmit={e => { e.preventDefault(); if (name.trim()) onCreate(name.trim()) }}>
       <h3>{t('party.start')}</h3>
       <p className="muted small">{t('party.startHelp')}</p>
       <div className="row">
-        <input value={name} onChange={e => setName(e.target.value)} placeholder={t('party.name')} aria-label={t('party.name')} />
-        <button className="btn primary" disabled={!name.trim()}>{t('party.create')}</button>
+        <input className="glass-field" value={name} onChange={e => setName(e.target.value)} placeholder={t('party.name')} aria-label={t('party.name')} />
+        <button className="glass-btn prominent" disabled={!name.trim()}>{t('party.create')}</button>
       </div>
     </form>
   )
@@ -84,22 +84,22 @@ function JoinForm({ userId, onJoined }: { userId: string; onJoined: (partyId: st
   }
 
   return (
-    <form className="panel" onSubmit={e => { e.preventDefault(); if (code.trim()) submit() }}>
+    <form className="glass party-form" onSubmit={e => { e.preventDefault(); if (code.trim()) submit() }}>
       <h3>{t('party.join')}</h3>
       <div className="field">
         <label htmlFor="join-code">{t('party.inviteCode')}</label>
-        <input id="join-code" className="code-input" value={code} maxLength={8} autoComplete="off"
+        <input id="join-code" className="glass-field code-input" value={code} maxLength={8} autoComplete="off"
           onChange={e => { setCode(e.target.value); setError('') }} placeholder="ABC-234" />
       </div>
       <div className="field">
         <label htmlFor="join-char">{t('party.bring')}</label>
-        <select id="join-char" value={characterId} onChange={e => setCharacterId(e.target.value)}>
+        <select id="join-char" className="glass-field" value={characterId} onChange={e => setCharacterId(e.target.value)}>
           {characters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           <option value="">{t('common.watching')}</option>
         </select>
       </div>
       {error && <p className="bad small" role="alert">{error}</p>}
-      <button className="btn primary" disabled={!code.trim()}>{t('party.joinButton')}</button>
+      <button className="glass-btn prominent" disabled={!code.trim()}>{t('party.joinButton')}</button>
     </form>
   )
 }
@@ -157,25 +157,25 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
   return (
     <section className="ff-party">
       <div className="party-head">
-        <button className="btn ghost" onClick={onBack} aria-label={t('party.backToParties')}>{t('common.backArrow')}</button>
+        <button className="glass-btn icon" onClick={onBack} aria-label={t('party.backToParties')}>{t('common.backArrow')}</button>
         <div className="grow">
-          <h2>{party.name}</h2>
+          <h2 className="glass-title">{party.name}</h2>
           <p className="muted small">{t('party.dm', { name: nameOf(party.dmId) })}</p>
         </div>
         <div className="invite">
-          <span className="muted small">{t('party.inviteCode')}</span>
+          <span className="glass-eyebrow">{t('party.inviteCode')}</span>
           <button className="code" dir="ltr" onClick={copy} title={t('party.copyCode')}>{formatCode(party.code)}</button>
           <span className="small muted" aria-live="polite">{copied ? t('party.copied') : ''}</span>
         </div>
       </div>
 
-      <div className="row party-me">
+      <div className="glass thin party-me">
         <label className="small strong" htmlFor="party-char">{t('party.youBring')}</label>
-        <select id="party-char" value={me?.characterId ?? ''} onChange={e => chooseCharacter(party.id, userId, e.target.value || undefined)}>
+        <select id="party-char" className="glass-field" value={me?.characterId ?? ''} onChange={e => chooseCharacter(party.id, userId, e.target.value || undefined)}>
           {mine.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           <option value="">{t('common.watching')}</option>
         </select>
-        <button className="btn ghost small" onClick={() => confirm(t('party.confirmLeave', { name: party.name })) && leaveParty(party.id, userId)}>{t('party.leave')}</button>
+        <button className="glass-btn small ghost" onClick={() => confirm(t('party.confirmLeave', { name: party.name })) && leaveParty(party.id, userId)}>{t('party.leave')}</button>
       </div>
 
       <SessionScheduler party={party} userId={userId} nameOf={nameOf} />
@@ -214,7 +214,7 @@ function MemberCard({ member, playerName, isDm, character, onOpen }: {
   const badge = isDm && <span className="badge">{t('party.dmBadge')}</span>
   if (!member.characterId || !character) {
     return (
-      <article className="panel member watching">
+      <article className="glass thin member watching">
         <div className="who"><strong>{playerName}</strong> {badge}</div>
         <p className="muted small">{t(member.characterId ? 'party.notFound' : 'party.watching')}</p>
       </article>
@@ -229,11 +229,11 @@ function MemberCard({ member, playerName, isDm, character, onOpen }: {
   const classes = classLine(character.classes)
 
   return (
-    <article className="panel member">
+    <article className="glass member">
       <header>
         {character.portrait ? <img src={character.portrait} alt="" /> : <div className="portrait-empty">{character.name.slice(0, 1)}</div>}
         <div className="grow">
-          <h3>{character.name}</h3>
+          <h3 className="member-name">{character.name}</h3>
           <p className="muted small">{classes} · {playerName} {badge}</p>
         </div>
       </header>
@@ -261,7 +261,7 @@ function MemberCard({ member, playerName, isDm, character, onOpen }: {
         </ul>
       )}
 
-      {onOpen && <button className="btn small" onClick={onOpen}>{t('party.openMine')}</button>}
+      {onOpen && <button className="glass-btn small" onClick={onOpen}>{t('party.openMine')}</button>}
     </article>
   )
 }

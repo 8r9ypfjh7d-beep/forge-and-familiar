@@ -1,27 +1,29 @@
-/* Session scheduler, scoped to .ff-schedule. Uses the app tokens from index.css. */
-.ff-schedule { --maybe: #a8700f; margin-bottom: 16px; padding: 14px; }
+/* Session scheduler, scoped to .ff-schedule. Liquid Glass card (src/design/DESIGN.md). */
+.ff-schedule { --maybe: #a8700f; padding: var(--sp-4); }
 @media (prefers-color-scheme: dark) { .ff-schedule { --maybe: #e0b45a; } }
 
 .ff-schedule p { margin: 6px 0 0; }
 .ff-schedule .sched-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ff-schedule .sched-head h3 { margin: 0; }
+.ff-schedule .sched-head h3 { margin: 0; font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; }
 .ff-schedule .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.ff-schedule.locked .when { font-family: Georgia, 'Iowan Old Style', serif; font-size: 1.35rem; font-weight: 700; color: var(--accent); margin-bottom: 2px; }
-.ff-schedule.locked > .btn { margin-top: 10px; }
-.ff-schedule.soon { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.ff-schedule.locked .when { font-family: var(--font-lore); font-size: 1.35rem; font-weight: 700; color: var(--accent); margin-block-end: 2px; }
+.ff-schedule.locked > .glass-btn { margin-block-start: 10px; }
+.ff-schedule.soon { background: color-mix(in srgb, var(--glass-tint), var(--glass-regular)); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 
-.ff-schedule .sched-scroll { overflow-x: auto; margin: 10px -4px 0; padding: 0 4px; }
+.ff-schedule .sched-scroll { overflow-x: auto; margin-block-start: 10px; margin-inline: -4px; padding-inline: 4px; }
 .ff-schedule .sched-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-.ff-schedule .sched-table th, .ff-schedule .sched-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.ff-schedule .sched-table th, .ff-schedule .sched-table td { padding: 6px 8px; border-block-end: 1px solid var(--glass-hairline); text-align: center; white-space: nowrap; }
 .ff-schedule .sched-table thead th { font-size: 0.75rem; font-weight: 600; color: var(--muted); max-width: 9em; overflow: hidden; text-overflow: ellipsis; }
 .ff-schedule .sched-table thead th.me { color: var(--accent); }
 .ff-schedule .sched-table tbody th { text-align: start; font-weight: 600; }
 .ff-schedule .sched-table tr.best th[scope=row]::before { content: '★ '; color: var(--accent); }
-.ff-schedule .sched-table tr.best { background: var(--accent-soft); }
+.ff-schedule .sched-table tr.best { background: var(--glass-tint); }
+.ff-schedule .sched-table tr.best > :first-child { border-start-start-radius: var(--r-sm); border-end-start-radius: var(--r-sm); }
+.ff-schedule .sched-table tr.best > :last-child { border-start-end-radius: var(--r-sm); border-end-end-radius: var(--r-sm); }
 .ff-schedule .sched-table tr.past { opacity: 0.55; }
 .ff-schedule .sched-table td.acts { text-align: end; }
-.ff-schedule .sched-table td.acts .btn { margin-inline-start: 4px; }
+.ff-schedule .sched-table td.acts .glass-btn { margin-inline-start: 4px; }
 
 .ff-schedule .ans { font-weight: 700; }
 .ff-schedule .yes { color: var(--good); }
@@ -29,15 +31,17 @@
 .ff-schedule .no { color: var(--bad); }
 .ff-schedule .none { color: var(--muted); }
 .ff-schedule .ans-btn {
-  font: inherit; font-weight: 700; width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
-  border: 1px solid var(--line); background: var(--panel);
+  font: inherit; font-weight: 700; width: 36px; height: 36px; border-radius: var(--r-pill); cursor: pointer;
+  border: 1px solid var(--glass-stroke); background: var(--glass-thin); box-shadow: var(--glass-highlight);
+  transition: transform var(--dur-fast) var(--ease-spring);
 }
-.ff-schedule .ans-btn.yes { border-color: var(--good); }
-.ff-schedule .ans-btn.maybe { border-color: var(--maybe); }
-.ff-schedule .ans-btn.no { border-color: var(--bad); }
+.ff-schedule .ans-btn:active:not(:disabled) { transform: scale(0.92); }
+.ff-schedule .ans-btn.yes { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--glass-thin)); }
+.ff-schedule .ans-btn.maybe { border-color: var(--maybe); background: color-mix(in srgb, var(--maybe) 14%, var(--glass-thin)); }
+.ff-schedule .ans-btn.no { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, var(--glass-thin)); }
 .ff-schedule .ans-btn:disabled { cursor: not-allowed; }
 
-.ff-schedule .propose { margin-top: 12px; }
+.ff-schedule .propose { margin-block-start: var(--sp-3); }
 .ff-schedule .propose input { flex: 1; min-width: 0; max-width: 260px; }
 
 /* Phones: drop the other players' columns; the Free count still sums them up. */

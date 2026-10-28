@@ -17,7 +17,7 @@ export function PartyStash({ party, userId, nameOf }: { party: Party; userId: st
   const players = party.members.filter(m => m.characterId).length
 
   return (
-    <section className="panel stash" aria-labelledby="stash-title">
+    <section className="glass stash" aria-labelledby="stash-title">
       <div className="stash-head">
         <h3 id="stash-title">Party stash</h3>
         <span className="muted small">Shared loot and gold. Anyone in the party can change it.</span>
@@ -65,24 +65,24 @@ function CoinPurse({ coins, players, act }: {
 
   return (
     <div className="purse">
-      <h4>Coin</h4>
+      <h4 className="glass-eyebrow">Coin</h4>
       <dl className="coins">
         {COINS.map(k => <div key={k} className={coins[k] ? '' : 'none'}><dt>{k}</dt><dd>{coins[k]}</dd></div>)}
       </dl>
       <p className="muted small">Worth {formatCoins({ gp: Math.floor(toCp(coins) / 100) })} in total.</p>
 
       <form className="row" onSubmit={e => { e.preventDefault(); if (valid) move(1) }}>
-        <input className="amount" type="number" min={1} inputMode="numeric" value={amount} onChange={e => setAmount(e.target.value)}
+        <input className="glass-field amount" type="number" min={1} inputMode="numeric" value={amount} onChange={e => setAmount(e.target.value)}
           placeholder="Amount" aria-label="Amount" />
-        <select value={coin} onChange={e => setCoin(e.target.value as Coin)} aria-label="Coin">
+        <select className="glass-field" value={coin} onChange={e => setCoin(e.target.value as Coin)} aria-label="Coin">
           {COINS.map(k => <option key={k} value={k}>{k}</option>)}
         </select>
-        <input className="grow" value={reason} onChange={e => setReason(e.target.value)} placeholder="What for? (optional)" aria-label="Reason" />
-        <button className="btn small primary" disabled={!valid}>Add</button>
-        <button type="button" className="btn small" disabled={!valid} onClick={() => move(-1)}>Take</button>
+        <input className="glass-field grow" value={reason} onChange={e => setReason(e.target.value)} placeholder="What for? (optional)" aria-label="Reason" />
+        <button className="glass-btn small prominent" disabled={!valid}>Add</button>
+        <button type="button" className="glass-btn small" disabled={!valid} onClick={() => move(-1)}>Take</button>
       </form>
 
-      <button className="btn small" disabled={!canSplit}
+      <button className="glass-btn small" disabled={!canSplit}
         onClick={() => confirm(`Give each of the ${players} players ${formatCoins(split.share)} and empty the stash?`) && act({ type: 'split', ways: players })}>
         {canSplit ? `Split ${players} ways: ${formatCoins(split.share)} each` : 'Split among players'}
       </button>
@@ -111,7 +111,7 @@ function ItemList({ party, userId, nameOf, act }: {
 
   return (
     <div className="loot">
-      <h4>Items</h4>
+      <h4 className="glass-eyebrow">Items</h4>
       {items.length === 0
         ? <p className="muted small">Nothing yet. Add loot as the party finds it.</p>
         : (
@@ -126,14 +126,14 @@ function ItemList({ party, userId, nameOf, act }: {
                     <div className="muted small">{it.heldBy ? `Carried by ${mine ? 'you' : nameOf(it.heldBy)}` : 'In the party bag'}</div>
                   </div>
                   <div className="qty" role="group" aria-label={`${it.name} quantity`}>
-                    <button className="btn small ghost" onClick={() => act({ type: 'qty', id: it.id, delta: -1 })} aria-label={`Use one ${it.name}`}>−</button>
+                    <button className="glass-btn small ghost icon" onClick={() => act({ type: 'qty', id: it.id, delta: -1 })} aria-label={`Use one ${it.name}`}>−</button>
                     <span>{it.qty}</span>
-                    <button className="btn small ghost" onClick={() => act({ type: 'qty', id: it.id, delta: 1 })} aria-label={`Add one ${it.name}`}>+</button>
+                    <button className="glass-btn small ghost icon" onClick={() => act({ type: 'qty', id: it.id, delta: 1 })} aria-label={`Add one ${it.name}`}>+</button>
                   </div>
-                  <button className="btn small" onClick={() => act({ type: 'hold', id: it.id, carry: !mine })}>
+                  <button className="glass-btn small" onClick={() => act({ type: 'hold', id: it.id, carry: !mine })}>
                     {mine ? 'Put back' : it.heldBy ? 'Take it' : 'Carry'}
                   </button>
-                  <button className="btn small ghost" onClick={() => confirm(`Remove ${it.name} from the stash?`) && act({ type: 'remove', id: it.id })}
+                  <button className="glass-btn small ghost icon" onClick={() => confirm(`Remove ${it.name} from the stash?`) && act({ type: 'remove', id: it.id })}
                     aria-label={`Remove ${it.name}`} title="Remove">✕</button>
                 </li>
               )
@@ -142,11 +142,11 @@ function ItemList({ party, userId, nameOf, act }: {
         )}
 
       <form className="row add-item" onSubmit={e => { e.preventDefault(); if (name.trim()) add() }}>
-        <input className="grow" list="stash-srd-items" value={name} onChange={e => setName(e.target.value)} placeholder="Item, e.g. Potion of Healing" aria-label="Item name" />
+        <input className="glass-field grow" list="stash-srd-items" value={name} onChange={e => setName(e.target.value)} placeholder="Item, e.g. Potion of Healing" aria-label="Item name" />
         <datalist id="stash-srd-items">{ITEMS.map(i => <option key={i.id} value={i.name} />)}</datalist>
-        <input className="amount" type="number" min={1} value={qty} onChange={e => setQty(e.target.value)} aria-label="Quantity" />
-        <input className="grow" value={note} onChange={e => setNote(e.target.value)} placeholder="Note (optional)" aria-label="Note" />
-        <button className="btn small primary" disabled={!name.trim()}>Add item</button>
+        <input className="glass-field amount" type="number" min={1} value={qty} onChange={e => setQty(e.target.value)} aria-label="Quantity" />
+        <input className="glass-field grow" value={note} onChange={e => setNote(e.target.value)} placeholder="Note (optional)" aria-label="Note" />
+        <button className="glass-btn small prominent" disabled={!name.trim()}>Add item</button>
       </form>
     </div>
   )
