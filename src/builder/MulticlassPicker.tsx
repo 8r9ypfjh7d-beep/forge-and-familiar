@@ -28,7 +28,7 @@ export function MulticlassPicker({ draft, update }: StepProps) {
   const setExtras = (next: typeof extras) => update({ classes: [first, ...next] })
 
   if (!open) {
-    return <button className="btn ghost multiclass-open" onClick={() => setOpen(true)}>+ Multiclass (optional)</button>
+    return <button className="glass-btn multiclass-open" onClick={() => setOpen(true)}>+ Multiclass (optional)</button>
   }
 
   const candidates = classesFor(edition).filter(c => !draft.classes.some(cl => cl.classId === c.id))
@@ -54,7 +54,7 @@ export function MulticlassPicker({ draft, update }: StepProps) {
               {Array.from({ length: Math.max(1, MAX_CHARACTER_LEVEL - others) }, (_, l) => l + 1).map(l => <option key={l} value={l}>Level {l}</option>)}
             </select>
             <span className="muted small">Gains {grantText(cl.classId, edition)}</span>
-            <button className="btn ghost" onClick={() => setExtras(extras.filter((_, j) => j !== i))} aria-label={`Remove ${def?.name}`}>✕</button>
+            <button className="glass-btn icon" onClick={() => setExtras(extras.filter((_, j) => j !== i))} aria-label={`Remove ${def?.name}`}>✕</button>
           </div>
         )
       })}
@@ -65,7 +65,7 @@ export function MulticlassPicker({ draft, update }: StepProps) {
             return (
               <button
                 key={c.id}
-                className="chip"
+                className="glass-chip"
                 disabled={issues.length > 0}
                 title={issues.length ? issues.join(' ') : `Needs ${prereqLabel(c.id)}. Gains ${grantText(c.id, edition)}.`}
                 onClick={() => setExtras([...extras, { classId: c.id, level: 1 }])}

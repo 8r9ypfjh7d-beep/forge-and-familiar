@@ -1,9 +1,10 @@
-/* Import button, level history view. */
-.ff-import { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.ff-levels { display: grid; gap: 12px; }
-.ff-levels form.panel { padding: 12px; }
-.ff-levels form input { flex: 1 1 180px; min-width: 0; }
-.ff-snaps { display: grid; gap: 8px; }
-.ff-snaps li { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; }
-.ff-snaps h3 { margin: 0; }
-.ff-snaps p { margin: 0; }
+/* Import button, level history view (Liquid Glass, src/design/DESIGN.md). */
+.ff-import { display: inline-flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
+.ff-levels { display: grid; gap: var(--sp-3); }
+.ff-levels h2 { font-size: 1.75rem; letter-spacing: -0.02em; }
+.ff-levels form.glass { padding: var(--sp-3); }
+.ff-levels form input { flex: 1 1 180px; min-inline-size: 0; min-height: 40px; padding-inline: var(--sp-3); border-radius: var(--r-sm); border-color: var(--glass-hairline); background: color-mix(in srgb, var(--panel) 70%, transparent); }
+.ff-snaps { display: grid; gap: var(--sp-2); }
+.ff-snaps li { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); flex-wrap: wrap; padding-block: var(--sp-3); padding-inline: var(--sp-4); }
+.ff-snaps h3 { margin: 0; font-family: var(--font-lore); letter-spacing: 0; }
+.ff-snaps p { margin: 0; font-variant-numeric: tabular-nums; }

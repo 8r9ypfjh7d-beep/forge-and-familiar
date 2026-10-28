@@ -6,7 +6,7 @@ import './why.css'
 /** A small "why?" button that opens a plain-language explanation for new players. */
 export function Why({ id, compact }: { id: WhyId; compact?: boolean }) {
   const [open, setOpen] = useState(false)
-  const [alignRight, setAlignRight] = useState(false)
+  const [alignEnd, setAlignEnd] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
   const popId = useId()
   const { t } = useI18n()
@@ -25,8 +25,11 @@ export function Why({ id, compact }: { id: WhyId; compact?: boolean }) {
   }, [open])
 
   // Open toward whichever side has room, so the bubble never runs off a phone screen.
+  // Near the end edge (right in English, left in Hebrew) it hangs from the end instead.
   useLayoutEffect(() => {
-    if (open && ref.current) setAlignRight(ref.current.getBoundingClientRect().left > window.innerWidth / 2)
+    if (!open || !ref.current) return
+    const nearRight = ref.current.getBoundingClientRect().left > window.innerWidth / 2
+    setAlignEnd(getComputedStyle(ref.current).direction === 'rtl' ? !nearRight : nearRight)
   }, [open])
 
   return (
@@ -42,7 +45,7 @@ export function Why({ id, compact }: { id: WhyId; compact?: boolean }) {
         {compact ? '?' : t('why.button')}
       </button>
       {open && (
-        <span id={popId} role="note" className={`why-pop ${alignRight ? 'right' : ''}`}>
+        <span id={popId} role="note" className={`why-pop glass-sheet ${alignEnd ? 'end' : ''}`}>
           <strong>{title}</strong>
           {t(`why.${id}.text`)}
         </span>
