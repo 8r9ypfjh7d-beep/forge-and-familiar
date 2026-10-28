@@ -598,6 +598,8 @@ const messages: Messages = {
   'party.name': 'שם החבורה',
   'party.create': 'יצירה',
   'party.join': 'הצטרפות עם קוד',
+  'party.new': '+ חבורה חדשה',
+  'party.newTitle': 'חבורה חדשה',
   'party.inviteCode': 'קוד הזמנה',
   'party.bring': 'עם הדמות',
   'party.joinButton': 'הצטרפות',

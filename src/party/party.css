@@ -19,14 +19,16 @@
 }
 .ff-party .party-card:hover { background: var(--glass-thick); }
 .ff-party .party-card:active { transform: scale(0.98); }
-.ff-party .party-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--sp-3); margin-block-start: var(--sp-2); }
-.ff-party .party-form { padding: var(--sp-4); display: grid; gap: var(--sp-3); align-content: start; }
+.ff-party .party-new { justify-self: start; }
+.ff-party .party-form-head { display: flex; align-items: center; gap: var(--sp-2); }
+.ff-party .party-form-body { display: grid; gap: var(--sp-3); }
+.ff-party .party-form-body > .glass-btn { justify-self: start; }
+.ff-party .party-form { padding: var(--sp-4); display: grid; gap: var(--sp-3); align-content: start; max-inline-size: 480px; }
 .ff-party .party-form p { margin: 0; }
 .ff-party .party-form .row { flex-wrap: nowrap; }
 .ff-party .party-form .row input { flex: 1; }
 .ff-party .party-form .field { margin: 0; }
 .ff-party .party-form .field input, .ff-party .party-form .field select { width: 100%; }
-.ff-party .party-form > .glass-btn { justify-self: start; }
 .ff-party .code-input { text-transform: uppercase; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
 
 /* Party header */
