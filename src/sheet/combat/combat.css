@@ -1,69 +1,79 @@
 /* Combat page (Roll20-style layout). Scoped inside .ff-sheet, uses the sheet's tokens. Logical properties for RTL. */
 
-/* The character card, abilities and skills are shared by story and combat mode (see ../mode.ts). */
+/* The character card, abilities and skills are shared by story and combat mode (see ../mode.ts).
+   Their look is owned by the story restyle: glass tiles inside the sheet's glass cards (src/design/DESIGN.md). */
 .cs-vitals > .card { min-width: 0; }
 
 /* Hero: portrait with level badge, who, buttons */
-.cs-hero { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: start; }
-.cs-portrait { position: relative; inline-size: 96px; block-size: 104px; }
+.cs-hero { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-3) var(--sp-4); align-items: start; }
+.cs-portrait { position: relative; inline-size: 96px; block-size: 108px; }
 .cs-portrait img, .cs-portrait .placeholder {
-  inline-size: 96px; block-size: 96px; border-radius: 8px; object-fit: cover; border: 2px solid var(--s-accent);
+  inline-size: 96px; block-size: 96px; border-radius: var(--r-md); object-fit: cover;
+  border: 1px solid var(--glass-stroke); box-shadow: var(--glass-highlight), var(--glass-shadow);
 }
-.cs-portrait .placeholder { display: grid; place-items: center; font-size: 2.5rem; font-weight: 800; background: var(--s-bg); color: var(--s-accent); }
+.cs-portrait .placeholder {
+  display: grid; place-items: center; font-family: var(--font-lore); font-size: 2.6rem; font-weight: 600;
+  padding-block-end: var(--sp-2); background: var(--glass-tint); color: var(--s-accent);
+}
+/* Level: a round accent badge on the portrait's bottom edge, ringed so it lifts off the photo. */
 .cs-level {
   position: absolute; inset-block-end: 0; inset-inline-start: 50%; translate: -50% 0;
-  inline-size: 36px; block-size: 36px; display: grid; place-items: center;
-  background: var(--s-accent); color: #fff; font-weight: 800; font-size: 1.1rem;
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  inline-size: 32px; block-size: 32px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--s-accent); color: var(--accent-ink, #fff); font-weight: 700; font-size: 1rem;
+  box-shadow: 0 0 0 3px var(--glass-thick), 0 2px 8px rgb(0 0 0 / 0.2);
 }
 [dir="rtl"] .cs-level { translate: 50% 0; }
 .cs-who { min-width: 0; }
-.cs-who h1 { color: var(--s-accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: .02em; }
+.cs-who h1 { color: var(--s-accent); font-family: var(--font-lore); font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .cs-who p { margin: 2px 0 0; color: var(--s-muted); font-size: .9rem; }
 .cs-who .cs-class { color: var(--s-ink); font-weight: 600; }
 
-/* AC, speed, proficiency and passive perception: four equal tiles under the name */
-.cs-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+/* AC, speed, proficiency and passive perception: four equal glass tiles under the name */
+.cs-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); margin: 0; }
 .cs-stats > div {
-  display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0;
-  padding: 8px 4px; border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg);
+  display: grid; justify-items: center; align-content: start; gap: var(--sp-1); min-width: 0;
+  padding: var(--sp-2) var(--sp-1); border: 1px solid var(--glass-stroke); border-radius: var(--r-md);
+  background: var(--glass-thin); box-shadow: var(--glass-highlight);
 }
-.cs-stats dt { font-size: .65rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--s-muted); text-align: center; overflow-wrap: anywhere; }
-.cs-stats dd { margin: 0; font-size: 1.25rem; font-weight: 800; line-height: 1; min-block-size: 40px; display: grid; place-items: center; }
-.cs-hero-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.cs-stats dt { font-size: .7rem; font-weight: 600; letter-spacing: .02em; color: var(--s-muted); text-align: center; overflow-wrap: anywhere; }
+.cs-stats dd { margin: 0; font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; line-height: 1; min-block-size: 40px; display: grid; place-items: center; }
+.cs-hero-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .cs-hero-actions .btn { flex: 1 1 120px; }
 .cs-init { font-size: 1rem; }
 .cs-hero .cs-last { grid-column: 1 / -1; }
-.cs-last { margin-top: 8px; display: grid; gap: 6px; }
+.cs-last { margin-block-start: var(--sp-2); display: grid; gap: 6px; }
 
 /* Character card: who the character is, AC and speed, HP and Rest in one card. The sheet's own
    HP and Rest cards sit inside it without their borders. */
-.cs-top { display: grid; gap: 16px 24px; grid-template-columns: 1fr; }
+.cs-top { display: grid; gap: var(--sp-4) var(--sp-6); grid-template-columns: 1fr; }
 @media (min-width: 1000px) { .cs-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); } }
-.cs-vitals { display: grid; gap: 16px 24px; grid-template-columns: 1fr; min-width: 0; align-content: start; }
+.cs-vitals { display: grid; gap: var(--sp-4) var(--sp-6); grid-template-columns: 1fr; min-width: 0; align-content: start; }
 @media (min-width: 560px) { .cs-vitals { grid-template-columns: 1.4fr 1fr; } }
-.ff-sheet .cs-vitals > .card { border: 0; padding: 0; background: transparent; }
-@media (max-width: 999px) { .cs-top .cs-vitals { border-block-start: 1px solid var(--s-line); padding-block-start: 12px; } }
-@media (min-width: 1000px) { .cs-top .cs-vitals { border-inline-start: 1px solid var(--s-line); padding-inline-start: 24px; } }
+.ff-sheet .cs-vitals > .card { border: 0; padding: 0; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; }
+@media (max-width: 999px) { .cs-top .cs-vitals { border-block-start: 1px solid var(--glass-hairline); padding-block-start: var(--sp-3); } }
+@media (min-width: 1000px) { .cs-top .cs-vitals { border-inline-start: 1px solid var(--glass-hairline); padding-inline-start: var(--sp-6); } }
 
 /* Abilities: six columns of score, Mod and Save */
-.cs-ability-row { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; }
+.cs-ability-row { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3) var(--sp-2); }
 @media (min-width: 560px) { .cs-ability-row { grid-template-columns: repeat(6, 1fr); } }
-.cs-ability { display: grid; gap: 6px; justify-items: center; padding-inline: 4px; border-inline-end: 1px solid var(--s-line); }
+.cs-ability { display: grid; gap: 6px; justify-items: center; padding-inline: var(--sp-1); border-inline-end: 1px solid var(--glass-hairline); }
 .cs-ability:last-child { border-inline-end: 0; }
+@media (max-width: 559px) { .cs-ability:nth-child(3n) { border-inline-end: 0; } }
 .cs-ability-head { display: flex; align-items: center; gap: 6px; }
-.cs-ability .abbr { font-weight: 800; }
-.cs-score .show-math { min-inline-size: 34px; padding: 2px 6px; border: 1px solid var(--s-line); border-radius: 6px; font-weight: 700; }
-.cs-ability-rolls { display: flex; gap: 4px; }
+.cs-ability .abbr { font-weight: 700; letter-spacing: .02em; }
+.cs-score .show-math { min-inline-size: 34px; padding: 2px 6px; border: 1px solid var(--glass-stroke); border-radius: var(--r-pill); background: var(--glass-thin); font-weight: 700; text-align: center; }
+.cs-ability-rolls { display: flex; gap: var(--sp-1); }
 .cs-roll {
   position: relative; display: grid; justify-items: center; gap: 2px;
-  min-inline-size: 44px; min-block-size: 52px; padding: 6px 4px 4px;
-  border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg); color: var(--s-ink);
-  font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer;
+  min-inline-size: 44px; min-block-size: 52px; padding: 6px var(--sp-1) var(--sp-1);
+  border: 1px solid var(--glass-stroke); border-radius: var(--r-sm); background: var(--glass-thin); color: var(--s-ink);
+  box-shadow: var(--glass-highlight); font: inherit; font-weight: 700; font-size: 1.05rem; cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
 }
 .cs-roll small { font-size: .65rem; font-weight: 600; color: var(--s-muted); }
-.cs-roll:hover { border-color: var(--s-muted); }
-.cs-roll.save.prof { border-color: var(--s-accent); background: color-mix(in srgb, var(--s-accent) 18%, var(--s-panel)); }
+.cs-roll:hover { background: var(--glass-thick); }
+.cs-roll:active { transform: scale(.95); }
+.cs-roll.save.prof { border-color: color-mix(in srgb, var(--s-accent) 40%, transparent); background: var(--glass-tint); }
 .ff-sheet .dot {
   display: inline-block; inline-size: 10px; block-size: 10px; border-radius: 50%;
   border: 1px dashed var(--s-muted); background: transparent;
@@ -72,25 +82,31 @@
 
 /* AC shield and speed hexagon */
 .cs-shield .show-math, .cs-hex .show-math {
-  display: grid; place-items: center; inline-size: 38px; block-size: 40px; border: 2px solid var(--s-ink); background: var(--s-panel);
+  display: grid; place-items: center; inline-size: 38px; block-size: 40px; border: 2px solid var(--s-ink); background: transparent;
 }
 .cs-shield .show-math { border-radius: 6px 6px 50% 50% / 6px 6px 40% 40%; }
-.cs-hex .show-math { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); border: 0; background: var(--s-line); }
+.cs-hex .show-math { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); border: 0; background: color-mix(in srgb, var(--s-ink) 10%, transparent); }
 
 /* Skills rail */
 .cs-skills ul { list-style: none; margin: 0; padding: 0; }
+.cs-skills li + li { border-block-start: 1px solid var(--glass-hairline); }
 .cs-skills li button {
   display: grid; grid-template-columns: 1fr auto 3.2em 14px; align-items: center; gap: 6px;
-  inline-size: 100%; min-block-size: 36px; padding: 4px 6px; border: 0; border-radius: 6px;
+  inline-size: 100%; min-block-size: 40px; padding: var(--sp-1) 6px; border: 0; border-radius: var(--r-sm);
   background: transparent; color: var(--s-ink); font: inherit; text-align: start; cursor: pointer;
+  transition: background-color var(--dur-fast);
 }
-.cs-skills li button:hover { background: var(--s-bg); }
-.cs-skills .name { font-weight: 600; font-size: .9rem; }
-.cs-skills .abbr { font-size: .65rem; font-weight: 700; color: var(--s-muted); padding: 2px 4px; border-radius: 4px; background: var(--s-bg); }
-.cs-skills .bonus { text-align: center; font-weight: 800; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--s-line); }
-.cs-skills .prof .bonus { border-color: var(--s-accent); background: color-mix(in srgb, var(--s-accent) 18%, var(--s-panel)); }
-.cs-tools-title { margin-top: 16px !important; padding-top: 12px; border-top: 1px solid var(--s-line); }
-.cs-tools li { padding: 4px 6px; font-weight: 600; }
+.cs-skills li button:hover { background: var(--glass-thin); }
+.cs-skills li button:active { background: var(--glass-tint); }
+.cs-skills .name { font-weight: 500; font-size: .92rem; }
+.cs-skills .abbr { font-size: .65rem; font-weight: 600; color: var(--s-muted); padding: 2px 6px; border-radius: var(--r-pill); background: var(--glass-thin); border: 1px solid var(--glass-stroke); }
+.cs-skills .bonus { text-align: center; font-weight: 700; padding: 2px var(--sp-1); border-radius: var(--r-pill); border: 1px solid var(--glass-stroke); background: var(--glass-thin); }
+.cs-skills .prof .bonus { border-color: color-mix(in srgb, var(--s-accent) 40%, transparent); background: var(--glass-tint); color: var(--s-accent); }
+.cs-tools-title { margin-block-start: var(--sp-4) !important; padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
+.cs-tools li { padding: var(--sp-1) 6px; font-weight: 600; }
+
+/* High contrast: proficiency shown by tint also gets a solid edge. */
+:root[data-contrast="high"] .cs-roll.save.prof, :root[data-contrast="high"] .cs-skills .prof .bonus { border: 2px solid var(--s-accent); }
 
 /* Tabs */
 .cs-tabs { min-width: 0; }
