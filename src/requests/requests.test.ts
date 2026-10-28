@@ -1,4 +1,6 @@
+/// <reference types="node" />
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { createCharacter, derive, type CharacterDraft } from '../rules'
 import {
   answered, codeFrom, decide, decodeShared, encodeShared, grantToCharacter, inbox, linkFor, markApplied, mergeShared, mine,
@@ -151,5 +153,14 @@ describe('request links', () => {
     list = spendEditPass(list, 'acct-roy', 'c1')
     expect(editState(list, 'acct-roy', 'c1')).toBe('none')
     expect(editState(decide([ask], 'e1', 'denied', 'later'), 'acct-roy', 'c1')).toBe('none')
+  })
+})
+
+describe('requests.css', () => {
+  const css = readFileSync(new URL('./requests.css', import.meta.url), 'utf8')
+
+  it('reads the glass tokens and uses logical properties only', () => {
+    expect(css).toMatch(/var\(--glass-thick\)/)
+    expect(css).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
   })
 })

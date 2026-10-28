@@ -1,26 +1,101 @@
-/* Player requests to the DM. Lives inside .ff-sheet (player page and DM screen). Logical properties for RTL. */
-.ff-requests > .card { margin-block-end: 16px; }
+/* Player requests to the DM. Lives inside .ff-sheet (player page and DM screen). Logical properties for RTL.
+   The player's page (.ff-requests, also inside the pop-ups) follows the Liquid Glass standard, src/design/DESIGN.md. */
 .ff-requests .plain, .req-reminders .plain, .ff-dm .req-list { list-style: none; margin: 0; padding: 0; }
-.ff-requests h1 { color: var(--s-accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: .02em; }
 .ff-requests textarea, .ff-dm .req-card textarea {
   font: inherit; inline-size: 100%; padding: 8px 10px; resize: vertical;
   border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink);
 }
 .ff-requests input:not([type]), .ff-requests select, .req-paste input, .req-link { font: inherit; padding: 6px 8px; min-inline-size: 0; }
 
-.req-form form { display: grid; gap: 12px; }
-.req-field { display: grid; gap: 4px; border: 0; margin: 0; padding: 0; min-inline-size: 0; }
+/* ---- Player page: Liquid Glass ---- */
+.ff-requests { --req-later: #b7791f; font-family: var(--font-text); }
+@media (prefers-color-scheme: dark) { .ff-requests { --req-later: #e0b25a; } }
+
+/* Cards: thick content glass, they hold paragraphs. */
+.ff-requests > .card {
+  margin-block-end: var(--sp-5); padding: var(--sp-5) var(--sp-4);
+  background: var(--glass-thick); border: 1px solid var(--glass-stroke); border-radius: var(--r-lg);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+.ff-requests h1, .req-dialog .ff-requests h2 {
+  margin: 0; font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; line-height: 1.15;
+  letter-spacing: -0.02em; text-transform: none; color: var(--ink);
+}
+.req-dialog .ff-requests h2 { font-size: 1.4rem; }
+.ff-requests h2 {
+  margin-block: 0 var(--sp-3); font-family: var(--font-display); font-size: 1.1rem; font-weight: 600;
+  letter-spacing: -0.015em; text-transform: none; color: var(--ink);
+}
+.ff-requests .hint { line-height: 1.45; }
+.ff-requests h1 + .hint { margin-block: var(--sp-2) var(--sp-4); }
+
+/* Small labels: the standard's eyebrow instead of uppercase rules. */
+.ff-sheet.ff-requests .sub-title, .ff-requests .req-kinds legend, .ff-requests .req-box legend, .ff-requests .inv-effects-editor legend {
+  font-size: 0.8rem; font-weight: 600; letter-spacing: 0.01em; text-transform: none; color: var(--muted);
+  border: 0; padding: 0; margin-block: 0 var(--sp-1); margin-inline: 0;
+}
+
+/* Fields */
+.ff-requests input:not([type]), .ff-requests input[type="text"], .ff-requests select, .ff-requests textarea {
+  font: inherit; color: var(--ink); min-block-size: 44px; padding-block: 0; padding-inline: var(--sp-3);
+  border-radius: var(--r-sm); border: 1px solid var(--glass-hairline);
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
+.ff-requests textarea { padding-block: 10px; min-block-size: 96px; }
+.ff-requests input:focus-visible, .ff-requests select:focus-visible, .ff-requests textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Buttons: capsules. Primary is the one tinted action; small ones are plain glass; ghost is text only. */
+.ff-requests .btn {
+  border-radius: var(--r-pill); border: 1px solid var(--glass-stroke); background: var(--glass-regular); color: var(--ink);
+  box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.08);
+  transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
+}
+.ff-requests .btn:hover:not(:disabled) { background: var(--glass-thick); border-color: var(--glass-stroke); }
+.ff-requests .btn:active:not(:disabled) { transform: scale(0.96); }
+.ff-requests .btn.small { min-block-size: 36px; padding-inline: var(--sp-4); font-size: 0.85rem; max-inline-size: none; }
+.ff-requests .btn.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--accent); }
+.ff-requests .btn.ghost:hover:not(:disabled) { background: var(--glass-thin); }
+.ff-requests .btn.primary {
+  background: var(--accent); color: var(--accent-ink); border-color: transparent;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.ff-requests .btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, white); }
+.req-form form > .btn.primary { min-block-size: 48px; font-size: 1rem; }
+
+.req-form form { display: grid; gap: var(--sp-4); }
+.req-field { display: grid; gap: var(--sp-1); border: 0; margin: 0; padding: 0; min-inline-size: 0; }
 .req-field > input, .req-field > select { inline-size: 100%; }
-.req-kinds { display: flex; flex-wrap: wrap; gap: 6px; }
-.req-kinds legend { margin-block-end: 4px; }
-.req-kinds .hint { flex-basis: 100%; margin: 0; }
-.req-kinds .chip:focus-within { outline: 2px solid var(--s-accent); outline-offset: 2px; }
-.req-box { border: 1px solid var(--s-line); border-radius: 10px; padding: 10px 12px; }
-.req-box legend { padding-inline: 4px; }
+.ff-requests .req-field .hint { margin: 0; }
+
+/* Kind picker: glass chips, the chosen one gets the lens. */
+.req-kinds { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.req-kinds .hint { flex-basis: 100%; }
+.ff-requests .req-kinds .chip {
+  display: inline-flex; align-items: center; min-block-size: 40px; padding-inline: var(--sp-4); margin: 0;
+  border-radius: var(--r-pill); border: 1px solid var(--glass-hairline); background: var(--glass-thin); color: var(--ink);
+  font-size: 0.9rem; cursor: pointer; transition: background-color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.ff-requests .req-kinds .chip:active { transform: scale(0.96); }
+.ff-requests .req-kinds .chip.on {
+  background: var(--glass-tint); color: var(--accent); font-weight: 600; border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--glass-highlight);
+}
+.req-kinds .chip:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Optional mechanics: inset tiles. The legend floats inside the tile so it reads as its title. */
+.req-box { border: 1px solid var(--glass-hairline); border-radius: var(--r-md); padding: var(--sp-3); background: var(--glass-thin); }
+.ff-requests .req-box > legend { float: inline-start; inline-size: 100%; margin-block-end: var(--sp-2); }
+.ff-requests .req-box > legend + * { clear: both; }
 .req-box .inv-effects-editor { border: 0; padding: 0; margin: 0; }
+.ff-requests .req-box .inv-effects-editor > legend { float: inline-start; inline-size: 100%; margin-block-end: var(--sp-1); }
+.ff-requests .req-box .inv-effects-editor > legend + * { clear: both; }
 .req-box .hint { margin: 0; }
-.req-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
-.req-grid label { display: grid; gap: 2px; font-size: .85rem; min-inline-size: 0; }
+.ff-requests .req-box .hint { margin-block-start: var(--sp-2); }
+.req-grid { display: grid; gap: var(--sp-3) var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.req-grid label { display: grid; gap: var(--sp-1); font-size: .85rem; min-inline-size: 0; }
+.ff-requests .req-grid label { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.ff-requests .req-grid label > * { font-weight: 400; }
 .req-grid input, .req-grid select { inline-size: 100%; }
 .req-error { color: var(--s-bad); margin: 0; }
 .req-form input[aria-invalid='true'], .req-grid input[aria-invalid='true'] { border-color: var(--s-bad); }
@@ -52,6 +127,44 @@
 .req-row { display: flex; gap: 6px; }
 .req-row input { flex: 1; }
 
+/* Player's request cards: inset glass tiles with a status capsule along the inline start. */
+.ff-requests .req-list { gap: var(--sp-3); margin-block-end: var(--sp-4) !important; }
+.ff-requests .req-card {
+  position: relative; gap: var(--sp-2); padding-block: var(--sp-3); padding-inline: var(--sp-5) var(--sp-4);
+  border: 1px solid var(--glass-hairline); border-radius: var(--r-md); background: var(--glass-thin);
+  --req-st: var(--muted);
+}
+.ff-requests .req-card::before {
+  content: ''; position: absolute; inset-inline-start: 7px; inset-block: var(--sp-3); inline-size: 4px;
+  border-radius: var(--r-pill); background: var(--req-st);
+}
+.ff-requests .req-card.st-later, .ff-requests .req-status.st-later { --req-st: var(--req-later); }
+.ff-requests .req-card.st-granted, .ff-requests .req-status.st-granted { --req-st: var(--good); }
+.ff-requests .req-card.st-denied, .ff-requests .req-status.st-denied { --req-st: var(--bad); }
+.ff-requests .req-card.st-denied { opacity: 1; }
+.ff-requests .req-card.st-denied > :not(.req-status, .req-actions) { opacity: 0.8; }
+.ff-requests .req-card.fresh { background: var(--glass-tint); box-shadow: 0 0 0 2px var(--accent); }
+.ff-requests .req-head h3 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+.ff-requests .req-kind {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.01em; text-transform: none;
+  padding-block: 2px; padding-inline: var(--sp-2); border: 1px solid var(--glass-hairline); background: var(--glass-regular); color: var(--muted);
+}
+.ff-requests .req-head .req-who { margin: 0; flex-basis: 100%; }
+.ff-requests .req-details { line-height: 1.45; }
+.ff-requests .req-status {
+  justify-self: start; display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding-block: 4px; padding-inline: var(--sp-3); border-radius: var(--r-pill); font-size: 0.85rem;
+  color: color-mix(in srgb, var(--req-st) 80%, var(--ink)); background: color-mix(in srgb, var(--req-st) 14%, transparent);
+}
+.ff-requests .req-status::before { content: ''; inline-size: 7px; block-size: 7px; border-radius: 50%; background: var(--req-st); flex: none; }
+.ff-requests .req-status { --req-st: var(--muted); }
+.ff-requests .req-reply { padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--glass-regular); }
+.ff-requests .req-actions { gap: var(--sp-2); margin-block-start: var(--sp-1); }
+.ff-requests .req-paste { gap: var(--sp-2); padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
+.ff-requests .req-paste .hint { margin: 0; }
+.ff-requests .req-row { gap: var(--sp-2); }
+.ff-requests .req-delivered { margin: 0; }
+
 /* DM: reminders on top of the screen while playing */
 .req-reminders { border-color: #b7791f !important; }
 .req-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -79,3 +192,11 @@
 .req-dialog .req-actions > * { flex: none; }
 .req-dialog .btn.small { max-width: none; }
 .req-dialog .req-card.k-edit .req-head { display: none; }
+
+/* High contrast: solid tokens come from glass.css; state shown by fill also gets a 2px edge. */
+:root[data-contrast="high"] .ff-requests > .card { border-width: 2px; }
+:root[data-contrast="high"] .ff-requests :is(input, select, textarea) { border-width: 2px; border-color: var(--line); }
+:root[data-contrast="high"] .ff-requests .req-kinds .chip.on { box-shadow: inset 0 0 0 2px var(--accent); }
+:root[data-contrast="high"] .ff-requests .req-status { box-shadow: inset 0 0 0 2px var(--req-st); color: var(--ink); }
+:root[data-contrast="high"] .ff-requests .req-card { border-color: var(--line); }
+@media print { .ff-requests > .card { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; } }

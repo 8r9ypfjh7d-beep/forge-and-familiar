@@ -14,8 +14,8 @@ A player asks the DM for something new for their character: an item, an effect, 
 | `grants.ts` | `applyGrants(userId)`: adds granted, not yet applied requests to that player's characters, once |
 | `hooks.ts` | `useRequests()` live list |
 | `Requests.tsx` | `RequestsView` (player "Ask the DM" page), `DmRequestsTab`, `StoryReminders`, `RequestsAgent` (opens links, applies grants, shows a notice), `DmRequestPopup`, `EditRequestDialog` |
-| `requests.css` | Styles; both pages sit inside `.ff-sheet` |
-| `requests.test.ts` | Validation, sorting, granting, links and merging |
+| `requests.css` | Styles; both pages sit inside `.ff-sheet`. The player page and its pop-ups (`.ff-requests`) follow the Liquid Glass standard (`src/design/DESIGN.md`); the DM tab keeps the shared rules |
+| `requests.test.ts` | Validation, sorting, granting, links and merging; `requests.css` uses glass tokens and logical properties |
 | `sync.test.ts` | Rows, merging pulls, push and pull against a fake table |
 | `../../supabase/migrations/20261027110000_dm_requests.sql` | `dm_requests` table, guard trigger, access rules, realtime |
 
