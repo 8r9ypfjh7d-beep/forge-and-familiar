@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AccessibilityButton } from '../a11y/ui'
+import { getCloudStatus, onCloudChanged } from '../cloud'
 import { LanguagePicker, useI18n } from '../i18n'
 import { activate, activateErrorKey } from './session'
 import type { ActivateError, Session } from './types'
@@ -35,7 +36,7 @@ export function ActivateScreen({ onLocal }: { onLocal: (name: string) => void })
 }
 
 /** Code input. On success the session event makes the app switch to the account. */
-export function CodeForm({ onDone }: { onDone?: () => void }) {
+export function CodeForm({ onDone, autoFocus = true }: { onDone?: () => void; autoFocus?: boolean }) {
   const { t } = useI18n()
   const [code, setCode] = useState('')
   const [error, setError] = useState<ActivateError | null>(null)
@@ -53,7 +54,7 @@ export function CodeForm({ onDone }: { onDone?: () => void }) {
       }}
     >
       <input
-        autoFocus dir="ltr" value={code} autoCapitalize="characters" autoComplete="off" spellCheck={false}
+        autoFocus={autoFocus} dir="ltr" value={code} autoCapitalize="characters" autoComplete="off" spellCheck={false}
         onChange={e => { setCode(e.target.value); setError(null) }}
         placeholder={t('account.codePlaceholder')} aria-label={t('account.code')}
         aria-invalid={!!error} aria-describedby={error ? 'code-error' : undefined}
@@ -69,4 +70,24 @@ export function AccountBadge({ session }: { session: Session }) {
   const { t } = useI18n()
   if (session.role !== 'dm') return null
   return <span className="account-badge small" title={t('account.dmTitle')}>{t('account.dmBadge')}</span>
+}
+
+/**
+ * Shown to an account activated before the server existed: one more code entry links this
+ * device to the cloud, so its characters sync. Hides itself once linked.
+ */
+export function CloudLinkNotice() {
+  const { t } = useI18n()
+  const [status, setStatus] = useState(getCloudStatus)
+  const [later, setLater] = useState(false)
+  useEffect(() => onCloudChanged(() => setStatus(getCloudStatus())), [])
+  if (status !== 'unlinked' || later) return null
+  return (
+    <section className="panel cloud-link" aria-labelledby="cloud-link-title">
+      <h2 id="cloud-link-title">{t('account.cloudLinkTitle')}</h2>
+      <p>{t('account.cloudLinkBody')}</p>
+      <CodeForm autoFocus={false} />
+      <button className="btn ghost small" onClick={() => setLater(true)}>{t('account.cloudLinkLater')}</button>
+    </section>
+  )
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './a11y'
 import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
-import { AccountBadge, ActivateScreen, activate, activateErrorKey, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
+import { AccountBadge, ActivateScreen, CloudLinkNotice, activate, activateErrorKey, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
 import { AdminPage } from './admin'
 import { Builder, EditCharacter } from './builder/Builder'
 import { CombatTracker } from './combat/ui/CombatTracker'
@@ -144,6 +144,7 @@ export default function App() {
       </AppNav>
       <AccessibilityDialog ref={a11yDialog} />
       <main id="main" ref={mainRef} tabIndex={-1}>
+        {ownProfile && <CloudLinkNotice />}
         {view.kind === 'list' && (
           <CharacterList
             owner={active}
