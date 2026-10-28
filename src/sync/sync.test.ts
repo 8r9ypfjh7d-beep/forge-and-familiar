@@ -7,6 +7,7 @@ import type { RollResult } from '../dice/types'
 import { CONFLICT_LABEL, mergeRolls, resolveConflict, syncOnce } from './engine'
 import { memoryRemote, type MemoryRemote } from './memoryRemote'
 import { pendingCount } from './outbox'
+import { findDuplicates, keepBoth, keepCopy, MERGE_LABEL, mergeSameBuilds } from './duplicates'
 
 const ROY = 'acct-roy'
 
@@ -174,6 +175,65 @@ describe('play state between devices', () => {
     on('phone')
     await syncOnce(remote, ROY)
     expect(await listSnapshots('aria')).toHaveLength(0)
+  })
+})
+
+describe('same character built on two devices', () => {
+  /** Each device built Aria on its own before signing in, then both synced. */
+  async function builtTwice(laptopChanges: Partial<Parameters<typeof makeCharacter>[0]> = {}) {
+    on('phone')
+    await save(makeCharacter({ id: 'aria-phone', ownerId: ROY, name: 'Aria' }))
+    on('laptop')
+    await save(makeCharacter({ id: 'aria-laptop', ownerId: ROY, name: ' aria ', ...laptopChanges }))
+    await syncOnce(remote, ROY)
+    on('phone')
+    await syncOnce(remote, ROY)
+    on('laptop')
+    await syncOnce(remote, ROY)
+  }
+
+  it('finds the copies, newest first', async () => {
+    await builtTwice({ xp: 900 })
+    const groups = findDuplicates(await listCharacters(ROY))
+    expect(groups.map(g => g.map(c => c.id))).toEqual([['aria-laptop', 'aria-phone']])
+  })
+
+  it('merges copies with the same build without asking, keeping the newest', async () => {
+    await builtTwice({ notes: 'Laptop notes' })
+    expect(await mergeSameBuilds(findDuplicates(await listCharacters(ROY)))).toEqual([])
+    await syncOnce(remote, ROY)
+    on('phone')
+    await syncOnce(remote, ROY)
+    expect((await listCharacters(ROY)).map(c => c.id)).toEqual(['aria-laptop'])
+    expect(remote.characters.get('aria-phone')?.deleted).toBe(true)
+  })
+
+  it('asks when the builds differ, and keeps the other copy in Level history', async () => {
+    await builtTwice({ xp: 900, classes: [{ classId: 'fighter', level: 3 }] })
+    const [group] = await mergeSameBuilds(findDuplicates(await listCharacters(ROY)))
+    expect(group).toHaveLength(2)
+    on('phone')
+    await addSnapshots([takeSnapshot((await getCharacter('aria-phone'))!, 'Level 1')])
+
+    // The player keeps the phone's copy, from the laptop.
+    on('laptop')
+    await keepCopy(group[1], group)
+    await syncOnce(remote, ROY)
+    on('phone')
+    await syncOnce(remote, ROY)
+    expect((await listCharacters(ROY)).map(c => c.id)).toEqual(['aria-phone'])
+    const snaps = await listSnapshots('aria-phone')
+    expect(snaps.map(s => s.label).sort()).toEqual(['Level 1', MERGE_LABEL])
+    expect(snaps.find(s => s.label === MERGE_LABEL)?.character.classes[0].level).toBe(3)
+    expect(findDuplicates(await listCharacters(ROY))).toEqual([])
+  })
+
+  it('stops asking on this device after Keep both', async () => {
+    await builtTwice({ xp: 900, classes: [{ classId: 'fighter', level: 3 }] })
+    const [group] = findDuplicates(await listCharacters(ROY))
+    keepBoth(group)
+    expect(findDuplicates(await listCharacters(ROY))).toEqual([])
+    expect(await listCharacters(ROY)).toHaveLength(2)
   })
 })
 

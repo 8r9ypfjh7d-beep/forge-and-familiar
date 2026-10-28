@@ -21,7 +21,7 @@ import { AppNav, canOpen } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
 import { StarterPicker } from './starters'
 import './list/list.css'
-import { SyncBadge, useCloudSync } from './sync'
+import { DuplicatePrompt, SyncBadge, useCloudSync } from './sync'
 import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, onCharactersChanged, saveCharacter, saveProfile,
   setActiveProfileId,
@@ -153,6 +153,7 @@ export default function App() {
       <AccessibilityDialog ref={a11yDialog} />
       <main id="main" ref={mainRef} tabIndex={-1}>
         {ownProfile && <CloudLinkNotice />}
+        {ownProfile && <DuplicatePrompt characters={characters} />}
         {playing.mustPick && playing.parties ? <PartyPicker parties={playing.parties} userId={active.id} onPick={playing.choose} /> : <>
         {view.kind === 'list' && (
           <CharacterList

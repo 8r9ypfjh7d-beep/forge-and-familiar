@@ -13,8 +13,10 @@ Characters (with their play state, inventory and coins), level snapshots and rol
 | `supabaseRemote.ts` | `RemoteStore` over the Supabase tables, with realtime on `characters` |
 | `useCloudSync.ts` | App hook: runs sync while the device is linked (`src/cloud`) and that account is the active player |
 | `memoryRemote.ts` | In-memory `RemoteStore` with server rules, for tests and trying sync without a server |
+| `duplicates.ts` | Same character twice: `findDuplicates` (same owner + name), `mergeSameBuilds`, `keepCopy`, `keepBoth` |
+| `DuplicatePrompt.tsx` | Character list card that asks which copy to keep |
 | `SyncBadge.tsx`, `sync.css` | "Saved to cloud / Offline / N changes waiting" chip |
-| `sync.test.ts` | Two-device tests: first upload, new device, offline, conflicts, deletes |
+| `sync.test.ts` | Two-device tests: first upload, new device, offline, conflicts, deletes, same character twice |
 | `../../supabase/migrations/20261027100000_sync.sql` | `snapshots` and `rolls` tables and their access rules (checks in `supabase/tests/rls_test.sql`) |
 
 ## How it works
@@ -36,6 +38,15 @@ A push is refused when another device wrote the character since this one last sy
 - If the other copy's build differs (`BUILD_FIELDS`: level, classes, scores, feats...), it is kept as a snapshot labelled `CONFLICT_LABEL`, so Level history can roll back to it. Play state from the older copy (HP, slots) is dropped.
 
 Snapshots and rolls never conflict: snapshots are written once (deletes sync as tombstones) and rolls are merged by id, newest 100 kept. Clearing roll history only clears this device until the next pull.
+
+## Same character twice
+
+Characters are matched by id, so a hero built separately on two devices before signing in on both becomes two cloud copies (Ziv's David Jones, 2026-10-28). After each sync pass, the signed-in account's characters with the same name (trimmed, any case) are a duplicate group:
+
+- Same build (`BUILD_FIELDS`): the newest copy is kept without asking (ties go to the lower id, so every device picks the same one).
+- Different builds: `DuplicatePrompt` shows each copy (classes and subclass, race, background, last change) with Keep copy N, or Keep both (remembered on that device in `ff.duplicates.v1`).
+
+Keeping a copy saves every other copy, whole (build, gear, play state), as a `MERGE_LABEL` snapshot on the kept one, moves their level history over, then deletes them through `deleteCharacter`, so the delete syncs to every device. Local profiles are never checked.
 
 ## Server
 

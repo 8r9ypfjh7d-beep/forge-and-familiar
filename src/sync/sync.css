@@ -6,3 +6,13 @@
 @keyframes sync-pulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .sync-syncing .sync-dot { animation: none; } }
 .nav-player .sync-badge { margin-inline-start: 4px; }
+
+/* Same character twice */
+.dupe { display: grid; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-lg); margin-block-end: var(--sp-4); }
+.dupe h2 { margin: 0; font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; letter-spacing: -0.015em; }
+.dupe p { margin: 0; }
+.dupe > .glass-btn { justify-self: start; }
+.dupe-copies { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--sp-3); margin: 0; padding: 0; list-style: none; }
+.dupe-copy { display: grid; align-content: start; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-md); }
+.dupe-copy .glass-btn { margin-block-start: var(--sp-2); justify-self: start; }
+.dupe-line { font-weight: 600; }
