@@ -8,7 +8,7 @@ Eight pre-made level 1 heroes for new players, one per class role. Picking one s
 |------|---------|
 | `heroes.ts` | `STARTER_HEROES` data, `createStarter()`, `starterNotes()` |
 | `StarterPicker.tsx` | Picker grid with derived AC/HP/attack and "How to play" tips |
-| `starters.css` | Picker styles |
+| `starters.css` | Picker styles (Liquid Glass, see `src/design/DESIGN.md`) |
 | `starters.test.ts` | Every hero passes all builder steps and derives with no warnings |
 
 ## Notes
@@ -16,3 +16,4 @@ Eight pre-made level 1 heroes for new players, one per class role. Picking one s
 - Each hero is a finished `CharacterDraft` (standard array, Acolyte, SRD 5.1 only); `createStarter()` runs it through `createCharacter()` so stats stay derived.
 - Backstory, tips and suggested spells are written into `notes`, since there is no spell list yet.
 - Adding a hero: append to `STARTER_HEROES`; the tests check it is valid. Class must be unique.
+- Picker labels go through `t()` (`starters.*`, `stat.*`); hero names, pitches and tips are English content marked `lang="en" dir="auto"` so they read correctly in Hebrew.

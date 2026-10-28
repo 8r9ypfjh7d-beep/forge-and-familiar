@@ -4,7 +4,7 @@ import { importFromFile } from '../actions'
 import './portability.css'
 
 /** "Import" button that reads a character file and saves it for this player. */
-export function ImportButton({ ownerId, onImported }: { ownerId: string; onImported: (id: string) => void }) {
+export function ImportButton({ ownerId, onImported, className = 'btn' }: { ownerId: string; onImported: (id: string) => void; className?: string }) {
   const input = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -34,7 +34,7 @@ export function ImportButton({ ownerId, onImported }: { ownerId: string; onImpor
         hidden
         onChange={e => pick(e.target.files?.[0])}
       />
-      <button type="button" className="btn" disabled={busy} onClick={() => input.current?.click()}>
+      <button type="button" className={className} disabled={busy} onClick={() => input.current?.click()}>
         {busy ? t('levels.importing') : t('levels.import')}
       </button>
       {error && <span role="alert" className="bad small">{error}</span>}

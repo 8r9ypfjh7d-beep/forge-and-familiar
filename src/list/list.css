@@ -1,0 +1,65 @@
+/* Heroes list (CharacterList in App.tsx), Liquid Glass (src/design/DESIGN.md).
+   Each hero is a content glass card: portrait, name, then one tinted "Open sheet", Edit,
+   and a quiet tool strip (Levels, Print, Export, Delete). Logical properties only. */
+.heroes { display: grid; gap: var(--sp-5); }
+
+.heroes-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--sp-3) var(--sp-4); }
+.heroes-head h2 { font-size: 1.75rem; margin: 0; }
+.heroes-head p { margin: var(--sp-1) 0 0; }
+.heroes-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.heroes-actions .ff-import { display: contents; }
+
+.heroes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: var(--sp-4); }
+
+/* Card: padding 12px inside a 24px radius, so inner tiles use 24 - 12 = 12px (concentric). */
+.heroes-card { display: grid; gap: var(--sp-3); padding: var(--sp-3); min-width: 0; }
+.heroes-id { display: flex; gap: var(--sp-3); align-items: center; min-width: 0; }
+.heroes-id img, .heroes-id .portrait-empty {
+  inline-size: 64px; block-size: 64px; flex: none; object-fit: cover;
+  border-radius: var(--r-sm); font-family: var(--font-lore); font-size: 1.6rem;
+  box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.1);
+}
+.heroes-id .portrait-empty { background: var(--glass-tint); }
+.heroes-id > div { min-width: 0; }
+.heroes-id h3 { margin: 0; font-family: var(--font-lore); font-size: 1.2rem; letter-spacing: 0; overflow-wrap: anywhere; }
+.heroes-id p { margin: 2px 0 0; }
+
+.heroes-main { display: flex; gap: var(--sp-2); }
+.heroes-main > .glass-btn { flex: 1 1 0; min-width: 0; }
+
+/* Tool strip: a thin glass track of quiet capsules, like a segmented control without a selection. */
+.heroes-tools {
+  display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill);
+  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.05);
+}
+.heroes-tools .ff-import { display: contents; }
+.heroes-tools .ff-import [role="alert"] { align-self: center; padding-inline: var(--sp-2); }
+.heroes-tool {
+  font: inherit; font-size: 0.85rem; font-weight: 500; flex: 1 1 0; min-width: 0; min-height: 34px;
+  padding: 0 var(--sp-2); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-glass), transform var(--dur-fast) var(--ease-spring);
+}
+.heroes-tool:hover { background: var(--glass-thick); }
+.heroes-tool:active { transform: scale(0.95); }
+.heroes-tool.danger { color: var(--bad); }
+
+.heroes-empty { display: grid; justify-items: center; gap: var(--sp-3); padding: var(--sp-8) var(--sp-5); text-align: center; }
+.heroes-empty .portrait-empty { inline-size: 72px; block-size: 72px; border-radius: var(--r-md); background: var(--glass-tint); font-size: 2rem; }
+.heroes-empty p { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.heroes-empty .heroes-actions { justify-content: center; }
+
+@media (max-width: 640px) {
+  .heroes-head h2 { font-size: 1.6rem; }
+  .heroes-head > .heroes-actions { inline-size: 100%; }
+  .heroes-head > .heroes-actions > * { flex: 1 1 auto; }
+  .heroes-head > .heroes-actions > .prominent { flex-basis: 100%; order: -1; }
+  .heroes-main > .glass-btn, .heroes-head .glass-btn { min-height: 44px; }
+  .heroes-tool { min-height: 40px; }
+  .heroes-empty .heroes-actions { flex-direction: column; inline-size: 100%; }
+  .heroes-empty .glass-btn { inline-size: 100%; min-height: 44px; }
+}
+
+/* High contrast: solid fills come from the tokens; draw the edges state would otherwise show by fill. */
+:root[data-contrast="high"] .heroes-card { border-width: 2px; }
+:root[data-contrast="high"] .heroes-tools { border: 2px solid var(--line); }
