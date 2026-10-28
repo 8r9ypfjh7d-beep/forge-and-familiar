@@ -1,28 +1,68 @@
-/* Rules Q&A, scoped to .ff-rulesqa. Uses the app tokens from index.css. */
+/* Rules Q&A, scoped to .ff-rulesqa. Liquid Glass (src/design/DESIGN.md): a capsule search field with
+   one prominent Ask, chips for examples, the answer on thick glass, related sections as an inset list. */
 .ff-rulesqa { max-width: 760px; }
-.ff-rulesqa .ask { margin: 14px 0; flex-wrap: nowrap; }
-.ff-rulesqa .ask input { flex: 1; min-width: 0; font-size: 1rem; padding: 10px 12px; }
-.ff-rulesqa .examples { margin-bottom: 16px; }
-.ff-rulesqa .examples .chip { text-align: start; }
+.ff-rulesqa h2.glass-title { margin: var(--sp-2) 0 var(--sp-2); font-size: 1.75rem; line-height: 1.15; }
+.ff-rulesqa .intro { margin: 0; color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+.ff-rulesqa .intro.small { font-size: 0.8rem; margin-block-start: var(--sp-1); }
 
-.ff-rulesqa .answer { margin-top: 4px; }
-.ff-rulesqa .crumb { margin-bottom: 8px; letter-spacing: 0.01em; }
-.ff-rulesqa .hedge { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); }
-.ff-rulesqa blockquote {
-  margin: 0 0 12px; padding-block: 4px; padding-inline-start: 14px; border-inline-start: 3px solid var(--accent);
-  font-family: Georgia, 'Iowan Old Style', serif; font-size: 1.05rem; line-height: 1.55;
+/* Search: the capsule SearchField, Ask beside it. */
+.ff-rulesqa .ask { display: flex; align-items: center; gap: var(--sp-2); margin-block: var(--sp-5) var(--sp-4); }
+.ff-rulesqa .ask .glass-btn { min-height: 44px; flex-shrink: 0; }
+
+.ff-rulesqa .examples { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-block-end: var(--sp-4); }
+.ff-rulesqa .examples .glass-chip { text-align: start; min-height: 36px; }
+.ff-rulesqa .examples .glass-chip:disabled { opacity: 0.5; cursor: default; }
+
+/* Answer: thick glass, since it holds paragraphs. */
+.ff-rulesqa .answer { padding: var(--sp-4); margin-block-start: var(--sp-1); animation: rq-in var(--dur-med) var(--ease-glass); }
+@keyframes rq-in { from { opacity: 0; transform: translateY(6px) scale(0.99); } }
+.ff-rulesqa .answer > p:first-child { margin-block-start: 0; }
+.ff-rulesqa .answer > p:last-child { margin-block-end: 0; }
+.ff-rulesqa .crumb { margin: 0 0 var(--sp-3); line-height: 1.35; }
+.ff-rulesqa .hedge {
+  margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); font-size: 0.85rem;
+  background: var(--glass-tint); color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
 }
-.ff-rulesqa blockquote p:last-child, .ff-rulesqa blockquote ul:last-child { margin-bottom: 0; }
+.ff-rulesqa blockquote {
+  margin: 0 0 var(--sp-4); padding-block: 2px; padding-inline-start: var(--sp-4);
+  border-inline-start: 3px solid var(--accent); border-start-start-radius: 2px; border-end-start-radius: 2px;
+  font-family: var(--font-lore); font-size: 1.05rem; line-height: 1.55;
+}
+.ff-rulesqa blockquote p:last-child, .ff-rulesqa blockquote ul:last-child { margin-block-end: 0; }
 .ff-rulesqa ul { margin: 0 0 0.6em; padding-inline-start: 1.2em; }
-.ff-rulesqa .full { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ff-rulesqa .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); }
+.ff-rulesqa .full { margin-block-start: var(--sp-4); padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); line-height: 1.5; }
 
-.ff-rulesqa .table-wrap { overflow-x: auto; margin: 0 0 0.8em; }
-.ff-rulesqa table { border-collapse: collapse; font-size: 0.9rem; font-family: inherit; }
-.ff-rulesqa th, .ff-rulesqa td { border: 1px solid var(--line); padding: 4px 8px; text-align: start; vertical-align: top; }
-.ff-rulesqa th { background: var(--accent-soft); }
+.ff-rulesqa .table-wrap { overflow-x: auto; margin: 0 0 0.8em; border-radius: var(--r-sm); border: 1px solid var(--glass-hairline); }
+.ff-rulesqa table { border-collapse: collapse; font-size: 0.9rem; font-family: inherit; font-variant-numeric: tabular-nums; }
+.ff-rulesqa th, .ff-rulesqa td { padding: 6px 10px; text-align: start; vertical-align: top; border-block-end: 1px solid var(--glass-hairline); }
+.ff-rulesqa tr:last-child td { border-block-end: 0; }
+.ff-rulesqa th { background: var(--glass-tint); font-weight: 600; }
 
-.ff-rulesqa .related { margin-top: 18px; }
-.ff-rulesqa .related h3 { font-size: 0.95rem; }
-.ff-rulesqa .link { font: inherit; background: none; border: 0; padding: 2px 0; color: var(--accent); cursor: pointer; text-align: start; }
+/* Related sections: an inset grouped list, one tappable row each. */
+.ff-rulesqa .related { margin-block-start: var(--sp-5); }
+.ff-rulesqa .related h3 { margin: 0 0 var(--sp-2); padding-inline: var(--sp-4); }
+.ff-rulesqa .related .glass-list { margin: 0; padding: var(--sp-1); }
+.ff-rulesqa .related-row {
+  font: inherit; font-size: 0.95rem; inline-size: 100%; min-height: 48px; display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3); border: 0; border-radius: calc(var(--r-lg) - var(--sp-1));
+  background: transparent; color: var(--ink); text-align: start; cursor: pointer;
+  transition: background-color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.ff-rulesqa .related-row span { flex: 1; min-width: 0; }
+.ff-rulesqa .related-row .chevron { flex-shrink: 0; color: var(--muted); }
+.ff-rulesqa .related-row:hover { background: var(--glass-thin); }
+.ff-rulesqa .related-row:active { transform: scale(0.98); }
+.ff-rulesqa .glass-list > li + li { border-block-start-color: var(--glass-hairline); }
+
+.ff-rulesqa .link { font: inherit; font-weight: 600; background: none; border: 0; padding: var(--sp-1) 0; min-height: 32px; color: var(--accent); cursor: pointer; text-align: start; }
 .ff-rulesqa .link:hover { text-decoration: underline; }
-.ff-rulesqa .source { margin-top: 28px; }
+/* CC-BY attribution: must stay visible. */
+.ff-rulesqa .source { margin-block-start: var(--sp-8); font-size: 0.8rem; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
+
+/* Fallbacks: glass tokens already go solid; high contrast draws edges where state is fill only. */
+:root[data-contrast="high"] .ff-rulesqa .hedge { box-shadow: inset 0 0 0 2px var(--accent); }
+:root[data-contrast="high"] .ff-rulesqa .glass { border-width: 2px; border-color: var(--line); }
+:root[data-contrast="high"] .ff-rulesqa .glass-chip { border-width: 2px; }
+@media print { .ff-rulesqa .ask, .ff-rulesqa .examples { display: none; } }

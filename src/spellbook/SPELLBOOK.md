@@ -10,7 +10,7 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 | `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells), `canTake`, `availableSpells`, `editionOf`, `sourceFor` |
 | `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `pinnedSpells`, `toggleSpellPin`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
 | `Spellbook.tsx` | `Spellbook` (combat's Spells tab): spell slots, summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
-| `spellbook.css` | Styles, scoped inside `.ff-sheet` |
+| `spellbook.css` | Liquid Glass styles for the card's insides (the card frame is the sheet's): `.glass-segmented` tabs, `.glass-chip` filters, `SearchField`, inset spell list on thin glass, tinted Add/Pin buttons |
 | `spellbook.test.ts` | Access for both editions, multiclass, subclass spells, quick-cast mapping |
 
 ## Rules

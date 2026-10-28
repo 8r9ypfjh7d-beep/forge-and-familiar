@@ -6,6 +6,7 @@ import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
 import { derive, formatMod } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
+import { SearchField } from '../rulesqa/SearchField'
 import { SpellSlots, hasSlots } from '../sheet/components/SpellSlots'
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, sourceFor, spellAccess, type SpellAccess } from './access'
@@ -68,14 +69,14 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
           {access.length > 1 && (
             <div className="sb-classes" role="group" aria-label={t('spells.class')}>
               {access.map(a => (
-                <button key={a.classId} type="button" className={`chip${a === current ? ' on' : ''}`} aria-pressed={a === current} onClick={() => setClassId(a.classId)}>
+                <button key={a.classId} type="button" className={`glass-chip${a === current ? ' on' : ''}`} aria-pressed={a === current} onClick={() => setClassId(a.classId)}>
                   {a.className}
                 </button>
               ))}
             </div>
           )}
           <Summary character={character} access={current} prof={stats.proficiencyBonus} mod={stats.mods[current.ability]} spells={lib.spells} />
-          <div className="segmented sb-tabs" role="tablist">
+          <div className="glass-segmented sb-tabs" role="tablist">
             <button type="button" role="tab" aria-selected={tab === 'mine'} className={tab === 'mine' ? 'on' : ''} onClick={() => setTab('mine')}>
               {t('spells.mine')}
             </button>
@@ -130,7 +131,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
       <div className="card-head">
         <h2 id="spell-card-title">{t('spells.title')}</h2>
         {lib && lib !== 'error' && !noSpells && (
-          <button type="button" className="btn small" aria-expanded={picking} onClick={() => setPicking(p => !p)}>
+          <button type="button" className="glass-btn small" aria-expanded={picking} onClick={() => setPicking(p => !p)}>
             {picking ? t('spells.story.done') : t('spells.story.pick')}
           </button>
         )}
@@ -148,7 +149,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
                 const s = byName.get(e.name.toLowerCase())
                 const badge = e.level === 0 ? t('spells.cantrip') : t(`sheet.slot.${e.level}` as MessageKey)
                 const remove = (
-                  <button type="button" className="btn ghost small sb-remove" aria-label={t('spells.story.unpinName', { name: e.name })} onClick={() => unpin(e)}>✕</button>
+                  <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.story.unpinName', { name: e.name })} onClick={() => unpin(e)}>✕</button>
                 )
                 // Spells typed into quick-cast by hand have no library text, so they show as a plain row.
                 return s
@@ -166,13 +167,13 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
           )}
           {picking && (
             <div className="sb-browse">
-              <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} lang="en" />
+              <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} lang="en" />
               <ul className="sb-list">
                 {shown.map(s => {
                   const on = isOn(s)
                   return (
                     <SpellRow key={s.id} spell={s} badge={mine.has(s.id) ? t('spells.story.yours') : undefined}>
-                      <button type="button" className={`btn small${on ? '' : ' primary'}`} aria-pressed={on}
+                      <button type="button" className={`glass-btn small${on ? '' : ' sb-add'}`} aria-pressed={on}
                         aria-label={t(on ? 'spells.story.unpinName' : 'spells.story.pinName', { name: s.name })} onClick={() => toggle(s, on)}>
                         {on ? t('spells.pinned') : t('spells.pin')}
                       </button>
@@ -232,7 +233,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
     return (
       <div className="sb-empty">
         <p className="hint">{t('spells.empty', { className: access.className })}</p>
-        <button type="button" className="btn primary" onClick={onBrowse}>{t('spells.browse')}</button>
+        <button type="button" className="glass-btn prominent" onClick={onBrowse}>{t('spells.browse')}</button>
       </div>
     )
   }
@@ -248,12 +249,12 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
               const pinned = isPinned(character, s.name)
               return (
                 <SpellRow key={s.id} spell={s} badge={always ? t('spells.always') : undefined}>
-                  <button type="button" className="btn small" aria-pressed={pinned} onClick={() => pin(s, pinned)}
+                  <button type="button" className={`glass-btn small${pinned ? '' : ' sb-add'}`} aria-pressed={pinned} onClick={() => pin(s, pinned)}
                     aria-label={pinned ? t('spells.story.unpinName', { name: s.name }) : t('spells.pinName', { name: s.name })}>
                     {pinned ? t('spells.pinned') : t('spells.pin')}
                   </button>
                   {!always && (
-                    <button type="button" className="btn ghost small sb-remove" aria-label={t('spells.removeName', { name: s.name })}
+                    <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.removeName', { name: s.name })}
                       onClick={() => apply(t('spells.log.remove', { name: s.name }), c => removeSpell(c, access.classId, s.id))}>
                       ✕
                     </button>
@@ -281,11 +282,11 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
   return (
     <div className="sb-browse">
       <p className="hint">{t('spells.available', { count: available.length, className: access.className, ordinal: levelName(access.maxLevel) })}</p>
-      <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} lang="en" />
+      <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} lang="en" />
       <div className="sb-levels" role="group" aria-label={t('spells.levelFilter')}>
-        <button type="button" className={`chip${level === 'all' ? ' on' : ''}`} aria-pressed={level === 'all'} onClick={() => setLevel('all')}>{t('spells.all')}</button>
+        <button type="button" className={`glass-chip${level === 'all' ? ' on' : ''}`} aria-pressed={level === 'all'} onClick={() => setLevel('all')}>{t('spells.all')}</button>
         {levels.map(l => (
-          <button key={l} type="button" className={`chip${level === l ? ' on' : ''}`} aria-pressed={level === l} onClick={() => setLevel(l)}>
+          <button key={l} type="button" className={`glass-chip${level === l ? ' on' : ''}`} aria-pressed={level === l} onClick={() => setLevel(l)}>
             {l === 0 ? t('spells.cantrips') : t(`sheet.slot.${l}` as MessageKey)}
           </button>
         ))}
@@ -299,7 +300,7 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
               const has = always || chosen.has(s.id)
               return (
                 <SpellRow key={s.id} spell={s} badge={always ? t('spells.always') : level === 'all' ? (s.level === 0 ? t('spells.cantrip') : levelName(s.level)) : undefined}>
-                  <button type="button" className={`btn small${has ? '' : ' primary'}`} disabled={always} aria-pressed={has}
+                  <button type="button" className={`glass-btn small${has ? '' : ' sb-add'}`} disabled={always} aria-pressed={has}
                     aria-label={has ? t('spells.removeName', { name: s.name }) : t('spells.addName', { name: s.name })}
                     onClick={() => apply(
                       t(has ? 'spells.log.remove' : 'spells.log.add', { name: s.name }),
