@@ -37,4 +37,16 @@ describe('glass fallbacks', () => {
   it('uses logical properties only, so RTL needs no overrides', () => {
     expect(css).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
   })
+
+  it('keeps the shared primitives, dialogs and banner on logical properties too', () => {
+    for (const file of ['../index.css', '../a11y/a11y.css', '../pwa/pwa.css', '../requests/requests.css']) {
+      const text = readFileSync(new URL(file, import.meta.url), 'utf8')
+      expect(text, file).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
+    }
+  })
+
+  it('gives dialogs a scrim whose blur turns off with the other fallbacks', () => {
+    expect(css).toMatch(/\.glass-dialog::backdrop \{[^}]*var\(--glass-scrim\)/)
+    expect(css.match(/--glass-scrim-blur: none/g)?.length).toBe(2)
+  })
 })

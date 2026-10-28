@@ -10,10 +10,10 @@
 .math-pop {
   position: fixed; inset: auto; margin: 0;
   width: min(300px, calc(100vw - 32px));
-  padding: 12px 14px; border-radius: 10px;
-  border: 1px solid var(--s-line, var(--line, #e3d8c4));
-  background: var(--s-panel, var(--panel, #fffdf8)); color: var(--s-ink, var(--ink, #2a2118));
-  box-shadow: 0 8px 24px rgb(0 0 0 / .18);
+  padding: 12px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--glass-stroke); color: var(--s-ink, var(--ink, #2a2118));
+  background: var(--glass-thick); -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-lift);
   font-size: .875rem; font-variant-numeric: tabular-nums; text-align: left;
 }
 .math-pop h3 { margin: 0 0 8px; font-size: .95rem; }
