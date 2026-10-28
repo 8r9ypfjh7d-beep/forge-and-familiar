@@ -10,7 +10,7 @@ Personal activation codes for the group, so each friend signs in as themselves a
 | `roster.ts` | `ROSTER`: the group's accounts (no codes or hashes); `isAdmin(id)` for the admin flag |
 | `codes.ts` | `normalizeActivationCode` |
 | `session.ts` | `activate(code)` (session or `'wrong'`/`'limited'`/`'offline'`), `activateErrorKey`, `getSession()`, `onSessionChanged` (localStorage `ff.account.v1`) |
-| `ui.tsx` | `ActivateScreen` (front door on a new device), `CodeForm`, `AccountBadge` (DM badge in the top bar) |
+| `ui.tsx` | `ActivateScreen` (front door on a new device), `CodeForm`, `AccountBadge` (DM badge in the top bar), `CloudLinkNotice` ("Turn on sync" for devices activated before the server) |
 | `accounts.css` | Badge and front-door tweaks |
 | `accounts.test.ts` | Normalizing, error messages and roster shape |
 

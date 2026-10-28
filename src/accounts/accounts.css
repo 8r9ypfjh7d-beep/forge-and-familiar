@@ -1,3 +1,7 @@
 .account-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); }
 .welcome form + .btn.ghost { margin-top: 12px; }
 .welcome #code-error { flex-basis: 100%; margin: 0; }
+.cloud-link { margin-block-end: 16px; }
+.cloud-link h2 { margin-block-start: 0; }
+.cloud-link #code-error { flex-basis: 100%; margin: 0; }
+.cloud-link form + .btn.ghost { margin-block-start: 8px; }

@@ -16,7 +16,7 @@ The Supabase client, cloud sign-in and the row shapes of the database. Other mod
 
 ## Sign-in
 
-Each device signs in anonymously, then calls `claim_account(code)`, which checks the code and links the device's auth user to that account (`account_devices`). This is the only place codes are checked: the site ships no codes or hashes, so `activate()` in `src/accounts/session.ts` needs a connection the first time. `linkCloudAccount()` answers with the account, `'wrong'`, `'limited'` (too many tries) or `'offline'`. Devices activated before the cloud existed link the next time the code is entered (player menu, "Enter activation code…").
+Each device signs in anonymously, then calls `claim_account(code)`, which checks the code and links the device's auth user to that account (`account_devices`). This is the only place codes are checked: the site ships no codes or hashes, so `activate()` in `src/accounts/session.ts` needs a connection the first time. `linkCloudAccount()` answers with the account, `'wrong'`, `'limited'` (too many tries) or `'offline'`. Devices activated before the cloud existed see a "Turn on sync" card (`CloudLinkNotice` in `src/accounts/ui.tsx`) above the character list until the code is entered once more.
 
 `claim_account` refuses (`too many tries`) after 5 wrong codes from one device in 15 minutes, or 30 from everyone in a minute; misses are kept in `claim_attempts` (no client access). `code_hash` is `bcrypt(sha256 hex of the normalized code)`.
 
