@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n'
 import { Markdown } from './Markdown'
+import { SearchField } from './SearchField'
 import { loadRules } from './load'
 import { answer, breadcrumb, excerpt, type RulesIndex } from './search'
 import type { Answer, Passage } from './types'
@@ -42,13 +43,12 @@ export function RulesQA() {
 
   return (
     <section className="ff-rulesqa">
-      <h2>{t('rulesqa.title')}</h2>
-      <p className="muted">{t('rulesqa.intro')}</p>
-      {t('rulesqa.englishOnly') && <p className="muted small">{t('rulesqa.englishOnly')}</p>}
+      <h2 className="glass-title">{t('rulesqa.title')}</h2>
+      <p className="intro">{t('rulesqa.intro')}</p>
+      {t('rulesqa.englishOnly') && <p className="intro small">{t('rulesqa.englishOnly')}</p>}
 
-      <form className="ask row" onSubmit={e => { e.preventDefault(); ask(draft) }}>
-        <input
-          type="search"
+      <form className="ask" onSubmit={e => { e.preventDefault(); ask(draft) }}>
+        <SearchField
           dir="auto"
           value={draft}
           onChange={e => setDraft(e.target.value)}
@@ -56,34 +56,34 @@ export function RulesQA() {
           aria-label={t('rulesqa.question')}
           autoFocus
         />
-        <button className="btn primary" disabled={!rules || !draft.trim()}>{t('rulesqa.ask')}</button>
+        <button className="glass-btn prominent" disabled={!rules || !draft.trim()}>{t('rulesqa.ask')}</button>
       </form>
 
       {!result && (
-        <div className="examples row" lang="en" dir="ltr" aria-label={t('rulesqa.examples')}>
-          {EXAMPLES.map(q => <button key={q} className="chip" onClick={() => ask(q)} disabled={!rules}>{q}</button>)}
+        <div className="examples" lang="en" dir="ltr" aria-label={t('rulesqa.examples')}>
+          {EXAMPLES.map(q => <button key={q} className="glass-chip" onClick={() => ask(q)} disabled={!rules}>{q}</button>)}
         </div>
       )}
 
       {result && !shown && (
-        <div className="panel answer">
+        <div className="glass thick answer">
           <p><strong>{t('rulesqa.notCovered')}</strong> {t('rulesqa.notCoveredHint')}</p>
           {/flank/i.test(asked) && <p className="muted small">{t('rulesqa.flanking')}</p>}
         </div>
       )}
 
       {result && shown && (
-        <article className="panel answer" aria-live="polite">
+        <article className="glass thick answer" aria-live="polite">
           {result.weak && !open && (
             <p className="hedge small">{t('rulesqa.weak')}</p>
           )}
-          <p className="crumb small muted" lang="en" dir="ltr">{breadcrumb(shown)}</p>
+          <p className="crumb glass-eyebrow" lang="en" dir="ltr">{breadcrumb(shown)}</p>
           <blockquote lang="en" dir="ltr"><Markdown text={quote} /></blockquote>
-          <div className="row">
-            <button className="btn small" onClick={() => setFull(f => !f)} aria-expanded={full}>
+          <div className="actions">
+            <button className="glass-btn small" onClick={() => setFull(f => !f)} aria-expanded={full}>
               {full ? t('rulesqa.hideFull') : t('rulesqa.readFull')}
             </button>
-            {open && <button className="btn ghost small" onClick={() => { setOpen(null); setFull(false) }}>{t('rulesqa.backToBest')}</button>}
+            {open && <button className="link small" onClick={() => { setOpen(null); setFull(false) }}>{t('rulesqa.backToBest')}</button>}
           </div>
           {full && <div className="full" lang="en" dir="ltr"><Markdown text={shown.text} /></div>}
         </article>
@@ -91,18 +91,21 @@ export function RulesQA() {
 
       {result && result.related.length > 0 && (
         <div className="related">
-          <h3>{t('rulesqa.related')}</h3>
-          <ul className="plain" lang="en" dir="ltr">
+          <h3 className="glass-eyebrow">{t('rulesqa.related')}</h3>
+          <ul className="glass glass-list" lang="en" dir="ltr">
             {[result.best!, ...result.related].filter(h => h.passage !== shown).map(h => (
               <li key={h.passage.id}>
-                <button className="link" onClick={() => { setOpen(h.passage); setFull(false) }}>{breadcrumb(h.passage)}</button>
+                <button className="related-row" onClick={() => { setOpen(h.passage); setFull(false) }}>
+                  <span>{breadcrumb(h.passage)}</span>
+                  <svg className="chevron" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+                </button>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {rules && <p className="source muted small" lang="en" dir="ltr">{rules.source}</p>}
+      {rules && <p className="source" lang="en" dir="ltr">{rules.source}</p>}
     </section>
   )
 }

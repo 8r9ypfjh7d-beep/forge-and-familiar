@@ -1,3 +1,5 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { getEntry, loadKind, type Edition } from '../content'
 import type { Character } from '../model/character'
@@ -96,5 +98,12 @@ describe('quick-cast from the library', () => {
     expect(toQuickCast(await get('fire-bolt'))).toMatchObject({ level: 0, roll: 'attack', damage: '1d10', damageType: 'fire', cantripScaling: true })
     expect(toQuickCast(await get('cure-wounds'))).toMatchObject({ roll: 'none', damage: '1d8', damageType: 'healing', addMod: true, upcast: '1d8' })
     expect(toQuickCast(await get('shield'))).toEqual({ name: 'Shield', level: 1, roll: 'none' })
+  })
+})
+
+describe('styles', () => {
+  it('uses logical properties only, so RTL needs no overrides', () => {
+    const css = readFileSync(new URL('./spellbook.css', import.meta.url), 'utf8')
+    expect(css).not.toMatch(/(margin|padding|border)-(left|right|top|bottom)|\b(left|right):/)
   })
 })

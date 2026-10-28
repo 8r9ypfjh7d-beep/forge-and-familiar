@@ -1,0 +1,14 @@
+/* Capsule search field on regular glass (src/design/DESIGN.md). Shared by Rules Q&A and the spell search.
+   Two-class selectors so screen-wide input rules (e.g. .ff-sheet input) don't override it. */
+.search-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
+.search-field .search-icon { position: absolute; z-index: 1; inset-inline-start: 14px; color: var(--muted); pointer-events: none; }
+.search-field .search-input {
+  inline-size: 100%; min-width: 0; min-height: 44px; font: inherit; font-size: 1rem; color: var(--ink);
+  padding-block: 0; padding-inline: 40px var(--sp-4); border-radius: var(--r-pill);
+  border: 1px solid var(--glass-stroke); background: var(--glass-regular);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), inset 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.search-field .search-input::placeholder { color: var(--muted); opacity: 1; }
+.search-field .search-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+:root[data-contrast="high"] .search-field .search-input { border: 2px solid var(--line); }

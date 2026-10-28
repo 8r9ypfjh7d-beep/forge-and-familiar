@@ -1,3 +1,5 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import corpus from './data/srd-rules.json'
 import { answer, breadcrumb, buildIndex, expandQuery, sentences, stem } from './search'
@@ -82,5 +84,20 @@ describe('corpus', () => {
       expect(passages.some(p => p.chapter === ch)).toBe(true)
     }
     expect(new Set(passages.map(p => p.id)).size).toBe(passages.length)
+  })
+})
+
+describe('styles', () => {
+  // ?raw imports of CSS come back empty under Vitest, so read the files themselves.
+  const read = (f: string) => readFileSync(new URL(f, import.meta.url), 'utf8')
+
+  it('uses logical properties only, so RTL needs no overrides', () => {
+    for (const f of ['./rulesqa.css', './search-field.css']) {
+      expect(read(f)).not.toMatch(/(margin|padding|border)-(left|right|top|bottom)|\b(left|right):/)
+    }
+  })
+
+  it('keeps the CC-BY source line styled visible', () => {
+    expect(read('./rulesqa.css')).not.toMatch(/\.source[^{]*\{[^}]*display:\s*none/)
   })
 })

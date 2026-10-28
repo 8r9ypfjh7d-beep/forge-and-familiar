@@ -6,15 +6,17 @@ Ask a rules question in plain words and get the answer quoted from the SRD 5.1, 
 
 | File | Purpose |
 |------|---------|
-| `index.ts` | Public API: `RulesQA`, `loadRules`, `answer`, `search`, `breadcrumb` |
+| `index.ts` | Public API: `RulesQA`, `SearchField`, `loadRules`, `answer`, `search`, `breadcrumb` |
 | `RulesQA.tsx` | The Rules screen: question box, quoted answer, full section, related sections |
+| `rulesqa.css` | Liquid Glass styles (`src/design/DESIGN.md`): answer on thick glass, related sections as a `.glass-list`, one prominent Ask |
+| `SearchField.tsx`, `search-field.css` | Capsule glass search field with a magnifier; also used by the spell search |
 | `Markdown.tsx` | Renders the SRD's markdown subset (paragraphs, lists, tables, bold/italic) |
 | `search.ts` | Pure TS: tokenizer, stemmer, synonyms, BM25 index, answer and excerpt extraction |
 | `load.ts` | Lazy-loads and indexes the SRD text once (separate ~220 KB chunk) |
 | `types.ts` | `Passage`, `RulesCorpus`, `SearchHit`, `Answer` |
 | `data/srd-rules.json` | Generated: 267 passages from the SRD rules chapters and the 15 conditions |
 | `data/build.mjs` | Regenerates the JSON from the 5e-bits/5e-database SRD 5.1 text |
-| `rulesqa.test.ts` | Ranking and excerpt tests |
+| `rulesqa.test.ts` | Ranking and excerpt tests; CSS uses logical properties only |
 
 ## How answers are found
 
