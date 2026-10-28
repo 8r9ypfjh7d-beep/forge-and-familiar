@@ -1,6 +1,5 @@
 /* Session scheduler, scoped to .ff-schedule. Liquid Glass card (src/design/DESIGN.md). */
-.ff-schedule { --maybe: #a8700f; padding: var(--sp-4); }
-@media (prefers-color-scheme: dark) { .ff-schedule { --maybe: #e0b45a; } }
+.ff-schedule { --maybe: var(--warn); padding: var(--sp-4); }
 
 .ff-schedule p { margin: 6px 0 0; }
 .ff-schedule .sched-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }

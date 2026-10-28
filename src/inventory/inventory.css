@@ -31,7 +31,7 @@
 .ff-sheet .inv-actions .inv-edit { width: 36px; padding: 0; text-overflow: clip; }
 .inv-stepper {
   display: flex; border: 1px solid var(--glass-stroke); border-radius: var(--r-pill); overflow: hidden;
-  background: var(--glass-regular); box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.08);
+  background: var(--glass-regular); box-shadow: var(--glass-highlight), var(--glass-control-shadow);
 }
 .inv-stepper button {
   width: 34px; min-height: 32px; border: 0; background: transparent; color: var(--s-ink); font: inherit; cursor: pointer;

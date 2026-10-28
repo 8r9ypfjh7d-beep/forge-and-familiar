@@ -74,13 +74,13 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
   transition: background-color var(--dur-fast), color var(--dur-fast);
 }
 .ff-dice__modes button:hover { color: var(--ff-dice-fg); }
-.ff-dice__modes button.is-on { background: var(--glass-thick); color: var(--ff-dice-accent); box-shadow: var(--glass-highlight), 0 1px 4px rgb(0 0 0 / 0.12); }
+.ff-dice__modes button.is-on { background: var(--glass-thick); color: var(--ff-dice-accent); box-shadow: var(--glass-raised); }
 
 /* Roll: the one tinted action. The notation box's Roll stays plain glass until there is text. */
 .ff-dice__roll {
   flex: 1; min-height: 42px; padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); cursor: pointer;
   background: var(--ff-dice-accent); color: var(--ff-dice-accent-fg) !important; font-weight: 600;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 4px 14px color-mix(in srgb, var(--ff-dice-accent) 35%, transparent);
+  box-shadow: var(--glass-tint-highlight), 0 4px 14px color-mix(in srgb, var(--ff-dice-accent) 35%, transparent);
   transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast), opacity var(--dur-fast);
 }
 .ff-dice__roll:hover:not(:disabled) { background: color-mix(in srgb, var(--ff-dice-accent) 88%, white); }
@@ -198,7 +198,6 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 :root[data-contrast="high"] .ff-dice-fab__button { background: var(--accent); border: 2px solid var(--ink); box-shadow: none; }
 :root[data-contrast="high"] .ff-dice-fab__panel { border: 2px solid var(--line); }
 :root[data-contrast="high"] .ff-dice__die, :root[data-contrast="high"] .ff-dice__ghost, :root[data-contrast="high"] .ff-dice__roll:disabled { border: 2px solid var(--line); }
-:root[data-contrast="high"] .ff-dice__modes button.is-on { box-shadow: inset 0 0 0 2px var(--accent); }
 :root[data-contrast="high"] .ff-roll { border-width: 2px; }
 :root[data-contrast="high"] .ff-rollfx__sides { border: 2px solid var(--line); }
 :root[data-transparency="reduce"] .ff-dice-fab__button { background: var(--accent); }

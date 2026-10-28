@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { edgeLevel, scrollLevels, EDGE_RANGE } from './scrollGlass'
 import { toAttributes, DEFAULT_SETTINGS } from '../a11y/settings'
 
@@ -50,3 +50,39 @@ describe('glass fallbacks', () => {
     expect(css.match(/--glass-scrim-blur: none/g)?.length).toBe(2)
   })
 })
+
+describe('every screen follows the standard', () => {
+  const src = new URL('../', import.meta.url)
+  const sheets = (readdirSync(src, { recursive: true }) as string[])
+    .filter(f => f.endsWith('.css'))
+    .map(f => ({ file: f, text: readFileSync(new URL(f, src), 'utf8') }))
+  // Palettes live in index.css (colours), a11y.css (high contrast) and glass.css (glass); print is paper; crit is effects.
+  const PALETTES = /(^|\/)(index|a11y|glass|print|crit)\.css$/
+
+  it('finds the screen CSS', () => {
+    expect(sheets.length).toBeGreaterThan(20)
+  })
+
+  it('uses logical properties everywhere, so Hebrew needs no overrides', () => {
+    for (const { file, text } of sheets) expect(text, file).not.toMatch(/(margin|padding|border)-(left|right)|[^-]\b(left|right):/)
+  })
+
+  it('reads blur from the glass tokens, so the fallbacks can turn it off', () => {
+    for (const { file, text } of sheets.filter(s => !s.file.endsWith('glass.css'))) expect(text, file).not.toMatch(/backdrop-filter:\s*blur/)
+  })
+
+  it('takes colours from tokens instead of hard-coding them', () => {
+    for (const { file, text } of sheets.filter(s => !PALETTES.test(s.file))) expect(text, file).not.toMatch(/#[0-9a-f]{3,8}\b/i)
+  })
+
+  it('keeps the selected segment visible when glass turns solid', () => {
+    const css = sheets.find(s => s.file.endsWith('glass.css'))!.text
+    expect(css.match(/--glass-raised: inset 0 0 0 2px var\(--accent\)/g)?.length).toBe(2)
+    for (const { file, text } of sheets) {
+      for (const rule of text.match(/[^{}]*(\.on|is-on|="true"\][^{]*)\s*\{[^}]*background: var\(--glass-thick\)[^}]*\}/g) ?? []) {
+        expect(rule, file).toMatch(/var\(--glass-raised\)/)
+      }
+    }
+  })
+})
+

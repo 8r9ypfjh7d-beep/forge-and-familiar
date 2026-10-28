@@ -26,7 +26,7 @@
 .nav-badge {
   position: absolute; inset-block-start: -6px; inset-inline-end: -9px;
   min-width: 17px; height: 17px; padding: 0 4px; border-radius: var(--r-pill); display: grid; place-items: center;
-  background: var(--bad); color: #fff; font-size: 0.68rem; font-weight: 700; line-height: 1;
+  background: var(--bad); color: var(--on-fill); font-size: 0.68rem; font-weight: 700; line-height: 1;
   box-shadow: 0 0 0 2px var(--glass-thick);
 }
 .nav-badge.inline { position: static; margin-inline-start: auto; background: var(--accent); color: var(--accent-ink); box-shadow: none; }

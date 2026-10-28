@@ -109,6 +109,7 @@ describe('admin styles', () => {
     expect(css).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
     expect(css).not.toMatch(/#[0-9a-f]{3,6}\b|rgba?\(/i)
     expect(css).toMatch(/:root\[data-contrast="high"\]/)
-    expect(css).toMatch(/prefers-reduced-transparency: reduce/)
+    // The selected tab's ring in solid modes comes from the shared segmented control (--glass-raised), not a copy here.
+    expect(css).not.toMatch(/admin-tabs > button\.on \{ box-shadow/)
   })
 })

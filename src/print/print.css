@@ -55,7 +55,7 @@
 .p-ability .p-label { font-size: 5.5pt; }
 .p-ability strong { display: block; font-size: 16pt; }
 .p-score {
-  position: absolute; left: 50%; bottom: -7pt; transform: translateX(-50%);
+  position: absolute; inset-inline: 0; inset-block-end: -7pt; margin-inline: auto; inline-size: fit-content;
   background: #fff; border: 1pt solid var(--p-line); border-radius: 8pt; padding: 0 6pt; font-size: 8.5pt;
 }
 
@@ -68,12 +68,12 @@
 
 .p-checks { list-style: none; margin: 0; padding: 0; }
 .p-checks li { display: flex; align-items: center; gap: 4pt; padding: 0.5pt 0; }
-.p-checks small { display: inline; margin-left: 2pt; }
+.p-checks small { display: inline; margin-inline-start: 2pt; }
 .p-bonus { display: inline-block; min-width: 18pt; border-bottom: 0.75pt solid var(--p-line); text-align: center; font-weight: 600; }
 
 .p-dot { display: inline-block; width: 7pt; height: 7pt; border: 1pt solid var(--p-line); border-radius: 50%; flex: none; }
 .p-dot.on { background: var(--p-ink); }
-.p-circles { display: inline-flex; gap: 3pt; vertical-align: middle; margin-left: 4pt; }
+.p-circles { display: inline-flex; gap: 3pt; vertical-align: middle; margin-inline-start: 4pt; }
 .p-death { display: flex; justify-content: space-between; align-items: center; }
 
 .p-max { display: flex; justify-content: space-between; }
@@ -83,11 +83,11 @@
 
 .p-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
 .p-table th { font-family: system-ui, sans-serif; font-size: 6.5pt; text-transform: uppercase; letter-spacing: .06em; text-align: left; color: var(--p-soft); border-bottom: 1pt solid var(--p-line); }
-.p-table td { border-bottom: 0.5pt solid #cfc6b8; padding: 2pt 2pt 2pt 0; vertical-align: top; }
+.p-table td { border-block-end: 0.5pt solid #cfc6b8; padding-block: 2pt; padding-inline: 0 2pt; vertical-align: top; }
 .p-table tr.blank td { height: 15pt; }
 .p-table td:not(:first-child), .p-table th:not(:first-child) { white-space: nowrap; }
 
-.p-list { margin: 0; padding-left: 12pt; }
+.p-list { margin: 0; padding-inline-start: 12pt; }
 .p-notes { white-space: pre-wrap; }
 .p-lines {
   height: calc(var(--lines, 8) * 16pt);

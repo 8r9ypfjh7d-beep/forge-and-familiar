@@ -26,6 +26,13 @@
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.8), inset 0 -1px 0 rgb(255 255 255 / 0.25);
   --glass-shadow: 0 1px 2px rgb(60 40 20 / 0.06), 0 8px 28px rgb(60 40 20 / 0.12);
   --glass-shadow-lift: 0 2px 6px rgb(60 40 20 / 0.08), 0 18px 48px rgb(60 40 20 / 0.18);
+  /* Small control shadows: a sunken track, a resting control, and the raised selected option in a track.
+     The fallbacks turn --glass-raised into an accent ring, because there thin and thick glass are the same colour. */
+  --glass-inset: inset 0 1px 2px rgb(0 0 0 / 0.06);
+  --glass-control-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+  --glass-raised: var(--glass-highlight), 0 1px 4px rgb(0 0 0 / 0.12);
+  /* Specular line on tinted (prominent) fills. */
+  --glass-tint-highlight: inset 0 1px 0 rgb(255 255 255 / 0.25);
   --glass-blur: blur(14px) saturate(180%);
   --glass-blur-strong: blur(20px) saturate(190%);
   --glass-wash-1: rgb(214 120 82 / 0.22);
@@ -33,6 +40,12 @@
   --glass-wash-3: rgb(226 182 92 / 0.18);
   --glass-scrim: rgb(40 26 14 / 0.28);
   --glass-scrim-blur: blur(6px) saturate(120%);
+
+  /* Lore paper: parchment for hand-outs and notes. Paper stays light in dark mode, like a real page. */
+  --lore-paper-1: #f4e9d2;
+  --lore-paper-2: #ecdcbc;
+  --lore-ink: #2a2118;
+  --lore-shade: rgb(120 80 30 / 0.25);
 
   /* Dynamic opacity. Set on <html> by scrollGlass.ts: 0 when nothing is under a bar, 1 when content fills it. */
   --glass-top: 0;
@@ -128,14 +141,14 @@ body::before {
   min-height: 40px; padding: 0 var(--sp-4); border-radius: var(--r-pill);
   border: 1px solid var(--glass-stroke); background: var(--glass-regular); color: var(--ink);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.08);
+  box-shadow: var(--glass-highlight), var(--glass-control-shadow);
   cursor: pointer; transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
 }
 .glass-btn:hover:not(:disabled) { background: var(--glass-thick); }
 .glass-btn:active:not(:disabled) { transform: scale(0.96); }
 .glass-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 /* Tinted (prominent) glass: the one main action on a surface. */
-.glass-btn.prominent { background: var(--accent); color: var(--accent-ink); border-color: transparent; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+.glass-btn.prominent { background: var(--accent); color: var(--accent-ink); border-color: transparent; box-shadow: var(--glass-tint-highlight), 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
 .glass-btn.prominent:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, white); }
 .glass-btn.small { min-height: 32px; padding: 0 var(--sp-3); font-size: 0.85rem; }
 .glass-btn.icon { inline-size: 40px; padding: 0; }
@@ -143,9 +156,9 @@ body::before {
 /* Lens: the highlight that marks the selected item in a bar, segmented control or list. */
 .glass-lens { background: var(--glass-tint); color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--glass-highlight); }
 
-.glass-segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06); }
+.glass-segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-inset); }
 .glass-segmented > button { font: inherit; font-weight: 600; min-height: 34px; padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--muted); cursor: pointer; transition: background-color var(--dur-fast), color var(--dur-fast); }
-.glass-segmented > button[aria-pressed="true"], .glass-segmented > button[aria-checked="true"], .glass-segmented > button.on { background: var(--glass-thick); color: var(--ink); box-shadow: var(--glass-highlight), 0 1px 4px rgb(0 0 0 / 0.12); }
+.glass-segmented > button:is([aria-pressed="true"], [aria-checked="true"], [aria-selected="true"], .on) { background: var(--glass-thick); color: var(--ink); box-shadow: var(--glass-raised); }
 
 .glass-chip { font: inherit; font-size: 0.85rem; min-height: 30px; padding: 0 var(--sp-3); border-radius: var(--r-pill); border: 1px solid var(--glass-stroke); background: var(--glass-thin); color: var(--ink); cursor: pointer; }
 .glass-chip.on { background: var(--glass-tint); color: var(--accent); font-weight: 600; border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
@@ -166,17 +179,20 @@ body::before {
 :root[data-transparency="reduce"], :root[data-contrast="high"] {
   --glass-thin: var(--panel); --glass-regular: var(--panel); --glass-thick: var(--panel);
   --glass-stroke: var(--line); --glass-hairline: var(--line);
-  --glass-highlight: 0 0 0 transparent;
+  --glass-highlight: 0 0 0 transparent; --glass-raised: inset 0 0 0 2px var(--accent);
   --glass-blur: none; --glass-blur-strong: none; --glass-scrim-blur: none;
   --glass-wash-1: transparent; --glass-wash-2: transparent; --glass-wash-3: transparent;
 }
-:root[data-contrast="high"] { --glass-tint: var(--accent-soft); --glass-shadow: none; --glass-shadow-lift: none; --glass-scrim: rgb(0 0 0 / 0.6); }
+:root[data-contrast="high"] {
+  --glass-tint: var(--accent-soft); --glass-shadow: none; --glass-shadow-lift: none; --glass-scrim: rgb(0 0 0 / 0.6);
+  --glass-inset: 0 0 0 transparent; --glass-control-shadow: 0 0 0 transparent; --glass-tint-highlight: 0 0 0 transparent;
+}
 :root[data-contrast="high"] .glass-dialog { border-width: 2px; }
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --glass-thin: var(--panel); --glass-regular: var(--panel); --glass-thick: var(--panel);
     --glass-stroke: var(--line); --glass-hairline: var(--line);
-    --glass-highlight: 0 0 0 transparent;
+    --glass-highlight: 0 0 0 transparent; --glass-raised: inset 0 0 0 2px var(--accent);
     --glass-blur: none; --glass-blur-strong: none; --glass-scrim-blur: none;
     --glass-wash-1: transparent; --glass-wash-2: transparent; --glass-wash-3: transparent;
   }

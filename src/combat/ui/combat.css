@@ -2,10 +2,9 @@
    .glass-btn, chips .glass-chip; this file adds the tracker's own pieces with the glass tokens.
    Logical properties only, so Hebrew needs no overrides. */
 .ff-combat {
-  --c-temp: #3b6fb0; --c-warn: #c58a1d;
+  --c-temp: var(--temp); --c-warn: var(--warn);
   display: grid; gap: var(--sp-4); font-variant-numeric: tabular-nums;
 }
-@media (prefers-color-scheme: dark) { .ff-combat { --c-temp: #7aa7e0; --c-warn: #e0a942; } }
 .ff-combat h2, .ff-combat h3 { margin: 0; }
 .ff-combat .glass-title { font-size: 1.4rem; }
 .ff-combat .glass-eyebrow { font-family: inherit; margin-block-end: var(--sp-2); }

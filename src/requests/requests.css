@@ -3,13 +3,12 @@
 .ff-requests .plain, .req-reminders .plain, .ff-dm .req-list { list-style: none; margin: 0; padding: 0; }
 .ff-requests textarea, .ff-dm .req-card textarea {
   font: inherit; inline-size: 100%; padding: 8px 10px; resize: vertical;
-  border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink);
+  border-radius: var(--r-sm); border: 1px solid var(--glass-hairline); background: color-mix(in srgb, var(--panel) 70%, transparent); color: var(--s-ink);
 }
 .ff-requests input:not([type]), .ff-requests select, .req-paste input, .req-link { font: inherit; padding: 6px 8px; min-inline-size: 0; }
 
 /* ---- Player page: Liquid Glass ---- */
-.ff-requests { --req-later: #b7791f; font-family: var(--font-text); }
-@media (prefers-color-scheme: dark) { .ff-requests { --req-later: #e0b25a; } }
+.ff-requests { --req-later: var(--warn); font-family: var(--font-text); }
 
 /* Cards: thick content glass, they hold paragraphs. */
 .ff-requests > .card {
@@ -48,7 +47,7 @@
 /* Buttons: capsules. Primary is the one tinted action; small ones are plain glass; ghost is text only. */
 .ff-requests .btn {
   border-radius: var(--r-pill); border: 1px solid var(--glass-stroke); background: var(--glass-regular); color: var(--ink);
-  box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.08);
+  box-shadow: var(--glass-highlight), var(--glass-control-shadow);
   transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
 }
 .ff-requests .btn:hover:not(:disabled) { background: var(--glass-thick); border-color: var(--glass-stroke); }
@@ -58,7 +57,7 @@
 .ff-requests .btn.ghost:hover:not(:disabled) { background: var(--glass-thin); }
 .ff-requests .btn.primary {
   background: var(--accent); color: var(--accent-ink); border-color: transparent;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: var(--glass-tint-highlight), 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 .ff-requests .btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, white); }
 .req-form form > .btn.primary { min-block-size: 48px; font-size: 1rem; }
@@ -101,22 +100,22 @@
 .req-form input[aria-invalid='true'], .req-grid input[aria-invalid='true'] { border-color: var(--s-bad); }
 
 .req-list { display: grid; gap: 10px; margin-block-end: 12px !important; }
-.req-card { border: 1px solid var(--s-line); border-inline-start-width: 4px; border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.req-card { border: 1px solid var(--s-line); border-inline-start-width: 4px; border-radius: var(--r-md); padding: 10px 12px; display: grid; gap: 6px; }
 .req-card.st-pending { border-inline-start-color: var(--s-muted); }
-.req-card.st-later { border-inline-start-color: #b7791f; }
+.req-card.st-later { border-inline-start-color: var(--warn); }
 .req-card.st-granted { border-inline-start-color: var(--s-good); }
 .req-card.st-denied { border-inline-start-color: var(--s-bad); opacity: .85; }
 .req-card.fresh { box-shadow: 0 0 0 2px var(--s-accent); }
 .req-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
 .req-head h3 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
-.req-kind { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; border: 1px solid var(--s-line); border-radius: 999px; padding: 1px 8px; color: var(--s-muted); }
+.req-kind { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; border: 1px solid var(--glass-stroke); border-radius: var(--r-pill); padding: 1px 8px; color: var(--s-muted); }
 .req-who { margin-inline-start: auto; }
 .req-details { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .req-mech { display: grid; gap: 2px; font-size: .9rem; }
 .ff-sheet .req-mech .sub-title, .ff-sheet .req-reply .sub-title { display: inline; font-size: .7rem; margin: 0 0 0 0; margin-inline-end: 4px; padding: 0; border: 0; }
 .ff-sheet .req-field > .sub-title, .ff-sheet .req-card > .sub-title { margin: 4px 0 0; }
 .req-status { margin: 0; font-weight: 600; }
-.req-status.st-later { color: #b7791f; }
+.req-status.st-later { color: var(--warn); }
 .req-status.st-granted { color: var(--s-good); }
 .req-status.st-denied { color: var(--s-bad); }
 .req-reply { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -166,10 +165,10 @@
 .ff-requests .req-delivered { margin: 0; }
 
 /* DM: reminders on top of the screen while playing */
-.req-reminders { border-color: #b7791f !important; }
+.req-reminders { border-color: var(--warn) !important; }
 .req-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .req-chips li { min-inline-size: 0; max-inline-size: 100%; }
-.req-chips details { border: 1px solid var(--s-line); border-radius: 12px; padding: 6px 10px; background: var(--s-bg); }
+.req-chips details { border: 1px solid var(--glass-stroke); border-radius: var(--r-sm); padding: 6px 10px; background: var(--glass-thin); }
 .req-chips details[open] { display: grid; gap: 6px; max-inline-size: 420px; }
 .req-chips summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; }
 .req-granted { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-block-end: 8px; }

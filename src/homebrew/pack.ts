@@ -325,15 +325,6 @@ export function decodePack(input: string): HomebrewPack {
   }
 }
 
-export const packCounts = (p: HomebrewPack) =>
-  [
-    p.spells.length && `${p.spells.length} spell${p.spells.length > 1 ? 's' : ''}`,
-    p.items.length && `${p.items.length} item${p.items.length > 1 ? 's' : ''}`,
-    p.feats.length && `${p.feats.length} feat${p.feats.length > 1 ? 's' : ''}`,
-    p.races.length && `${p.races.length} race${p.races.length > 1 ? 's' : ''}`,
-    p.subclasses.length && `${p.subclasses.length} subclass${p.subclasses.length > 1 ? 'es' : ''}`,
-  ].filter(Boolean).join(' · ') || 'Empty'
-
 export function describeEffect(e: FeatEffect): string {
   const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`)
   switch (e.kind) {
