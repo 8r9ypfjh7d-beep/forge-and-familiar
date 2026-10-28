@@ -156,7 +156,8 @@ export function watchPartyRolls(fn: () => void): () => void {
   return watchTable('rolls', undefined, fn)
 }
 
-function watchTable(table: string | null, filter: string | undefined, fn: () => void): () => void {
+/** Calls fn on any change to a table this account can see (optionally filtered, e.g. party_id=eq.x). */
+export function watchTable(table: string | null, filter: string | undefined, fn: () => void): () => void {
   let stop: (() => void) | undefined
   let stopped = false
   if (table && getCloudAccountId()) {

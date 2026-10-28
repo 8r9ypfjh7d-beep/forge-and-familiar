@@ -586,6 +586,7 @@ const messages: Messages = {
   'party.badCode': 'קוד הוא 6 אותיות וספרות באנגלית, למשל ABC-234.',
   'party.noSuchCode': 'אין חבורה עם הקוד הזה.',
   'party.joinOffline': "אין חיבור לשרת. בדקו את החיבור ונסו שוב.",
+  'party.joinTooMany': 'יותר מדי קודים שגויים. חכו 15 דקות ונסו שוב.',
   'party.unknownPlayer': 'שחקן לא ידוע',
   'party.backToParties': 'חזרה לחבורות',
   'party.dm': 'שה"מ: {name}',

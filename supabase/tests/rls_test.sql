@@ -26,6 +26,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261027113000_security_hardening.sql
 \ir ../migrations/20261027120000_parties.sql
 \ir ../migrations/20261027130000_guard_grants.sql
+\ir ../migrations/20261028090000_party_shared.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -275,6 +276,81 @@ exception when insufficient_privilege then raise notice 'ok: claim_attempts not 
 end $$;
 reset role;
 set role authenticated;
+
+-- What a party shares: secret rolls, hand-outs, session polls. Roy is DM of p-2; Tamir and Noa join.
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select create_party('p-2', 'Table', 'DEF234');
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select join_party('DEF234', 'c-tamir');
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select join_party('DEF234', null);
+
+-- Invite code guesses are limited.
+set test.uid = '00000000-0000-0000-0000-00000000000d';
+select join_party('ZZZ' || n, null) from generate_series(222, 231) n;
+do $$ begin
+  perform join_party('DEF234', null);
+  raise exception 'FAILED: guessed past the limit';
+exception when raise_exception then raise notice 'ok: too many wrong invite codes are refused, even a right one';
+end $$;
+select pg_temp.check((select count(*) from party_members where party_id = 'p-2' and user_id = 'acct-ziv') = 0, 'the blocked guess did not join');
+
+-- Secret rolls.
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+insert into secret_rolls (id, party_id, from_id, label, roll, rolled_at) values ('s-1', 'p-2', 'acct-tamir', 'Stealth', '{"total":17}', '2026-10-28T09:00:00.000Z');
+select pg_temp.check((select count(*) from secret_rolls) = 0, 'the roller cannot read the result');
+select pg_temp.check((select label from my_secret_rolls('p-2')) = 'Stealth', 'the roller sees that they rolled');
+do $$ begin
+  insert into secret_rolls (id, party_id, from_id, roll, rolled_at) values ('s-x', 'p-2', 'acct-noa', '{}', 'x');
+  raise exception 'FAILED: secret roll as someone else';
+exception when insufficient_privilege then raise notice 'ok: cannot send a secret roll as someone else';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from secret_rolls) + (select count(*) from my_secret_rolls('p-2')) = 0, 'another player sees nothing of it');
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select roll->>'total' from secret_rolls where id = 's-1') = '17', 'the party DM reads the result');
+
+-- Hand-outs.
+insert into handouts (id, party_id, data, sent_at, to_all, to_ids) values
+  ('h-draft', 'p-2', '{"title":"Draft"}', null, true, '{}'),
+  ('h-tamir', 'p-2', '{"title":"Map"}', '2026-10-28T09:00:00.000Z', false, '{acct-tamir}');
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select array_agg(id) from handouts) = '{h-tamir}', 'a player sees only sent hand-outs addressed to them');
+do $$ begin
+  insert into handouts (id, party_id, data) values ('h-x', 'p-2', '{}');
+  raise exception 'FAILED: player wrote a hand-out';
+exception when insufficient_privilege then raise notice 'ok: only the DM writes hand-outs';
+end $$;
+insert into handout_seen values ('h-tamir', 'acct-tamir', '2026-10-28T09:01:00.000Z');
+do $$ begin
+  insert into handout_seen values ('h-draft', 'acct-tamir', 'x');
+  raise exception 'FAILED: marked an unseen draft';
+exception when insufficient_privilege then raise notice 'ok: cannot mark a hand-out one cannot see';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from handouts) = 0, 'a player not addressed sees no hand-out');
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select count(*) from handout_seen) = 1, 'the DM sees read receipts');
+delete from handout_seen where handout_id = 'h-tamir';
+select pg_temp.check((select count(*) from handout_seen) = 0, 'the DM resets receipts on take back');
+
+-- Session polls.
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+insert into session_polls (id, party_id, data) values ('poll-1', 'p-2', '{"options":[]}');
+update session_polls set data = '{"options":[{"id":"o1"}]}', rev = 2 where id = 'poll-1' and rev = 1;
+insert into poll_votes values ('poll-1', 'acct-tamir', 'o1', 'yes');
+do $$ begin
+  insert into poll_votes values ('poll-1', 'acct-noa', 'o1', 'no');
+  raise exception 'FAILED: voted for someone else';
+exception when insufficient_privilege then raise notice 'ok: players vote only for themselves';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from poll_votes) = 1 and (select rev from session_polls) = 2, 'members see the poll and votes');
+update poll_votes set availability = 'no' where user_id = 'acct-tamir';
+select pg_temp.check((select availability from poll_votes) = 'yes', 'cannot change another player''s vote');
+set test.uid = '00000000-0000-0000-0000-00000000000d';
+select pg_temp.check((select count(*) from session_polls) = 1, 'admin sees polls');
+set test.uid = '00000000-0000-0000-0000-00000000000a';
 
 -- Signed out: nothing.
 reset role;

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { Party } from '../party/types'
 import { bestOption, chosenOption, isFinished, relativeTime, reminderDue, tally, toIcs } from './poll'
-import { answer, dropDate, listPolls, lockIn, onSessionsChanged, proposeDate, startPoll } from './store'
+import { watchPolls } from './cloud'
+import { answer, dropDate, listPolls, lockIn, onSessionsChanged, proposeDate, refreshPolls, startPoll } from './store'
 import type { Availability, SessionPoll } from './types'
 import './schedule.css'
 
@@ -32,6 +33,12 @@ export function SessionScheduler({ party, userId, nameOf }: { party: Party; user
 
   const refresh = useCallback(() => { listPolls(party.id).then(list => setPoll(list[0] ?? null)) }, [party.id])
   useEffect(() => { refresh(); return onSessionsChanged(refresh) }, [refresh])
+  // Cloud party: fetch now and on every change from another device.
+  useEffect(() => {
+    const pull = () => { void refreshPolls(party.id) }
+    pull()
+    return watchPolls(party.id, pull)
+  }, [party.id])
 
   if (poll === undefined) return null
   const isDm = userId === party.dmId

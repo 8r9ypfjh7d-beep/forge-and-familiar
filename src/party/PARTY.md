@@ -48,4 +48,5 @@ Join a party with an invite code and see everyone's character at a glance. First
 - Stash writes are conditional on `rev`; if someone else wrote first, the change is re-applied to the fresh stash (up to 4 tries).
 - Members read the character each other member brings (`characters_party_read`) and its rolls made since joining (`rolls_party_read`); the party table fetches the ones not on this device and watches them live. Player names come from `accounts` when the profile isn't on the device.
 - The party's DM answers requests about characters brought to that party (`can_answer_request`).
-- Still same-device only: secret rolls, hand-outs and session polls.
+- Invite codes: 10 wrong codes per account in 15 minutes, then `join_party` refuses ("too many tries").
+- Secret rolls, hand-outs and session polls of a cloud party also go through Supabase (`20261028090000_party_shared.sql`, see their own docs); `cloudForParty(partyId)` in `store.ts` tells those modules whether a party is a cloud one.
