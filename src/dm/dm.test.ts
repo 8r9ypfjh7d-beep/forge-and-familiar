@@ -1,4 +1,6 @@
+/// <reference types="node" />
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { en } from '../i18n/locales/en'
 import { loadKind } from '../content'
 import {
@@ -100,5 +102,19 @@ describe('DM sync', () => {
   })
   it('uploads this device copy when the server has none yet', () => {
     expect(pickDm(local, false, null)).toEqual({ state: local, push: true })
+  })
+})
+
+describe('DM screen styles', () => {
+  // ?raw imports of CSS come back empty under Vitest, so read the file itself.
+  const css = readFileSync(new URL('./dm.css', import.meta.url), 'utf8')
+
+  it('uses logical properties only, so RTL needs no overrides', () => {
+    expect(css).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
+  })
+
+  it('reads the glass tokens instead of hard-coding blur', () => {
+    expect(css).not.toMatch(/backdrop-filter:\s*blur/)
+    expect(css).toMatch(/var\(--glass-regular\)/)
   })
 })

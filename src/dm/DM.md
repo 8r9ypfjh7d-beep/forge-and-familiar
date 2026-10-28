@@ -10,8 +10,8 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 | `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters`, NPC generator with an injected picker, `normalizeDm` |
 | `store.ts` | `loadDm` / `syncDm` / `saveDm` / `onDmChanged`: device cache `ff.dm.v1.<userId>` synced with Supabase `dm_state` |
 | `DmScreen.tsx` | Top card (party and budget tiles), story reminders (src/requests), and tabs: Encounters, Monsters, Quick rules, NPCs, Requests |
-| `dm.css` | Styles; the page sits inside `.ff-sheet` so cards, tabs and titles match the sheet |
-| `dm.test.ts` | Budget, difficulty, plans, hand-off, search and generator tests |
+| `dm.css` | Liquid Glass styles (src/design/DESIGN.md), scoped to `.ff-sheet.ff-dm`: the page keeps the sheet's layout helpers but its cards, tabs, buttons, fields and the request cards on it use the `--glass-*` tokens |
+| `dm.test.ts` | Budget, difficulty, plans, hand-off, search and generator tests; dm.css uses logical properties and glass tokens |
 
 ## How it works
 
@@ -26,6 +26,8 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 - **Sync.** When the device is signed in to the server as that account (or as the admin), `store.ts` keeps the `dm_state` row in step: `loadDm` returns the device copy at once, `syncDm` reconciles (`pickDm`: unsent edits on this device win, else the server copy), `saveDm` writes locally and pushes after a short pause, `onDmChanged` applies other devices' saves live. `ff.dm.pending.v1.<userId>` marks unsent edits, so offline changes go up on the next save or open.
 
 ## Known tasks
+
+- **Restyle something on the page:** use the `--glass-*` tokens in `dm.css` under `.ff-sheet.ff-dm` (raises specificity over sheet.css and requests.css); glass cards are regular, cards with paragraphs thick, tiles inside a card thin without blur.
 
 - **Add a reference panel:** add its keys to both locales and a `RefCard` in `ReferenceTab`.
 - **Grow the NPC tables:** add `dm.npc.<table>.<n>` keys in both locales and raise `NPC_TABLES`; the test checks they match.
