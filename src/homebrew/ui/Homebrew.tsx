@@ -1,20 +1,29 @@
 // Homebrew screen: a library of packs, a pack editor, and sharing with friends by code or file.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChangeHistory, deleteHistory, historyForSharing, importHistory, recordRevision, type RestoreMeta } from '../../history'
+import { useI18n, type Translate } from '../../i18n'
 import type { Character, UserProfile } from '../../model/character'
-import { classById, raceById } from '../../rules'
+import { raceById } from '../../rules'
 import { listCharacters, saveCharacter } from '../../storage'
-import { allEntries, decodePack, describeEffect, encodeShareCode, entryId, newPack, packCounts, PackError, sanitizeEntry, slug } from '../pack'
+import { allEntries, decodePack, describeEffect, encodeShareCode, entryId, newPack, PackError, sanitizeEntry, slug } from '../pack'
 import { deletePack, importPack, listPacks, onPacksChanged, savePack } from '../store'
+import type { Ability } from '../../rules'
 import type { ContentKind, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
 import { FeatForm, ItemForm, RaceForm, SpellForm, SubclassForm } from './forms'
 import './homebrew.css'
 
 const shortId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 
+const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses']
+
+/** "2 spells · 1 item", or "Empty". */
+const packCounts = (t: Translate, p: HomebrewPack) =>
+  KINDS.filter(k => p[k].length).map(k => t(`hb.count.${k}`, { count: p[k].length })).join(' · ') || t('hb.count.empty')
+
 export function Homebrew({ profile }: { profile: UserProfile }) {
   const [packs, setPacks] = useState<HomebrewPack[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
+  const { t } = useI18n()
   const refresh = useCallback(() => { listPacks().then(setPacks) }, [])
   useEffect(() => {
     refresh()
@@ -31,7 +40,7 @@ export function Homebrew({ profile }: { profile: UserProfile }) {
       profile={profile}
       onOpen={setOpenId}
       onCreate={async () => {
-        const p = await savePack(newPack(shortId(), profile, `${profile.displayName}'s homebrew`))
+        const p = await savePack(newPack(shortId(), profile, t('hb.defaultName', { name: profile.displayName })))
         setOpenId(p.id)
       }}
     />
@@ -44,26 +53,27 @@ function Library({ packs, profile, onOpen, onCreate }: {
   onOpen: (id: string) => void
   onCreate: () => void
 }) {
+  const { t } = useI18n()
   const sorted = [...packs].sort((a, b) => Number(b.authorId === profile.id) - Number(a.authorId === profile.id) || a.name.localeCompare(b.name))
   return (
     <section className="hb">
       <div className="row spread hb-hero">
         <div>
-          <h2 className="glass-title">Homebrew</h2>
-          <p className="muted small">Your group's own spells, items, feats, races and subclasses. Share a pack with friends by code or file; nothing is public.</p>
+          <h2 className="glass-title">{t('hb.title')}</h2>
+          <p className="muted small">{t('hb.lead')}</p>
         </div>
-        <button className="glass-btn prominent" onClick={onCreate}>+ New pack</button>
+        <button className="glass-btn prominent" onClick={onCreate}>{t('hb.newPack')}</button>
       </div>
       {sorted.length === 0 ? (
         <div className="glass thin empty">
-          <p>No homebrew yet. Start a pack, or import one a friend sent you.</p>
+          <p>{t('hb.empty')}</p>
         </div>
       ) : (
         <div className="hb-packs">
           {sorted.map(p => (
             <button key={p.id} className="glass hb-pack" onClick={() => onOpen(p.id)}>
               <strong>{p.name}</strong>
-              <span className="muted small">{p.authorId === profile.id ? 'By you' : `From ${p.authorName}`} · {packCounts(p)}</span>
+              <span className="muted small">{p.authorId === profile.id ? t('hb.byYou') : t('hb.from', { name: p.authorName })} · {packCounts(t, p)}</span>
               {p.description && <span className="small hb-clamp">{p.description}</span>}
             </button>
           ))}
@@ -75,6 +85,7 @@ function Library({ packs, profile, onOpen, onCreate }: {
 }
 
 function ImportBox({ onImported }: { onImported: (id: string) => void }) {
+  const { t } = useI18n()
   const [code, setCode] = useState('')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -94,24 +105,22 @@ function ImportBox({ onImported }: { onImported: (id: string) => void }) {
       setCode('')
       setMsg({
         ok: true,
-        text: result === 'added' ? `Added "${pack.name}" from ${pack.authorName}.`
-          : result === 'updated' ? `Updated "${pack.name}" to ${pack.authorName}'s latest version.`
-          : `You already have the latest "${pack.name}".`,
+        text: t(`hb.import.${result}`, { pack: pack.name, name: pack.authorName }),
       })
       if (result !== 'unchanged') onImported(pack.id)
     } catch (e) {
-      setMsg({ ok: false, text: e instanceof PackError ? e.message : "That pack couldn't be read." })
+      setMsg({ ok: false, text: e instanceof PackError ? e.message : t('hb.import.unreadable') })
     }
   }
 
   return (
     <div className="glass hb-import">
-      <h3>Import a friend's pack</h3>
+      <h3>{t('hb.import.title')}</h3>
       <form className="hb-import-row" onSubmit={e => { e.preventDefault(); if (code.trim()) run(code) }}>
-        <textarea className="glass-field" rows={2} value={code} onChange={e => setCode(e.target.value)} placeholder="Paste a share code (FFHB1.…)" aria-label="Share code" />
+        <textarea className="glass-field" rows={2} value={code} onChange={e => setCode(e.target.value)} placeholder={t('hb.import.placeholder')} aria-label={t('hb.import.aria')} />
         <div className="row">
-          <button className="glass-btn prominent" disabled={!code.trim()}>Import code</button>
-          <button type="button" className="glass-btn" onClick={() => fileRef.current?.click()}>Open file…</button>
+          <button className="glass-btn prominent" disabled={!code.trim()}>{t('hb.import.code')}</button>
+          <button type="button" className="glass-btn" onClick={() => fileRef.current?.click()}>{t('hb.import.file')}</button>
           <input
             ref={fileRef}
             type="file"
@@ -121,7 +130,7 @@ function ImportBox({ onImported }: { onImported: (id: string) => void }) {
               const file = e.target.files?.[0]
               e.target.value = ''
               if (!file) return
-              if (file.size > 2_000_000) return setMsg({ ok: false, text: 'That file is too big to be a homebrew pack.' })
+              if (file.size > 2_000_000) return setMsg({ ok: false, text: t('hb.import.tooBig') })
               run(await file.text())
             }}
           />
@@ -138,9 +147,6 @@ type Editing =
   | { kind: 'feats'; entry: HomebrewFeat }
   | { kind: 'races'; entry: HomebrewRace }
   | { kind: 'subclasses'; entry: HomebrewSubclass }
-
-const TAB_LABEL: Record<ContentKind, string> = { spells: 'Spells', items: 'Items', feats: 'Feats', races: 'Races', subclasses: 'Subclasses' }
-const SINGULAR: Record<ContentKind, string> = { spells: 'spell', items: 'item', feats: 'feat', races: 'race', subclasses: 'subclass' }
 
 function blank(kind: ContentKind): Editing {
   if (kind === 'spells') {
@@ -171,6 +177,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   onBack: () => void
   onOpen: (id: string) => void
 }) {
+  const { t } = useI18n()
   const mine = pack.authorId === profile.id
   const [tab, setTab] = useState<ContentKind>('spells')
   const [editing, setEditing] = useState<Editing | null>(null)
@@ -196,9 +203,8 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   }
 
   const removeEntry = async (kind: ContentKind, id: string, name: string) => {
-    const warn = kind === 'items' ? ' Characters carrying it will show it as an unknown item.'
-      : kind === 'races' || kind === 'subclasses' ? ' Characters using it lose its bonuses until it is added back.' : ''
-    if (!confirm(`Delete ${name}?${warn}`)) return
+    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'races' || kind === 'subclasses' ? t('hb.deleteWarnBonus') : ''
+    if (!confirm(t('hb.deleteConfirm', { name }) + warn)) return
     await savePack({ ...pack, [kind]: (pack[kind] as { id: string }[]).filter(x => x.id !== id) })
   }
 
@@ -206,7 +212,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
     const id = shortId()
     const rename = <T extends { id: string }>(x: T): T => ({ ...x, id: x.id.replace(`hb:${pack.id}:`, `hb:${id}:`) })
     const copy = await savePack({
-      ...newPack(id, profile, `${pack.name} (my copy)`),
+      ...newPack(id, profile, t('hb.copyName', { name: pack.name })),
       description: pack.description,
       spells: pack.spells.map(rename), items: pack.items.map(rename), feats: pack.feats.map(rename),
       races: pack.races.map(r => ({ ...rename(r), parentRaceId: r.parentRaceId?.replace(`hb:${pack.id}:`, `hb:${id}:`) })),
@@ -218,30 +224,30 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   return (
     <section className="hb">
       <div className="row hb-head">
-        <button className="glass-btn icon" onClick={onBack} aria-label="Back to homebrew">←</button>
+        <button className="glass-btn icon" onClick={onBack} aria-label={t('hb.back')}>{t('common.backArrow')}</button>
         <div className="hb-title">
           {mine ? (
             <input
               className="hb-name glass-title"
               defaultValue={pack.name}
-              aria-label="Pack name"
+              aria-label={t('hb.packName')}
               onBlur={e => { const name = e.target.value.trim(); if (name && name !== pack.name) savePack({ ...pack, name }) }}
             />
           ) : <h2 className="hb-name glass-title">{pack.name}</h2>}
-          <p className="muted small">{mine ? 'Your pack' : `From ${pack.authorName}, read-only`} · {packCounts(pack)}</p>
+          <p className="muted small">{mine ? t('hb.yourPack') : t('hb.readOnly', { name: pack.authorName })} · {packCounts(t, pack)}</p>
         </div>
-        {!mine && <button className="glass-btn" onClick={duplicate}>Make my own copy</button>}
+        {!mine && <button className="glass-btn" onClick={duplicate}>{t('hb.copy')}</button>}
         <button
           className="glass-btn hb-danger"
           onClick={async () => {
-            if (confirm(`Remove "${pack.name}" from this device? Characters carrying its items will show them as unknown.`)) {
+            if (confirm(t('hb.removeConfirm', { name: pack.name }))) {
               await deletePack(pack.id)
               await deleteHistory(`hb:${pack.id}:`)
               onBack()
             }
           }}
         >
-          {mine ? 'Delete pack' : 'Remove'}
+          {mine ? t('hb.deletePack') : t('hb.removePack')}
         </button>
       </div>
 
@@ -250,8 +256,8 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
           className="hb-desc glass-field"
           rows={2}
           defaultValue={pack.description}
-          placeholder="What is this pack for? (campaign, setting, house rules)"
-          aria-label="Pack description"
+          placeholder={t('hb.descPlaceholder')}
+          aria-label={t('hb.descAria')}
           onBlur={e => { if (e.target.value !== pack.description) savePack({ ...pack, description: e.target.value }) }}
         />
       ) : pack.description && <p>{pack.description}</p>}
@@ -259,14 +265,14 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
       <div className="hb-body">
         <div>
           <div className="row hb-toolbar">
-            <div className="glass-segmented hb-tabs" role="tablist">
-              {(Object.keys(TAB_LABEL) as ContentKind[]).map(k => (
+            <div className="glass-segmented hb-tabs" role="tablist" aria-label={t('hb.kinds')}>
+              {KINDS.map(k => (
                 <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setEditing(null) }}>
-                  {TAB_LABEL[k]} ({pack[k].length})
+                  {t(`hb.tab.${k}`)} ({pack[k].length})
                 </button>
               ))}
             </div>
-            {mine && !editing && <button className="glass-btn prominent small hb-add" onClick={() => setEditing(blank(tab))}>+ New {SINGULAR[tab]}</button>}
+            {mine && !editing && <button className="glass-btn prominent small hb-add" onClick={() => setEditing(blank(tab))}>{t(`hb.new.${tab}`)}</button>}
           </div>
 
           {editing?.kind === 'spells' && <SpellForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'spells', entry })} onCancel={() => setEditing(null)} />}
@@ -302,10 +308,12 @@ function EntryList({ kind, pack, mine, profile, onEdit, onDelete, onRestore }: {
   onDelete: (kind: ContentKind, id: string, name: string) => void
   onRestore?: (kind: ContentKind, entry: unknown, meta: RestoreMeta) => Promise<void>
 }) {
+  const i18n = useI18n()
+  const { t } = i18n
   const [historyFor, setHistoryFor] = useState<string | null>(null)
   const entries = [...(pack[kind] as (HomebrewEntry)[])].sort((a, b) => a.name.localeCompare(b.name))
   if (entries.length === 0) {
-    return <div className="glass thin empty"><p className="muted">No {TAB_LABEL[kind].toLowerCase()} in this pack yet.</p></div>
+    return <div className="glass thin empty"><p className="muted">{t(`hb.none.${kind}`)}</p></div>
   }
   return (
     <ul className="plain hb-entries">
@@ -314,16 +322,16 @@ function EntryList({ kind, pack, mine, profile, onEdit, onDelete, onRestore }: {
           <div className="row spread">
             <div>
               <h3 className="glass-title">{e.name}</h3>
-              <p className="muted small">{subtitle(kind, e)}</p>
+              <p className="muted small">{subtitle(i18n, kind, e)}</p>
             </div>
             <div className="row hb-entry-actions">
               {kind === 'items' && <GiveToCharacter item={e as HomebrewItem} profile={profile} />}
-              <button className={`glass-btn small hb-ghost ${historyFor === e.id ? 'glass-lens' : ''}`} aria-expanded={historyFor === e.id} onClick={() => setHistoryFor(historyFor === e.id ? null : e.id)}>History</button>
-              {mine && <button className="glass-btn small" onClick={() => onEdit(kind, e)}>Edit</button>}
-              {mine && <button className="glass-btn small hb-ghost hb-danger" onClick={() => onDelete(kind, e.id, e.name)}>Delete</button>}
+              <button className={`glass-btn small hb-ghost ${historyFor === e.id ? 'glass-lens' : ''}`} aria-expanded={historyFor === e.id} onClick={() => setHistoryFor(historyFor === e.id ? null : e.id)}>{t('hb.history')}</button>
+              {mine && <button className="glass-btn small" onClick={() => onEdit(kind, e)}>{t('hb.edit')}</button>}
+              {mine && <button className="glass-btn small hb-ghost hb-danger" onClick={() => onDelete(kind, e.id, e.name)}>{t('hb.delete')}</button>}
             </div>
           </div>
-          <EntryBody kind={kind} entry={e} />
+          <EntryBody i18n={i18n} kind={kind} entry={e} />
           {historyFor === e.id && (
             <ChangeHistory
               entryId={e.id}
@@ -338,49 +346,55 @@ function EntryList({ kind, pack, mine, profile, onEdit, onDelete, onRestore }: {
   )
 }
 
-function subtitle(kind: ContentKind, e: HomebrewEntry): string {
+type I18n = ReturnType<typeof useI18n>
+
+function subtitle({ t, className }: I18n, kind: ContentKind, e: HomebrewEntry): string {
   if (kind === 'spells') {
     const s = e as HomebrewSpell
-    const lvl = s.level === 0 ? `${s.school} cantrip` : `Level ${s.level} ${s.school.toLowerCase()}`
-    return [lvl, s.ritual && 'ritual', s.concentration && 'concentration'].filter(Boolean).join(' · ')
+    const school = t(`hb.school.${s.school}`)
+    const lvl = s.level === 0 ? t('hb.sub.cantrip', { school }) : t('hb.sub.level', { level: s.level, school })
+    return [lvl, s.ritual && t('hb.sub.ritual'), s.concentration && t('hb.sub.concentration')].filter(Boolean).join(' · ')
   }
   if (kind === 'items') {
     const i = e as HomebrewItem
-    const what = i.kind === 'weapon' ? `${i.category} weapon · ${i.damage} ${i.damageType}${i.versatile ? ` (${i.versatile})` : ''}`
-      : i.kind === 'armor' ? (i.category === 'shield' ? `shield · +${i.baseAc} AC` : `${i.category} armor · AC ${i.baseAc}${i.dexCap === undefined ? ' + DEX' : i.dexCap > 0 ? ` + DEX (max ${i.dexCap})` : ''}`)
-      : 'gear'
-    return [i.rarity, what, `${i.weight} lb`].filter(Boolean).join(' · ')
+    const what = i.kind === 'weapon' ? `${t('hb.sub.weapon', { category: t(`hb.cat.${i.category}`) })} · ${i.damage} ${i.damageType}${i.versatile ? ` (${i.versatile})` : ''}`
+      : i.kind === 'armor' ? (i.category === 'shield' ? t('hb.sub.shield', { ac: i.baseAc })
+        : t('hb.sub.armor', { category: t(`hb.cat.${i.category}`), ac: i.baseAc }) + (i.dexCap === undefined ? t('hb.sub.dex') : i.dexCap > 0 ? t('hb.sub.dexMax', { max: i.dexCap }) : ''))
+      : t('hb.sub.gear')
+    return [i.rarity && t(`hb.rarity.${i.rarity}`), what, t('hb.sub.weight', { weight: i.weight })].filter(Boolean).join(' · ')
   }
   if (kind === 'races') {
     const r = e as HomebrewRace
-    if (r.parentRaceId) return `Subrace of ${raceById(r.parentRaceId)?.name ?? 'a race not on this device'}`
-    return `${r.size} · speed ${r.speed} ft.`
+    if (r.parentRaceId) return t('hb.sub.subraceOf', { race: raceById(r.parentRaceId)?.name ?? t('hb.sub.unknownRace') })
+    return t('hb.sub.race', { size: t(r.size === 'Small' ? 'hb.f.small' : 'hb.f.medium'), speed: r.speed })
   }
   if (kind === 'subclasses') {
     const sc = e as HomebrewSubclass
-    return `${classById(sc.classId)?.name ?? sc.classId} subclass`
+    return t('hb.sub.subclass', { class: className(sc.classId) })
   }
   const f = e as HomebrewFeat
-  return f.prerequisite ? `Prerequisite: ${f.prerequisite}` : 'Feat'
+  return f.prerequisite ? t('hb.sub.prereq', { text: f.prerequisite }) : t('hb.sub.feat')
 }
 
-function EntryBody({ kind, entry }: { kind: ContentKind; entry: HomebrewEntry }) {
+function EntryBody({ i18n, kind, entry }: { i18n: I18n; kind: ContentKind; entry: HomebrewEntry }) {
+  const { t, className, ability, abilityShort, skill } = i18n
+  const list = (xs: string[]) => xs.join(', ')
   if (kind === 'spells') {
     const s = entry as HomebrewSpell
     const comps = [s.components.v && 'V', s.components.s && 'S', s.components.m && `M (${s.components.material})`].filter(Boolean).join(', ')
     return (
       <>
         <dl className="hb-stats small">
-          <div><dt>Casting time</dt><dd>{s.castingTime}</dd></div>
-          <div><dt>Range</dt><dd>{s.range}</dd></div>
-          <div><dt>Components</dt><dd>{comps || 'None'}</dd></div>
-          <div><dt>Duration</dt><dd>{s.concentration ? `Concentration, ${s.duration}` : s.duration}</dd></div>
-          {s.damage && <div><dt>Roll</dt><dd>{s.damage} {s.damageType}</dd></div>}
-          {s.save && <div><dt>Save</dt><dd>{s.save.toUpperCase()}</dd></div>}
+          <div><dt>{t('hb.stat.castingTime')}</dt><dd>{s.castingTime}</dd></div>
+          <div><dt>{t('hb.stat.range')}</dt><dd>{s.range}</dd></div>
+          <div><dt>{t('hb.stat.components')}</dt><dd>{comps || t('hb.stat.none')}</dd></div>
+          <div><dt>{t('hb.stat.duration')}</dt><dd>{s.concentration ? t('hb.stat.concentrationDur', { duration: s.duration }) : s.duration}</dd></div>
+          {s.damage && <div><dt>{t('hb.stat.roll')}</dt><dd>{s.damage} {s.damageType}</dd></div>}
+          {s.save && <div><dt>{t('hb.stat.save')}</dt><dd>{ability(s.save)}</dd></div>}
         </dl>
         <p className="hb-text">{s.description}</p>
-        {s.higherLevels && <p className="hb-text"><em>At higher levels.</em> {s.higherLevels}</p>}
-        {s.classes.length > 0 && <p className="muted small">Classes: {s.classes.map(id => classById(id)?.name ?? id).join(', ')}</p>}
+        {s.higherLevels && <p className="hb-text"><em>{t('hb.higherLevels')}</em> {s.higherLevels}</p>}
+        {s.classes.length > 0 && <p className="muted small">{t('hb.classes', { list: list(s.classes.map(className)) })}</p>}
       </>
     )
   }
@@ -388,9 +402,9 @@ function EntryBody({ kind, entry }: { kind: ContentKind; entry: HomebrewEntry })
     const i = entry as HomebrewItem
     return (
       <>
-        {i.kind === 'weapon' && i.properties.length > 0 && <p className="small">Properties: {i.properties.join(', ')}{i.range ? ` (range ${i.range})` : ''}</p>}
+        {i.kind === 'weapon' && i.properties.length > 0 && <p className="small">{t('hb.properties', { list: list(i.properties.map(p => t(`hb.prop.${p}`))) })}{i.range ? t('hb.propRange', { range: i.range }) : ''}</p>}
         {i.kind === 'armor' && (i.strengthReq || i.stealthDisadvantage) && (
-          <p className="small">{[i.strengthReq && `Strength ${i.strengthReq}`, i.stealthDisadvantage && 'Stealth disadvantage'].filter(Boolean).join(' · ')}</p>
+          <p className="small">{[i.strengthReq && t('hb.strength', { n: i.strengthReq }), i.stealthDisadvantage && t('hb.stealthDis')].filter(Boolean).join(' · ')}</p>
         )}
         {i.description && <p className="hb-text">{i.description}</p>}
       </>
@@ -398,14 +412,15 @@ function EntryBody({ kind, entry }: { kind: ContentKind; entry: HomebrewEntry })
   }
   if (kind === 'races') {
     const r = entry as HomebrewRace
-    const bonuses = Object.entries(r.abilityBonuses).map(([a, n]) => `${a.toUpperCase()} ${n! >= 0 ? '+' : ''}${n}`)
-    if (r.freeAbilityBonuses) bonuses.push(`+1 to ${r.freeAbilityBonuses} of your choice`)
+    const choice = (count: number) => (count ? [t('hb.race.choice', { count })] : [])
+    const bonuses = Object.entries(r.abilityBonuses).map(([a, n]) => `${abilityShort(a as Ability)} ${n! >= 0 ? '+' : ''}${n}`)
+    if (r.freeAbilityBonuses) bonuses.push(t('hb.race.freeBonus', { count: r.freeAbilityBonuses }))
     const lines = [
-      bonuses.length > 0 && `Ability scores: ${bonuses.join(', ')}`,
-      r.traits.length > 0 && `Traits: ${r.traits.join(', ')}`,
-      !r.parentRaceId && `Languages: ${[...r.languages, ...(r.languageChoices ? [`${r.languageChoices} of your choice`] : [])].join(', ') || 'none'}`,
-      (r.skillProficiencies.length > 0 || r.freeSkillChoices > 0) && `Skills: ${[...r.skillProficiencies, ...(r.freeSkillChoices ? [`${r.freeSkillChoices} of your choice`] : [])].join(', ')}`,
-      r.hpPerLevel > 0 && `+${r.hpPerLevel} HP per level`,
+      bonuses.length > 0 && t('hb.race.scores', { list: list(bonuses) }),
+      r.traits.length > 0 && t('hb.race.traits', { list: list(r.traits) }),
+      !r.parentRaceId && t('hb.race.languages', { list: list([...r.languages, ...choice(r.languageChoices)]) || t('hb.race.none') }),
+      (r.skillProficiencies.length > 0 || r.freeSkillChoices > 0) && t('hb.race.skills', { list: list([...r.skillProficiencies.map(skill), ...choice(r.freeSkillChoices)]) }),
+      r.hpPerLevel > 0 && t('hb.race.hp', { n: r.hpPerLevel }),
     ].filter(Boolean)
     return (
       <>
@@ -419,7 +434,7 @@ function EntryBody({ kind, entry }: { kind: ContentKind; entry: HomebrewEntry })
     return (
       <>
         {sc.features.length > 0 && <p className="small">{[...sc.features].sort((a, b) => a.level - b.level).map(f => `${f.level}: ${f.name}`).join(' · ')}</p>}
-        {sc.armor.length > 0 && <p className="small">Armor: {sc.armor.join(', ')}</p>}
+        {sc.armor.length > 0 && <p className="small">{t('hb.armorList', { list: list(sc.armor.map(a => t(`hb.cat.${a}`))) })}</p>}
         {sc.description && <p className="hb-text">{sc.description}</p>}
       </>
     )
@@ -434,18 +449,19 @@ function EntryBody({ kind, entry }: { kind: ContentKind; entry: HomebrewEntry })
 }
 
 function GiveToCharacter({ item, profile }: { item: HomebrewItem; profile: UserProfile }) {
+  const { t, className } = useI18n()
   const [chars, setChars] = useState<Character[] | null>(null)
   const [done, setDone] = useState('')
   if (done) return <span className="small good" role="status">{done}</span>
   if (!chars) {
-    return <button className="glass-btn small" onClick={() => listCharacters(profile.id).then(setChars)}>Give to…</button>
+    return <button className="glass-btn small" onClick={() => listCharacters(profile.id).then(setChars)}>{t('hb.give')}</button>
   }
-  if (chars.length === 0) return <span className="small muted">No characters yet</span>
+  if (chars.length === 0) return <span className="small muted">{t('hb.give.none')}</span>
   return (
     <select
       className="glass-field"
       autoFocus
-      aria-label={`Give ${item.name} to a character`}
+      aria-label={t('hb.give.aria', { item: item.name })}
       defaultValue=""
       onBlur={() => setChars(null)}
       onChange={async e => {
@@ -456,16 +472,17 @@ function GiveToCharacter({ item, profile }: { item: HomebrewItem; profile: UserP
           ? c.inventory.map(x => (x === stack ? { ...x, qty: x.qty + 1 } : x))
           : [...c.inventory, { uid: crypto.randomUUID(), itemId: item.id, qty: 1, equipped: false }]
         await saveCharacter({ ...c, inventory })
-        setDone(`Given to ${c.name}`)
+        setDone(t('hb.give.done', { name: c.name }))
       }}
     >
-      <option value="" disabled>Choose character</option>
-      {chars.map(c => <option key={c.id} value={c.id}>{c.name} ({c.classes.map(cl => classById(cl.classId)?.name ?? cl.classId).join('/')})</option>)}
+      <option value="" disabled>{t('hb.give.choose')}</option>
+      {chars.map(c => <option key={c.id} value={c.id}>{c.name} ({c.classes.map(cl => className(cl.classId)).join('/')})</option>)}
     </select>
   )
 }
 
 function SharePanel({ pack }: { pack: HomebrewPack }) {
+  const { t } = useI18n()
   const code = encodeShareCode(pack)
   const [copiedCode, setCopiedCode] = useState('')
   const ref = useRef<HTMLTextAreaElement>(null)
@@ -490,14 +507,14 @@ function SharePanel({ pack }: { pack: HomebrewPack }) {
 
   return (
     <aside className="glass thick hb-share">
-      <h3>Share with friends</h3>
-      <p className="muted small">Send this code or file to your group. When you update the pack, share again and their import updates their copy.</p>
-      <textarea className="glass-field" ref={ref} readOnly rows={4} value={code} aria-label="Share code" onFocus={e => e.target.select()} />
+      <h3>{t('hb.share.title')}</h3>
+      <p className="muted small">{t('hb.share.lead')}</p>
+      <textarea className="glass-field" ref={ref} readOnly rows={4} value={code} aria-label={t('hb.import.aria')} onFocus={e => e.target.select()} />
       <div className="row">
-        <button className="glass-btn prominent small" onClick={copy}>{copiedCode === code ? 'Copied' : 'Copy code'}</button>
-        <button className="glass-btn small" onClick={download}>Download file</button>
+        <button className="glass-btn prominent small" onClick={copy}>{copiedCode === code ? t('hb.share.copied') : t('hb.share.copy')}</button>
+        <button className="glass-btn small" onClick={download}>{t('hb.share.download')}</button>
       </div>
-      <p className="muted small">{Math.ceil(code.length / 1024)} KB · long packs share better as a file.</p>
+      <p className="muted small">{t('hb.share.size', { kb: Math.ceil(code.length / 1024) })}</p>
     </aside>
   )
 }

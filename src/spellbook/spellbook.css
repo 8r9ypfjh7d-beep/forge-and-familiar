@@ -84,4 +84,4 @@
 :root[data-contrast="high"] .sb-list, :root[data-contrast="high"] .sb-summary > div { border: 2px solid var(--line); }
 :root[data-contrast="high"] .spellbook .glass-btn.sb-add { border: 2px solid var(--accent); }
 :root[data-contrast="high"] .sb-summary .over { border-color: var(--bad); }
-:root[data-contrast="high"] .spellbook .sb-tabs > button.on, :root[data-contrast="high"] .spellbook .glass-chip.on { box-shadow: inset 0 0 0 2px var(--accent); }
+:root[data-contrast="high"] .spellbook .glass-chip.on { box-shadow: inset 0 0 0 2px var(--accent); }

@@ -1,6 +1,7 @@
 // Entry editors for homebrew spells, items, feats, races and subclasses. Each edits a copy and hands it back on save.
 import { useState, type ReactNode } from 'react'
-import { ABILITIES, ABILITY_NAMES, ALL_SKILLS, CLASSES, SKILLS, allRaces, type Ability, type ArmorCategory, type SkillId, type WeaponProperty } from '../../rules'
+import { useI18n } from '../../i18n'
+import { ABILITIES, ALL_SKILLS, CLASSES, allRaces, type Ability, type ArmorCategory, type SkillId, type WeaponProperty } from '../../rules'
 import { featIssues, itemIssues, raceIssues, spellIssues, subclassIssues } from '../pack'
 import {
   RARITIES, SPELL_SCHOOLS,
@@ -30,14 +31,18 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
 const numOr = (s: string, fallback: number) => (s === '' || Number.isNaN(Number(s)) ? fallback : Number(s))
 const opt = (s: string) => (s.trim() ? s : undefined)
 
-function FormShell<T>({ title, value, issues, onSave, onCancel, children }: {
-  title: string
+function FormShell<T>({ kind, name, value, issues, onSave, onCancel, children }: {
+  /** Which entry this edits, for the title. */
+  kind: 'spells' | 'items' | 'feats' | 'races' | 'subclasses'
+  /** The saved name, or empty for a new entry. */
+  name: string
   value: T
   issues: string[]
   onSave: (v: T) => void
   onCancel: () => void
   children: ReactNode
 }) {
+  const { t } = useI18n()
   const [tried, setTried] = useState(false)
   return (
     <form
@@ -48,83 +53,85 @@ function FormShell<T>({ title, value, issues, onSave, onCancel, children }: {
         if (issues.length === 0) onSave(value)
       }}
     >
-      <h3>{title}</h3>
+      <h3>{name ? t('hb.form.edit', { name }) : t(`hb.form.new.${kind}`)}</h3>
       <div className="hb-fields">{children}</div>
       {tried && issues.length > 0 && <ul className="issues" role="alert">{issues.map(i => <li key={i}>{i}</li>)}</ul>}
       <div className="row hb-form-actions">
-        <button type="button" className="glass-btn" onClick={onCancel}>Cancel</button>
-        <button className="glass-btn prominent">Save</button>
+        <button type="button" className="glass-btn" onClick={onCancel}>{t('hb.form.cancel')}</button>
+        <button className="glass-btn prominent">{t('hb.form.save')}</button>
       </div>
     </form>
   )
 }
 
 export function SpellForm({ initial, onSave, onCancel }: { initial: HomebrewSpell; onSave: (s: HomebrewSpell) => void; onCancel: () => void }) {
+  const { t, ability, className } = useI18n()
   const [s, setS] = useState(initial)
   const set = (patch: Partial<HomebrewSpell>) => setS(prev => ({ ...prev, ...patch }))
   const comp = (patch: Partial<HomebrewSpell['components']>) => set({ components: { ...s.components, ...patch } })
   const casters = CLASSES.filter(c => c.caster !== 'none')
   return (
-    <FormShell title={initial.name ? `Edit ${initial.name}` : 'New spell'} value={s} issues={spellIssues(s)} onSave={onSave} onCancel={onCancel}>
-      <Field label="Name" wide><input value={s.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
-      <Field label="Level">
+    <FormShell kind="spells" name={initial.name} value={s} issues={spellIssues(s)} onSave={onSave} onCancel={onCancel}>
+      <Field label={t('hb.f.name')} wide><input value={s.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
+      <Field label={t('hb.f.level')}>
         <select value={s.level} onChange={e => set({ level: Number(e.target.value) })}>
-          {Array.from({ length: 10 }, (_, l) => <option key={l} value={l}>{l === 0 ? 'Cantrip' : `Level ${l}`}</option>)}
+          {Array.from({ length: 10 }, (_, l) => <option key={l} value={l}>{l === 0 ? t('hb.f.cantrip') : t('hb.f.levelN', { n: l })}</option>)}
         </select>
       </Field>
-      <Field label="School">
+      <Field label={t('hb.f.school')}>
         <select value={s.school} onChange={e => set({ school: e.target.value as SpellSchool })}>
-          {SPELL_SCHOOLS.map(x => <option key={x}>{x}</option>)}
+          {SPELL_SCHOOLS.map(x => <option key={x} value={x}>{t(`hb.school.${x}`)}</option>)}
         </select>
       </Field>
-      <Field label="Casting time"><input value={s.castingTime} onChange={e => set({ castingTime: e.target.value })} /></Field>
-      <Field label="Range"><input value={s.range} onChange={e => set({ range: e.target.value })} /></Field>
-      <Field label="Duration"><input value={s.duration} onChange={e => set({ duration: e.target.value })} /></Field>
+      <Field label={t('hb.f.castingTime')}><input value={s.castingTime} onChange={e => set({ castingTime: e.target.value })} /></Field>
+      <Field label={t('hb.f.range')}><input value={s.range} onChange={e => set({ range: e.target.value })} /></Field>
+      <Field label={t('hb.f.duration')}><input value={s.duration} onChange={e => set({ duration: e.target.value })} /></Field>
       <div className="hb-field wide">
-        <span>Components and tags</span>
+        <span>{t('hb.f.componentsTags')}</span>
         <div className="row">
-          <Check label="Verbal" checked={s.components.v} onChange={v => comp({ v })} />
-          <Check label="Somatic" checked={s.components.s} onChange={v => comp({ s: v })} />
-          <Check label="Material" checked={s.components.m} onChange={m => comp({ m })} />
-          <Check label="Concentration" checked={s.concentration} onChange={concentration => set({ concentration })} />
-          <Check label="Ritual" checked={s.ritual} onChange={ritual => set({ ritual })} />
+          <Check label={t('hb.f.verbal')} checked={s.components.v} onChange={v => comp({ v })} />
+          <Check label={t('hb.f.somatic')} checked={s.components.s} onChange={v => comp({ s: v })} />
+          <Check label={t('hb.f.material')} checked={s.components.m} onChange={m => comp({ m })} />
+          <Check label={t('hb.f.concentration')} checked={s.concentration} onChange={concentration => set({ concentration })} />
+          <Check label={t('hb.f.ritual')} checked={s.ritual} onChange={ritual => set({ ritual })} />
         </div>
       </div>
       {s.components.m && (
-        <Field label="Material component" wide>
-          <input value={s.components.material ?? ''} onChange={e => comp({ material: e.target.value })} placeholder="a pinch of sulfur" />
+        <Field label={t('hb.f.materialComponent')} wide>
+          <input value={s.components.material ?? ''} onChange={e => comp({ material: e.target.value })} placeholder={t('hb.f.materialPlaceholder')} />
         </Field>
       )}
-      <Field label="Damage or healing roll">
+      <Field label={t('hb.f.roll')}>
         <input value={s.damage ?? ''} onChange={e => set({ damage: opt(e.target.value) })} placeholder="3d6" />
       </Field>
-      <Field label="Damage type"><input value={s.damageType ?? ''} onChange={e => set({ damageType: opt(e.target.value) })} placeholder="fire" /></Field>
-      <Field label="Saving throw">
+      <Field label={t('hb.f.damageType')}><input value={s.damageType ?? ''} onChange={e => set({ damageType: opt(e.target.value) })} placeholder={t('hb.f.damageTypePlaceholder')} /></Field>
+      <Field label={t('hb.f.save')}>
         <select value={s.save ?? ''} onChange={e => set({ save: (e.target.value || undefined) as Ability | undefined })}>
-          <option value="">None</option>
-          {ABILITIES.map(a => <option key={a} value={a}>{ABILITY_NAMES[a]}</option>)}
+          <option value="">{t('hb.f.none')}</option>
+          {ABILITIES.map(a => <option key={a} value={a}>{ability(a)}</option>)}
         </select>
       </Field>
       <div className="hb-field wide">
-        <span>Classes</span>
+        <span>{t('hb.f.classes')}</span>
         <div className="row">
           {casters.map(c => (
             <Check
               key={c.id}
-              label={c.name}
+              label={className(c.id)}
               checked={s.classes.includes(c.id)}
               onChange={on => set({ classes: on ? [...s.classes, c.id] : s.classes.filter(x => x !== c.id) })}
             />
           ))}
         </div>
       </div>
-      <Field label="Description" wide><textarea rows={5} value={s.description} onChange={e => set({ description: e.target.value })} /></Field>
-      <Field label="At higher levels" wide><textarea rows={2} value={s.higherLevels ?? ''} onChange={e => set({ higherLevels: opt(e.target.value) })} /></Field>
+      <Field label={t('hb.f.description')} wide><textarea rows={5} value={s.description} onChange={e => set({ description: e.target.value })} /></Field>
+      <Field label={t('hb.f.higherLevels')} wide><textarea rows={2} value={s.higherLevels ?? ''} onChange={e => set({ higherLevels: opt(e.target.value) })} /></Field>
     </FormShell>
   )
 }
 
 export function ItemForm({ initial, onSave, onCancel }: { initial: HomebrewItem; onSave: (i: HomebrewItem) => void; onCancel: () => void }) {
+  const { t } = useI18n()
   const [item, setItem] = useState(initial)
   const set = (patch: Partial<HomebrewItem>) => setItem(prev => ({ ...prev, ...patch }) as HomebrewItem)
   const base = { id: item.id, name: item.name, weight: item.weight, description: item.description, rarity: item.rarity }
@@ -135,46 +142,46 @@ export function ItemForm({ initial, onSave, onCancel }: { initial: HomebrewItem;
     else setItem({ ...base, kind })
   }
   return (
-    <FormShell title={initial.name ? `Edit ${initial.name}` : 'New item'} value={item} issues={itemIssues(item)} onSave={onSave} onCancel={onCancel}>
-      <Field label="Name" wide><input value={item.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
-      <Field label="Type">
+    <FormShell kind="items" name={initial.name} value={item} issues={itemIssues(item)} onSave={onSave} onCancel={onCancel}>
+      <Field label={t('hb.f.name')} wide><input value={item.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
+      <Field label={t('hb.f.type')}>
         <select value={item.kind} onChange={e => switchKind(e.target.value as HomebrewItem['kind'])}>
-          <option value="weapon">Weapon</option>
-          <option value="armor">Armor or shield</option>
-          <option value="gear">Gear, potion, trinket</option>
+          <option value="weapon">{t('hb.f.kind.weapon')}</option>
+          <option value="armor">{t('hb.f.kind.armor')}</option>
+          <option value="gear">{t('hb.f.kind.gear')}</option>
         </select>
       </Field>
-      <Field label="Rarity">
+      <Field label={t('hb.f.rarity')}>
         <select value={item.rarity ?? ''} onChange={e => set({ rarity: (e.target.value || undefined) as Rarity | undefined })}>
-          <option value="">Mundane</option>
-          {RARITIES.map(r => <option key={r} value={r}>{r[0].toUpperCase() + r.slice(1)}</option>)}
+          <option value="">{t('hb.f.mundane')}</option>
+          {RARITIES.map(r => <option key={r} value={r}>{t(`hb.rarity.${r}`)}</option>)}
         </select>
       </Field>
-      <Field label="Weight (lb)"><input type="number" min={0} step={0.5} value={item.weight} onChange={e => set({ weight: numOr(e.target.value, 0) })} /></Field>
+      <Field label={t('hb.f.weight')}><input type="number" min={0} step={0.5} value={item.weight} onChange={e => set({ weight: numOr(e.target.value, 0) })} /></Field>
 
       {item.kind === 'weapon' && (
         <>
-          <Field label="Category">
+          <Field label={t('hb.f.category')}>
             <select value={item.category} onChange={e => set({ category: e.target.value as 'simple' | 'martial' })}>
-              <option value="simple">Simple</option>
-              <option value="martial">Martial</option>
+              <option value="simple">{t('hb.cat.simple')}</option>
+              <option value="martial">{t('hb.cat.martial')}</option>
             </select>
           </Field>
-          <Field label="Damage"><input value={item.damage} onChange={e => set({ damage: e.target.value })} placeholder="1d8" /></Field>
-          <Field label="Damage type"><input value={item.damageType} onChange={e => set({ damageType: e.target.value })} /></Field>
+          <Field label={t('hb.f.damage')}><input value={item.damage} onChange={e => set({ damage: e.target.value })} placeholder="1d8" /></Field>
+          <Field label={t('hb.f.damageType')}><input value={item.damageType} onChange={e => set({ damageType: e.target.value })} /></Field>
           {item.properties.includes('versatile') && (
-            <Field label="Two-handed damage"><input value={item.versatile ?? ''} onChange={e => set({ versatile: opt(e.target.value) })} placeholder="1d10" /></Field>
+            <Field label={t('hb.f.versatile')}><input value={item.versatile ?? ''} onChange={e => set({ versatile: opt(e.target.value) })} placeholder="1d10" /></Field>
           )}
           {(item.properties.includes('thrown') || item.properties.includes('ranged')) && (
-            <Field label="Range (ft.)"><input value={item.range ?? ''} onChange={e => set({ range: opt(e.target.value) })} placeholder="20/60" /></Field>
+            <Field label={t('hb.f.rangeFt')}><input value={item.range ?? ''} onChange={e => set({ range: opt(e.target.value) })} placeholder="20/60" /></Field>
           )}
           <div className="hb-field wide">
-            <span>Properties</span>
+            <span>{t('hb.f.properties')}</span>
             <div className="row">
               {WEAPON_PROPS.map(p => (
                 <Check
                   key={p}
-                  label={p}
+                  label={t(`hb.prop.${p}`)}
                   checked={item.properties.includes(p)}
                   onChange={on => set({ properties: on ? [...item.properties, p] : item.properties.filter(x => x !== p) })}
                 />
@@ -186,44 +193,39 @@ export function ItemForm({ initial, onSave, onCancel }: { initial: HomebrewItem;
 
       {item.kind === 'armor' && (
         <>
-          <Field label="Category">
+          <Field label={t('hb.f.category')}>
             <select value={item.category} onChange={e => set({ category: e.target.value as 'light' | 'medium' | 'heavy' | 'shield' })}>
-              <option value="light">Light</option>
-              <option value="medium">Medium</option>
-              <option value="heavy">Heavy</option>
-              <option value="shield">Shield</option>
+              {ARMOR_TYPES.map(a => <option key={a} value={a}>{t(`hb.cat.${a}`)}</option>)}
             </select>
           </Field>
-          <Field label={item.category === 'shield' ? 'AC bonus' : 'Base AC'}>
+          <Field label={t(item.category === 'shield' ? 'hb.f.acBonus' : 'hb.f.baseAc')}>
             <input type="number" min={0} max={30} value={item.baseAc} onChange={e => set({ baseAc: numOr(e.target.value, 0) })} />
           </Field>
           {item.category !== 'shield' && (
-            <Field label="Max DEX bonus">
+            <Field label={t('hb.f.maxDex')}>
               <select value={item.dexCap ?? ''} onChange={e => set({ dexCap: e.target.value === '' ? undefined : Number(e.target.value) })}>
-                <option value="">No limit</option>
-                {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n === 0 ? 'None' : `+${n}`}</option>)}
+                <option value="">{t('hb.f.noLimit')}</option>
+                {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n === 0 ? t('hb.f.none') : `+${n}`}</option>)}
               </select>
             </Field>
           )}
-          <Field label="Strength needed">
-            <input type="number" min={0} max={30} value={item.strengthReq ?? ''} onChange={e => set({ strengthReq: e.target.value ? numOr(e.target.value, 0) : undefined })} placeholder="none" />
+          <Field label={t('hb.f.strength')}>
+            <input type="number" min={0} max={30} value={item.strengthReq ?? ''} onChange={e => set({ strengthReq: e.target.value ? numOr(e.target.value, 0) : undefined })} placeholder={t('hb.f.strengthPlaceholder')} />
           </Field>
           <div className="hb-field">
-            <span>Stealth</span>
-            <Check label="Disadvantage" checked={!!item.stealthDisadvantage} onChange={v => set({ stealthDisadvantage: v || undefined })} />
+            <span>{t('hb.f.stealth')}</span>
+            <Check label={t('hb.f.disadvantage')} checked={!!item.stealthDisadvantage} onChange={v => set({ stealthDisadvantage: v || undefined })} />
           </div>
         </>
       )}
 
-      <Field label="Description" wide><textarea rows={4} value={item.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+      <Field label={t('hb.f.description')} wide><textarea rows={4} value={item.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
     </FormShell>
   )
 }
 
-const EFFECT_LABELS: Partial<Record<FeatEffect['kind'], string>> = {
-  ability: 'Ability score', skill: 'Skill proficiency', hpPerLevel: 'HP per level', speed: 'Speed (ft.)', initiative: 'Initiative', ac: 'Armor class',
-  armoredAc: 'Armor class while armored', rangedAttack: 'Ranged attack rolls', initiativeProficiency: 'Proficiency bonus to initiative',
-}
+/** Effects a homebrew feat can have; labels are `hb.effect.<kind>`. */
+const EFFECT_KINDS = ['ability', 'skill', 'hpPerLevel', 'speed', 'initiative', 'ac', 'armoredAc', 'rangedAttack', 'initiativeProficiency'] as const
 
 function newEffect(kind: FeatEffect['kind']): FeatEffect {
   if (kind === 'ability') return { kind, ability: 'str', amount: 1 }
@@ -235,38 +237,39 @@ function newEffect(kind: FeatEffect['kind']): FeatEffect {
 }
 
 export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat; onSave: (f: HomebrewFeat) => void; onCancel: () => void }) {
+  const { t, ability, skill } = useI18n()
   const [f, setF] = useState(initial)
   const set = (patch: Partial<HomebrewFeat>) => setF(prev => ({ ...prev, ...patch }))
   const setEffect = (i: number, e: FeatEffect) => set({ effects: f.effects.map((x, j) => (j === i ? e : x)) })
   return (
-    <FormShell title={initial.name ? `Edit ${initial.name}` : 'New feat'} value={f} issues={featIssues(f)} onSave={onSave} onCancel={onCancel}>
-      <Field label="Name" wide><input value={f.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
-      <Field label="Prerequisite" wide><input value={f.prerequisite ?? ''} onChange={e => set({ prerequisite: opt(e.target.value) })} placeholder="Strength 13 or higher" /></Field>
-      <Field label="Description" wide><textarea rows={5} value={f.description} onChange={e => set({ description: e.target.value })} /></Field>
+    <FormShell kind="feats" name={initial.name} value={f} issues={featIssues(f)} onSave={onSave} onCancel={onCancel}>
+      <Field label={t('hb.f.name')} wide><input value={f.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
+      <Field label={t('hb.f.prereq')} wide><input value={f.prerequisite ?? ''} onChange={e => set({ prerequisite: opt(e.target.value) })} placeholder={t('hb.f.prereqPlaceholder')} /></Field>
+      <Field label={t('hb.f.description')} wide><textarea rows={5} value={f.description} onChange={e => set({ description: e.target.value })} /></Field>
       <div className="hb-field wide">
-        <span>Effects on the sheet</span>
-        <p className="muted small">Applied when a character takes this feat at level up.</p>
+        <span>{t('hb.f.effects')}</span>
+        <p className="muted small">{t('hb.f.effectsHint')}</p>
         {f.effects.map((e, i) => (
           <div key={i} className="row hb-effect">
-            <select value={e.kind} aria-label="Effect" onChange={ev => setEffect(i, newEffect(ev.target.value as FeatEffect['kind']))}>
-              {Object.entries(EFFECT_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            <select value={e.kind} aria-label={t('hb.f.effect')} onChange={ev => setEffect(i, newEffect(ev.target.value as FeatEffect['kind']))}>
+              {EFFECT_KINDS.map(k => <option key={k} value={k}>{t(`hb.effect.${k}`)}</option>)}
             </select>
             {e.kind === 'ability' && (
-              <select value={e.ability} aria-label="Ability" onChange={ev => setEffect(i, { ...e, ability: ev.target.value as Ability })}>
-                {ABILITIES.map(a => <option key={a} value={a}>{ABILITY_NAMES[a]}</option>)}
+              <select value={e.ability} aria-label={t('hb.f.ability')} onChange={ev => setEffect(i, { ...e, ability: ev.target.value as Ability })}>
+                {ABILITIES.map(a => <option key={a} value={a}>{ability(a)}</option>)}
               </select>
             )}
             {e.kind === 'skill' ? (
-              <select value={e.skill} aria-label="Skill" onChange={ev => setEffect(i, { ...e, skill: ev.target.value as SkillId })}>
-                {ALL_SKILLS.map(s => <option key={s} value={s}>{SKILLS[s].name}</option>)}
+              <select value={e.skill} aria-label={t('hb.f.skill')} onChange={ev => setEffect(i, { ...e, skill: ev.target.value as SkillId })}>
+                {ALL_SKILLS.map(s => <option key={s} value={s}>{skill(s)}</option>)}
               </select>
             ) : 'amount' in e && (
-              <input type="number" aria-label="Amount" className="hb-amount" value={e.amount} onChange={ev => setEffect(i, { ...e, amount: numOr(ev.target.value, 0) })} />
+              <input type="number" aria-label={t('hb.f.amount')} className="hb-amount" value={e.amount} onChange={ev => setEffect(i, { ...e, amount: numOr(ev.target.value, 0) })} />
             )}
-            <button type="button" className="glass-btn small icon hb-ghost" onClick={() => set({ effects: f.effects.filter((_, j) => j !== i) })} aria-label="Remove effect">✕</button>
+            <button type="button" className="glass-btn small icon hb-ghost" onClick={() => set({ effects: f.effects.filter((_, j) => j !== i) })} aria-label={t('hb.f.removeEffect')}>✕</button>
           </div>
         ))}
-        <div><button type="button" className="glass-btn small" onClick={() => set({ effects: [...f.effects, newEffect('ability')] })}>+ Add effect</button></div>
+        <div><button type="button" className="glass-btn small" onClick={() => set({ effects: [...f.effects, newEffect('ability')] })}>{t('hb.f.addEffect')}</button></div>
       </div>
     </FormShell>
   )
@@ -291,6 +294,7 @@ function LinesField({ label, value, onChange, placeholder }: { label: string; va
 }
 
 export function RaceForm({ initial, pack, onSave, onCancel }: { initial: HomebrewRace; pack: HomebrewPack; onSave: (r: HomebrewRace) => void; onCancel: () => void }) {
+  const { t, abilityShort, skill } = useI18n()
   const [r, setR] = useState(initial)
   const set = (patch: Partial<HomebrewRace>) => setR(prev => ({ ...prev, ...patch }))
   const ownRaces = pack.races.filter(x => !x.parentRaceId && x.id !== r.id)
@@ -302,59 +306,59 @@ export function RaceForm({ initial, pack, onSave, onCancel }: { initial: Homebre
     set({ abilityBonuses: next })
   }
   return (
-    <FormShell title={initial.name ? `Edit ${initial.name}` : 'New race or subrace'} value={r} issues={raceIssues(r)} onSave={onSave} onCancel={onCancel}>
-      <Field label="Name" wide><input value={r.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder="Wood Elf, Tabaxi, ..." /></Field>
-      <Field label="Subrace of" wide>
+    <FormShell kind="races" name={initial.name} value={r} issues={raceIssues(r)} onSave={onSave} onCancel={onCancel}>
+      <Field label={t('hb.f.name')} wide><input value={r.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.raceNamePlaceholder')} /></Field>
+      <Field label={t('hb.f.subraceOf')} wide>
         <select value={r.parentRaceId ?? ''} onChange={e => set({ parentRaceId: e.target.value || undefined })}>
-          <option value="">Nothing: a race of its own</option>
+          <option value="">{t('hb.f.ownRace')}</option>
           {parents.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
         </select>
       </Field>
       {!r.parentRaceId && (
         <>
-          <Field label="Size">
+          <Field label={t('hb.f.size')}>
             <select value={r.size} onChange={e => set({ size: e.target.value as HomebrewRace['size'] })}>
-              <option value="Small">Small</option>
-              <option value="Medium">Medium</option>
+              <option value="Small">{t('hb.f.small')}</option>
+              <option value="Medium">{t('hb.f.medium')}</option>
             </select>
           </Field>
-          <Field label="Speed (ft.)"><input type="number" min={0} max={120} step={5} value={r.speed} onChange={e => set({ speed: numOr(e.target.value, 30) })} /></Field>
+          <Field label={t('hb.f.speed')}><input type="number" min={0} max={120} step={5} value={r.speed} onChange={e => set({ speed: numOr(e.target.value, 30) })} /></Field>
         </>
       )}
       <div className="hb-field wide">
-        <span>Ability score increases</span>
+        <span>{t('hb.f.asi')}</span>
         <div className="row">
           {ABILITIES.map(a => (
             <label key={a} className="hb-check">
-              {a.toUpperCase()}
+              {abilityShort(a)}
               <input type="number" className="hb-amount" min={-5} max={5} value={r.abilityBonuses[a] ?? 0} onChange={e => setBonus(a, numOr(e.target.value, 0))} />
             </label>
           ))}
           <label className="hb-check">
-            +1 to any
+            {t('hb.f.anyBonus')}
             <input type="number" className="hb-amount" min={0} max={6} value={r.freeAbilityBonuses} onChange={e => set({ freeAbilityBonuses: numOr(e.target.value, 0) })} />
           </label>
         </div>
       </div>
       <div className="hb-field wide">
-        <span>Skill proficiencies</span>
+        <span>{t('hb.f.skills')}</span>
         <div className="row">
           {ALL_SKILLS.map(sk => (
             <Check
               key={sk}
-              label={SKILLS[sk].name}
+              label={skill(sk)}
               checked={r.skillProficiencies.includes(sk)}
               onChange={on => set({ skillProficiencies: on ? [...r.skillProficiencies, sk] : r.skillProficiencies.filter(x => x !== sk) })}
             />
           ))}
         </div>
       </div>
-      <Field label="Skills of the player's choice"><input type="number" min={0} max={6} value={r.freeSkillChoices} onChange={e => set({ freeSkillChoices: numOr(e.target.value, 0) })} /></Field>
-      <Field label="Languages of the player's choice"><input type="number" min={0} max={6} value={r.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} /></Field>
-      <Field label="Extra HP per level"><input type="number" min={0} max={5} value={r.hpPerLevel} onChange={e => set({ hpPerLevel: numOr(e.target.value, 0) })} /></Field>
-      {!r.parentRaceId && <LinesField label="Languages (one per line)" value={r.languages} onChange={languages => set({ languages })} placeholder="Common" />}
-      <LinesField label="Traits (one per line)" value={r.traits} onChange={traits => set({ traits })} placeholder="Darkvision" />
-      <Field label="Description" wide><textarea rows={4} value={r.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+      <Field label={t('hb.f.skillChoices')}><input type="number" min={0} max={6} value={r.freeSkillChoices} onChange={e => set({ freeSkillChoices: numOr(e.target.value, 0) })} /></Field>
+      <Field label={t('hb.f.languageChoices')}><input type="number" min={0} max={6} value={r.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} /></Field>
+      <Field label={t('hb.f.hp')}><input type="number" min={0} max={5} value={r.hpPerLevel} onChange={e => set({ hpPerLevel: numOr(e.target.value, 0) })} /></Field>
+      {!r.parentRaceId && <LinesField label={t('hb.f.languages')} value={r.languages} onChange={languages => set({ languages })} placeholder={t('hb.f.languagesPlaceholder')} />}
+      <LinesField label={t('hb.f.traits')} value={r.traits} onChange={traits => set({ traits })} placeholder={t('hb.f.traitsPlaceholder')} />
+      <Field label={t('hb.f.description')} wide><textarea rows={4} value={r.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
     </FormShell>
   )
 }
@@ -362,39 +366,40 @@ export function RaceForm({ initial, pack, onSave, onCancel }: { initial: Homebre
 const ARMOR_TYPES: ArmorCategory[] = ['light', 'medium', 'heavy', 'shield']
 
 export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewSubclass; onSave: (s: HomebrewSubclass) => void; onCancel: () => void }) {
+  const { t, className } = useI18n()
   const [sc, setSc] = useState(initial)
   const set = (patch: Partial<HomebrewSubclass>) => setSc(prev => ({ ...prev, ...patch }))
   const setFeature = (i: number, f: { level: number; name: string }) => set({ features: sc.features.map((x, j) => (j === i ? f : x)) })
   return (
-    <FormShell title={initial.name ? `Edit ${initial.name}` : 'New subclass'} value={sc} issues={subclassIssues(sc)} onSave={onSave} onCancel={onCancel}>
-      <Field label="Name" wide><input value={sc.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder="Battle Master, School of Divination, ..." /></Field>
-      <Field label="Class">
+    <FormShell kind="subclasses" name={initial.name} value={sc} issues={subclassIssues(sc)} onSave={onSave} onCancel={onCancel}>
+      <Field label={t('hb.f.name')} wide><input value={sc.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.subclassPlaceholder')} /></Field>
+      <Field label={t('hb.f.class')}>
         <select value={sc.classId} onChange={e => set({ classId: e.target.value })}>
-          {CLASSES.map(c => <option key={c.id} value={c.id}>{c.name} ({c.subclassTitle})</option>)}
+          {CLASSES.map(c => <option key={c.id} value={c.id}>{className(c.id)} ({c.subclassTitle})</option>)}
         </select>
       </Field>
       <div className="hb-field wide">
-        <span>Bonus armor proficiencies</span>
+        <span>{t('hb.f.armor')}</span>
         <div className="row">
           {ARMOR_TYPES.map(a => (
-            <Check key={a} label={a} checked={sc.armor.includes(a)} onChange={on => set({ armor: on ? [...sc.armor, a] : sc.armor.filter(x => x !== a) })} />
+            <Check key={a} label={t(`hb.cat.${a}`)} checked={sc.armor.includes(a)} onChange={on => set({ armor: on ? [...sc.armor, a] : sc.armor.filter(x => x !== a) })} />
           ))}
         </div>
       </div>
       <div className="hb-field wide">
-        <span>Features by level</span>
+        <span>{t('hb.f.features')}</span>
         {sc.features.map((f, i) => (
           <div key={i} className="row hb-effect">
-            <input type="number" min={1} max={20} aria-label="Level" className="hb-amount" value={f.level} onChange={e => setFeature(i, { ...f, level: numOr(e.target.value, 1) })} />
-            <input value={f.name} aria-label="Feature name" placeholder="Combat Superiority" onChange={e => setFeature(i, { ...f, name: e.target.value })} />
-            <button type="button" className="glass-btn small icon hb-ghost" onClick={() => set({ features: sc.features.filter((_, j) => j !== i) })} aria-label="Remove feature">✕</button>
+            <input type="number" min={1} max={20} aria-label={t('hb.f.level')} className="hb-amount" value={f.level} onChange={e => setFeature(i, { ...f, level: numOr(e.target.value, 1) })} />
+            <input value={f.name} aria-label={t('hb.f.featureName')} placeholder={t('hb.f.featurePlaceholder')} onChange={e => setFeature(i, { ...f, name: e.target.value })} />
+            <button type="button" className="glass-btn small icon hb-ghost" onClick={() => set({ features: sc.features.filter((_, j) => j !== i) })} aria-label={t('hb.f.removeFeature')}>✕</button>
           </div>
         ))}
         <div>
-          <button type="button" className="glass-btn small" onClick={() => set({ features: [...sc.features, { level: classLevel(sc.classId), name: '' }] })}>+ Add feature</button>
+          <button type="button" className="glass-btn small" onClick={() => set({ features: [...sc.features, { level: classLevel(sc.classId), name: '' }] })}>{t('hb.f.addFeature')}</button>
         </div>
       </div>
-      <Field label="Description" wide><textarea rows={4} value={sc.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+      <Field label={t('hb.f.description')} wide><textarea rows={4} value={sc.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
     </FormShell>
   )
 }

@@ -9,7 +9,7 @@ The app's visual language, modelled on Apple's Liquid Glass (iOS 26): content fi
 | `glass.css` | Tokens (type, radius, spacing, motion, glass), the ambient background, glass utility classes, and all solid fallbacks |
 | `scrollGlass.ts` | Dynamic opacity: `edgeLevel`, `scrollLevels`, `installScrollGlass` write `--glass-top` / `--glass-bottom` (0..1) on `<html>` |
 | `index.ts` | Loads `glass.css` and installs the scroll listener once (imported from `main.tsx`) |
-| `design.test.ts` | Opacity maths, fallbacks present, logical properties only |
+| `design.test.ts` | Opacity maths, fallbacks present; for every CSS file in `src`: logical properties, blur only from tokens, no hex colours outside the palette files, selected segments use `--glass-raised` |
 
 ## Principles
 
@@ -21,7 +21,7 @@ The app's visual language, modelled on Apple's Liquid Glass (iOS 26): content fi
 
 ## Tokens (in `glass.css`)
 
-Keep using the colour tokens from `src/index.css` (`--bg`, `--panel`, `--ink`, `--muted`, `--line`, `--accent`, `--accent-ink`, `--accent-soft`, `--good`, `--bad`): high contrast and the DM/party palettes override those. Glass adds:
+Keep using the colour tokens from `src/index.css` (`--bg`, `--panel`, `--ink`, `--muted`, `--line`, `--accent`, `--accent-ink`, `--accent-soft`, `--good`, `--bad`, plus `--warn` for amber states such as "later", "maybe", offline and hurt, `--temp` for temporary HP, and `--on-fill` for text on a `--good`/`--bad` fill): high contrast and the DM/party palettes override those. Glass adds:
 
 | Group | Tokens | Use |
 |------|--------|-----|
@@ -32,10 +32,12 @@ Keep using the colour tokens from `src/index.css` (`--bg`, `--panel`, `--ink`, `
 | Materials | `--glass-thin`, `--glass-regular`, `--glass-thick` | Thin: hover fills, segmented tracks. Regular: content cards, buttons. Thick: menus, dialogs, anything with lots of text |
 | Edges | `--glass-stroke`, `--glass-hairline`, `--glass-highlight` | Stroke: outer 1px light edge. Hairline: separators inside glass. Highlight: inset specular line, add to every glass `box-shadow` |
 | Depth | `--glass-shadow`, `--glass-shadow-lift` | Resting vs floating (menus, tab bar on phones, dialogs) |
+| Controls | `--glass-inset`, `--glass-control-shadow`, `--glass-raised`, `--glass-tint-highlight` | Sunken track (segmented, bars), resting button, the selected option in a track, the specular line on a tinted fill. `--glass-raised` becomes a 2px accent ring when glass turns solid, so every "thick on thin" selection stays visible in Reduce transparency and high contrast without per-screen rules |
 | Blur | `--glass-blur`, `--glass-blur-strong` | Content vs chrome. Never hard-code a `backdrop-filter`; use these so fallbacks work |
 | Tint | `--glass-tint` | Accent-tinted glass: the selected "lens" |
 | Wash | `--glass-wash-1..3` | The ambient colour behind the app (`body::before`). Don't paint opaque page backgrounds over it |
-| Scrim | `--glass-scrim`, `--glass-scrim-blur` | Dim and soft blur behind a modal dialog; the blur turns off with the other fallbacks |
+| Scrim | `--glass-scrim`, `--glass-scrim-blur` | Dim and soft blur behind a modal dialog or overlay (hand-out viewer); the blur turns off with the other fallbacks |
+| Lore paper | `--lore-paper-1`, `--lore-paper-2`, `--lore-ink`, `--lore-shade` | Parchment for hand-outs and notes; stays light in dark mode, like a page |
 | Opacity | `--glass-top`, `--glass-bottom`, `--glass-edge` | See dynamic opacity |
 
 Type scale: large title 1.75rem/700, title 1.4rem/700, headline 1.1rem/600, body 1rem/400, callout .9rem, footnote .8rem, caption .7rem. Headings use `--font-display` with `letter-spacing: -0.015em`; small-caps eyebrow labels (`.glass-eyebrow`) replace UPPERCASE letter-spaced labels on new work. Numbers in stats use `font-variant-numeric: tabular-nums`.
@@ -90,4 +92,5 @@ Never set text colour from the backdrop; text uses `--ink`/`--muted`/`--accent` 
 - Do use `--glass-thick` for anything with paragraphs; `--glass-regular` for short labels and numbers.
 - Do keep the roll result card's current look (players like it); only move it onto the glass tokens.
 - Don't stack more than two glass layers; don't put `backdrop-filter` on an element whose children need their own glass (use the `::before` pattern from `.glass-chrome`).
-- Don't hard-code `#fff` or rgba surfaces in screen CSS; add a token here if one is missing.
+- Don't hard-code `#fff` or rgba surfaces in screen CSS; add a token here if one is missing. `design.test.ts` fails on hex colours outside `index.css`, `a11y.css`, `glass.css`, `print.css` (paper) and `crit.css` (effects).
+- Do mark a selected segment with `box-shadow: var(--glass-raised)` (custom segmented controls too, like `.mode-btn`); don't add per-screen high contrast or Reduce transparency rings for it.

@@ -19,7 +19,7 @@
 .cs-level {
   position: absolute; inset-block-end: 0; inset-inline-start: 50%; translate: -50% 0;
   inline-size: 32px; block-size: 32px; display: grid; place-items: center; border-radius: 50%;
-  background: var(--s-accent); color: var(--accent-ink, #fff); font-weight: 700; font-size: 1rem;
+  background: var(--s-accent); color: var(--accent-ink); font-weight: 700; font-size: 1rem;
   box-shadow: 0 0 0 3px var(--glass-thick), 0 2px 8px rgb(0 0 0 / 0.2);
 }
 [dir="rtl"] .cs-level { translate: 50% 0; }
@@ -141,13 +141,13 @@
 .cs-fight .card-head { flex-wrap: wrap; align-items: center; }
 .cs-fight .segmented {
   min-inline-size: 200px; gap: 2px; padding: 3px; border-radius: var(--r-pill);
-  border: 1px solid var(--glass-stroke); background: var(--glass-thin); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06);
+  border: 1px solid var(--glass-stroke); background: var(--glass-thin); box-shadow: var(--glass-inset);
 }
 .cs-fight .segmented button {
   min-block-size: 34px; border: 0; border-radius: var(--r-pill); color: var(--s-muted);
   transition: background-color var(--dur-fast), color var(--dur-fast);
 }
-.cs-fight .segmented button.on { background: var(--glass-thick); color: var(--s-ink); box-shadow: var(--glass-highlight), 0 1px 4px rgb(0 0 0 / 0.12); }
+.cs-fight .segmented button.on { background: var(--glass-thick); color: var(--s-ink); box-shadow: var(--glass-raised); }
 .cs-table-head, .cs-attack { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--sp-2); align-items: center; }
 .cs-table-head { margin-block-start: var(--sp-2); padding: var(--sp-1) var(--sp-3); font-size: .75rem; font-weight: 600; color: var(--s-muted); }
 .cs-attack-list { list-style: none; margin: 0; padding: var(--sp-1); display: grid; border-radius: var(--r-md); background: var(--glass-thin); border: 1px solid var(--glass-hairline); }
@@ -196,7 +196,7 @@
 }
 .cs-switch input::before {
   content: ''; position: absolute; inset-block-start: 2px; inset-inline-start: 2px;
-  inline-size: 22px; block-size: 22px; border-radius: 50%; background: #fff; /* the knob is white in both themes, as on iOS */
+  inline-size: 22px; block-size: 22px; border-radius: 50%; background: white; /* the knob is white in both themes, as on iOS */
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.25), 0 3px 8px rgb(0 0 0 / 0.12);
   transition: inset-inline-start var(--dur-med) var(--ease-spring);
 }
@@ -231,7 +231,7 @@
 .cs-rollline {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'what total' 'how how' 'meaning meaning';
   gap: 2px var(--sp-3); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm);
-  background: var(--glass-thick); border-inline-start: 4px solid var(--s-line); box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.06);
+  background: var(--glass-thick); border-inline-start: 4px solid var(--s-line); box-shadow: var(--glass-highlight), var(--glass-control-shadow);
 }
 .cs-rollline .what { grid-area: what; font-weight: 700; }
 .cs-rollline .total { grid-area: total; font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; line-height: 1; }

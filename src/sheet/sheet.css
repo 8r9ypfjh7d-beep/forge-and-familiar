@@ -1,15 +1,15 @@
 /* Live sheet styles, scoped to .ff-sheet. Liquid Glass (src/design/DESIGN.md): cards are content glass,
    controls are capsules, inner tiles are concentric. Colours come from index.css, surfaces from the --glass-* tokens. */
 .ff-sheet {
-  --s-bg: var(--bg, #f6f1e7);
-  --s-panel: var(--panel, #fffdf8);
-  --s-ink: var(--ink, #2a2118);
-  --s-muted: var(--muted, #7a6d5d);
-  --s-accent: var(--accent, #8c2f1f);
-  --s-line: var(--line, #e3d8c4);
-  --s-good: var(--good, #2f7a45);
-  --s-bad: var(--bad, #b3261e);
-  --s-temp: var(--temp, #3b6fb0);
+  --s-bg: var(--bg);
+  --s-panel: var(--panel);
+  --s-ink: var(--ink);
+  --s-muted: var(--muted);
+  --s-accent: var(--accent);
+  --s-line: var(--line);
+  --s-good: var(--good);
+  --s-bad: var(--bad);
+  --s-temp: var(--temp);
   --s-radius: var(--r-lg);
   /* Inner tiles sit 16px inside a card: --r-lg minus padding would be 8px, so tiles use --r-md/--r-sm for a softer look. */
   --s-tile: var(--glass-thin);
@@ -17,9 +17,6 @@
   margin: 0 auto;
   padding-block: var(--sp-4);
   font-variant-numeric: tabular-nums;
-}
-@media (prefers-color-scheme: dark) {
-  .ff-sheet { --s-temp: var(--temp, #7aa7e0); }
 }
 
 .ff-sheet, .ff-sheet * { box-sizing: border-box; }
@@ -49,18 +46,18 @@
   min-height: 40px; padding: 0 var(--sp-4);
   border-radius: var(--r-pill); border: 1px solid var(--glass-stroke);
   background: var(--glass-regular); color: var(--s-ink); cursor: pointer;
-  box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.08);
+  box-shadow: var(--glass-highlight), var(--glass-control-shadow);
   transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast), border-color var(--dur-fast);
 }
 .ff-sheet .btn:hover:not(:disabled) { background: var(--glass-thick); }
 .ff-sheet .btn:active:not(:disabled) { transform: scale(.96); }
 .ff-sheet .btn:disabled { opacity: .45; cursor: not-allowed; }
 .ff-sheet .btn.primary, .ff-sheet .btn.danger, .ff-sheet .btn.heal {
-  border-color: transparent; color: #fff;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 4px 14px color-mix(in srgb, var(--btn-fill) 30%, transparent);
+  border-color: transparent; color: var(--on-fill);
+  box-shadow: var(--glass-tint-highlight), 0 4px 14px color-mix(in srgb, var(--btn-fill) 30%, transparent);
   background: var(--btn-fill);
 }
-.ff-sheet .btn.primary { --btn-fill: var(--s-accent); color: var(--accent-ink, #fff); }
+.ff-sheet .btn.primary { --btn-fill: var(--s-accent); color: var(--accent-ink); }
 .ff-sheet .btn.danger { --btn-fill: var(--s-bad); }
 .ff-sheet .btn.heal { --btn-fill: var(--s-good); }
 .ff-sheet .btn.primary:hover:not(:disabled), .ff-sheet .btn.danger:hover:not(:disabled), .ff-sheet .btn.heal:hover:not(:disabled) {
@@ -83,13 +80,13 @@
 .sheet-header { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-block-end: var(--sp-4); }
 .ff-sheet .sheet-header > .btn.ghost:first-child {
   inline-size: 40px; padding: 0; font-size: 1.1rem;
-  background: var(--glass-regular); border-color: var(--glass-stroke); box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.08);
+  background: var(--glass-regular); border-color: var(--glass-stroke); box-shadow: var(--glass-highlight), var(--glass-control-shadow);
 }
 [dir="rtl"] .ff-sheet .sheet-header > .btn.ghost:first-child { transform: scaleX(-1); }
 .sheet-header .who { flex: 1 1 0; min-width: 0; }
 .sheet-header .who p { margin: 2px 0 0; color: var(--s-muted); }
 .portrait { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--glass-stroke); }
-.portrait.placeholder { display: grid; place-items: center; font-size: 1.5rem; font-weight: 700; background: var(--s-accent); color: #fff; }
+.portrait.placeholder { display: grid; place-items: center; font-size: 1.5rem; font-weight: 700; background: var(--s-accent); color: var(--accent-ink); }
 
 /* One rhythm for every widget: 16px between cards, small labels for sub-sections inside them. */
 .ff-sheet > .card, .ff-sheet > section { margin-block-end: var(--sp-4); }
@@ -112,10 +109,10 @@
 .hp-temp.has .big { color: var(--s-temp); }
 .hp-bar {
   position: relative; height: 10px; margin: var(--sp-3) 0 var(--sp-1); border-radius: var(--r-pill); overflow: hidden;
-  background: color-mix(in srgb, var(--s-line) 70%, transparent); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.08);
+  background: color-mix(in srgb, var(--s-line) 70%, transparent); box-shadow: var(--glass-inset);
 }
 .hp-fill { height: 100%; border-radius: inherit; background: var(--s-good); transition: width var(--dur-med) var(--ease-glass); }
-.hp-fill.mid { background: #c08a1e; }
+.hp-fill.mid { background: var(--warn); }
 .hp-fill.low { background: var(--s-bad); }
 .hp-temp-fill { position: absolute; inset-block: 0 auto; inset-inline-start: 0; height: 4px; border-radius: var(--r-pill); background: var(--s-temp); }
 .hp-controls { display: grid; grid-template-columns: minmax(64px, 1fr) repeat(3, auto); gap: var(--sp-2); margin-block-start: var(--sp-3); }
@@ -180,14 +177,14 @@ form.inline input { width: 84px; }
 /* Segmented control (as .glass-segmented): a thin track, the chosen option raised on thick glass. */
 .ff-sheet .segmented {
   display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill);
-  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06);
+  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-inset);
 }
 .ff-sheet .segmented button {
   flex: 1; min-height: 34px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: transparent;
   color: var(--s-muted); font: inherit; font-weight: 600; cursor: pointer;
   transition: background-color var(--dur-fast), color var(--dur-fast);
 }
-.ff-sheet .segmented button.on { background: var(--glass-thick); color: var(--s-ink); box-shadow: var(--glass-highlight), 0 1px 4px rgb(0 0 0 / 0.12); }
+.ff-sheet .segmented button.on { background: var(--glass-thick); color: var(--s-ink); box-shadow: var(--glass-raised); }
 
 /* History */
 .log { margin: 0; padding-inline-start: 20px; max-height: 220px; overflow-y: auto; font-size: .875rem; }
@@ -226,7 +223,7 @@ form.inline input { width: 84px; }
   display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--r-pill);
   background: var(--glass-thin); border: 1px solid var(--glass-stroke);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06);
+  box-shadow: var(--glass-inset);
 }
 .mode-btn {
   font: inherit; font-weight: 600; font-size: .9rem; min-height: 38px; padding: 0 var(--sp-4);
@@ -234,7 +231,7 @@ form.inline input { width: 84px; }
   transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
 }
 .mode-btn:active { transform: scale(.96); }
-.mode-btn.on { background: var(--glass-thick); color: var(--s-ink); box-shadow: var(--glass-highlight), 0 1px 4px rgb(0 0 0 / 0.12); }
+.mode-btn.on { background: var(--glass-thick); color: var(--s-ink); box-shadow: var(--glass-raised); }
 
 /* Story mode */
 .story-notes h2 label { cursor: text; }
@@ -250,16 +247,7 @@ form.inline input { width: 84px; }
 .spell-slots .track-label { flex: none; }
 .spell-slots .pip { width: 22px; height: 22px; }
 
-/* Solid fallbacks make thin and thick glass the same colour, so the chosen option keeps an edge. */
-:root[data-transparency="reduce"] .ff-sheet .mode-btn.on,
-:root[data-transparency="reduce"] .ff-sheet .segmented button.on { box-shadow: inset 0 0 0 1px var(--s-line), 0 1px 4px rgb(0 0 0 / 0.12); }
-@media (prefers-reduced-transparency: reduce) {
-  .ff-sheet .mode-btn.on, .ff-sheet .segmented button.on { box-shadow: inset 0 0 0 1px var(--s-line), 0 1px 4px rgb(0 0 0 / 0.12); }
-}
-
-/* High contrast: state shown by fill alone also gets an edge. */
-:root[data-contrast="high"] .ff-sheet .mode-btn.on,
-:root[data-contrast="high"] .ff-sheet .segmented button.on { box-shadow: inset 0 0 0 2px var(--s-accent); color: var(--s-accent); }
+/* Solid fallbacks: the chosen segment's --glass-raised turns into an accent ring (glass.css). High contrast also thickens cards. */
 :root[data-contrast="high"] .ff-sheet .card { border-width: 2px; }
 
 @media print {

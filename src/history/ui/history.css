@@ -1,12 +1,12 @@
-/* Homebrew change history panel. */
-.ff-history { display: grid; gap: 8px; }
-.ff-history ol { display: grid; gap: 8px; }
-.ff-history li.panel { padding: 10px 12px; }
-.ff-history li p { margin: 4px 0 0; }
-.ff-history-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.ff-history-toggle { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; text-align: left; min-width: 0; }
-.ff-diff { width: 100%; margin-top: 8px; border-collapse: collapse; table-layout: fixed; }
-.ff-diff th, .ff-diff td { text-align: left; padding: 4px 6px; border-top: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
-.ff-diff thead th { color: var(--muted); font-weight: 600; border-top: 0; }
+/* Homebrew change history panel. Logical properties only, so Hebrew needs no overrides. */
+.ff-history { display: grid; gap: var(--sp-2); }
+.ff-history ol { display: grid; gap: var(--sp-2); }
+.ff-history li.panel { padding: 10px var(--sp-3); border-radius: var(--r-md); }
+.ff-history li p { margin: var(--sp-1) 0 0; }
+.ff-history-row { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); }
+.ff-history-toggle { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; text-align: start; min-width: 0; }
+.ff-diff { width: 100%; margin-block-start: var(--sp-2); border-collapse: collapse; table-layout: fixed; }
+.ff-diff th, .ff-diff td { text-align: start; padding: var(--sp-1) 6px; border-block-start: 1px solid var(--glass-hairline); vertical-align: top; overflow-wrap: anywhere; }
+.ff-diff thead th { color: var(--muted); font-size: 0.75rem; font-weight: 600; border-block-start: 0; }
 .ff-diff .was { color: var(--bad); text-decoration: line-through; text-decoration-thickness: 1px; }
 .ff-diff .now { color: var(--good); }

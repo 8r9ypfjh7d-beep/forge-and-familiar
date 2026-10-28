@@ -17,7 +17,7 @@
 .heroes-id img, .heroes-id .portrait-empty {
   inline-size: 64px; block-size: 64px; flex: none; object-fit: cover;
   border-radius: var(--r-sm); font-family: var(--font-lore); font-size: 1.6rem;
-  box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.1);
+  box-shadow: var(--glass-highlight), var(--glass-control-shadow);
 }
 .heroes-id .portrait-empty { background: var(--glass-tint); }
 .heroes-id > div { min-width: 0; }
@@ -30,7 +30,7 @@
 /* Tool strip: a thin glass track of quiet capsules, like a segmented control without a selection. */
 .heroes-tools {
   display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill);
-  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.05);
+  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-inset);
 }
 .heroes-tools .ff-import { display: contents; }
 .heroes-tools .ff-import [role="alert"] { align-self: center; padding-inline: var(--sp-2); }

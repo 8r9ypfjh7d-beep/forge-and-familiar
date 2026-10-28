@@ -9,7 +9,7 @@ Every saved or imported version of a homebrew entry, who made it, what changed f
 | `types.ts` | `Revision`, `RecordInput`, `FieldChange` |
 | `revisions.ts` | Pure logic: `diffEntries()`, `changesIn()`, `summarize()`, `nextRevision()` (skips no-op saves), `mergeRevisions()`, `restoreEntry()`, `canRestore()` |
 | `store.ts` | localStorage store (`ff.history.v1`, entryId → revisions), async API, max 50 per entry |
-| `ui/ChangeHistory.tsx` | Version list with diff table and Restore button |
+| `ui/ChangeHistory.tsx` | Version list with diff table and Restore button; text from `hist.*` keys (English and Hebrew) |
 | `history.test.ts` | Diff, numbering, merge and store tests |
 
 ## Hooks for the homebrew editor

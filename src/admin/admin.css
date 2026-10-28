@@ -64,11 +64,6 @@
   .ff-admin .admin-actions .glass-btn, .ff-admin td.admin-actions > .glass-btn { flex: 1 1 auto; }
 }
 
-/* Solid fallbacks: the selected tab and the note keep a visible edge without blur or fills to tell them apart. */
-:root[data-transparency="reduce"] .ff-admin .admin-tabs > button.on,
-:root[data-contrast="high"] .ff-admin .admin-tabs > button.on { box-shadow: inset 0 0 0 2px var(--accent); }
-@media (prefers-reduced-transparency: reduce) {
-  .ff-admin .admin-tabs > button.on { box-shadow: inset 0 0 0 2px var(--accent); }
-}
+/* High contrast: the note and the danger button keep a visible edge. The selected tab's ring comes from .glass-segmented. */
 :root[data-contrast="high"] .ff-admin .admin-note { background: var(--accent-soft); border: 2px solid var(--accent); }
 :root[data-contrast="high"] .ff-admin .glass-btn.danger { border-color: var(--bad); }
