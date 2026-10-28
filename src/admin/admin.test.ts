@@ -1,4 +1,6 @@
+/// <reference types="node" />
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { isAdmin } from '../accounts/roster'
 import { buildBackup, cloudPeople, describeKey, deviceOnly, hasUnsentEdits, keyRows, parseBackup, people, restorePlan } from './logic'
 
@@ -97,5 +99,16 @@ describe('admin', () => {
     expect(hasUnsentEdits({ ...server.data, updatedAt: '2026-10-01' }, server)).toBe(false)
     expect(hasUnsentEdits({ ...server.data, updatedAt: '2026-10-03' }, server)).toBe(false)
     expect(hasUnsentEdits({ ...server.data, name: 'B', updatedAt: '2026-10-03' }, server)).toBe(true)
+  })
+})
+
+describe('admin styles', () => {
+  const css = readFileSync(new URL('./admin.css', import.meta.url), 'utf8')
+
+  it('follows the glass standard: tokens, logical properties, solid fallbacks', () => {
+    expect(css).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
+    expect(css).not.toMatch(/#[0-9a-f]{3,6}\b|rgba?\(/i)
+    expect(css).toMatch(/:root\[data-contrast="high"\]/)
+    expect(css).toMatch(/prefers-reduced-transparency: reduce/)
   })
 })

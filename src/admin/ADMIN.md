@@ -10,8 +10,8 @@ A page for the group's admin account (Ziv, `acct-ziv`) to see and manage everyon
 | `cloud.ts` | Server side: `loadCloud`, `watchCloud` (realtime), `moveCloudCharacter`, `pushCloudCharacter`, `deleteCloudCharacter` (tombstone), `deleteCloudDm`, `unlinkCloudDevice` |
 | `store.ts` | Raw localStorage access for `ff.*` keys: `readDevice`, `removeKey`, `restoreDevice` |
 | `AdminPage.tsx` | Tabs: People (open the app as anyone; on the server also devices and Sign out), Characters (open, edit, move owner, delete), DM requests (change status, delete), DM screens (server only), Device data (every key, backup, restore, delete) |
-| `admin.css` | Styles, scoped to `.ff-admin` |
-| `admin.test.ts` | Admin lookup, key naming, backup round trip, restore plan, people list |
+| `admin.css` | Liquid Glass styles (src/design/DESIGN.md), scoped to `.ff-admin`; tables become labelled list rows on phones (`data-label` on cells, `admin-actions` on the button cell) |
+| `admin.test.ts` | Admin lookup, key naming, backup round trip, restore plan, people list, CSS follows the glass standard |
 
 ## How it works
 
