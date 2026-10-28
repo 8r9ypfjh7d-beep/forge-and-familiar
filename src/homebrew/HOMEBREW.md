@@ -11,6 +11,7 @@ Custom spells, items, feats, races (or subraces of any race) and subclasses a gr
 | `store.ts` | Pack library in localStorage (`ff.homebrew.v1`), async API, registers items with the rules engine |
 | `ui/Homebrew.tsx` | Library, import, pack editor, share panel, "Give to" character |
 | `ui/forms.tsx` | Spell, item, feat, race and subclass editors |
+| `ui/homebrew.css` | Screen styles on the Liquid Glass standard (`src/design/DESIGN.md`): glass cards, segmented kind tabs, glass fields and buttons |
 | `homebrew.test.ts` | Ids, validation, share codes, sanitizing, derive() integration |
 
 ## How it works

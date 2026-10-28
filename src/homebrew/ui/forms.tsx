@@ -41,7 +41,7 @@ function FormShell<T>({ title, value, issues, onSave, onCancel, children }: {
   const [tried, setTried] = useState(false)
   return (
     <form
-      className="panel hb-form"
+      className="glass thick hb-form"
       onSubmit={e => {
         e.preventDefault()
         setTried(true)
@@ -52,8 +52,8 @@ function FormShell<T>({ title, value, issues, onSave, onCancel, children }: {
       <div className="hb-fields">{children}</div>
       {tried && issues.length > 0 && <ul className="issues" role="alert">{issues.map(i => <li key={i}>{i}</li>)}</ul>}
       <div className="row hb-form-actions">
-        <button type="button" className="btn ghost" onClick={onCancel}>Cancel</button>
-        <button className="btn primary">Save</button>
+        <button type="button" className="glass-btn" onClick={onCancel}>Cancel</button>
+        <button className="glass-btn prominent">Save</button>
       </div>
     </form>
   )
@@ -263,10 +263,10 @@ export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat;
             ) : 'amount' in e && (
               <input type="number" aria-label="Amount" className="hb-amount" value={e.amount} onChange={ev => setEffect(i, { ...e, amount: numOr(ev.target.value, 0) })} />
             )}
-            <button type="button" className="btn ghost small" onClick={() => set({ effects: f.effects.filter((_, j) => j !== i) })} aria-label="Remove effect">✕</button>
+            <button type="button" className="glass-btn small icon hb-ghost" onClick={() => set({ effects: f.effects.filter((_, j) => j !== i) })} aria-label="Remove effect">✕</button>
           </div>
         ))}
-        <div><button type="button" className="btn small" onClick={() => set({ effects: [...f.effects, newEffect('ability')] })}>+ Add effect</button></div>
+        <div><button type="button" className="glass-btn small" onClick={() => set({ effects: [...f.effects, newEffect('ability')] })}>+ Add effect</button></div>
       </div>
     </FormShell>
   )
@@ -387,11 +387,11 @@ export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewS
           <div key={i} className="row hb-effect">
             <input type="number" min={1} max={20} aria-label="Level" className="hb-amount" value={f.level} onChange={e => setFeature(i, { ...f, level: numOr(e.target.value, 1) })} />
             <input value={f.name} aria-label="Feature name" placeholder="Combat Superiority" onChange={e => setFeature(i, { ...f, name: e.target.value })} />
-            <button type="button" className="btn ghost small" onClick={() => set({ features: sc.features.filter((_, j) => j !== i) })} aria-label="Remove feature">✕</button>
+            <button type="button" className="glass-btn small icon hb-ghost" onClick={() => set({ features: sc.features.filter((_, j) => j !== i) })} aria-label="Remove feature">✕</button>
           </div>
         ))}
         <div>
-          <button type="button" className="btn small" onClick={() => set({ features: [...sc.features, { level: classLevel(sc.classId), name: '' }] })}>+ Add feature</button>
+          <button type="button" className="glass-btn small" onClick={() => set({ features: [...sc.features, { level: classLevel(sc.classId), name: '' }] })}>+ Add feature</button>
         </div>
       </div>
       <Field label="Description" wide><textarea rows={4} value={sc.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
