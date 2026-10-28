@@ -1414,6 +1414,13 @@ export const en = {
   'sync.pending_one': '{count} change waiting',
   'sync.pending': '{count} changes waiting',
   'sync.title': 'Your characters save to the cloud and load on any device you sign in on. Changes made offline upload when you are back online.',
+  'sync.dupeTitle': '{name} is here twice',
+  'sync.dupeBody': 'Your account has {count} copies of this character, probably built on different devices. Pick the one to keep.',
+  'sync.dupeCopy': 'Copy {n}',
+  'sync.dupeChanged': 'Last changed {date}',
+  'sync.dupeKeep': 'Keep copy {n}',
+  'sync.dupeSafe': 'The other copy is saved in Level history, with its gear and notes, so nothing is lost.',
+  'sync.dupeKeepBoth': 'Keep both',
   // Starter heroes picker
   'starters.title': 'Pick a starter hero',
   'starters.lead': 'Ready-to-play level 1 characters with gear, skills and tips for your first session.',
