@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Character } from '../model/character'
-import { classById, derive, formatMod, raceById } from '../rules'
+import { useI18n } from '../i18n'
+import { derive, formatMod } from '../rules'
 import { STARTER_HEROES, createStarter, type StarterHero } from './heroes'
 import './starters.css'
 
@@ -13,18 +14,19 @@ export function StarterPicker({ ownerId, playerName, onCreate, onCustom, onCance
   onCancel: () => void
 }) {
   const [open, setOpen] = useState<string | null>(null)
+  const { t } = useI18n()
   return (
     <section className="starters">
-      <div className="row spread">
+      <header className="starters-head">
         <div>
-          <h2>Pick a starter hero</h2>
-          <p className="muted">Ready-to-play level 1 characters with gear, skills and tips for your first session.</p>
+          <h2 className="glass-title">{t('starters.title')}</h2>
+          <p className="muted">{t('starters.lead')}</p>
         </div>
-        <div className="row">
-          <button className="btn ghost" onClick={onCancel}>Cancel</button>
-          <button className="btn" onClick={onCustom}>Build my own instead</button>
+        <div className="starters-nav">
+          <button className="glass-btn" onClick={onCancel}>{t('common.cancel')}</button>
+          <button className="glass-btn" onClick={onCustom}>{t('starters.custom')}</button>
         </div>
-      </div>
+      </header>
       <div className="starter-grid">
         {STARTER_HEROES.map(h => (
           <HeroCard
@@ -46,50 +48,61 @@ function HeroCard({ hero, expanded, onToggle, onPick }: {
   onToggle: () => void
   onPick: () => void
 }) {
+  const { t, term, attackName, className, raceName } = useI18n()
   const d = useMemo(() => derive(createStarter(hero, '', '')), [hero])
-  const race = raceById(hero.draft.raceId)
-  const raceName = race?.subraces?.find(s => s.id === hero.draft.subraceId)?.name ?? race?.name
-  const cls = classById(hero.draft.classes[0].classId)
   const attack = d.attacks[0]
+  const stats: [string, string | number][] = [
+    [t('stat.ac'), d.armorClass.value],
+    [t('stat.hp'), d.maxHp],
+    [t('stat.init'), formatMod(d.initiative)],
+    [t('stat.speed'), d.speed],
+  ]
 
+  // Hero names, pitches and tips are English-only content: lang + dir="auto" keep their punctuation right in Hebrew.
   return (
-    <article className="panel starter-card">
-      <div className="row starter-head">
+    <article className="glass starter-card">
+      <div className="starter-head">
         <div className="portrait-empty starter-initial" aria-hidden="true">{hero.draft.name.slice(0, 1)}</div>
         <div>
-          <h3>{hero.draft.name}</h3>
-          <p className="muted small">{raceName} {cls?.name}</p>
+          <h3 lang="en" dir="auto">{hero.draft.name}</h3>
+          <p className="muted small">{raceName(hero.draft.raceId, hero.draft.subraceId)} {className(hero.draft.classes[0].classId)}</p>
         </div>
       </div>
-      <div className="row">
-        <span className="chip on">{hero.role}</span>
-        <span className="chip">{hero.difficulty}</span>
+      <div className="starter-tags" lang="en">
+        <span className="glass-chip on">{hero.role}</span>
+        <span className="glass-chip">{hero.difficulty}</span>
       </div>
-      <p>{hero.pitch}</p>
-      <div className="starter-stats">
-        <div><strong>{d.armorClass.value}</strong><span className="muted small">AC</span></div>
-        <div><strong>{d.maxHp}</strong><span className="muted small">HP</span></div>
-        <div><strong>{formatMod(d.initiative)}</strong><span className="muted small">Init</span></div>
-        <div><strong>{d.speed}</strong><span className="muted small">Speed</span></div>
-      </div>
-      {attack && <p className="small"><strong>{attack.name}</strong> {formatMod(attack.bonus)} to hit, {attack.damage} {attack.damageType}</p>}
+      <p lang="en" dir="auto">{hero.pitch}</p>
+      <dl className="starter-stats">
+        {stats.map(([label, value]) => (
+          <div key={label}><dd dir="ltr">{value}</dd><dt className="muted">{label}</dt></div>
+        ))}
+      </dl>
+      {attack && (
+        <p className="small">
+          <strong>{attackName(attack.name)}</strong> {t('starters.attack', { bonus: ltr(formatMod(attack.bonus)), damage: ltr(attack.damage), type: term('damage', attack.damageType, attack.damageType) })}
+        </p>
+      )}
       {expanded && (
         <div className="small starter-more">
-          <p className="muted">{hero.backstory}</p>
-          <strong>How to play</strong>
-          <ul>{hero.tips.map(t => <li key={t}>{t}</li>)}</ul>
+          <p className="muted" lang="en" dir="auto">{hero.backstory}</p>
+          <strong>{t('starters.more')}</strong>
+          <ul lang="en" dir="auto">{hero.tips.map(tip => <li key={tip}>{tip}</li>)}</ul>
           {hero.spells && (
             <>
-              <strong>Suggested spells</strong>
-              <ul>{hero.spells.map(s => <li key={s}>{s}</li>)}</ul>
+              <strong>{t('starters.spells')}</strong>
+              <ul lang="en" dir="auto">{hero.spells.map(sp => <li key={sp}>{sp}</li>)}</ul>
             </>
           )}
         </div>
       )}
-      <div className="row starter-actions">
-        <button className="btn ghost small" onClick={onToggle} aria-expanded={expanded}>{expanded ? 'Less' : 'How to play'}</button>
-        <button className="btn primary small" onClick={onPick}>Play {hero.draft.name.split(' ')[0]}</button>
+      <div className="starter-actions">
+        <button className="glass-btn small" onClick={onToggle} aria-expanded={expanded}>{expanded ? t('starters.less') : t('starters.more')}</button>
+        <button className="glass-btn prominent small" onClick={onPick}>{t('starters.play', { name: ltr(hero.draft.name.split(' ')[0]) })}</button>
       </div>
     </article>
   )
 }
+
+/** Isolates a number or dice string so "+5" and "1d8+3" keep their order inside Hebrew text. */
+const ltr = (s: string) => `\u2066${s}\u2069`

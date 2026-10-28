@@ -37,3 +37,13 @@ describe('starter heroes', () => {
     expect(hero.draft.chosenSkills).not.toContain('stealth')
   })
 })
+
+describe('picker and heroes list styles', () => {
+  it('use logical properties only, so RTL needs no overrides', async () => {
+    const { readFileSync } = await import('node:fs')
+    for (const file of ['./starters.css', '../list/list.css']) {
+      const css = readFileSync(new URL(file, import.meta.url), 'utf8')
+      expect(css).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
+    }
+  })
+})

@@ -1397,6 +1397,15 @@ const messages: Messages = {
   'sync.pending_two': 'שני שינויים ממתינים',
   'sync.pending': '{count} שינויים ממתינים',
   'sync.title': 'הדמויות שלך נשמרות בענן ונטענות בכל מכשיר שמתחברים ממנו. שינויים שנעשו בלי חיבור יעלו כשהחיבור יחזור.',
+  // Starter heroes picker
+  'starters.title': 'בחירת גיבור מוכן',
+  'starters.lead': 'דמויות מוכנות בדרגה 1, עם ציוד, מיומנויות וטיפים למשחק הראשון.',
+  'starters.custom': 'אבנה דמות משלי',
+  'starters.more': 'איך משחקים',
+  'starters.less': 'פחות',
+  'starters.play': 'לשחק עם {name}',
+  'starters.spells': 'לחשים מומלצים',
+  'starters.attack': '{bonus} לפגיעה, {damage} {type}',
 }
 
 const terms: Terms = {

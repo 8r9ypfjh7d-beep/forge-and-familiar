@@ -1396,6 +1396,15 @@ export const en = {
   'sync.pending_one': '{count} change waiting',
   'sync.pending': '{count} changes waiting',
   'sync.title': 'Your characters save to the cloud and load on any device you sign in on. Changes made offline upload when you are back online.',
+  // Starter heroes picker
+  'starters.title': 'Pick a starter hero',
+  'starters.lead': 'Ready-to-play level 1 characters with gear, skills and tips for your first session.',
+  'starters.custom': 'Build my own instead',
+  'starters.more': 'How to play',
+  'starters.less': 'Less',
+  'starters.play': 'Play {name}',
+  'starters.spells': 'Suggested spells',
+  'starters.attack': '{bonus} to hit, {damage} {type}',
 } as const
 
 export type MessageKey = keyof typeof en

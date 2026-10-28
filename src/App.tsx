@@ -20,6 +20,7 @@ import type { MessageKey } from './i18n/locales/en'
 import { AppNav, canOpen } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
 import { StarterPicker } from './starters'
+import './list/list.css'
 import { SyncBadge, useCloudSync } from './sync'
 import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, onCharactersChanged, saveCharacter, saveProfile,
@@ -288,45 +289,52 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, editState,
   onDelete: (id: string) => void
 }) {
   const { t, classLine, raceName } = useI18n()
+  const actions = (
+    <>
+      <ImportButton ownerId={owner.id} onImported={onImported} className="glass-btn" />
+      <button className="glass-btn" onClick={onStarter}>{t('list.starters')}</button>
+      <button className="glass-btn prominent" onClick={onNew}>{t('list.new')}</button>
+    </>
+  )
   return (
-    <section>
-      <div className="row spread">
-        <h2>{t('list.title', { name: owner.displayName })}</h2>
-        <div className="row">
-          <ImportButton ownerId={owner.id} onImported={onImported} />
-          <button className="btn" onClick={onStarter}>{t('list.starters')}</button>
-          <button className="btn primary" onClick={onNew}>{t('list.new')}</button>
-        </div>
-      </div>
+    <section className="heroes">
+      <header className="heroes-head">
+        <h2 className="glass-title">{t('list.title', { name: owner.displayName })}</h2>
+        {characters.length > 0 && <div className="heroes-actions">{actions}</div>}
+      </header>
       {characters.length === 0 ? (
-        <div className="panel empty">
+        <div className="glass heroes-empty">
+          <div className="portrait-empty" aria-hidden="true">✦</div>
           <p>{t('list.empty')}</p>
-          <div className="row" style={{ justifyContent: 'center' }}>
-            <button className="btn primary" onClick={onNew}>{t('list.buildFirst')}</button>
-            <button className="btn" onClick={onStarter}>{t('list.newToDnd')}</button>
+          <div className="heroes-actions">
+            <button className="glass-btn prominent" onClick={onNew}>{t('list.buildFirst')}</button>
+            <button className="glass-btn" onClick={onStarter}>{t('list.newToDnd')}</button>
+            <ImportButton ownerId={owner.id} onImported={onImported} className="glass-btn" />
           </div>
         </div>
       ) : (
-        <div className="card-grid">
-          {characters.map(c => {
-            return (
-              <article key={c.id} className="panel char-card">
-                {c.portrait ? <img src={c.portrait} alt="" /> : <div className="portrait-empty small">{c.name.slice(0, 1)}</div>}
+        <div className="heroes-grid">
+          {characters.map(c => (
+            <article key={c.id} className="glass heroes-card">
+              <div className="heroes-id">
+                {c.portrait ? <img src={c.portrait} alt="" /> : <div className="portrait-empty" aria-hidden="true">{c.name.slice(0, 1)}</div>}
                 <div>
                   <h3>{c.name}</h3>
                   <p className="muted small">{raceName(c.raceId, c.subraceId, c.rulesEdition)} · {classLine(c.classes)}</p>
-                  <div className="row">
-                    <button className="btn primary small" onClick={() => onOpen(c.id)}>{t('common.openSheet')}</button>
-                    <button className="btn small" onClick={() => onEdit(c.id)} aria-label={`${t(EDIT_LABEL[editState(c.id)])}: ${c.name}`}>{t(EDIT_LABEL[editState(c.id)])}</button>
-                    <button className="btn small" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
-                    <button className="btn small" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
-                    <ExportButton character={c} />
-                    <button className="btn ghost small" onClick={() => confirm(t('list.confirmDelete', { name: c.name })) && onDelete(c.id)}>{t('common.delete')}</button>
-                  </div>
                 </div>
-              </article>
-            )
-          })}
+              </div>
+              <div className="heroes-main">
+                <button className="glass-btn prominent" onClick={() => onOpen(c.id)}>{t('common.openSheet')}</button>
+                <button className="glass-btn" onClick={() => onEdit(c.id)} aria-label={`${t(EDIT_LABEL[editState(c.id)])}: ${c.name}`}>{t(EDIT_LABEL[editState(c.id)])}</button>
+              </div>
+              <div className="heroes-tools">
+                <button className="heroes-tool" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
+                <button className="heroes-tool" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
+                <ExportButton character={c} className="heroes-tool" />
+                <button className="heroes-tool danger" onClick={() => confirm(t('list.confirmDelete', { name: c.name })) && onDelete(c.id)}>{t('common.delete')}</button>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </section>

@@ -1,10 +1,38 @@
-.starter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-.starter-card { display: flex; flex-direction: column; gap: 10px; }
-.starter-card h3 { margin: 0; }
+/* Starter heroes picker, Liquid Glass (src/design/DESIGN.md). Cards pad 16px in a 24px radius, so inner tiles use 24 - 16 = 8px. */
+.starters { display: grid; gap: var(--sp-5); }
+.starters-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--sp-3) var(--sp-4); }
+.starters-head h2 { font-size: 1.75rem; margin: 0; }
+.starters-head p { margin: var(--sp-1) 0 0; max-inline-size: 60ch; }
+.starters-nav { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+.starter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--sp-4); }
+.starter-card { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); min-width: 0; }
+.starter-card h3 { margin: 0; font-family: var(--font-lore); font-size: 1.2rem; letter-spacing: 0; }
 .starter-card p { margin: 0; }
-.starter-head { flex-wrap: nowrap; gap: 12px; }
-.starter-initial { width: 48px; height: 48px; flex: none; font-size: 1.4rem; }
-.starter-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
-.starter-stats div { display: grid; border: 1px solid var(--line); border-radius: 8px; padding: 4px 0; }
-.starter-more ul { margin: 4px 0 8px; padding-left: 18px; }
-.starter-actions { margin-top: auto; justify-content: space-between; }
+.starter-head { display: flex; align-items: center; gap: var(--sp-3); }
+.starter-initial {
+  inline-size: 52px; block-size: 52px; flex: none; border-radius: var(--r-sm);
+  background: var(--glass-tint); font-family: var(--font-lore); font-size: 1.5rem;
+  box-shadow: var(--glass-highlight);
+}
+.starter-tags { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.starter-tags .glass-chip { display: inline-flex; align-items: center; cursor: default; }
+
+.starter-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2); margin: 0; text-align: center; }
+.starter-stats div { display: grid; padding: var(--sp-2) 0; border-radius: var(--r-xs); background: var(--glass-thin); border: 1px solid var(--glass-hairline); }
+.starter-stats dd { margin: 0; font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.starter-stats dt { font-size: 0.7rem; font-weight: 600; }
+
+.starter-more { display: grid; gap: var(--sp-1); padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
+.starter-more ul { margin: 0 0 var(--sp-2); padding-inline-start: 18px; }
+.starter-actions { display: flex; gap: var(--sp-2); justify-content: space-between; margin-block-start: auto; }
+
+@media (max-width: 640px) {
+  .starters-head h2 { font-size: 1.6rem; }
+  .starters-nav { inline-size: 100%; }
+  .starters-nav > * { flex: 1 1 auto; min-height: 44px; }
+  .starter-actions > .glass-btn { flex: 1 1 0; min-height: 44px; }
+}
+
+:root[data-contrast="high"] .starter-card { border-width: 2px; }
+:root[data-contrast="high"] .starter-tags .glass-chip.on { border: 2px solid var(--accent); }
