@@ -1,0 +1,175 @@
+/* Liquid Glass design standard: tokens and utilities. See DESIGN.md before using or changing.
+   Every glass rule reads the --glass-* tokens, so the fallbacks at the end only swap tokens. */
+
+:root {
+  /* Type */
+  --font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Helvetica Neue', Arial, sans-serif;
+  --font-lore: 'New York', 'Iowan Old Style', Georgia, 'Noto Serif Hebrew', serif;
+
+  /* Shape and spacing (4px grid). Concentric: an inner radius is its outer radius minus the padding. */
+  --r-xs: 8px; --r-sm: 12px; --r-md: 18px; --r-lg: 24px; --r-xl: 30px; --r-pill: 999px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+  /* Motion */
+  --ease-glass: cubic-bezier(0.25, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --dur-fast: 0.15s; --dur-med: 0.28s; --dur-slow: 0.45s;
+
+  /* Glass, light. Fills are the panel colour at three thicknesses. */
+  --glass-thin: rgb(255 255 255 / 0.38);
+  --glass-regular: rgb(255 255 255 / 0.6);
+  --glass-thick: rgb(255 255 255 / 0.82);
+  --glass-tint: color-mix(in srgb, var(--accent) 14%, transparent);
+  --glass-stroke: rgb(255 255 255 / 0.6);
+  --glass-hairline: rgb(60 40 20 / 0.1);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.8), inset 0 -1px 0 rgb(255 255 255 / 0.25);
+  --glass-shadow: 0 1px 2px rgb(60 40 20 / 0.06), 0 8px 28px rgb(60 40 20 / 0.12);
+  --glass-shadow-lift: 0 2px 6px rgb(60 40 20 / 0.08), 0 18px 48px rgb(60 40 20 / 0.18);
+  --glass-blur: blur(14px) saturate(180%);
+  --glass-blur-strong: blur(20px) saturate(190%);
+  --glass-wash-1: rgb(214 120 82 / 0.22);
+  --glass-wash-2: rgb(120 140 210 / 0.16);
+  --glass-wash-3: rgb(226 182 92 / 0.18);
+
+  /* Dynamic opacity. Set on <html> by scrollGlass.ts: 0 when nothing is under a bar, 1 when content fills it. */
+  --glass-top: 0;
+  --glass-bottom: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass-thin: rgb(44 38 34 / 0.38);
+    --glass-regular: rgb(40 34 30 / 0.58);
+    --glass-thick: rgb(34 29 25 / 0.82);
+    --glass-tint: color-mix(in srgb, var(--accent) 22%, transparent);
+    --glass-stroke: rgb(255 255 255 / 0.14);
+    --glass-hairline: rgb(0 0 0 / 0.4);
+    --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 -1px 0 rgb(255 255 255 / 0.04);
+    --glass-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 28px rgb(0 0 0 / 0.35);
+    --glass-shadow-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 18px 48px rgb(0 0 0 / 0.5);
+    --glass-wash-1: rgb(224 120 90 / 0.16);
+    --glass-wash-2: rgb(90 110 200 / 0.14);
+    --glass-wash-3: rgb(200 150 60 / 0.1);
+  }
+}
+
+/* Ambient wash behind everything, so glass has colour to refract. Fixed layer (iOS ignores background-attachment). */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60% 45% at 12% 8%, var(--glass-wash-1), transparent 70%),
+    radial-gradient(55% 40% at 92% 30%, var(--glass-wash-2), transparent 70%),
+    radial-gradient(70% 50% at 40% 100%, var(--glass-wash-3), transparent 70%),
+    var(--bg);
+}
+
+/* ---- Surfaces ---- */
+
+/* Content glass: cards and grouped panels that sit in the page. */
+.glass {
+  background: var(--glass-regular);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+.glass.thin { background: var(--glass-thin); }
+.glass.thick { background: var(--glass-thick); }
+
+/* Chrome glass: bars that float over content. Opacity follows what is under them (--glass-edge, 0..1).
+   The blur sits on ::before, not the bar itself: a backdrop-filter on the bar would stop menus inside it
+   from blurring the page. The bar must be positioned (relative, sticky or fixed). */
+.glass-chrome {
+  --glass-edge: 0;
+  position: relative; isolation: isolate;
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+.glass-chrome::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: color-mix(in srgb, var(--glass-thick) calc(var(--glass-edge) * 100%), var(--glass-thin));
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  transition: background-color var(--dur-med) var(--ease-glass);
+}
+.glass-chrome.at-top { --glass-edge: var(--glass-top); }
+.glass-chrome.at-bottom { --glass-edge: var(--glass-bottom); }
+
+/* Floating sheet: menus, popovers, dialogs. Thick so text on it never fights the page behind. */
+.glass-sheet {
+  background: var(--glass-thick);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-lift);
+}
+
+/* ---- Controls ---- */
+
+.glass-btn {
+  font: inherit; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  min-height: 40px; padding: 0 var(--sp-4); border-radius: var(--r-pill);
+  border: 1px solid var(--glass-stroke); background: var(--glass-regular); color: var(--ink);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.08);
+  cursor: pointer; transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
+}
+.glass-btn:hover:not(:disabled) { background: var(--glass-thick); }
+.glass-btn:active:not(:disabled) { transform: scale(0.96); }
+.glass-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Tinted (prominent) glass: the one main action on a surface. */
+.glass-btn.prominent { background: var(--accent); color: var(--accent-ink); border-color: transparent; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+.glass-btn.prominent:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, white); }
+.glass-btn.small { min-height: 32px; padding: 0 var(--sp-3); font-size: 0.85rem; }
+.glass-btn.icon { inline-size: 40px; padding: 0; }
+
+/* Lens: the highlight that marks the selected item in a bar, segmented control or list. */
+.glass-lens { background: var(--glass-tint); color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--glass-highlight); }
+
+.glass-segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06); }
+.glass-segmented > button { font: inherit; font-weight: 600; min-height: 34px; padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--muted); cursor: pointer; transition: background-color var(--dur-fast), color var(--dur-fast); }
+.glass-segmented > button[aria-pressed="true"], .glass-segmented > button[aria-checked="true"], .glass-segmented > button.on { background: var(--glass-thick); color: var(--ink); box-shadow: var(--glass-highlight), 0 1px 4px rgb(0 0 0 / 0.12); }
+
+.glass-chip { font: inherit; font-size: 0.85rem; min-height: 30px; padding: 0 var(--sp-3); border-radius: var(--r-pill); border: 1px solid var(--glass-stroke); background: var(--glass-thin); color: var(--ink); cursor: pointer; }
+.glass-chip.on { background: var(--glass-tint); color: var(--accent); font-weight: 600; border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+.glass-field { font: inherit; color: var(--ink); min-height: 40px; padding: 0 var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--glass-hairline); background: color-mix(in srgb, var(--panel) 70%, transparent); }
+.glass-field:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Grouped list (iOS inset list): rows separated by hairlines inside one glass card. */
+.glass-list { list-style: none; margin: 0; padding: var(--sp-1); display: grid; }
+.glass-list > * + * { border-block-start: 1px solid var(--glass-hairline); }
+
+.glass-title { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+.glass-eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
+
+/* ---- Fallbacks: solid surfaces, same layout ---- */
+
+/* Reduce transparency (a11y switch or OS), high contrast, and browsers without backdrop-filter. */
+:root[data-transparency="reduce"], :root[data-contrast="high"] {
+  --glass-thin: var(--panel); --glass-regular: var(--panel); --glass-thick: var(--panel);
+  --glass-stroke: var(--line); --glass-hairline: var(--line);
+  --glass-highlight: 0 0 0 transparent;
+  --glass-blur: none; --glass-blur-strong: none;
+  --glass-wash-1: transparent; --glass-wash-2: transparent; --glass-wash-3: transparent;
+}
+:root[data-contrast="high"] { --glass-tint: var(--accent-soft); --glass-shadow: none; --glass-shadow-lift: none; }
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-thin: var(--panel); --glass-regular: var(--panel); --glass-thick: var(--panel);
+    --glass-stroke: var(--line); --glass-hairline: var(--line);
+    --glass-highlight: 0 0 0 transparent;
+    --glass-blur: none; --glass-blur-strong: none;
+    --glass-wash-1: transparent; --glass-wash-2: transparent; --glass-wash-3: transparent;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass-thin: var(--panel); --glass-regular: var(--panel); --glass-thick: var(--panel); }
+}
+@media print {
+  body::before { display: none; }
+  .glass, .glass-chrome::before, .glass-sheet, .glass-btn { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}

@@ -37,7 +37,7 @@ export function AppNav({ viewKind, onGo, playerName, isDm, dmAccount, admin, dmB
   )
 
   return (
-    <header className="topbar nav">
+    <header className="topbar nav glass-chrome">
       <nav className="nav-tabs" aria-label={t('nav.main')}>
         {main.map(i => tab(i.key, t(i.label), t(i.short ?? i.label), i.key === 'dm' ? waiting : 0))}
         <Menu
@@ -116,7 +116,7 @@ function Menu({ className, label, title, end, menu, children }: {
         title={title} onClick={() => setOpen(o => !o)}>
         {label}
       </button>
-      <div id={id} className={`nav-panel panel ${end ? 'end' : ''}`} role={menu ? 'menu' : undefined} aria-label={title} hidden={!open}>
+      <div id={id} className={`nav-panel panel glass-sheet ${end ? 'end' : ''}`} role={menu ? 'menu' : undefined} aria-label={title} hidden={!open}>
         {open && children(() => setOpen(false))}
       </div>
     </div>

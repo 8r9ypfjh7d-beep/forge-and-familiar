@@ -1,79 +1,103 @@
-/* Top bar. Wide screens: tabs at the start, player menu at the end.
-   Phones: the same tabs become a bottom bar within thumb reach, and the player menu joins it. */
-.nav { position: relative; z-index: 30; padding: 10px 0; gap: 8px; flex-wrap: nowrap; }
-.nav-tabs { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; min-width: 0; }
-.nav-tab, .nav-player {
-  font: inherit; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 12px; border: 1px solid transparent; border-radius: 10px;
-  background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap;
+/* Top bar, the reference example of the Liquid Glass standard (src/design/DESIGN.md).
+   Wide screens: a floating glass bar pinned to the top, tabs at the start, player menu at the end.
+   Phones: the same tabs become a floating glass tab bar within thumb reach, and the player menu joins it.
+   The bar's fill follows what is under it: --glass-top on wide screens, --glass-bottom on phones. */
+.nav.glass-chrome {
+  --glass-edge: var(--glass-top);
+  position: sticky; inset-block-start: var(--sp-2); z-index: 30;
+  margin-block: var(--sp-2) var(--sp-5); padding: 6px; gap: var(--sp-2); flex-wrap: nowrap;
+  border-radius: var(--r-pill); border-block-end: 1px solid var(--glass-stroke);
 }
-.nav-tab:hover, .nav-player:hover { color: var(--ink); background: var(--accent-soft); }
-.nav-tab.on { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+.nav-tabs { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.nav-tab, .nav-player {
+  font: inherit; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 0 14px; border: 0; border-radius: var(--r-pill);
+  background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-glass), color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.nav-tab:hover, .nav-player:hover { color: var(--ink); background: var(--glass-thin); }
+.nav-tab:active, .nav-player:active { transform: scale(0.95); }
+/* Selected tab: the lens. */
+.nav-tab.on {
+  color: var(--accent); font-weight: 600; background: var(--glass-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--glass-highlight);
+}
 .nav-icon { position: relative; display: inline-grid; place-items: center; }
 .nav-badge {
   position: absolute; inset-block-start: -6px; inset-inline-end: -9px;
-  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; display: grid; place-items: center;
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: var(--r-pill); display: grid; place-items: center;
   background: var(--bad); color: #fff; font-size: 0.68rem; font-weight: 700; line-height: 1;
+  box-shadow: 0 0 0 2px var(--glass-thick);
 }
-.nav-badge.inline { position: static; margin-inline-start: auto; background: var(--accent); color: var(--accent-ink); }
+.nav-badge.inline { position: static; margin-inline-start: auto; background: var(--accent); color: var(--accent-ink); box-shadow: none; }
 
 .nav-menu { position: relative; }
-.nav-player { color: var(--ink); border-color: var(--line); padding: 4px 10px 4px 4px; border-radius: 999px; }
+.nav-player { color: var(--ink); padding-block: 0; padding-inline: 4px 12px; }
 .nav-avatar {
   width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
   background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 0.85rem;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
 }
 .nav-name { max-width: 12ch; overflow: hidden; text-overflow: ellipsis; }
 
+/* Menus: glass sheets that grow out of their button. */
 .nav-panel {
-  position: absolute; inset-block-start: calc(100% + 6px); inset-inline-start: 0; z-index: 35;
-  min-width: 220px; padding: 6px; display: grid; gap: 2px;
+  position: absolute; inset-block-start: calc(100% + 10px); inset-inline-start: 0; z-index: 35;
+  min-width: 230px; padding: 6px; display: grid; gap: 2px;
+  transform-origin: top; animation: nav-panel-in var(--dur-med) var(--ease-glass);
 }
 .nav-panel.end { inset-inline-start: auto; inset-inline-end: 0; }
 .nav-panel[hidden] { display: none; }
+@keyframes nav-panel-in { from { opacity: 0; transform: scale(0.94); } }
 .nav-item {
   font: inherit; display: flex; align-items: center; gap: 10px; width: 100%; text-align: start;
-  padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); cursor: pointer;
+  min-height: 42px; padding: 0 12px; border: 0; border-radius: calc(var(--r-lg) - 6px); background: transparent; color: var(--ink); cursor: pointer;
 }
-.nav-item:hover, .nav-item.on { background: var(--accent-soft); }
-.nav-item.on { color: var(--accent); font-weight: 600; }
+.nav-item:hover { background: var(--glass-thin); }
+.nav-item.on { background: var(--glass-tint); color: var(--accent); font-weight: 600; }
 .nav-settings { display: grid; gap: 8px; padding: 4px; }
 .nav-settings .profile { display: grid; gap: 4px; }
-.nav-settings select { width: 100%; padding: 7px 10px; font-size: 1rem; }
+.nav-settings select { width: 100%; min-height: 40px; padding: 0 10px; font-size: 1rem; border-radius: var(--r-sm); border-color: var(--glass-hairline); background: color-mix(in srgb, var(--panel) 70%, transparent); }
 .nav-field { display: grid; gap: 4px; }
 .nav-label.short { display: none; }
 
 @media (max-width: 640px) {
-  .nav {
-    position: fixed; inset-inline: 0; inset-block-end: 0; margin: 0; z-index: 30;
-    padding: 4px 4px max(4px, env(safe-area-inset-bottom));
-    background: var(--panel); border-block-start: 1px solid var(--line); border-block-end: 0;
-    box-shadow: 0 -4px 16px rgb(0 0 0 / 0.08);
+  /* Floating tab bar: inset from the edges, lifted off the home indicator, at most 68px tall
+     so the dice button (76px up) and PWA banner keep clearing it. */
+  .nav.glass-chrome {
+    --glass-edge: var(--glass-bottom);
+    position: fixed; inset-inline: 10px; inset-block-start: auto;
+    inset-block-end: max(8px, calc(env(safe-area-inset-bottom) - 12px));
+    margin: 0; padding: 5px; gap: 0; border-radius: var(--r-xl);
+    box-shadow: var(--glass-highlight), var(--glass-shadow-lift);
   }
   .nav-tabs { display: contents; }
   .nav-tabs > *, .nav > .nav-menu { flex: 1 1 0; min-width: 0; }
   .nav-tab, .nav-player {
-    width: 100%; flex-direction: column; gap: 2px; padding: 6px 2px; border: 0; border-radius: 8px;
-    font-size: 0.68rem; color: var(--muted); background: transparent;
+    width: 100%; min-height: 54px; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 2px;
+    border-radius: calc(var(--r-xl) - 5px); font-size: 0.68rem; font-weight: 500; color: var(--muted);
   }
-  .nav-tab.on { border: 0; background: transparent; }
-  .nav-tab.on .nav-icon { background: var(--accent-soft); border-radius: 999px; }
-  .nav-icon { padding: 2px 12px; }
-  .nav-badge { inset-inline-end: 2px; }
+  .nav-tab:hover, .nav-player:hover { background: transparent; }
+  .nav-badge { inset-inline-end: -8px; }
   .nav-label:has(+ .nav-label.short) { display: none; }
   .nav-label.short { display: inline; }
   .nav-label, .nav-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   .nav-player .account-badge { display: none; }
   .nav-avatar { width: 24px; height: 24px; font-size: 0.75rem; }
-  .nav-panel { inset-block-start: auto; inset-block-end: calc(100% + 8px); position: fixed; inset-inline: 8px; min-width: 0; }
-  .nav-panel.end { inset-inline: 8px; }
-  .nav-panel { inset-block-end: calc(64px + env(safe-area-inset-bottom)); }
+  .nav-panel, .nav-panel.end {
+    position: fixed; inset-block-start: auto; inset-inline: 10px; min-width: 0;
+    inset-block-end: calc(80px + env(safe-area-inset-bottom)); transform-origin: bottom;
+  }
 
   /* Room for the bar under the page and the floating dice. */
-  .app:has(> .nav) { padding-block-start: 12px; padding-block-end: 96px; }
+  .app:has(> .nav) { padding-block-start: 12px; padding-block-end: 104px; }
   .app:has(> .nav) .ff-dice-fab { inset-block-end: calc(76px + env(safe-area-inset-bottom)); }
   .app:has(.nav-panel:not([hidden])) .ff-dice-fab { display: none; }
   body:has(.nav) .ff-pwa { bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
+
+/* Solid fallbacks keep the shape; high contrast also draws the edges. */
+:root[data-contrast="high"] .nav.glass-chrome { border: 2px solid var(--line); }
+:root[data-contrast="high"] .nav-tab.on { box-shadow: inset 0 0 0 2px var(--accent); }
 
 @media print { .nav { display: none; } }
