@@ -84,7 +84,7 @@ export function AccessibilityDialog({ ref }: { ref: React.RefObject<HTMLDialogEl
           ))}
         </div>
         <p className="a11y-sample" aria-hidden="true">
-          <strong>Brannoc Ashvale</strong> · {t('a11y.sampleClass')} · <span className="a11y-sample-hp">49 / 56 HP</span>
+          <strong>Brannoc Ashvale</strong> · {t('a11y.sampleClass')} · <span className="a11y-sample-hp" dir="ltr">49 / 56 HP</span>
         </p>
       </section>
 
