@@ -74,7 +74,7 @@ export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
   const own = c.kind === 'pc' ? status.conditions : c.conditions
 
   return (
-    <li className={`combatant panel${active ? ' active' : ''}${life === 'dead' ? ' out' : ''}`} aria-current={active ? 'true' : undefined}>
+    <li className={`combatant glass${active ? ' active' : ''}${life === 'dead' ? ' out' : ''}`} aria-current={active ? 'true' : undefined}>
       <div className="init">
         <label className="sr-only" htmlFor={`init-${c.id}`}>{t('combat.initFor', { name: c.name })}</label>
         <input id={`init-${c.id}`} inputMode="numeric" value={c.initiative ?? ''} placeholder="–"
@@ -106,15 +106,15 @@ export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
         {(held || on.length > 0 || status.conditions.length > 0) && (
           <div className="chips">
             {held && (
-              <button className="chip conc" onClick={() => act(e => dropConcentration(e, c.id))}
+              <button className="glass-chip conc" onClick={() => act(e => dropConcentration(e, c.id))}
                 title={t('combat.concTitle')}>◎ <bdi>{held.name}</bdi> · <bdi>{rounds(held.remaining)}</bdi> ✕</button>
             )}
-            {on.map(e => <span key={e.id} className="chip fx" title={e.sourceId ? t('combat.from', { name: enc.combatants.find(x => x.id === e.sourceId)?.name ?? '' }) : undefined}><bdi>{e.name}</bdi> · <bdi>{rounds(e.remaining)}</bdi></span>)}
+            {on.map(e => <span key={e.id} className="glass-chip fx" title={e.sourceId ? t('combat.from', { name: enc.combatants.find(x => x.id === e.sourceId)?.name ?? '' }) : undefined}><bdi>{e.name}</bdi> · <bdi>{rounds(e.remaining)}</bdi></span>)}
             {status.conditions.filter(x => !(c.kind === 'npc' && !c.conditions.includes(x))).map(x => (
-              <button key={x} className="chip cond" onClick={() => setConditions(own.filter(y => y !== x))} title={t('common.remove')}>{cond(x)} ✕</button>
+              <button key={x} className="glass-chip cond" onClick={() => setConditions(own.filter(y => y !== x))} title={t('common.remove')}>{cond(x)} ✕</button>
             ))}
             {c.kind === 'npc' && fromEffects.filter(x => !c.conditions.includes(x)).map(x => (
-              <span key={x} className="chip cond" title={t('combat.fromEffect')}>{cond(x)}</span>
+              <span key={x} className="glass-chip cond" title={t('combat.fromEffect')}>{cond(x)}</span>
             ))}
           </div>
         )}
@@ -124,13 +124,13 @@ export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
         <input aria-label={t('combat.amountFor', { name: c.name })} inputMode="numeric" placeholder="0" value={amount}
           onChange={ev => setAmount(ev.target.value.replace(/\D/g, ''))}
           onKeyDown={ev => { if (ev.key === 'Enter' && n) { damage(); setAmount('') } }} />
-        <button className="btn small danger" disabled={!n || life === 'dead'} onClick={() => { damage(); setAmount('') }}>{t('combat.dmg')}</button>
-        <button className="btn small heal" disabled={!n || (c.kind === 'pc' && life === 'dead')} onClick={() => { healUp(); setAmount('') }}>{t('combat.heal')}</button>
+        <button className="glass-btn small danger" disabled={!n || life === 'dead'} onClick={() => { damage(); setAmount('') }}>{t('combat.dmg')}</button>
+        <button className="glass-btn small heal" disabled={!n || (c.kind === 'pc' && life === 'dead')} onClick={() => { healUp(); setAmount('') }}>{t('combat.heal')}</button>
         <select aria-label={t('combat.addConditionTo', { name: c.name })} value="" onChange={ev => setConditions([...own, ev.target.value as ConditionId])}>
           <option value="">{t('combat.addCondition')}</option>
           {CONDITIONS.filter(x => !own.includes(x)).map(x => <option key={x} value={x}>{cond(x)}</option>)}
         </select>
-        {active && life === 'dying' && <button className="btn small primary" onClick={deathSave}>{t('combat.deathSave')}</button>}
+        {active && life === 'dying' && <button className="glass-btn small prominent" onClick={deathSave}>{t('combat.deathSave')}</button>}
         <button className="icon" onClick={() => confirm(t('combat.removeConfirm', { name: c.name })) && act(e => removeCombatant(e, c.id))} aria-label={t('combat.removeName', { name: c.name })}>✕</button>
       </div>
     </li>

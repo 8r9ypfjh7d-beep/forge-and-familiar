@@ -24,8 +24,8 @@ export function Effects({ enc, act }: { enc: Encounter; act: Act }) {
   const { t, term } = useI18n()
   const name = (id?: string) => enc.combatants.find(c => c.id === id)?.name
   return (
-    <section className="panel effects">
-      <h3>{t('combat.effects')}</h3>
+    <section className="glass thick effects">
+      <h3 className="glass-eyebrow">{t('combat.effects')}</h3>
       {enc.effects.length === 0
         ? <p className="muted small">{t('combat.effectsEmpty')}</p>
         : (
@@ -62,7 +62,7 @@ function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
   const [condition, setCondition] = useState<ConditionId | ''>('')
   const [concentration, setConcentration] = useState(false)
 
-  if (!open) return <button className="btn small" onClick={() => { setSource(enc.activeId ?? ''); setOpen(true) }}>{t('combat.addEffect')}</button>
+  if (!open) return <button className="glass-btn small" onClick={() => { setSource(enc.activeId ?? ''); setOpen(true) }}>{t('combat.addEffect')}</button>
 
   const d = DURATIONS[duration]
   const submit = (ev: React.FormEvent) => {
@@ -111,8 +111,8 @@ function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
         {t('combat.concentration')}
       </label>
       <div className="row">
-        <button className="btn primary" disabled={!effectName.trim()}>{t('combat.addEffectSubmit')}</button>
-        <button type="button" className="btn ghost" onClick={() => setOpen(false)}>{t('common.cancel')}</button>
+        <button className="glass-btn prominent" disabled={!effectName.trim()}>{t('combat.addEffectSubmit')}</button>
+        <button type="button" className="glass-btn plain" onClick={() => setOpen(false)}>{t('common.cancel')}</button>
       </div>
     </form>
   )

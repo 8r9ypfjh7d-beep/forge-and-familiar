@@ -20,13 +20,13 @@ export function PendingChecks({ enc, act }: { enc: Encounter; act: Act }) {
           return r ? resolveCheck(e, p.id, r.total, r.autoFail) : e
         })
         return (
-          <div key={p.id} className="check-card panel" role="alert">
+          <div key={p.id} className="check-card glass" role="alert">
             <p>{t('combat.checkText', { name: c.name, dc: p.dc, effect: spell.name })}</p>
             <div className="row">
-              <button className="btn primary small" onClick={roll}>{t('combat.rollSave')}</button>
-              <button className="btn small" onClick={() => act(e => resolveCheck(e, p.id, p.dc))}>{t('combat.passed')}</button>
-              <button className="btn small" onClick={() => act(e => resolveCheck(e, p.id, 0, true))}>{t('combat.failed')}</button>
-              <button className="btn ghost small" onClick={() => act(e => dismissCheck(e, p.id))}>{t('combat.skip')}</button>
+              <button className="glass-btn prominent small" onClick={roll}>{t('combat.rollSave')}</button>
+              <button className="glass-btn small" onClick={() => act(e => resolveCheck(e, p.id, p.dc))}>{t('combat.passed')}</button>
+              <button className="glass-btn small" onClick={() => act(e => resolveCheck(e, p.id, 0, true))}>{t('combat.failed')}</button>
+              <button className="glass-btn small plain" onClick={() => act(e => dismissCheck(e, p.id))}>{t('combat.skip')}</button>
             </div>
           </div>
         )

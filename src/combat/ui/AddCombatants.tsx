@@ -27,8 +27,8 @@ export function AddCombatants({ enc, act }: { enc: Encounter; act: Act }) {
     act(e => addCombatant(e, { id: newId(), name: c.name, kind: 'pc', characterId: c.id, initiative: null, initBonus: derive(c).initiative }))
 
   return (
-    <section className="panel add">
-      <h3>{t('combat.addTitle')}</h3>
+    <section className="glass add">
+      <h3 className="glass-eyebrow">{t('combat.addTitle')}</h3>
       <div className="row">
         <select aria-label={t('combat.addParty')} value="" disabled={!available.length}
           onChange={ev => { const x = available.find(a => a.c.id === ev.target.value); if (x) addPc(x.c) }}>
@@ -36,7 +36,7 @@ export function AddCombatants({ enc, act }: { enc: Encounter; act: Act }) {
           {available.map(({ owner, c }) => <option key={c.id} value={c.id}>{c.name} ({owner})</option>)}
         </select>
         {available.length > 1 && (
-          <button className="btn small" onClick={() => available.forEach(x => addPc(x.c))}>{t('combat.addEveryone')}</button>
+          <button className="glass-btn small" onClick={() => available.forEach(x => addPc(x.c))}>{t('combat.addEveryone')}</button>
         )}
       </div>
       <MonsterForm act={act} />
@@ -80,7 +80,7 @@ function MonsterForm({ act }: { act: Act }) {
       <label>{t('stat.ac')}<input inputMode="numeric" value={f.ac} onChange={set('ac')} placeholder="15" /></label>
       <label>{t('combat.initMod')}<input inputMode="numeric" value={f.init} onChange={set('init')} /></label>
       <label>{t('combat.conSave')}<input inputMode="numeric" value={f.con} onChange={set('con')} /></label>
-      <button className="btn primary" disabled={!f.name.trim()}>{t('common.add')}</button>
+      <button className="glass-btn prominent" disabled={!f.name.trim()}>{t('common.add')}</button>
       {error && <p className="bad small" role="alert">{error}</p>}
     </form>
   )
