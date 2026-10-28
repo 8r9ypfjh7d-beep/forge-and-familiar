@@ -27,6 +27,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261027120000_parties.sql
 \ir ../migrations/20261027130000_guard_grants.sql
 \ir ../migrations/20261028090000_party_shared.sql
+\ir ../migrations/20261028100000_party_dm.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -199,7 +200,7 @@ exception when insufficient_privilege then raise notice 'ok: parties are created
 end $$;
 
 set test.uid = '00000000-0000-0000-0000-00000000000b';
-select pg_temp.check((select count(*) from parties) = 0, 'outsider cannot list parties or codes');
+select pg_temp.check((select count(*) from parties where id <> 'party-garden-gang') = 0, 'outsider cannot list parties or codes');
 select pg_temp.check(join_party('zzz-zzz', null) is null, 'unknown code joins nothing');
 insert into characters (id, owner_id, data) values ('c-tamir', 'acct-tamir', '{"name":"Ash"}');
 insert into rolls (id, owner_id, character_id, data, rolled_at) values ('r-old', 'acct-tamir', 'c-tamir', '{}', now() - interval '1 day');
@@ -215,7 +216,7 @@ do $$ begin
 exception when insufficient_privilege then raise notice 'ok: members cannot change the DM';
 end $$;
 update party_members set character_id = 'c-hijack' where party_id = 'p-1' and user_id = 'acct-roy';
-select pg_temp.check((select character_id from party_members where user_id = 'acct-roy') is null, 'cannot change another member''s character');
+select pg_temp.check((select character_id from party_members where party_id = 'p-1' and user_id = 'acct-roy') is null, 'cannot change another member''s character');
 insert into dm_requests (id, from_id, character_id, data) values ('q-tamir', 'acct-tamir', 'c-tamir', '{"title":"Shield"}');
 
 set test.uid = '00000000-0000-0000-0000-00000000000a';
@@ -226,7 +227,7 @@ update dm_requests set status = 'granted' where id = 'q-tamir';
 select pg_temp.check((select status from dm_requests where id = 'q-tamir') = 'granted', 'party DM answers it');
 
 set test.uid = '00000000-0000-0000-0000-00000000000c';
-select pg_temp.check((select count(*) from parties) + (select count(*) from rolls) = 0, 'non-member sees no party or rolls');
+select pg_temp.check((select count(*) from parties where id <> 'party-garden-gang') + (select count(*) from rolls) = 0, 'non-member sees no party or rolls');
 
 set test.uid = '00000000-0000-0000-0000-00000000000a';
 select leave_party('p-1');
@@ -235,7 +236,36 @@ set test.uid = '00000000-0000-0000-0000-00000000000b';
 select pg_temp.check((select dm_id from parties where id = 'p-1') = 'acct-tamir', 'DM leaving hands the party to the next member');
 select leave_party('p-1');
 reset role;
-select pg_temp.check((select count(*) from parties) = 0, 'last member leaving deletes the party');
+select pg_temp.check((select count(*) from parties where id = 'p-1') = 0, 'last member leaving deletes the party');
+set role authenticated;
+
+-- Garden Gang is seeded with every friend and Noa as its DM. A new party names its DM.
+reset role;
+select pg_temp.check((select dm_id from parties where id = 'party-garden-gang') = 'acct-noa', 'Garden Gang is seeded with Noa as DM');
+select pg_temp.check((select count(*) from party_members where party_id = 'party-garden-gang') = 5, 'every friend is in Garden Gang');
+set role authenticated;
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select dm_id from create_party('p-3', 'Side quest', 'GHJ234', 'acct-roy')) = 'acct-roy', 'Tamir makes a party with Roy as DM');
+select pg_temp.check((select array_agg(user_id order by user_id) from party_members where party_id = 'p-3') = '{acct-roy,acct-tamir}', 'creator and chosen DM both join');
+do $$ begin
+  perform create_party('p-4', 'Nobody', 'JKM234', 'acct-ghost');
+  raise exception 'FAILED: made a party with an unknown DM';
+exception when raise_exception then
+  if sqlerrm <> 'unknown DM' then raise; end if;
+  raise notice 'ok: the DM must be an account';
+end $$;
+insert into dm_requests (id, from_id, character_id, data) values ('q-side', 'acct-tamir', 'c-tamir', '{"title":"Rope"}');
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select count(*) from dm_requests where id = 'q-side') = 1, 'the party''s chosen DM reads a member''s request');
+reset role;
+delete from party_members where party_id = 'party-garden-gang' and user_id = 'acct-tamir';
+set role authenticated;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from dm_requests where id = 'q-side') = 0, 'a DM does not read requests of players outside their parties');
+reset role;
+delete from parties where id = 'p-3';
+insert into party_members (party_id, user_id, joined_at) values ('party-garden-gang', 'acct-tamir', iso_now());
+delete from dm_requests where id = 'q-side';
 set role authenticated;
 
 -- Roy's data survived Tamir's attempts.

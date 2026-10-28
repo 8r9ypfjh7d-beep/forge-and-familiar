@@ -1,6 +1,6 @@
 # Accounts
 
-Personal activation codes for the group, so each friend signs in as themselves and the DM is marked as DM.
+Personal activation codes for the group, so each friend signs in as themselves and the DM of the party in play is marked as DM.
 
 ## Files Covered
 
@@ -19,7 +19,7 @@ Personal activation codes for the group, so each friend signs in as themselves a
 - A new device opens on the activation screen. A valid code creates the friend's profile with their fixed account id (`acct-roy`...) and makes it active, so characters they build are owned by that id.
 - "No code? Use this device only" keeps the old local-profile flow. Devices with profiles already never see the screen; the player picker has "Enter activation code…" to add an account there.
 - Codes are typed loosely (case, spaces and dashes ignored) and checked only by the server's `claim_account` (rate limited). The site has no codes or hashes, since a hash of a short code can be cracked offline.
-- `getSession()?.role === 'dm'` is how other modules tell the DM apart. `isAdmin(getSession()?.id)` marks the admin (Ziv), who gets the admin page (`src/admin/ADMIN.md`).
+- `role` is kept on the account but no longer decides pages: the DM is whoever runs the party in play (`src/party/active.ts`). `AccountBadge` shows the DM badge for that party's DM. `isAdmin(getSession()?.id)` marks the admin (Ziv), who gets the admin page (`src/admin/ADMIN.md`).
 
 ## Adding a friend
 

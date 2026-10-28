@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { getCloudAccountId } from '../cloud'
 import { SecretRolls } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { Character, UserProfile } from '../model/character'
@@ -8,6 +9,7 @@ import { SessionScheduler } from '../schedule'
 import { vitals } from '../sheet/engine'
 import { getCharacter, listCharacters, listProfiles, onCharactersChanged } from '../storage'
 import { fetchAccountNames, fetchPartyCharacters, watchPartyCharacters } from './cloud'
+import { markPicked } from './active'
 import { formatCode } from './code'
 import { PartyStash } from './PartyStash'
 import { RollFeed } from './RollFeed'
@@ -45,24 +47,53 @@ export function PartyView({ userId, onOpenCharacter }: { userId: string; onOpenC
           </div>
         )}
       <div className="party-forms">
-        <CreateForm onCreate={async name => setOpenId((await createParty(name, userId)).id)} />
-        <JoinForm userId={userId} onJoined={setOpenId} />
+        <CreateForm userId={userId} onCreate={async (name, dmId) => { markPicked(userId); setOpenId((await createParty(name, userId, dmId)).id) }} />
+        <JoinForm userId={userId} onJoined={id => { markPicked(userId); setOpenId(id) }} />
       </div>
     </section>
   )
 }
 
-function CreateForm({ onCreate }: { onCreate: (name: string) => void }) {
+/** Who can run the party: every account for the signed-in account, else the profiles on this device. */
+function useDmChoices(userId: string) {
+  const [choices, setChoices] = useState<{ id: string; name: string }[]>([])
+  useEffect(() => {
+    let live = true
+    const load = async () => {
+      if (getCloudAccountId() === userId) {
+        const names = await fetchAccountNames()
+        if (Object.keys(names).length) return Object.entries(names).map(([id, name]) => ({ id, name }))
+      }
+      return (await listProfiles()).map(p => ({ id: p.id, name: p.displayName }))
+    }
+    load().then(list => { if (live) setChoices(list.sort((a, b) => Number(b.id === userId) - Number(a.id === userId) || a.name.localeCompare(b.name))) })
+    return () => { live = false }
+  }, [userId])
+  return choices
+}
+
+function CreateForm({ userId, onCreate }: { userId: string; onCreate: (name: string, dmId: string) => void }) {
   const [name, setName] = useState('')
+  const [dmId, setDmId] = useState('')
+  const choices = useDmChoices(userId)
   const { t } = useI18n()
+  const ready = !!name.trim() && !!dmId
   return (
-    <form className="glass party-form" onSubmit={e => { e.preventDefault(); if (name.trim()) onCreate(name.trim()) }}>
+    <form className="glass party-form" onSubmit={e => { e.preventDefault(); if (ready) onCreate(name.trim(), dmId) }}>
       <h3>{t('party.start')}</h3>
       <p className="muted small">{t('party.startHelp')}</p>
-      <div className="row">
-        <input className="glass-field" value={name} onChange={e => setName(e.target.value)} placeholder={t('party.name')} aria-label={t('party.name')} />
-        <button className="glass-btn prominent" disabled={!name.trim()}>{t('party.create')}</button>
+      <div className="field">
+        <label htmlFor="party-name">{t('party.name')}</label>
+        <input id="party-name" className="glass-field" value={name} onChange={e => setName(e.target.value)} placeholder={t('party.name')} />
       </div>
+      <div className="field">
+        <label htmlFor="party-dm">{t('party.chooseDm')}</label>
+        <select id="party-dm" className="glass-field" value={dmId} onChange={e => setDmId(e.target.value)} required>
+          <option value="" disabled>{t('party.chooseDmPlaceholder')}</option>
+          {choices.map(c => <option key={c.id} value={c.id}>{c.id === userId ? t('party.dmMe', { name: c.name }) : c.name}</option>)}
+        </select>
+      </div>
+      <button className="glass-btn prominent" disabled={!ready}>{t('party.create')}</button>
     </form>
   )
 }

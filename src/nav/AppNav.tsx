@@ -8,7 +8,7 @@ import { NavIcon } from './icons'
 import { navItems, navKeyFor, type NavContext, type NavKey } from './items'
 import './nav.css'
 
-export function AppNav({ viewKind, onGo, playerName, isDm, dmAccount, admin, dmBadge, onAccessibility, children }: NavContext & {
+export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmBadge, onAccessibility, children }: NavContext & {
   viewKind: string
   onGo: (key: NavKey) => void
   playerName: string
@@ -19,7 +19,7 @@ export function AppNav({ viewKind, onGo, playerName, isDm, dmAccount, admin, dmB
   children?: ReactNode
 }) {
   const { t } = useI18n()
-  const { main, more } = navItems({ isDm, dmAccount, admin })
+  const { main, more } = navItems({ isDm, partyDm, admin })
   const current = navKeyFor(viewKind)
   const requests = useRequests()
   const waiting = isDm && requests ? inbox(requests).length : 0
