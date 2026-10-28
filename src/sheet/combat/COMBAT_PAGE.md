@@ -8,8 +8,8 @@ The sheet's combat mode, laid out like Roll20's character page. Only the layout 
 |------|---------|
 | `combat.ts` | Pure: `spellAttackRows` (known library spells and typed-in quick-cast spells that attack or force a save), `withRollFromText` (save/attack from the text when the library has none), `addAction` / `updateAction` / `removeAction` / `actionsOf` (the player's own actions), `resolveDice` (fills STR…CHA, PROF, LEVEL), `actionRoll` (an action's attack bonus or save DC and dice), `isHealing`, `effectToggles` (Rage, Sneak Attack, Hex, Hunter's Mark, Divine Favor), `masteryLimit` |
 | `CombatPage.tsx` | `CharacterCard` (portrait and level, class and subclass, race, background, XP, AC, speed, proficiency, passive perception, Level Up, Initiative roll, and the sheet's HP and Rest cards), `AbilitiesPanel` with Mod and Save rolls, `SkillsPanel` (all three shared with story mode), `CombatTabs`, `Fight` (Combat tab), `FeaturesTraits` |
-| `combat.css` | Styles, logical properties for RTL |
-| `combat.test.ts` | Helper tests |
+| `combat.css` | Styles, logical properties for RTL. The top part (character card, abilities, skills) is shared with story mode; the combat-only part (tabs, attacks, roll lines, effects switches, actions, action form) follows the Liquid Glass standard in `src/design/DESIGN.md`, with glass tokens only so high contrast and Reduce transparency turn it solid. The DM screen reuses the tab bar |
+| `combat.test.ts` | Helper tests, and checks that the combat-only styles use glass tokens, logical properties and high-contrast edges |
 
 ## Rules
 
