@@ -32,4 +32,7 @@ Up to 100 dice and 1000 sides per term.
 - `<DiceFab open onOpenChange character?>` is the floating dice button App.tsx puts on every screen (there is no dice page). It opens a small window with the `DiceTray`; the `D` shortcut and Escape toggle it. On a character's screen, free rolls are tagged with that character.
 - `<DiceTray character? showAll?>` is the full roller: d4 to d100 buttons, a modifier, an Adv/Dis toggle for a lone d20, a notation box and the history.
 
+## Look
+`ui/dice.css` follows the Liquid Glass standard (`src/design/DESIGN.md`): the dice button is tinted accent glass, the window is a thick glass sheet that grows out of it, die keys and quiet buttons use a faint ink fill (`--ff-dice-fill`) so they show on light and dark glass, the advantage toggle is a segmented control, and roll cards keep their layout on `--glass-thin`. Colours come from the app tokens (crit/fumble from `--good`/`--bad`); the `--ff-*` hooks still override them. High contrast and Reduce transparency go solid through the glass tokens, with 2px edges in high contrast. The nat 20 / nat 1 overlays keep their own palettes; only their ✕ and hint are glass. `style.test.ts` keeps the CSS on logical properties.
+
 Every `RollResult` is plain JSON with `roller`, so Campaign Mode can broadcast the rolls to the DM later.
