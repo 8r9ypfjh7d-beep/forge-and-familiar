@@ -130,3 +130,13 @@
 /* High contrast: state shown only by fill gets an edge. */
 :root[data-contrast="high"] .ff-party .conds li, :root[data-contrast="high"] .ff-party .code { border: 2px solid var(--accent); }
 :root[data-contrast="high"] .ff-party .bar { border: 1px solid var(--ink); }
+
+/* Party picker: shown on entering the app when the player is in more than one party */
+.ff-party.party-picker { max-width: 560px; margin-inline: auto; padding-block-start: var(--sp-5); }
+.ff-party .party-picker-head { display: grid; gap: var(--sp-1); text-align: center; }
+.ff-party .party-picker-head p { margin: 0; }
+.ff-party .party-picker-list { display: grid; gap: var(--sp-3); }
+.ff-party .party-pick { grid-template-columns: 1fr auto; align-items: center; min-height: 72px; }
+.ff-party .party-pick > .muted { grid-column: 1; }
+.ff-party .party-pick-role { grid-column: 2; grid-row: 1 / span 2; }
+.ff-party .party-picker-skip { justify-self: center; }

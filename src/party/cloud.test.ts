@@ -18,8 +18,9 @@ vi.mock('../cloud', () => {
     rpc: async (name: string, args: Record<string, string | null>) => {
       const now = new Date().toISOString()
       if (name === 'create_party') {
-        server.parties.set(args.p_id!, { id: args.p_id!, name: args.p_name!, code: args.p_code!, dm_id: server.me!, stash: null, rev: 1, created_at: now, updated_at: now })
+        server.parties.set(args.p_id!, { id: args.p_id!, name: args.p_name!, code: args.p_code!, dm_id: args.p_dm ?? server.me!, stash: null, rev: 1, created_at: now, updated_at: now })
         server.members.push({ party_id: args.p_id!, user_id: server.me!, character_id: null, joined_at: now })
+        if (args.p_dm && args.p_dm !== server.me) server.members.push({ party_id: args.p_id!, user_id: args.p_dm, character_id: null, joined_at: now })
         return { data: null, error: null }
       }
       if (name === 'join_party') {
@@ -86,10 +87,21 @@ describe('cloud parties', () => {
     expect((await joinParty('ZZZZZZ', 'acct-tamir')).ok).toBe(false)
   })
 
+  it('names another player as DM; both join', async () => {
+    server.me = 'acct-ziv'
+    const party = await createParty('Garden', 'acct-ziv', 'acct-noa')
+    expect(server.parties.has(party.id)).toBe(true)
+    expect(party.dmId).toBe('acct-noa')
+    expect(party.members.map(m => m.userId).sort()).toEqual(['acct-noa', 'acct-ziv'])
+  })
+
   it('a local profile on a signed-in device keeps parties on the device', async () => {
     const party = await createParty('Kids table', 'local-1')
     expect(server.parties.size).toBe(0)
     expect(await listParties('local-1')).toEqual([party])
+    const other = await createParty('Second table', 'local-1', 'local-2')
+    expect(other.dmId).toBe('local-2')
+    expect(other.members.map(m => m.userId)).toEqual(['local-1', 'local-2'])
   })
 
   it('stash changes read again when someone else wrote first', async () => {

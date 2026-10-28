@@ -11,7 +11,7 @@ import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
-import { PartyRollRelay, PartyView } from './party'
+import { PartyPicker, PartyRollRelay, PartySwitcher, PartyView, useActiveParty } from './party'
 import { RulesQA } from './rulesqa'
 import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
@@ -39,7 +39,7 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId())
   const [session, setSession] = useState<Session | null>(getSession)
   const [characters, setCharacters] = useState<Character[]>([])
-  const [view, setView] = useState<View>(() => (getSession()?.role === 'dm' ? { kind: 'dm' } : { kind: 'list' }))
+  const [view, setView] = useState<View>({ kind: 'list' })
   const [diceOpen, setDiceOpen] = useState(false)
   const [askEdit, setAskEdit] = useState<Character | null>(null)
   const requests = useRequests()
@@ -63,7 +63,7 @@ export default function App() {
     setProfiles(await listProfiles())
     if (s) {
       setActiveId(s.id)
-      setView(s.role === 'dm' ? { kind: 'dm' } : { kind: 'list' })
+      setView({ kind: 'list' })
     }
   }), [])
 
@@ -77,14 +77,20 @@ export default function App() {
   useEffect(() => onCharactersChanged(refresh), [refresh])
   useCloudSync(active?.id)
 
-  // The DM pages (DM screen, combat tracker) are for the DM account only, plus the admin account (Ziv).
-  // Roles follow the open profile: the admin opened as a player sees exactly what that player sees.
-  // Players never see the DM pages, even if they lead a party.
+  // On entering the app the player picks the party (campaign) they play now. That party's DM gets the
+  // DM pages (DM screen, combat tracker); everyone else gets the player pages. The admin (Ziv) also
+  // opens the DM pages from the admin page. Roles follow the open profile, as for any player.
+  const playing = useActiveParty(active?.id ?? '')
   const ownProfile = !!session && session.id === active?.id
   const admin = ownProfile && isAdmin(session.id)
-  const dmAccount = ownProfile && session.role === 'dm'
-  const isDm = dmAccount || admin
-  const nav = { isDm, dmAccount, admin }
+  const partyDm = playing.isDm
+  const isDm = partyDm || admin
+  const nav = { isDm, partyDm, admin }
+  // Picking (or switching) the party opens its home screen: the DM screen for its DM, else Characters.
+  const playKey = playing.parties ? `${active?.id}:${playing.party?.id ?? ''}:${partyDm}` : null
+  useEffect(() => {
+    if (playKey) setView(partyDm ? { kind: 'dm' } : { kind: 'list' })
+  }, [playKey, partyDm])
   // A screen this account may not open (a shortcut, a link, a switched profile) falls back to its home screen.
   const allowed = canOpen(view.kind, nav)
   useEffect(() => {
@@ -137,15 +143,17 @@ export default function App() {
         onGo={key => setView({ kind: key })}
         playerName={active.displayName}
         {...nav}
-        dmBadge={<>{session?.id === active.id && <AccountBadge session={session} />}<SyncBadge compact /></>}
+        dmBadge={<><AccountBadge dm={partyDm} /><SyncBadge compact /></>}
         onAccessibility={() => a11yDialog.current?.showModal()}
       >
         <SyncBadge />
         <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
+        {playing.parties && <PartySwitcher parties={playing.parties} party={playing.party} onPick={playing.choose} />}
       </AppNav>
       <AccessibilityDialog ref={a11yDialog} />
       <main id="main" ref={mainRef} tabIndex={-1}>
         {ownProfile && <CloudLinkNotice />}
+        {playing.mustPick && playing.parties ? <PartyPicker parties={playing.parties} userId={active.id} onPick={playing.choose} /> : <>
         {view.kind === 'list' && (
           <CharacterList
             owner={active}
@@ -237,6 +245,7 @@ export default function App() {
           />
         )}
         {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}
+        </>}
       </main>
       <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen} />
     </div>

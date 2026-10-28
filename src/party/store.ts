@@ -73,32 +73,34 @@ export async function getParty(id: string): Promise<Party | undefined> {
   return cachedParty(id)
 }
 
-function createLocal(name: string, dmId: string): Party {
+function createLocal(name: string, creatorId: string, dmId: string): Party {
   const list = readParties()
   const taken = new Set(list.map(p => p.code))
   let code = makeInviteCode()
   while (taken.has(code)) code = makeInviteCode()
   const now = new Date().toISOString()
-  const party: Party = { id: crypto.randomUUID(), name, code, dmId, members: [{ userId: dmId, joinedAt: now }], createdAt: now, updatedAt: now }
+  const members = [creatorId, dmId].filter((id, i, all) => all.indexOf(id) === i).map(userId => ({ userId, joinedAt: now }))
+  const party: Party = { id: crypto.randomUUID(), name, code, dmId, members, createdAt: now, updatedAt: now }
   writeParties([...list, party])
   return party
 }
 
-export async function createParty(name: string, dmId: string): Promise<Party> {
-  const db = await cloudFor(dmId)
+/** Makes a party with its DM: the creator or another player. Both join it; everyone else joins by code. */
+export async function createParty(name: string, creatorId: string, dmId: string = creatorId): Promise<Party> {
+  const db = await cloudFor(creatorId)
   if (db) {
     for (let tries = 0; tries < 5; tries++) {
       const id = crypto.randomUUID()
-      const { error } = await db.rpc('create_party', { p_id: id, p_name: name.slice(0, 80), p_code: makeInviteCode() })
+      const { error } = await db.rpc('create_party', { p_id: id, p_name: name.slice(0, 80), p_code: makeInviteCode(), p_dm: dmId })
       if (error?.code === '23505') continue // Code taken: try another.
       if (error) break
-      await refreshParties(db, dmId)
-      const made = cachedParties(dmId).find(p => p.id === id)
+      await refreshParties(db, creatorId)
+      const made = cachedParties(creatorId).find(p => p.id === id)
       if (made) return made
     }
   }
   // No cloud, or it failed: a party on this device.
-  return createLocal(name, dmId)
+  return createLocal(name, creatorId, dmId)
 }
 
 export type JoinResult = { ok: true; party: Party } | { ok: false; reason: 'invalid' | 'not-found' | 'offline' | 'tooMany' }

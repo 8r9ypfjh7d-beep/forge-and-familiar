@@ -3,7 +3,7 @@ import { AccessibilityButton } from '../a11y/ui'
 import { getCloudStatus, onCloudChanged } from '../cloud'
 import { LanguagePicker, useI18n } from '../i18n'
 import { activate, activateErrorKey } from './session'
-import type { ActivateError, Session } from './types'
+import type { ActivateError } from './types'
 import './accounts.css'
 
 /** Front door on a new device: a personal activation code, or a local-only profile. */
@@ -88,10 +88,10 @@ export function CodeForm({ onDone, autoFocus = true }: { onDone?: () => void; au
   )
 }
 
-/** Marks the DM's account in the top bar. Players' accounts need no badge. */
-export function AccountBadge({ session }: { session: Session }) {
+/** Marks the DM of the party in play in the top bar. Players need no badge. */
+export function AccountBadge({ dm }: { dm: boolean }) {
   const { t } = useI18n()
-  if (session.role !== 'dm') return null
+  if (!dm) return null
   return <span className="account-badge small" title={t('account.dmTitle')}>{t('account.dmBadge')}</span>
 }
 
