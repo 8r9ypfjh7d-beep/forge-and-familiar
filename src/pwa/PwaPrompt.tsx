@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useI18n } from '../i18n'
 import { applyUpdate, canInstall, hasUpdate, promptInstall, subscribePwa } from './register'
 import './pwa.css'
 
@@ -20,6 +21,7 @@ function useOfflineNotice(): [boolean, () => void] {
 
 /** Floating strip for app-level notices: offline, new version ready, install. Renders nothing when there is nothing to say. */
 export function PwaPrompt() {
+  const { t } = useI18n()
   const update = useSyncExternalStore(subscribePwa, hasUpdate)
   const install = useSyncExternalStore(subscribePwa, canInstall)
   const [offline, dismissOffline] = useOfflineNotice()
@@ -32,20 +34,20 @@ export function PwaPrompt() {
     <div className="ff-pwa" role="status" aria-live="polite">
       {offline && (
         <span className="ff-pwa-row">
-          <span className="ff-pwa-note">You're offline. Everything still works, and your characters are saved on this device.</span>
-          <button className="btn ghost" onClick={dismissOffline}>OK</button>
+          <span className="ff-pwa-note">{t('pwa.offline')}</span>
+          <button className="btn ghost" onClick={dismissOffline}>{t('pwa.ok')}</button>
         </span>
       )}
       {update && (
         <span className="ff-pwa-row">
-          <span className="ff-pwa-note">A new version is ready.</span>
-          <button className="btn primary" onClick={applyUpdate}>Reload</button>
+          <span className="ff-pwa-note">{t('pwa.update')}</span>
+          <button className="btn primary" onClick={applyUpdate}>{t('pwa.reload')}</button>
         </span>
       )}
       {showInstall && (
         <span className="ff-pwa-row">
-          <span className="ff-pwa-note">Install Forge &amp; Familiar for quick, offline access.</span>
-          <button className="btn primary" onClick={() => void promptInstall()}>Install</button>
+          <span className="ff-pwa-note">{t('pwa.install')}</span>
+          <button className="btn primary" onClick={() => void promptInstall()}>{t('pwa.installBtn')}</button>
           <button
             className="btn ghost"
             onClick={() => {
@@ -53,7 +55,7 @@ export function PwaPrompt() {
               setHideInstall(true)
             }}
           >
-            Not now
+            {t('pwa.notNow')}
           </button>
         </span>
       )}

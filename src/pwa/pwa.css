@@ -1,18 +1,25 @@
 .ff-pwa {
+  /* A floating glass sheet (Liquid Glass standard), centred with logical insets so RTL needs nothing. */
   position: fixed;
-  left: 50%;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
+  inset-inline: 0;
+  inset-block-end: max(16px, env(safe-area-inset-bottom));
+  margin-inline: auto;
   z-index: 50;
   width: min(560px, calc(100vw - 32px));
   display: grid;
-  gap: 8px;
-  padding: 10px 14px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  gap: var(--sp-2);
+  padding-block: 10px;
+  padding-inline: var(--sp-4) 10px;
+  background: var(--glass-thick);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid var(--glass-stroke);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-lift);
   font-size: 0.92rem;
+  animation: ff-pwa-in var(--dur-slow) var(--ease-spring);
 }
+@keyframes ff-pwa-in { from { opacity: 0; transform: translateY(16px) scale(0.96); } }
+:root[data-contrast="high"] .ff-pwa { border-width: 2px; }
 .ff-pwa-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ff-pwa-note { flex: 1 1 200px; color: var(--ink); }

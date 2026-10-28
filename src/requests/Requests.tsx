@@ -602,7 +602,7 @@ export function DmRequestPopup({ onOpenAll }: { onOpenAll: () => void }) {
   }
 
   return (
-    <dialog ref={ref} className="req-dialog" aria-labelledby="req-pop-title" onCancel={e => { e.preventDefault(); dismiss() }}>
+    <dialog ref={ref} className="req-dialog glass-sheet glass-dialog" aria-labelledby="req-pop-title" onCancel={e => { e.preventDefault(); dismiss() }}>
       {shown && (
         <div className="ff-sheet ff-requests">
           <h2 id="req-pop-title">
@@ -654,7 +654,7 @@ export function EditRequestDialog({ character, userId, userName, onClose }: {
   }
 
   return (
-    <dialog ref={ref} className="req-dialog" aria-labelledby="req-edit-title" onCancel={e => { e.preventDefault(); onClose() }}>
+    <dialog ref={ref} className="req-dialog glass-sheet glass-dialog" aria-labelledby="req-edit-title" onCancel={e => { e.preventDefault(); onClose() }}>
       {character && (
         <div className="ff-sheet ff-requests">
           <h2 id="req-edit-title">{t(open ? 'req.edit.waitingTitle' : 'req.edit.title', { character: character.name })}</h2>

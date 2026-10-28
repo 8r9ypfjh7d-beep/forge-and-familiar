@@ -31,6 +31,8 @@
   --glass-wash-1: rgb(214 120 82 / 0.22);
   --glass-wash-2: rgb(120 140 210 / 0.16);
   --glass-wash-3: rgb(226 182 92 / 0.18);
+  --glass-scrim: rgb(40 26 14 / 0.28);
+  --glass-scrim-blur: blur(6px) saturate(120%);
 
   /* Dynamic opacity. Set on <html> by scrollGlass.ts: 0 when nothing is under a bar, 1 when content fills it. */
   --glass-top: 0;
@@ -51,6 +53,7 @@
     --glass-wash-1: rgb(224 120 90 / 0.16);
     --glass-wash-2: rgb(90 110 200 / 0.14);
     --glass-wash-3: rgb(200 150 60 / 0.1);
+    --glass-scrim: rgb(0 0 0 / 0.5);
   }
 }
 
@@ -107,6 +110,17 @@ body::before {
   box-shadow: var(--glass-highlight), var(--glass-shadow-lift);
 }
 
+/* Modal dialog (<dialog> opened with showModal): a centred glass sheet over a dimmed, softly blurred page.
+   Pair with .glass-sheet. Header, body and footer padding come from the dialog's own CSS. */
+.glass-dialog {
+  inline-size: min(520px, calc(100vw - 24px)); max-block-size: calc(100dvh - 24px);
+  margin: auto; padding: 0; color: var(--ink); overflow: hidden auto; border-radius: var(--r-xl);
+}
+.glass-dialog::backdrop { background: var(--glass-scrim); -webkit-backdrop-filter: var(--glass-scrim-blur); backdrop-filter: var(--glass-scrim-blur); }
+.glass-dialog[open] { animation: glass-dialog-in var(--dur-med) var(--ease-glass); }
+@keyframes glass-dialog-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
+@media (max-width: 480px) { .glass-dialog { border-radius: var(--r-lg); } }
+
 /* ---- Controls ---- */
 
 .glass-btn {
@@ -153,16 +167,17 @@ body::before {
   --glass-thin: var(--panel); --glass-regular: var(--panel); --glass-thick: var(--panel);
   --glass-stroke: var(--line); --glass-hairline: var(--line);
   --glass-highlight: 0 0 0 transparent;
-  --glass-blur: none; --glass-blur-strong: none;
+  --glass-blur: none; --glass-blur-strong: none; --glass-scrim-blur: none;
   --glass-wash-1: transparent; --glass-wash-2: transparent; --glass-wash-3: transparent;
 }
-:root[data-contrast="high"] { --glass-tint: var(--accent-soft); --glass-shadow: none; --glass-shadow-lift: none; }
+:root[data-contrast="high"] { --glass-tint: var(--accent-soft); --glass-shadow: none; --glass-shadow-lift: none; --glass-scrim: rgb(0 0 0 / 0.6); }
+:root[data-contrast="high"] .glass-dialog { border-width: 2px; }
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --glass-thin: var(--panel); --glass-regular: var(--panel); --glass-thick: var(--panel);
     --glass-stroke: var(--line); --glass-hairline: var(--line);
     --glass-highlight: 0 0 0 transparent;
-    --glass-blur: none; --glass-blur-strong: none;
+    --glass-blur: none; --glass-blur-strong: none; --glass-scrim-blur: none;
     --glass-wash-1: transparent; --glass-wash-2: transparent; --glass-wash-3: transparent;
   }
 }
@@ -171,5 +186,5 @@ body::before {
 }
 @media print {
   body::before { display: none; }
-  .glass, .glass-chrome::before, .glass-sheet, .glass-btn { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .glass, .glass-chrome::before, .glass-sheet, .glass-btn, .panel { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }

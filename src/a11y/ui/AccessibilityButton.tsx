@@ -56,7 +56,7 @@ export function AccessibilityDialog({ ref }: { ref: React.RefObject<HTMLDialogEl
   const s = useA11ySettings()
   const close = () => ref.current?.close()
   return (
-    <dialog ref={ref} className="a11y-dialog" aria-labelledby="a11y-title" onClick={e => { if (e.target === ref.current) close() }}>
+    <dialog ref={ref} className="a11y-dialog glass-sheet glass-dialog" aria-labelledby="a11y-title" onClick={e => { if (e.target === ref.current) close() }}>
       <header className="a11y-head">
         <div>
           <h2 id="a11y-title">Accessibility</h2>

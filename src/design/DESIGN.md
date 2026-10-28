@@ -35,6 +35,7 @@ Keep using the colour tokens from `src/index.css` (`--bg`, `--panel`, `--ink`, `
 | Blur | `--glass-blur`, `--glass-blur-strong` | Content vs chrome. Never hard-code a `backdrop-filter`; use these so fallbacks work |
 | Tint | `--glass-tint` | Accent-tinted glass: the selected "lens" |
 | Wash | `--glass-wash-1..3` | The ambient colour behind the app (`body::before`). Don't paint opaque page backgrounds over it |
+| Scrim | `--glass-scrim`, `--glass-scrim-blur` | Dim and soft blur behind a modal dialog; the blur turns off with the other fallbacks |
 | Opacity | `--glass-top`, `--glass-bottom`, `--glass-edge` | See dynamic opacity |
 
 Type scale: large title 1.75rem/700, title 1.4rem/700, headline 1.1rem/600, body 1rem/400, callout .9rem, footnote .8rem, caption .7rem. Headings use `--font-display` with `letter-spacing: -0.015em`; small-caps eyebrow labels (`.glass-eyebrow`) replace UPPERCASE letter-spaced labels on new work. Numbers in stats use `font-variant-numeric: tabular-nums`.
@@ -46,6 +47,7 @@ Type scale: large title 1.75rem/700, title 1.4rem/700, headline 1.1rem/600, body
 | `.glass` (+ `.thin` / `.thick`) | Content glass card |
 | `.glass-chrome` (+ `.at-top` / `.at-bottom`) | Floating bar with dynamic opacity. Blur lives on `::before` so menus inside the bar can still blur the page; the bar must be positioned |
 | `.glass-sheet` | Menus, popovers, dialogs |
+| `.glass-dialog` | Add to a `<dialog>` with `.glass-sheet`: centred size, `--r-xl` corners, scrim, entrance. Used by the accessibility dialog and the DM request / ask-to-edit pop-ups |
 | `.glass-btn` (+ `.prominent`, `.small`, `.icon`) | Capsule buttons; prominent = the one tinted action |
 | `.glass-lens` | Selected-item highlight (tabs, lists, segmented) |
 | `.glass-segmented` | Segmented control; mark the selected button with `aria-pressed`/`aria-checked="true"` or `.on` |
@@ -54,7 +56,7 @@ Type scale: large title 1.75rem/700, title 1.4rem/700, headline 1.1rem/600, body
 | `.glass-list` | Inset grouped list with hairline separators |
 | `.glass-title`, `.glass-eyebrow` | Display title, small label |
 
-The older primitives in `index.css` (`.panel`, `.btn`, `.chip`, inputs) still work. Migrating a screen means switching it to these utilities (or restyling its own classes with these tokens), not deleting the old primitives while other screens use them.
+The shared primitives in `index.css` are on the standard too: `.panel` is content glass (fill, edge and shadow, but no `backdrop-filter`, so fixed pop-ups and menus inside a panel still work), `.btn` is a capsule (`.primary` = prominent, `.ghost` = no fill), `.chip` is a glass chip (`.on` = tint), and inputs, selects and textareas match `.glass-field`. Screens that only use these primitives already look right. Screens with their own classes (the sheet's `.ff-sheet .btn` and `.card`, for example) restyle those with these tokens in their own thread.
 
 ## Dynamic opacity
 
