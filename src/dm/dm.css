@@ -1,115 +1,199 @@
-/* DM screen. Lives inside .ff-sheet so cards, buttons, tabs and titles match the sheet. Logical properties for RTL. */
-.ff-dm > .card { margin-block-end: 16px; }
+/* DM screen in the Liquid Glass standard (src/design/DESIGN.md). Lives inside .ff-sheet for its layout helpers;
+   everything visual is restyled here with the --glass-* tokens, scoped to .ff-sheet.ff-dm so the character
+   sheet is untouched. Logical properties only (RTL). */
+.ff-sheet.ff-dm { --s-radius: var(--r-lg); }
+.ff-dm > .card { margin-block-end: var(--sp-4); }
 .ff-dm .plain { list-style: none; margin: 0; padding: 0; }
-.ff-dm h3 { margin: 0; font-size: 1.2rem; }
-.ff-dm textarea {
-  font: inherit; inline-size: 100%; padding: 8px 10px; resize: vertical;
-  border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink);
+
+/* ---- Surfaces: content glass cards. Regular for numbers and short rows, thick where there are paragraphs. ---- */
+.ff-sheet.ff-dm .card {
+  background: var(--glass-regular); border-color: var(--glass-stroke); border-radius: var(--r-lg);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  padding: var(--sp-4);
 }
+.ff-sheet.ff-dm .dm-statblock, .ff-sheet.ff-dm .dm-ref, .ff-sheet.ff-dm .dm-idea, .ff-sheet.ff-dm .req-reminders,
+.ff-sheet.ff-dm #dm-tabpanel > .card:has(.req-list) { background: var(--glass-thick); }
+
+/* ---- Type: display headings, small sentence-case labels instead of UPPERCASE ---- */
+.ff-sheet.ff-dm h1, .ff-sheet.ff-dm h2, .ff-sheet.ff-dm h3 { font-family: var(--font-display); letter-spacing: -0.015em; text-transform: none; }
+.ff-sheet.ff-dm h1 { font-size: 1.75rem; font-weight: 700; color: var(--ink); }
+.ff-sheet.ff-dm .card h2:not(.sub-title) { font-size: 1.1rem; font-weight: 600; color: var(--ink); }
+.ff-sheet.ff-dm .sub-title {
+  font-family: var(--font-text); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; text-transform: none; color: var(--muted);
+  border-block-end-color: var(--glass-hairline);
+}
+.ff-dm h3 { margin: 0; }
+.ff-dm .dm-statblock h3 { font-size: 1.4rem; font-weight: 700; }
+.ff-sheet.ff-dm .hint { font-size: 0.85rem; }
+
+/* ---- Controls ---- */
+.ff-sheet.ff-dm .btn {
+  border-radius: var(--r-pill); border-color: var(--glass-stroke); background: var(--glass-regular); color: var(--ink);
+  box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.08);
+  transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
+}
+.ff-sheet.ff-dm .btn:hover:not(:disabled) { background: var(--glass-thick); border-color: var(--glass-stroke); }
+.ff-sheet.ff-dm .btn:active:not(:disabled) { transform: scale(0.96); }
+.ff-sheet.ff-dm .btn.small { max-width: none; padding-inline: var(--sp-3); font-size: 0.85rem; }
+/* The one tinted action on a surface (Run in tracker, Add to fight, Keep NPC). */
+.ff-sheet.ff-dm .btn.primary {
+  background: var(--accent); color: var(--accent-ink); border-color: transparent;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.ff-sheet.ff-dm .btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, white); }
+.ff-sheet.ff-dm .btn.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--muted); }
+.ff-sheet.ff-dm .btn.ghost:hover:not(:disabled) { background: var(--glass-thin); color: var(--ink); }
+
+.ff-sheet.ff-dm input, .ff-sheet.ff-dm select, .ff-sheet.ff-dm .card textarea {
+  border-radius: var(--r-sm); border: 1px solid var(--glass-hairline);
+  background: color-mix(in srgb, var(--panel) 70%, transparent); color: var(--ink);
+}
+.ff-sheet.ff-dm .card textarea { font: inherit; inline-size: 100%; padding: var(--sp-2) var(--sp-3); resize: vertical; }
+
 .ff-dm .link-btn {
-  font: inherit; font-weight: 600; padding: 0; border: 0; background: none; color: var(--s-ink);
+  font: inherit; font-weight: 600; padding: 0; border: 0; background: none; color: var(--ink);
   cursor: pointer; text-align: start; min-width: 0; overflow-wrap: anywhere;
 }
-.ff-dm .link-btn:hover { color: var(--s-accent); text-decoration: underline; }
-.ff-dm .btn.small { max-width: none; }
+.ff-dm .link-btn:hover { color: var(--accent); text-decoration: underline; }
 
-/* Top card: party on one side, budget tiles on the other (same split as the character card) */
-.dm-top { display: grid; gap: 16px 24px; grid-template-columns: 1fr; }
+/* Tabs: a glass segmented control floating on the page; scrolls sideways on phones. */
+.ff-dm .cs-tablist {
+  gap: 2px; padding: 3px; margin-block-end: var(--sp-3); border: 1px solid var(--glass-stroke); border-radius: var(--r-pill);
+  background: var(--glass-thin); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), inset 0 1px 2px rgb(0 0 0 / 0.06); scrollbar-width: none;
+}
+.ff-dm .cs-tablist::-webkit-scrollbar { display: none; }
+.ff-dm .cs-tablist button {
+  min-block-size: 38px; padding-inline: var(--sp-4); margin: 0; border: 0; border-radius: var(--r-pill);
+  font-size: 0.9rem; font-weight: 600; text-transform: none; letter-spacing: normal; color: var(--muted);
+  transition: background-color var(--dur-fast) var(--ease-glass), color var(--dur-fast);
+}
+.ff-dm .cs-tablist button:hover { color: var(--ink); }
+/* Selected tab: the lens, as in the nav bar. */
+.ff-dm .cs-tablist button.on {
+  color: var(--accent); background: var(--glass-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--glass-highlight);
+}
+
+/* ---- Top card: party on one side, budget tiles on the other (same split as the character card) ---- */
+.dm-top { display: grid; gap: var(--sp-4) var(--sp-6); grid-template-columns: 1fr; }
 @media (min-width: 1000px) {
   .dm-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
-  .dm-top .dm-budget { border-inline-start: 1px solid var(--s-line); padding-inline-start: 24px; }
+  .dm-top .dm-budget { border-inline-start: 1px solid var(--glass-hairline); padding-inline-start: var(--sp-6); }
 }
-@media (max-width: 999px) { .dm-top .dm-budget { border-block-start: 1px solid var(--s-line); padding-block-start: 12px; } }
-.dm-top h1 { color: var(--s-accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: .02em; }
-.dm-groups { display: grid; gap: 8px; margin-block-end: 8px !important; }
-.dm-groups li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.dm-groups input { inline-size: 4.5em; }
-.dm-stats dt { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--s-muted); text-align: center; overflow-wrap: anywhere; }
-.dm-stats dd { margin: 0; font-weight: 800; font-size: 1.15rem; }
-.dm-now { border-color: var(--s-accent) !important; }
+@media (max-width: 999px) { .dm-top .dm-budget { border-block-start: 1px solid var(--glass-hairline); padding-block-start: var(--sp-3); } }
+.dm-groups { display: grid; gap: var(--sp-2); margin-block-end: var(--sp-2) !important; }
+.dm-groups li { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.dm-groups input { inline-size: 4.5em; text-align: center; }
+.ff-sheet.ff-dm .dm-stats > div { background: var(--glass-thin); border-color: var(--glass-stroke); border-radius: var(--r-md); box-shadow: var(--glass-highlight); }
+.dm-stats dt { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; text-transform: none; color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+.dm-stats dd { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; letter-spacing: -0.015em; }
+/* The current fight: the lens, tinted by its difficulty. */
+.ff-sheet.ff-dm .dm-stats > .dm-now {
+  background: color-mix(in srgb, var(--d) 12%, transparent);
+  border-color: color-mix(in srgb, var(--d) 45%, transparent);
+}
 
 /* Difficulty colours, shared by the tile and the meter */
-.ff-dm .diff-trivial, .ff-dm .diff-low { --d: var(--s-good); }
+.ff-dm .diff-trivial, .ff-dm .diff-low { --d: var(--good); }
 .ff-dm .diff-moderate { --d: #b7791f; }
-.ff-dm .diff-high { --d: var(--s-accent); }
-.ff-dm .diff-beyond { --d: var(--s-bad); }
-.ff-dm .diff-none { --d: var(--s-muted); }
+.ff-dm .diff-high { --d: var(--accent); }
+.ff-dm .diff-beyond { --d: var(--bad); }
+.ff-dm .diff-none { --d: var(--muted); }
 .dm-now dd { color: var(--d); }
 
-.dm-meter { margin-block: 8px 12px; }
-.dm-meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.dm-meter-head b { color: var(--d); }
-.dm-meter-bar { position: relative; block-size: 10px; border-radius: 99px; background: var(--s-bg); border: 1px solid var(--s-line); margin-block-start: 6px; overflow: hidden; }
-.dm-meter-bar .fill { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--d); }
-.dm-meter-bar .tick { position: absolute; inset-block: 0; inline-size: 2px; background: var(--s-muted); opacity: .5; }
+.dm-meter { margin-block: var(--sp-2) var(--sp-3); }
+.dm-meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+.dm-meter-head b { color: var(--d); font-family: var(--font-display); font-size: 1.1rem; }
+.dm-meter-bar {
+  position: relative; block-size: 10px; border-radius: var(--r-pill); margin-block-start: 6px; overflow: hidden;
+  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.dm-meter-bar .fill { position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: var(--r-pill); background: var(--d); transition: inline-size var(--dur-med) var(--ease-glass); }
+.dm-meter-bar .tick { position: absolute; inset-block: 0; inline-size: 2px; background: var(--muted); opacity: 0.5; }
 
-/* Plans */
-.dm-plan-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* ---- Plans ---- */
+.dm-plan-bar { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .dm-plan-bar input { flex: 1 1 160px; }
 .dm-plan-list li, .dm-monster-list li {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
-  padding-block: 6px; border-block-end: 1px solid var(--s-line);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-2); align-items: center;
+  padding-block: 6px; padding-inline: var(--sp-2); border-block-end: 1px solid var(--glass-hairline);
 }
+.dm-plan-list li:last-child, .dm-monster-list li:last-child { border-block-end: 0; }
 .dm-count { display: inline-flex; align-items: center; gap: 6px; }
-.dm-count b { min-inline-size: 2ch; text-align: center; }
-.dm-count .btn { min-inline-size: 32px; }
+.dm-count b { min-inline-size: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
+.ff-sheet.ff-dm .dm-count .btn { min-inline-size: 32px; padding: 0; }
 
-/* Monster browser */
-.dm-filters { display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block-end: 8px; }
+/* ---- Monster browser ---- */
+.dm-filters { display: grid; gap: var(--sp-2); grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block-end: var(--sp-2); }
 .dm-filters input { grid-column: 1 / -1; }
 .dm-monster-list { max-block-size: 28rem; overflow-y: auto; }
-.dm-monster-list li.on { background: color-mix(in srgb, var(--s-accent) 10%, transparent); }
-.dm-two { display: grid; gap: 16px; grid-template-columns: 1fr; }
+/* The open monster: the lens. */
+.dm-monster-list li.on {
+  border-radius: var(--r-sm); border-block-end-color: transparent; background: var(--glass-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.dm-monster-list li.on .link-btn { color: var(--accent); }
+.dm-two { display: grid; gap: var(--sp-4); grid-template-columns: 1fr; }
 @media (min-width: 900px) { .dm-two { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; } }
 
-/* Stat block */
-.dm-statblock { border-block-start: 4px solid var(--s-accent); }
-.dm-statblock h3 { color: var(--s-accent); }
-.dm-sb-core { display: grid; gap: 4px; margin: 8px 0; }
-.dm-sb-core div { display: flex; gap: 8px; flex-wrap: wrap; }
+/* ---- Stat block ---- */
+.dm-statblock h3 { color: var(--accent); font-family: var(--font-lore); letter-spacing: 0; }
+.dm-sb-core { display: grid; gap: var(--sp-1); margin: var(--sp-2) 0; padding-block: var(--sp-2); border-block: 1px solid var(--glass-hairline); }
+.dm-sb-core div { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
 .dm-sb-core dt { font-weight: 700; }
 .dm-sb-core dd { margin: 0; }
-.dm-sb-abilities { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-block: 8px; }
+.dm-sb-abilities { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-block: var(--sp-2); }
 .dm-sb-abilities button {
-  display: grid; justify-items: center; gap: 2px; padding: 6px 2px; min-width: 0; cursor: pointer;
-  border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg); color: var(--s-ink); font: inherit;
+  display: grid; justify-items: center; gap: 2px; padding: 6px 2px; min-width: 0; min-block-size: 44px; cursor: pointer; font: inherit;
+  border: 1px solid var(--glass-stroke); border-radius: var(--r-sm); background: var(--glass-thin); color: var(--ink);
+  box-shadow: var(--glass-highlight); transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
 }
-.dm-sb-abilities button:hover { border-color: var(--s-accent); }
-.dm-sb-abilities span { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--s-muted); }
-.dm-sb-abilities small { font-weight: 700; }
-.dm-sb-lines p { margin: 4px 0; font-size: .9rem; }
+.dm-sb-abilities button:hover { background: var(--glass-tint); }
+.dm-sb-abilities button:active { transform: scale(0.96); }
+.dm-sb-abilities span { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+.dm-sb-abilities b { font-family: var(--font-display); font-size: 1.1rem; }
+.dm-sb-abilities small { font-weight: 700; color: var(--accent); }
+.dm-sb-lines p { margin: var(--sp-1) 0; font-size: 0.9rem; }
 .chip-roll {
-  font: inherit; font-size: .8rem; padding: 2px 8px; margin: 2px; border-radius: 99px; cursor: pointer;
-  border: 1px solid var(--s-line); background: var(--s-bg); color: var(--s-ink); text-transform: capitalize;
+  font: inherit; font-size: 0.8rem; min-block-size: 28px; padding: 0 var(--sp-3); margin: 2px; border-radius: var(--r-pill); cursor: pointer;
+  border: 1px solid var(--glass-stroke); background: var(--glass-thin); color: var(--ink); text-transform: capitalize;
 }
-.chip-roll:hover { border-color: var(--s-accent); }
-.dm-roll { margin-block: 8px; }
-.dm-actions li { padding-block: 6px; border-block-end: 1px solid var(--s-line); }
+.chip-roll:hover { background: var(--glass-tint); color: var(--accent); }
+.dm-roll { margin-block: var(--sp-2); }
+.dm-actions li { padding-block: var(--sp-2); border-block-end: 1px solid var(--glass-hairline); }
 .dm-actions li:last-child { border-block-end: 0; }
-.dm-actions p { margin: 0; font-size: .9rem; white-space: pre-line; }
+.dm-actions p { margin: 0; font-size: 0.9rem; white-space: pre-line; }
 .dm-action-rolls { display: flex; flex-wrap: wrap; gap: 6px; margin-block-start: 6px; }
 
-/* Quick rules: a grid of small cards, like panels of a paper DM screen */
-.dm-ref-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); align-items: start; }
-.dm-ref-grid .card { margin: 0; }
-.dm-pairs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
-.dm-pairs div { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg); }
-.dm-pairs dt { font-size: .7rem; color: var(--s-muted); text-align: center; }
-.dm-pairs dd { margin: 0; font-weight: 800; font-size: 1.2rem; }
-.dm-rules { margin: 0; display: grid; gap: 8px; }
-.dm-rules dt { font-weight: 700; }
-.dm-rules dd { margin: 0; font-size: .9rem; color: var(--s-ink); }
-.dm-table { inline-size: 100%; border-collapse: collapse; font-size: .9rem; }
-.dm-table th, .dm-table td { padding: 6px 4px; border-block-end: 1px solid var(--s-line); text-align: start; vertical-align: top; }
-.dm-table thead th { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--s-muted); }
-.dm-table tbody th small { display: block; font-weight: 400; color: var(--s-muted); }
+/* ---- Quick rules: a grid of small cards, like panels of a paper DM screen ---- */
+.dm-ref-grid { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); align-items: start; }
+.ff-sheet.ff-dm .dm-ref-grid .card { margin: 0; }
+.dm-pairs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); margin: 0; }
+.dm-pairs div {
+  display: grid; justify-items: center; gap: 2px; padding: var(--sp-2) var(--sp-1);
+  border: 1px solid var(--glass-stroke); border-radius: var(--r-sm); background: var(--glass-thin); box-shadow: var(--glass-highlight);
+}
+.dm-pairs dt { font-size: 0.75rem; color: var(--muted); text-align: center; }
+.dm-pairs dd { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; }
+.dm-rules { margin: 0; display: grid; gap: var(--sp-2); }
+.dm-rules > div + div { padding-block-start: var(--sp-2); border-block-start: 1px solid var(--glass-hairline); }
+.dm-rules dt { font-weight: 600; }
+.dm-rules dd { margin: 0; font-size: 0.9rem; color: var(--ink); }
+.dm-table { inline-size: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.dm-table th, .dm-table td { padding: 6px var(--sp-1); border-block-end: 1px solid var(--glass-hairline); text-align: start; vertical-align: top; }
+.dm-table tbody tr:last-child > * { border-block-end: 0; }
+.dm-table thead th { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+.dm-table tbody th small { display: block; font-weight: 400; color: var(--muted); }
 
-/* NPCs */
-.dm-idea-name { font-size: 1.3rem; font-weight: 800; color: var(--s-accent); margin: 0 0 4px; }
-.dm-idea p { margin-block: 4px; }
-.dm-npcs { display: grid; gap: 12px; }
-.dm-npcs li { display: grid; gap: 6px; padding-block-end: 12px; border-block-end: 1px solid var(--s-line); }
-.dm-npc-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; }
+/* ---- NPCs ---- */
+.dm-idea-name { font-family: var(--font-lore); font-size: 1.5rem; font-weight: 700; color: var(--accent); margin: 0 0 var(--sp-1); }
+.dm-idea p { margin-block: var(--sp-1); }
+.dm-npcs { display: grid; gap: var(--sp-3); }
+.dm-npcs li { display: grid; gap: 6px; padding-block-end: var(--sp-3); border-block-end: 1px solid var(--glass-hairline); }
+.dm-npcs li:last-child { padding-block-end: 0; border-block-end: 0; }
+.dm-npc-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: var(--sp-2); }
 @media (max-width: 520px) {
   .dm-npc-head { grid-template-columns: minmax(0, 1fr) auto; }
   .dm-npc-head input:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
@@ -117,10 +201,37 @@
   .dm-filters select:last-child { grid-column: 1 / -1; }
   .dm-sb-abilities { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.dm-credit { font-size: .75rem; }
+.dm-credit { font-size: 0.75rem; }
 
-/* New-requests count on the Requests tab */
+/* ---- Player requests (src/requests) as they appear on the DM screen ---- */
 .dm-badge {
-  display: inline-block; margin-inline-start: 6px; min-inline-size: 1.4em; padding: 0 5px; border-radius: 999px;
-  background: var(--s-accent); color: #fff; font-size: .75rem; font-weight: 700; text-align: center;
+  display: inline-block; margin-inline-start: 6px; min-inline-size: 1.4em; padding: 0 5px; border-radius: var(--r-pill);
+  background: var(--bad); color: #fff; font-size: 0.75rem; font-weight: 700; text-align: center; line-height: 1.5;
+}
+.ff-sheet.ff-dm .req-chips details {
+  border-color: var(--glass-stroke); border-radius: var(--r-md); padding: 6px var(--sp-3);
+  background: var(--glass-thin); box-shadow: var(--glass-highlight);
+}
+/* Status shows as a slim bar on the start edge, clipped by the rounded card. */
+.ff-sheet.ff-dm .req-card {
+  --st: var(--muted); position: relative; overflow: hidden;
+  border: 1px solid var(--glass-stroke); border-radius: var(--r-md);
+  padding-block: var(--sp-3); padding-inline: calc(var(--sp-3) + 4px) var(--sp-3);
+  background: var(--glass-thin); box-shadow: var(--glass-highlight);
+}
+.ff-sheet.ff-dm .req-card::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; inline-size: 4px; background: var(--st); }
+.ff-sheet.ff-dm .req-card.st-later { --st: #b7791f; }
+.ff-sheet.ff-dm .req-card.st-granted { --st: var(--good); }
+.ff-sheet.ff-dm .req-card.st-denied { --st: var(--bad); }
+.ff-dm .req-row input { min-inline-size: 0; }
+.ff-sheet.ff-dm .req-card.fresh { box-shadow: 0 0 0 2px var(--accent), var(--glass-highlight); }
+.ff-sheet.ff-dm .req-kind { border-color: var(--glass-hairline); background: var(--glass-thin); text-transform: none; letter-spacing: 0.02em; font-weight: 600; }
+
+/* ---- Fallbacks: the tokens already go solid; high contrast also draws edges where state was fill only ---- */
+:root[data-contrast="high"] .ff-dm .cs-tablist { border: 2px solid var(--line); }
+:root[data-contrast="high"] .ff-dm .cs-tablist button.on { box-shadow: inset 0 0 0 2px var(--accent); }
+:root[data-contrast="high"] .ff-dm .dm-monster-list li.on { box-shadow: inset 0 0 0 2px var(--accent); }
+:root[data-contrast="high"] .ff-sheet.ff-dm .dm-stats > .dm-now { border: 2px solid var(--d); }
+@media print {
+  .ff-sheet.ff-dm .card, .ff-dm .cs-tablist { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
