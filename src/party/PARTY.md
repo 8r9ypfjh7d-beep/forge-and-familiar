@@ -11,7 +11,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `store.ts` | Async party store: cloud parties for the signed-in account, localStorage for local profiles; `onPartiesChanged` |
 | `cloud.ts` | Supabase side: fetch and cache (`ff.parties.cloud.v1`), realtime, members' characters and rolls, `sendRoll` |
 | `stash.ts` | Shared inventory and gold: pure `applyStash(party, userId, action)`, coin maths, even split |
-| `PartyView.tsx` | Party list, create form (name + DM) and join form, read-only party table |
+| `PartyView.tsx` | Party list first, then one "New party" button that opens a panel to start (name + DM) or join with a code; read-only party table |
 | `active.ts` | The party in play: remembered pick per player (`ff.activeParty.v1.<id>`), asked once per visit (`ff.partyPicked.v1.<id>` in sessionStorage), `isPartyDm` |
 | `useActiveParty.ts` | Hook for App: the player's parties, the one in play, whether to ask, whether they're its DM |
 | `PartyPicker.tsx` | "Which campaign are you playing?" screen on entering the app, and the Campaign switch in the player menu |

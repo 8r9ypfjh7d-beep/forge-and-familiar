@@ -438,6 +438,8 @@ export const en = {
   'party.name': 'Party name',
   'party.create': 'Create',
   'party.join': 'Join with a code',
+  'party.new': '+ New party',
+  'party.newTitle': 'New party',
   'party.inviteCode': 'Invite code',
   'party.bring': 'Bring',
   'party.joinButton': 'Join',

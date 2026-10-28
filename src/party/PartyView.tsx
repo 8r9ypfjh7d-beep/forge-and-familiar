@@ -21,6 +21,7 @@ import './party.css'
 export function PartyView({ userId, onOpenCharacter }: { userId: string; onOpenCharacter: (id: string) => void }) {
   const [parties, setParties] = useState<Party[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [newParty, setNewParty] = useState(false)
   const { t } = useI18n()
 
   const refresh = useCallback(() => { listParties(userId).then(setParties) }, [userId])
@@ -46,11 +47,32 @@ export function PartyView({ userId, onOpenCharacter }: { userId: string; onOpenC
             ))}
           </div>
         )}
-      <div className="party-forms">
-        <CreateForm userId={userId} onCreate={async (name, dmId) => { markPicked(userId); setOpenId((await createParty(name, userId, dmId)).id) }} />
-        <JoinForm userId={userId} onJoined={id => { markPicked(userId); setOpenId(id) }} />
-      </div>
+      {/* Your parties come first; start or join sit behind one "New party" button. */}
+      {newParty
+        ? <NewParty userId={userId} onClose={() => setNewParty(false)} onOpen={id => { markPicked(userId); setNewParty(false); setOpenId(id) }} />
+        : <button className="glass-btn party-new" onClick={() => setNewParty(true)}>{t('party.new')}</button>}
     </section>
+  )
+}
+
+/** One panel for a new party: pick start or join, then fill in that form. */
+function NewParty({ userId, onClose, onOpen }: { userId: string; onClose: () => void; onOpen: (partyId: string) => void }) {
+  const [mode, setMode] = useState<'start' | 'join'>('start')
+  const { t } = useI18n()
+  return (
+    <div className="glass party-form" role="group" aria-label={t('party.newTitle')}>
+      <div className="party-form-head">
+        <h3 className="grow">{t('party.newTitle')}</h3>
+        <button className="glass-btn small ghost" onClick={onClose}>{t('common.cancel')}</button>
+      </div>
+      <div className="glass-segmented" role="radiogroup" aria-label={t('party.newTitle')}>
+        <button role="radio" aria-checked={mode === 'start'} onClick={() => setMode('start')}>{t('party.start')}</button>
+        <button role="radio" aria-checked={mode === 'join'} onClick={() => setMode('join')}>{t('party.join')}</button>
+      </div>
+      {mode === 'start'
+        ? <CreateForm userId={userId} onCreate={async (name, dmId) => onOpen((await createParty(name, userId, dmId)).id)} />
+        : <JoinForm userId={userId} onJoined={onOpen} />}
+    </div>
   )
 }
 
@@ -79,12 +101,11 @@ function CreateForm({ userId, onCreate }: { userId: string; onCreate: (name: str
   const { t } = useI18n()
   const ready = !!name.trim() && !!dmId
   return (
-    <form className="glass party-form" onSubmit={e => { e.preventDefault(); if (ready) onCreate(name.trim(), dmId) }}>
-      <h3>{t('party.start')}</h3>
+    <form className="party-form-body" onSubmit={e => { e.preventDefault(); if (ready) onCreate(name.trim(), dmId) }}>
       <p className="muted small">{t('party.startHelp')}</p>
       <div className="field">
         <label htmlFor="party-name">{t('party.name')}</label>
-        <input id="party-name" className="glass-field" value={name} onChange={e => setName(e.target.value)} placeholder={t('party.name')} />
+        <input id="party-name" autoFocus className="glass-field" value={name} onChange={e => setName(e.target.value)} placeholder={t('party.name')} />
       </div>
       <div className="field">
         <label htmlFor="party-dm">{t('party.chooseDm')}</label>
@@ -115,11 +136,10 @@ function JoinForm({ userId, onJoined }: { userId: string; onJoined: (partyId: st
   }
 
   return (
-    <form className="glass party-form" onSubmit={e => { e.preventDefault(); if (code.trim()) submit() }}>
-      <h3>{t('party.join')}</h3>
+    <form className="party-form-body" onSubmit={e => { e.preventDefault(); if (code.trim()) submit() }}>
       <div className="field">
         <label htmlFor="join-code">{t('party.inviteCode')}</label>
-        <input id="join-code" className="glass-field code-input" value={code} maxLength={8} autoComplete="off"
+        <input id="join-code" autoFocus className="glass-field code-input" value={code} maxLength={8} autoComplete="off"
           onChange={e => { setCode(e.target.value); setError('') }} placeholder="ABC-234" />
       </div>
       <div className="field">
