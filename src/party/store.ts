@@ -2,6 +2,7 @@
 // work across devices, live. Local profiles ("this device only") and devices without the cloud keep
 // parties in localStorage, shared between profiles on one device, as before.
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getCloudAccountId, getSupabase } from '../cloud'
 import { CACHE_KEY, cachedParties, cachedParty, cloudFor, fetchParty, PARTIES_CHANGED, refreshParties, watchParties } from './cloud'
 import { addMember, isMember, isValidCode, makeInviteCode, normalizeCode, removeMember, setMemberCharacter } from './code'
 import { applyStash, type StashAction, type StashResult } from './stash'
@@ -41,6 +42,15 @@ function update(id: string, change: (p: Party) => Party | null): Party | null {
 
 /** A Postgres error code means the server refused; no code means the connection failed. */
 const offline = (error: { code?: string } | null) => !!error && !error.code
+
+/**
+ * For modules that share a party's data (hand-outs, polls, secret rolls): the cloud client when this
+ * is a cloud party and the device is signed in, else null and the module keeps its data on the device.
+ */
+export async function cloudForParty(partyId: string): Promise<SupabaseClient | null> {
+  if (readParties().some(p => p.id === partyId) || !getCloudAccountId()) return null
+  return getSupabase()
+}
 
 /** The cloud client when this party is a cloud one this player can reach, else null (local party). */
 async function cloudParty(partyId: string, userId: string): Promise<SupabaseClient | null> {
@@ -91,7 +101,7 @@ export async function createParty(name: string, dmId: string): Promise<Party> {
   return createLocal(name, dmId)
 }
 
-export type JoinResult = { ok: true; party: Party } | { ok: false; reason: 'invalid' | 'not-found' | 'offline' }
+export type JoinResult = { ok: true; party: Party } | { ok: false; reason: 'invalid' | 'not-found' | 'offline' | 'tooMany' }
 
 export async function joinParty(rawCode: string, userId: string, characterId?: string): Promise<JoinResult> {
   const code = normalizeCode(rawCode)
@@ -101,7 +111,7 @@ export async function joinParty(rawCode: string, userId: string, characterId?: s
   const db = await cloudFor(userId)
   if (!db) return { ok: false, reason: 'not-found' }
   const { data, error } = await db.rpc('join_party', { p_code: code, p_character: characterId ?? null })
-  if (error) return { ok: false, reason: offline(error) ? 'offline' : 'not-found' }
+  if (error) return { ok: false, reason: offline(error) ? 'offline' : /too many/.test(error.message) ? 'tooMany' : 'not-found' }
   if (!data) return { ok: false, reason: 'not-found' }
   await refreshParties(db, userId)
   const party = cachedParties(userId).find(p => p.id === data)

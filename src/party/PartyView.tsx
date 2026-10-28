@@ -80,7 +80,7 @@ function JoinForm({ userId, onJoined }: { userId: string; onJoined: (partyId: st
   const submit = async () => {
     const res = await joinParty(code, userId, characterId || undefined)
     if (res.ok) onJoined(res.party.id)
-    else setError(t(res.reason === 'invalid' ? 'party.badCode' : res.reason === 'offline' ? 'party.joinOffline' : 'party.noSuchCode'))
+    else setError(t(res.reason === 'invalid' ? 'party.badCode' : res.reason === 'offline' ? 'party.joinOffline' : res.reason === 'tooMany' ? 'party.joinTooMany' : 'party.noSuchCode'))
   }
 
   return (

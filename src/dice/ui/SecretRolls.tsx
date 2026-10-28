@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import type { Character } from '../../model/character'
 import { ABILITIES, ABILITY_NAMES, ALL_SKILLS, derive, SKILLS, type Ability, type SkillId } from '../../rules'
 import { rollCheck, rollSave, rollSkill } from '../character'
-import { clearSecretRolls, loadSecretRolls, onSecretRollsChanged, secretView, sendSecretRoll, type SecretRoll } from '../secret'
+import { loadSecretRolls, onSecretRollsChanged, secretView, type SecretRoll } from '../secret'
+import { clearSharedSecretRolls, shareSecretRoll, watchSecretRolls } from '../secretCloud'
 import type { RollMode } from '../types'
 import { RollView } from './RollView'
 import './dice.css'
@@ -28,6 +29,9 @@ export function SecretRolls({ party, userId, character, nameOf }: Props) {
     load()
     return onSecretRollsChanged(party.id, load)
   }, [party.id])
+  // The DM of a cloud party gets players' rolls from the server, live.
+  const dm = party.dmId === userId
+  useEffect(() => (dm ? watchSecretRolls(party.id) : undefined), [dm, party.id])
 
   const view = secretView(list, party.dmId, userId)
   if (view.kind === 'dm') return <DmLog partyId={party.id} rolls={view.rolls} nameOf={nameOf} />
@@ -44,7 +48,7 @@ function DmLog({ partyId, rolls, nameOf }: { partyId: string; rolls: SecretRoll[
           <p className="muted small">Only you see these results.</p>
         </div>
         {rolls.length > 0 && (
-          <button className="btn ghost small" onClick={() => confirm('Clear all secret rolls?') && clearSecretRolls(partyId)}>Clear</button>
+          <button className="btn ghost small" onClick={() => confirm('Clear all secret rolls?') && void clearSharedSecretRolls(partyId)}>Clear</button>
         )}
       </div>
       <ol className="ff-secret__list" aria-live="polite">
@@ -76,7 +80,7 @@ function SecretRoller({ partyId, userId, character, sent }: {
     const r = kind === 'skill' ? rollSkill(stats, key as SkillId, opts)
       : kind === 'save' ? rollSave(stats, key as Ability, opts)
       : rollCheck(stats, key as Ability, opts)
-    sendSecretRoll(partyId, { roll: r, fromUserId: userId })
+    void shareSecretRoll(partyId, { roll: r, fromUserId: userId }).catch(() => {})
   }
 
   return (

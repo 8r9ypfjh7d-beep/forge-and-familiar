@@ -8,7 +8,8 @@ Pick the next game date with the party. Shown at the top of an open party in `Pa
 |------|---------|
 | `types.ts` | `SessionPoll`, `SessionOption`, `Availability` (saved shape) |
 | `poll.ts` | Pure rules: propose/remove dates, votes, `tally`, `bestOption`, reminders, `.ics` export |
-| `store.ts` | Async poll store (localStorage key `ff.sessions.v1`), `onSessionsChanged` |
+| `store.ts` | Async poll store (localStorage key `ff.sessions.v1`, also the offline copy of cloud parties' polls), `refreshPolls`, `onSessionsChanged` |
+| `cloud.ts` | Supabase rows (`session_polls`, `poll_votes`), `changePoll` (conditional on `rev`, own votes only), `watchPolls` |
 | `SessionScheduler.tsx` | The scheduler panel: no plan, open poll, or locked-in session |
 | `schedule.css` | Styles scoped to `.ff-schedule` |
 | `schedule.test.ts` | Poll rules tests |
@@ -25,4 +26,4 @@ Pick the next game date with the party. Shown at the top of an open party in `Pa
 
 ## Limits until accounts exist
 
-Polls live in the browser like parties do, so only profiles on the same device see them. Push or email reminders need a backend; `poll.ts` has no storage or clock, so it can run there unchanged.
+For a cloud party, polls live in Supabase and every member sees dates and votes live; each player can only write their own votes. Local parties keep polls on the device. Push or email reminders need a backend; `poll.ts` has no storage or clock, so it can run there unchanged.

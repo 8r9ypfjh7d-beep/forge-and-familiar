@@ -1,6 +1,7 @@
 // Secret rolls: a player rolls and only the party's DM sees the result.
 // They never enter the roller's own history (ff.rolls.v1.*), so the group feed can't leak them.
-// Storage is one log per party, in localStorage until accounts exist.
+// Storage is one log per party in localStorage; for cloud parties secretCloud.ts also sends each roll
+// to the server, where only the party's DM can read results, and refreshes the DM's log from it.
 import type { RollResult } from './types'
 
 export interface SecretRoll {
@@ -61,6 +62,11 @@ function saveSecretRolls(partyId: string, list: SecretRoll[]) {
 
 export function sendSecretRoll(partyId: string, entry: SecretRoll): void {
   saveSecretRolls(partyId, addSecret(loadSecretRolls(partyId), entry))
+}
+
+/** Replaces the party's log on this device (the DM's copy of the server's). Skips unchanged lists. */
+export function replaceSecretRolls(partyId: string, list: SecretRoll[]): void {
+  if (JSON.stringify(list) !== JSON.stringify(loadSecretRolls(partyId))) saveSecretRolls(partyId, list)
 }
 
 export function clearSecretRolls(partyId: string): void {

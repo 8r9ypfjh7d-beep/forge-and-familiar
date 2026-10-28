@@ -18,7 +18,7 @@ Up to 100 dice and 1000 sides per term.
 | `rollHitDie(die, conMod)` / `rollDeathSave()` | The death save returns `outcome`. |
 | `RollHistory`, `localHistoryStorage(key)` | Newest-first store, capped, with subscribe. |
 | `headlineDie(r)`, `isNat20(r)`, `isNat1(r)`, `critKind(r)`, `pickLine(random, count, last)`, `RollFxBus` | Roll effects (`fx.ts`): the die face to animate, natural 20 / natural 1 detection (a lone tray d20 counts), a non-repeating joke picker, and a bus that keeps the to-hit, not the damage, when one tap records both. |
-| `sendSecretRoll(partyId, { roll, fromUserId })`, `secretView(list, dmId, viewerId)` | Secret rolls (`secret.ts`): one log per party (`ff.rolls.secret.v1.<partyId>`). The DM gets every result; the roller gets masked "sent" stubs only. Never written to `ff.rolls.v1.*`, so the group feed can't show them. |
+| `sendSecretRoll(partyId, { roll, fromUserId })`, `secretView(list, dmId, viewerId)` | Secret rolls (`secret.ts`): one log per party (`ff.rolls.secret.v1.<partyId>`). The DM gets every result; the roller gets masked "sent" stubs only. Never written to `ff.rolls.v1.*`, so the group feed can't show them. For cloud parties `secretCloud.ts` sends each roll to the `secret_rolls` table, which only the party's DM can read, and keeps the DM's log live. |
 
 `opts`: `{ mode?, character?, ignoreConditions?, label?, rng? }`. Passing `character` tags the roll with who rolled it. It also merges `getRollMode` from that character's conditions with any situational `mode`. Advantage and disadvantage cancel out, per the SRD. Saves the character fails automatically come back with `autoFail: true`.
 

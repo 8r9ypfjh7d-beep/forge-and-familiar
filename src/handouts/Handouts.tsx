@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Party } from '../party/types'
 import { shrinkImage } from './image'
 import { isDm, isUnread, problems, recipients, send, unreadCount, unsend, visibleHandouts } from './logic'
-import { deleteHandout, HandoutSpaceError, listHandouts, markHandoutSeen, onHandoutsChanged, saveHandout } from './store'
+import { watchHandouts } from './cloud'
+import { deleteHandout, HandoutSpaceError, listHandouts, markHandoutSeen, onHandoutsChanged, refreshHandouts, saveHandout } from './store'
 import type { Handout, HandoutKind } from './types'
 import './handouts.css'
 
@@ -15,7 +16,11 @@ function useHandouts(partyId: string): Handout[] {
     const load = () => listHandouts(partyId).then(l => { if (live) setList(l) })
     load()
     const off = onHandoutsChanged(load)
-    return () => { live = false; off() }
+    // Cloud party: fetch now and on every change from another device.
+    const refresh = () => { void refreshHandouts(partyId) }
+    refresh()
+    const offCloud = watchHandouts(partyId, refresh)
+    return () => { live = false; off(); offCloud() }
   }, [partyId])
   return list
 }
