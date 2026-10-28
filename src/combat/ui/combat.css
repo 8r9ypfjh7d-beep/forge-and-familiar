@@ -1,80 +1,145 @@
-/* Combat tracker styles, scoped to .ff-combat. Uses the app's tokens from index.css. */
-.ff-combat { --c-temp: #3b6fb0; font-variant-numeric: tabular-nums; }
-@media (prefers-color-scheme: dark) { .ff-combat { --c-temp: #7aa7e0; } }
-.ff-combat h3 { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-family: inherit; }
+/* Combat tracker, scoped to .ff-combat. Liquid Glass (src/design/DESIGN.md): cards are .glass, buttons
+   .glass-btn, chips .glass-chip; this file adds the tracker's own pieces with the glass tokens.
+   Logical properties only, so Hebrew needs no overrides. */
+.ff-combat {
+  --c-temp: #3b6fb0; --c-warn: #c58a1d;
+  display: grid; gap: var(--sp-4); font-variant-numeric: tabular-nums;
+}
+@media (prefers-color-scheme: dark) { .ff-combat { --c-temp: #7aa7e0; --c-warn: #e0a942; } }
+.ff-combat h2, .ff-combat h3 { margin: 0; }
+.ff-combat .glass-title { font-size: 1.4rem; }
+.ff-combat .glass-eyebrow { font-family: inherit; margin-block-end: var(--sp-2); }
 .ff-combat .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.ff-combat .panel { padding: 14px; }
-.ff-combat .btn.danger { background: var(--bad); border-color: var(--bad); color: var(--accent-ink); }
-.ff-combat .btn.heal { background: var(--good); border-color: var(--good); color: var(--accent-ink); }
-.ff-combat .icon { font: inherit; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
-.ff-combat .icon:hover:not(:disabled) { color: var(--ink); background: var(--accent-soft); }
-.ff-combat .icon:disabled { opacity: .3; cursor: default; }
-.ff-combat .tag { margin-inline-start: 0; background: none; font-size: .72rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
-.ff-combat .tag.bad { color: var(--bad); border-color: var(--bad); }
-.ff-combat .check { display: flex; gap: 6px; align-items: center; font-size: .9rem; }
+.ff-combat .glass { padding: var(--sp-4); }
+.ff-combat .empty { padding: var(--sp-8) var(--sp-5); }
+.ff-combat .row.spread { margin: 0; }
 
-.encounter-list { display: grid; gap: 10px; }
-.encounter-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.encounter-list h3 { margin: 0; text-transform: none; letter-spacing: 0; font-size: 1.05rem; color: var(--ink); font-family: Georgia, serif; }
+/* Fields: the .glass-field look for every input and select in the tracker. */
+.ff-combat :is(input:not([type="checkbox"]), select) {
+  min-height: 40px; padding-block: 0; padding-inline: var(--sp-3); border-radius: var(--r-sm);
+  border: 1px solid var(--glass-hairline); background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
 
-.combat-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.combat-head h2 { margin: 0; flex: 1; min-width: 0; }
-.title-btn { font: inherit; background: none; border: 0; color: inherit; padding: 0; cursor: text; text-align: start; }
+/* Buttons: plain (no fill) for quiet actions, tinted glass for damage and healing. */
+.ff-combat .glass-btn.plain { background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ff-combat .glass-btn.plain:hover:not(:disabled) { background: var(--glass-thin); }
+.ff-combat .glass-btn.danger, .ff-combat .glass-btn.heal { --tone: var(--bad); color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, var(--glass-regular)); border-color: color-mix(in srgb, var(--tone) 30%, transparent); }
+.ff-combat .glass-btn.heal { --tone: var(--good); }
+.ff-combat .glass-btn.danger:hover:not(:disabled), .ff-combat .glass-btn.heal:hover:not(:disabled) { background: color-mix(in srgb, var(--tone) 24%, var(--glass-regular)); }
+.ff-combat .icon {
+  font: inherit; display: inline-grid; place-items: center; min-width: 32px; min-height: 32px; padding: 0;
+  background: none; border: 0; border-radius: var(--r-pill); color: var(--muted); cursor: pointer;
+  transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.ff-combat .icon:hover:not(:disabled) { color: var(--ink); background: var(--glass-thin); }
+.ff-combat .icon:active:not(:disabled) { transform: scale(0.92); }
+.ff-combat .icon:disabled { opacity: 0.3; cursor: default; }
+
+/* Small capsule labels (Party, AC 15, Dying). */
+.ff-combat .tag {
+  margin-inline-start: 0; font-size: 0.72rem; font-weight: 600; padding-block: 2px; padding-inline: 8px;
+  border-radius: var(--r-pill); background: var(--glass-thin); border: 1px solid var(--glass-hairline); color: var(--muted);
+}
+.ff-combat .tag.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
+.ff-combat .check { display: flex; gap: 6px; align-items: center; font-size: 0.9rem; }
+
+/* Encounter list. */
+.encounter-list { display: grid; gap: var(--sp-3); }
+.encounter-list li { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.encounter-list .encounter-name { font-family: var(--font-lore); font-size: 1.1rem; font-weight: 600; color: var(--ink); }
+.encounter-list p { margin: 2px 0 0; }
+
+/* Header and turn controls. */
+.combat-head { display: flex; align-items: center; gap: var(--sp-3); }
+.combat-head h2 { flex: 1; min-width: 0; }
+.combat-head > input { flex: 1; min-width: 0; font-size: 1.2rem; }
+.title-btn { font: inherit; background: none; border: 0; color: inherit; padding: 0; cursor: text; text-align: start; overflow-wrap: anywhere; }
 .combat-head .round { display: grid; text-align: end; line-height: 1.2; }
-.combat-head .round strong { font-size: 1.2rem; }
-.combat-actions { margin: 12px 0; }
+.combat-head .round strong { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: -0.015em; }
+.combat-actions { gap: var(--sp-2); }
 .combat-actions .next { min-width: 150px; }
+@media (max-width: 560px) {
+  .combat-actions { flex-wrap: nowrap; }
+  .combat-actions .glass-btn { min-height: 44px; padding-inline: var(--sp-3); }
+  .combat-actions .next { min-width: 0; flex: 1; }
+}
 
-.checks { display: grid; gap: 8px; margin-bottom: 12px; }
-.check-card { border-color: var(--accent); background: var(--accent-soft); }
-.check-card p { margin: 0 0 8px; }
+/* Concentration checks: tinted glass, the alert stands out without a heavy border. */
+.checks { display: grid; gap: var(--sp-2); }
+.check-card.glass { background: color-mix(in srgb, var(--accent) 12%, var(--glass-regular)); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.check-card p { margin: 0 0 var(--sp-3); }
 
-.combat-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
-.combat-grid > div { display: grid; gap: 12px; }
+.combat-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--sp-4); align-items: start; }
+.combat-grid > div { display: grid; gap: var(--sp-3); }
 @media (max-width: 860px) { .combat-grid { grid-template-columns: minmax(0, 1fr); } }
 
-.order { display: grid; gap: 8px; }
-.combatant { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: center; border-inline-start: 4px solid transparent; }
-.combatant.active { border-inline-start-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
-.combatant.out { opacity: .55; }
+/* Initiative order. The active row wears the lens: accent tint and an accent edge. */
+.order { display: grid; gap: var(--sp-2); }
+.combatant.glass { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: center; padding: var(--sp-3); border-radius: var(--r-lg); transition: background-color var(--dur-med) var(--ease-glass), box-shadow var(--dur-med) var(--ease-glass); }
+.combatant.active {
+  background: color-mix(in srgb, var(--accent) 10%, var(--glass-thick));
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), var(--glass-highlight), var(--glass-shadow-lift);
+}
+.combatant.out { opacity: 0.55; }
 .combatant .init { display: flex; align-items: center; gap: 2px; }
-.combatant .init input { width: 44px; text-align: center; font-size: 1.15rem; font-weight: 700; padding: 6px 2px; }
+.combatant .init input {
+  width: 48px; min-height: 48px; padding: 0 2px; text-align: center; border-radius: var(--r-md);
+  font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; background: var(--glass-thin);
+}
+.combatant.active .init input { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .combatant .tie { display: grid; }
-.combatant .tie .icon { padding: 0 3px; font-size: .6rem; }
+.combatant .tie .icon { min-width: 20px; min-height: 20px; font-size: 0.6rem; }
 .combatant .name-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.combatant .hp-line { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
-.hpbar { flex: 1; max-width: 220px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
-.hpbar > div { height: 100%; background: var(--good); }
-.hpbar > div.mid { background: #c58a1d; }
+.combatant .name-line strong { font-family: var(--font-display); font-size: 1.05rem; letter-spacing: -0.015em; }
+.combatant .hp-line { display: flex; gap: var(--sp-2); align-items: center; margin-block-start: 6px; }
+.hpbar { flex: 1; max-width: 220px; height: 8px; border-radius: var(--r-pill); background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); overflow: hidden; }
+.hpbar > div { height: 100%; border-radius: inherit; background: var(--good); transition: width var(--dur-med) var(--ease-glass); }
+.hpbar > div.mid { background: var(--c-warn); }
 .hpbar > div.low { background: var(--bad); }
-.combatant .chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
-.combatant .chip { font-size: .75rem; padding: 2px 8px; cursor: default; }
-.combatant button.chip { cursor: pointer; }
-.chip.conc { border-color: var(--c-temp); color: var(--c-temp); }
-.chip.cond { border-color: var(--bad); color: var(--bad); text-transform: capitalize; }
-.chip.fx { background: var(--accent-soft); }
+.combatant .chips { display: flex; gap: 4px; flex-wrap: wrap; margin-block-start: var(--sp-2); }
+.combatant .glass-chip { font-size: 0.75rem; min-height: 26px; padding-inline: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: default; }
+.combatant button.glass-chip { cursor: pointer; }
+.glass-chip.conc { color: var(--c-temp); background: color-mix(in srgb, var(--c-temp) 12%, transparent); border-color: color-mix(in srgb, var(--c-temp) 40%, transparent); }
+.glass-chip.cond { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); border-color: color-mix(in srgb, var(--bad) 35%, transparent); text-transform: capitalize; }
+.glass-chip.fx { background: var(--glass-tint); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 25%, transparent); }
 .combatant .controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .combatant .controls input { width: 56px; text-align: center; }
-.combatant .controls select { max-width: 130px; }
+.combatant .controls select { max-width: 140px; border-radius: var(--r-pill); }
 @media (max-width: 560px) {
-  .combatant { grid-template-columns: 52px minmax(0, 1fr); }
+  .combatant.glass { grid-template-columns: 52px minmax(0, 1fr); }
   .combatant .controls { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: nowrap; }
   .combatant .controls select { min-width: 0; flex: 1; }
 }
+/* Phones: every control in a row is a full 44px touch target. */
+@media (max-width: 640px) {
+  .combatant .controls :is(input, select, .glass-btn, .icon) { min-height: 44px; }
+  .combatant .controls .icon { min-width: 44px; }
+}
 
-.monster-form, .effect-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; align-items: end; margin-top: 12px; }
-.monster-form label, .effect-form label:not(.check) { display: grid; gap: 3px; font-size: .78rem; font-weight: 600; color: var(--muted); }
-.monster-form input, .effect-form input, .effect-form select { width: 100%; min-width: 0; }
+/* Add monsters and effects. */
+.monster-form, .effect-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--sp-2); align-items: end; margin-block-start: var(--sp-3); }
+.monster-form label, .effect-form label:not(.check) { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.monster-form input, .effect-form input:not([type="checkbox"]), .effect-form select { width: 100%; min-width: 0; color: var(--ink); font-weight: 400; }
 .monster-form label:first-child { grid-column: span 2; }
 .monster-form p { grid-column: 1 / -1; margin: 0; }
 .effect-form { grid-template-columns: minmax(0, 1fr); }
-.effect-form fieldset { border: 1px solid var(--line); border-radius: 8px; display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; }
-.effect-form legend { font-size: .78rem; font-weight: 600; color: var(--muted); }
+.effect-form fieldset { border: 1px solid var(--glass-hairline); border-radius: var(--r-md); background: var(--glass-thin); display: flex; flex-wrap: wrap; gap: 4px var(--sp-3); margin: 0; padding: var(--sp-2) var(--sp-3); }
+.effect-form legend { font-size: 0.8rem; font-weight: 600; color: var(--muted); padding-inline: 4px; }
 
-.effects ul { display: grid; gap: 6px; margin-bottom: 10px; }
-.effect { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+/* Effects and log: grouped lists with hairline separators. */
+.effects ul { display: grid; margin-block-end: var(--sp-3); }
+.effect { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-2); align-items: center; padding-block: var(--sp-2); }
+.effect + .effect { border-block-start: 1px solid var(--glass-hairline); }
 .effect .tag { margin-inline-start: 6px; }
-.effect .left { font-weight: 700; }
-.combat-log { max-height: 260px; overflow: auto; font-size: .85rem; }
-.combat-log li { border-bottom: 1px dashed var(--line); padding: 3px 0; }
+.effect .left { font-family: var(--font-display); font-weight: 700; }
+.combat-log { max-height: 260px; overflow: auto; font-size: 0.85rem; }
+.combat-log li { padding-block: 5px; }
+.combat-log li + li { border-block-start: 1px solid var(--glass-hairline); }
 [dir='rtl'] .ff-combat .init input, [dir='rtl'] .ff-combat .controls input { direction: ltr; unicode-bidi: isolate; }
+
+/* High contrast: glass is already solid; draw 2px edges where state was shown by fill. */
+:root[data-contrast="high"] .combatant.active { border: 2px solid var(--accent); }
+:root[data-contrast="high"] .check-card.glass { border: 2px solid var(--accent); }
+:root[data-contrast="high"] .ff-combat :is(.glass-btn.danger, .glass-btn.heal, .glass-chip.cond, .glass-chip.conc) { border: 2px solid currentColor; }
+:root[data-contrast="high"] .hpbar { box-shadow: inset 0 0 0 1px var(--ink); }

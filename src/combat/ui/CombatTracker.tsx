@@ -35,27 +35,27 @@ export function CombatTracker({ ownerId, initialOpenId }: { ownerId: string; ini
   return (
     <section className="ff-combat">
       <div className="row spread">
-        <h2>{t('combat.title')}</h2>
-        <button className="btn primary" onClick={create}>{t('combat.new')}</button>
+        <h2 className="glass-title">{t('combat.title')}</h2>
+        <button className="glass-btn prominent" onClick={create}>{t('combat.new')}</button>
       </div>
       {list && list.length === 0 && (
-        <div className="panel empty">
+        <div className="glass empty">
           <p>{t('combat.emptyIntro')}</p>
-          <button className="btn primary" onClick={create}>{t('combat.startFirst')}</button>
+          <button className="glass-btn prominent" onClick={create}>{t('combat.startFirst')}</button>
         </div>
       )}
       <ul className="plain encounter-list">
         {list?.map(e => (
-          <li key={e.id} className="panel">
+          <li key={e.id} className="glass">
             <div>
-              <h3>{e.name}</h3>
+              <h3 className="encounter-name">{e.name}</h3>
               <p className="muted small">
                 {t('combat.combatants', { count: e.combatants.length })} · {inCombat(e) ? t('combat.roundN', { round: e.round }) : t('combat.notStarted')}
               </p>
             </div>
             <div className="row">
-              <button className="btn primary small" onClick={() => setOpenId(e.id)}>{t('combat.open')}</button>
-              <button className="btn ghost small" onClick={async () => {
+              <button className="glass-btn small" onClick={() => setOpenId(e.id)}>{t('combat.open')}</button>
+              <button className="glass-btn small plain" onClick={async () => {
                 if (confirm(t('combat.deleteConfirm', { name: e.name }))) { await deleteEncounter(e.id); refresh() }
               }}>{t('common.delete')}</button>
             </div>
@@ -73,7 +73,7 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
   const [editingName, setEditingName] = useState(false)
 
   if (enc === undefined) return <p className="muted">{t('common.loading')}</p>
-  if (enc === null) return <p>{t('combat.notFound')} <button className="btn" onClick={onBack}>{t('common.back')}</button></p>
+  if (enc === null) return <p>{t('combat.notFound')} <button className="glass-btn" onClick={onBack}>{t('common.back')}</button></p>
 
   const fighting = inCombat(enc)
   const unrolled = enc.combatants.filter(c => c.initiative === null)
@@ -90,13 +90,13 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
   return (
     <section className="ff-combat">
       <header className="combat-head">
-        <button className="btn ghost" onClick={onBack} aria-label={t('combat.backToList')}>{t('common.backArrow')}</button>
+        <button className="glass-btn icon" onClick={onBack} aria-label={t('combat.backToList')}>{t('common.backArrow')}</button>
         {editingName ? (
           <input autoFocus defaultValue={enc.name} aria-label={t('combat.nameLabel')}
             onBlur={ev => { const name = ev.target.value.trim(); if (name) act(e => ({ ...e, name })); setEditingName(false) }}
             onKeyDown={ev => { if (ev.key === 'Enter') ev.currentTarget.blur() }} />
         ) : (
-          <h2><button className="title-btn" onClick={() => setEditingName(true)} title={t('combat.rename')}>{enc.name}</button></h2>
+          <h2 className="glass-title"><button className="title-btn" onClick={() => setEditingName(true)} title={t('combat.rename')}>{enc.name}</button></h2>
         )}
         <div className="round" aria-live="polite">
           {fighting ? <><strong>{t('combat.roundN', { round: enc.round })}</strong><span className="muted small">{elapsedText(elapsedSeconds(enc.round), t)}</span></> : <span className="muted">{t('combat.notStarted')}</span>}
@@ -104,13 +104,13 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
       </header>
 
       <div className="combat-actions row">
-        {unrolled.length > 0 && <button className="btn" onClick={rollMissing}>{t('combat.rollInit', { count: unrolled.length })}</button>}
+        {unrolled.length > 0 && <button className="glass-btn" onClick={rollMissing}>{t('combat.rollInit', { count: unrolled.length })}</button>}
         {fighting
-          ? <button className="btn primary next" onClick={() => act(nextTurn)}>{t('combat.next')}</button>
-          : <button className="btn primary next" disabled={!enc.combatants.length || unrolled.length > 0} onClick={() => act(startCombat)}
+          ? <button className="glass-btn prominent next" onClick={() => act(nextTurn)}>{t('combat.next')}</button>
+          : <button className="glass-btn prominent next" disabled={!enc.combatants.length || unrolled.length > 0} onClick={() => act(startCombat)}
               title={unrolled.length ? t('combat.needInit') : undefined}>{t('combat.start')}</button>}
-        {fighting && <button className="btn" onClick={() => confirm(t('combat.endConfirm')) && act(endCombat)}>{t('combat.end')}</button>}
-        <button className="btn ghost" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
+        {fighting && <button className="glass-btn" onClick={() => confirm(t('combat.endConfirm')) && act(endCombat)}>{t('combat.end')}</button>}
+        <button className="glass-btn plain" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
       </div>
 
       <PendingChecks enc={enc} act={act} />
@@ -118,7 +118,7 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
       <div className="combat-grid">
         <div>
           {enc.combatants.length === 0
-            ? <div className="panel empty"><p>{t('combat.emptyOrder')}</p></div>
+            ? <div className="glass empty"><p>{t('combat.emptyOrder')}</p></div>
             : (
               <ol className="plain order" aria-label={t('combat.order')}>
                 {enc.combatants.map((c, i) => (
@@ -131,8 +131,8 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
         </div>
         <div>
           <Effects enc={enc} act={act} />
-          <section className="panel">
-            <h3>{t('combat.log')}</h3>
+          <section className="glass thick">
+            <h3 className="glass-eyebrow">{t('combat.log')}</h3>
             {enc.log.length === 0
               ? <p className="muted small">{t('combat.logEmpty')}</p>
               : <ol className="plain combat-log">{enc.log.map((l, i) => <li key={i}>{typeof l === 'string' ? l : t(l.key, l.vars)}</li>)}</ol>}
