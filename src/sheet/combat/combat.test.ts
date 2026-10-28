@@ -1,4 +1,6 @@
+/// <reference types="node" />
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { loadKind } from '../../content'
 import { derive, xpForNextLevel } from '../../rules'
 import { makeCharacter } from '../fixtures'
@@ -118,5 +120,25 @@ describe('combat page helpers', () => {
     ])
     // A miss rolls no damage, so Hex isn't listed.
     expect(effectsUsed(active, [], f => f.kind === 'attack').map(e => e.name)).toEqual(['Battle Stance'])
+  })
+})
+
+describe('combat page styles', () => {
+  // The combat-only part of combat.css follows the Liquid Glass standard (src/design/DESIGN.md).
+  const css = readFileSync(new URL('./combat.css', import.meta.url), 'utf8')
+  const own = css.slice(css.indexOf('/* ---- Combat-only parts'))
+
+  it('builds its surfaces from glass tokens, with no hard-coded backdrop blur', () => {
+    expect(own).toMatch(/var\(--glass-/)
+    expect(own).not.toMatch(/backdrop-filter:\s*blur/)
+  })
+
+  it('uses logical properties only, so RTL needs no overrides', () => {
+    expect(own).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
+  })
+
+  it('gives high contrast an edge where state is shown by fill', () => {
+    expect(own).toMatch(/:root\[data-contrast="high"\] \.cs-tablist button\.on/)
+    expect(own).toMatch(/:root\[data-contrast="high"\] \.cs-switch input/)
   })
 })

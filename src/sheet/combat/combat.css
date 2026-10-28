@@ -92,47 +92,100 @@
 .cs-tools-title { margin-top: 16px !important; padding-top: 12px; border-top: 1px solid var(--s-line); }
 .cs-tools li { padding: 4px 6px; font-weight: 600; }
 
-/* Tabs */
-.cs-tabs { min-width: 0; }
-.cs-tablist { display: flex; gap: 4px; overflow-x: auto; border-block-end: 2px solid var(--s-line); margin-block-end: 12px; scrollbar-width: thin; }
-.cs-tablist button {
-  flex: 0 0 auto; min-block-size: 40px; padding: 0 12px; border: 0; background: transparent; color: var(--s-muted);
-  font: inherit; font-weight: 700; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; cursor: pointer;
-  border-block-end: 3px solid transparent; margin-block-end: -2px;
-}
-.cs-tablist button.on { color: var(--s-ink); border-block-end-color: var(--s-accent); }
-.cs-tabpanel { display: flex; flex-direction: column; gap: 16px; }
+/* ---- Combat-only parts, Liquid Glass (src/design/DESIGN.md). Glass tokens only, so Reduce
+   transparency and high contrast turn every surface solid with the same shapes. ---- */
 
-/* Attacks table */
-.cs-fight .card-head { flex-wrap: wrap; align-items: center; }
-.cs-fight .segmented { min-inline-size: 200px; }
-.cs-table-head, .cs-attack { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px; align-items: center; }
-.cs-table-head { margin-top: 8px; padding: 6px 8px; font-size: .7rem; font-weight: 700; text-transform: uppercase; color: var(--s-muted); border-block-end: 1px solid var(--s-line); }
-.cs-attack-list { list-style: none; margin: 0; padding: 0; }
-.cs-attack-list li { border-block-end: 1px solid var(--s-line); }
-.cs-attack {
-  inline-size: 100%; min-block-size: 48px; padding: 6px 8px; border: 0; background: transparent; color: var(--s-ink);
-  font: inherit; font-size: .9rem; text-align: start; cursor: pointer;
+/* Tabs: a glass track with the selected tab as the lens, like the top bar (src/nav/nav.css).
+   The DM screen reuses this tab bar. */
+.cs-tabs { min-width: 0; }
+.cs-tablist {
+  display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none;
+  margin-block-end: var(--sp-3); padding: var(--sp-1); border-radius: var(--r-pill);
+  background: var(--glass-thin); border: 1px solid var(--glass-stroke);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
 }
-.cs-attack:hover { background: var(--s-bg); }
-.cs-attack .name { font-weight: 700; display: grid; }
+.cs-tablist::-webkit-scrollbar { display: none; }
+.cs-tablist button {
+  flex: 1 0 auto; min-block-size: 40px; padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill);
+  background: transparent; color: var(--s-muted); white-space: nowrap;
+  font: inherit; font-weight: 500; font-size: .9rem; cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-glass), color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.cs-tablist button:hover { color: var(--s-ink); background: var(--glass-thin); }
+.cs-tablist button:active { transform: scale(0.95); }
+.cs-tablist button.on {
+  color: var(--accent); font-weight: 600; background: var(--glass-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--glass-highlight);
+}
+@media (max-width: 640px) { .cs-tablist button { min-block-size: 44px; padding: 0 var(--sp-3); } }
+.cs-tabpanel { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+/* Attacks: Adv/Normal/Dis as a glass segmented control, attacks as an inset grouped list */
+.cs-fight .card-head { flex-wrap: wrap; align-items: center; }
+.cs-fight .segmented {
+  min-inline-size: 200px; gap: 2px; padding: 3px; border-radius: var(--r-pill);
+  border: 1px solid var(--glass-stroke); background: var(--glass-thin); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.cs-fight .segmented button {
+  min-block-size: 34px; border: 0; border-radius: var(--r-pill); color: var(--s-muted);
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+}
+.cs-fight .segmented button.on { background: var(--glass-thick); color: var(--s-ink); box-shadow: var(--glass-highlight), 0 1px 4px rgb(0 0 0 / 0.12); }
+.cs-table-head, .cs-attack { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--sp-2); align-items: center; }
+.cs-table-head { margin-block-start: var(--sp-2); padding: var(--sp-1) var(--sp-3); font-size: .75rem; font-weight: 600; color: var(--s-muted); }
+.cs-attack-list { list-style: none; margin: 0; padding: var(--sp-1); display: grid; border-radius: var(--r-md); background: var(--glass-thin); border: 1px solid var(--glass-hairline); }
+.cs-attack-list > li + li { border-block-start: 1px solid var(--glass-hairline); }
+.cs-attack {
+  inline-size: 100%; min-block-size: 48px; padding: var(--sp-2) var(--sp-3); border: 0; border-radius: var(--r-sm);
+  background: transparent; color: var(--s-ink); font: inherit; font-size: .9rem; text-align: start; cursor: pointer;
+  transition: background-color var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.cs-attack:hover { background: var(--glass-regular); }
+.cs-attack:active { transform: scale(0.98); }
+.cs-attack .name { font-weight: 600; display: grid; }
 .cs-attack .name small { font-weight: 500; color: var(--s-muted); font-size: .75rem; }
 .cs-attack .range { color: var(--s-muted); font-size: .85rem; }
-.cs-attack .hit { font-weight: 800; color: var(--s-accent); }
-.cs-attack .dmg { font-weight: 700; color: var(--s-bad); }
-.cs-attack-list .rider { display: flex; gap: 6px; align-items: center; padding: 0 8px 6px; font-size: .85rem; }
-.cs-out { margin-top: 8px; padding: 8px; border-radius: 8px; background: var(--s-bg); }
-
-.cs-sub {
-  margin: 20px 0 6px; padding-block-end: 4px; border-block-end: 1px solid var(--s-line);
-  font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--s-ink); display: flex; gap: 8px; align-items: baseline;
+.cs-attack .hit { font-weight: 700; color: var(--s-accent); font-size: 1.05rem; }
+.cs-attack .dmg { font-weight: 600; color: var(--s-bad); }
+.cs-attack-list .rider { display: flex; gap: var(--sp-2); align-items: center; padding: 0 var(--sp-3) var(--sp-2); font-size: .85rem; }
+.cs-out {
+  margin-block-start: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md);
+  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-highlight);
 }
-.cs-count { font-size: .7rem; color: var(--s-muted); padding: 1px 6px; border: 1px solid var(--s-line); border-radius: 4px; }
+
+/* Section headings inside the tabs: sentence case display type over a hairline */
+.cs-sub {
+  margin: var(--sp-5) 0 var(--sp-1); padding-block-end: var(--sp-1); border-block-end: 1px solid var(--glass-hairline);
+  font-family: var(--font-display); font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; color: var(--s-ink);
+  display: flex; gap: var(--sp-2); align-items: center; min-block-size: 36px;
+}
+.cs-count {
+  font-family: var(--font-text); font-size: .75rem; font-weight: 600; color: var(--s-muted);
+  padding: 1px var(--sp-2); border-radius: var(--r-pill); background: var(--glass-thin); border: 1px solid var(--glass-hairline);
+}
 .cs-rows { list-style: none; margin: 0; padding: 0; }
-.cs-rows > li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 4px; border-block-end: 1px solid var(--s-line); flex-wrap: wrap; }
-.cs-effects .dmg { font-weight: 800; color: var(--s-bad); }
-.cs-switch { display: inline-flex; gap: 8px; align-items: center; font-weight: 700; cursor: pointer; }
-.cs-switch input { inline-size: 20px; block-size: 20px; accent-color: var(--s-accent); min-block-size: 0; }
+.cs-rows > li { display: flex; gap: var(--sp-3); align-items: center; justify-content: space-between; padding: var(--sp-2) var(--sp-1); flex-wrap: wrap; }
+.cs-rows > li + li { border-block-start: 1px solid var(--glass-hairline); }
+.cs-effects .dmg { font-weight: 700; color: var(--s-bad); }
+
+/* Effects: iOS-style switches. Still a checkbox, so keyboard and screen readers are unchanged. */
+.cs-switch { display: inline-flex; gap: var(--sp-3); align-items: center; font-weight: 600; cursor: pointer; }
+.cs-switch input {
+  appearance: none; -webkit-appearance: none; position: relative; flex: none; margin: 0;
+  inline-size: 46px; block-size: 28px; min-block-size: 0; padding: 0; border-radius: var(--r-pill);
+  border: 1px solid var(--glass-hairline); background: color-mix(in srgb, var(--s-muted) 28%, transparent);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.12); cursor: pointer;
+  transition: background-color var(--dur-med) var(--ease-glass);
+}
+.cs-switch input::before {
+  content: ''; position: absolute; inset-block-start: 2px; inset-inline-start: 2px;
+  inline-size: 22px; block-size: 22px; border-radius: 50%; background: #fff; /* the knob is white in both themes, as on iOS */
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25), 0 3px 8px rgb(0 0 0 / 0.12);
+  transition: inset-inline-start var(--dur-med) var(--ease-spring);
+}
+.cs-switch input:checked { background: var(--s-good); border-color: transparent; }
+.cs-switch input:checked::before { inset-inline-start: 20px; }
 
 /* Action and feature rows */
 .cs-action { display: block !important; }
@@ -140,7 +193,7 @@
 .cs-action details summary { list-style: none; }
 .cs-action details summary::after { content: '⌄'; color: var(--s-muted); margin-inline-start: auto; }
 .cs-action details[open] summary::after { content: '⌃'; }
-.cs-action details summary { cursor: pointer; font-weight: 700; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; min-block-size: 32px; }
+.cs-action details summary { cursor: pointer; font-weight: 600; display: flex; gap: var(--sp-2); align-items: baseline; justify-content: space-between; min-block-size: 32px; }
 .cs-action details summary .hint { margin: 0; font-weight: 500; }
 .cs-action details p, .cs-desc { margin: 6px 0 4px; color: var(--s-muted); font-size: .9rem; }
 [dir="rtl"] .cs-desc { text-align: left; }
@@ -158,13 +211,14 @@
   .cs-portrait { block-size: 82px; }
 }
 
-/* Labeled rolls: what the roll is for, the total, how it was made */
+/* Labeled rolls: what the roll is for, the total, how it was made. Same card as before, on glass tokens. */
 .cs-rollline {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'what total' 'how how' 'meaning meaning';
-  gap: 2px 12px; padding: 8px 10px; border-radius: 8px; background: var(--s-panel); border-inline-start: 4px solid var(--s-line);
+  gap: 2px var(--sp-3); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm);
+  background: var(--glass-thick); border-inline-start: 4px solid var(--s-line); box-shadow: var(--glass-highlight), 0 1px 3px rgb(0 0 0 / 0.06);
 }
 .cs-rollline .what { grid-area: what; font-weight: 700; }
-.cs-rollline .total { grid-area: total; font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.cs-rollline .total { grid-area: total; font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; line-height: 1; }
 .cs-rollline .how { grid-area: how; color: var(--s-muted); font-size: .8rem; justify-self: start; }
 .cs-rollline .meaning { grid-area: meaning; font-size: .85rem; }
 .cs-rollline.type-attack { border-inline-start-color: var(--s-accent); }
@@ -175,34 +229,75 @@
 .cs-rollline.fumble .meaning { color: var(--s-bad); font-weight: 700; }
 
 /* The player's own actions */
-.cs-sub .cs-add { margin-inline-start: auto; min-height: 28px; text-transform: none; letter-spacing: 0; }
-.cs-action-row { display: flex; align-items: flex-start; gap: 8px; }
+.ff-sheet .cs-sub .btn.cs-add {
+  margin-inline-start: auto; min-block-size: 32px; padding: 0 var(--sp-3); border-radius: var(--r-pill);
+  border: 1px solid var(--glass-stroke); background: var(--glass-thin); color: var(--s-accent);
+  font-family: var(--font-text); font-size: .85rem; font-weight: 600;
+}
+.ff-sheet .cs-sub .btn.cs-add:hover:not(:disabled) { background: var(--glass-regular); border-color: var(--glass-stroke); }
+.cs-action-row { display: flex; align-items: flex-start; gap: var(--sp-2); }
 .cs-action-row > details, .cs-action-row > .cs-action-name { flex: 1; min-width: 0; }
-.cs-action-name { font-weight: 700; padding-block: 6px; }
-.cs-action-tools { display: flex; gap: 2px; }
+.cs-action-name { font-weight: 600; padding-block: 6px; }
+.cs-action-tools { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .cs-desc-text { white-space: pre-wrap; margin: 6px 0 4px; color: var(--s-muted); font-size: .9rem; }
-.cs-action-form { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px; margin-block: 6px; border: 1px solid var(--s-line); border-radius: 8px; background: var(--s-bg); }
+.ff-sheet .btn.cs-action-roll {
+  max-width: none; border-radius: var(--r-pill); font-weight: 600; color: var(--s-accent);
+  background: var(--glass-tint); border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: var(--glass-highlight);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.ff-sheet .btn.cs-action-roll:active:not(:disabled) { transform: scale(0.96); }
+.cs-effect-tag {
+  font-size: .75rem; font-weight: 600; padding: 2px var(--sp-2); border-radius: var(--r-pill);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); color: var(--s-accent); background: var(--glass-thin);
+}
+.cs-effect-tag.on { background: var(--s-accent); border-color: transparent; color: var(--accent-ink); }
+
+/* Add or edit an action: an inset glass panel with grouped fieldsets */
+.cs-action-form {
+  display: grid; grid-template-columns: 1fr; gap: var(--sp-2); padding: var(--sp-3); margin-block: var(--sp-2);
+  border-radius: var(--r-md); background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-highlight);
+}
 @media (min-width: 560px) { .cs-action-form { grid-template-columns: 2fr 1fr; } }
-.cs-action-form > label, .cs-action-form .cs-fieldset > label { display: grid; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--s-muted); }
+.cs-action-form > label, .cs-action-form .cs-fieldset > label { display: grid; gap: var(--sp-1); font-size: .8rem; font-weight: 600; color: var(--s-muted); }
 .cs-action-form .wide, .cs-action-form .row { grid-column: 1 / -1; }
 .cs-action-form .row { margin-top: 0; }
-.cs-action-form textarea { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--s-line); background: var(--s-panel); color: var(--s-ink); resize: vertical; }
-
-.cs-fieldset { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0; padding: 8px 10px 10px; border: 1px solid var(--s-line); border-radius: 8px; }
-.cs-fieldset legend { font-size: .8rem; font-weight: 700; padding-inline: 4px; }
+.cs-action-form textarea {
+  font: inherit; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--glass-hairline);
+  background: color-mix(in srgb, var(--s-panel) 70%, transparent); color: var(--s-ink); resize: vertical;
+}
+.cs-fieldset {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--sp-2); margin: 0;
+  padding: var(--sp-2) var(--sp-3) var(--sp-3); border-radius: var(--r-sm);
+  border: 1px solid var(--glass-hairline); background: var(--glass-thin);
+}
+.cs-fieldset legend { font-size: .85rem; font-weight: 600; padding-inline: var(--sp-1); color: var(--s-ink); }
 .cs-fieldset .wide { grid-column: 1 / -1; margin: 0; }
 .cs-fieldset input[aria-invalid="true"] { border-color: var(--s-bad); }
-.cs-check { display: flex !important; align-items: center; gap: 8px; color: var(--s-ink) !important; }
+.cs-check { display: flex !important; align-items: center; gap: var(--sp-2); color: var(--s-ink) !important; }
 .cs-check input { min-height: 0; inline-size: 18px; block-size: 18px; accent-color: var(--s-accent); }
-.cs-action-tools { align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-.cs-action-roll { max-width: none !important; font-weight: 700; color: var(--s-accent); }
-.cs-effect-tag { font-size: .7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--s-accent); color: var(--s-accent); }
-.cs-effect-tag.on { background: var(--s-accent); color: #fff; }
-.cs-stats-editor { display: grid; gap: 4px; }
+.cs-stats-editor { display: grid; gap: var(--sp-1); }
 .cs-stats-editor .hint { margin: 0; }
 .cs-stats-editor .inv-effect .check { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; }
 
 /* Which switched-on effects went into the last roll */
-.cs-used { margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 1px dashed var(--s-accent); background: var(--s-panel); font-size: .85rem; }
-.cs-used-title { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--s-accent); margin-bottom: 4px; }
+.cs-used {
+  margin-block-start: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm);
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent); background: var(--glass-tint); font-size: .85rem;
+}
+.cs-used-title { display: block; font-size: .75rem; font-weight: 600; color: var(--s-accent); margin-block-end: var(--sp-1); }
 .cs-used ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+
+/* High contrast: state shown only by fill gets a 2px edge too. */
+:root[data-contrast="high"] .cs-tablist { border-width: 2px; }
+:root[data-contrast="high"] .cs-tablist button.on,
+:root[data-contrast="high"] .cs-fight .segmented button.on { box-shadow: inset 0 0 0 2px var(--accent); color: var(--s-ink); }
+:root[data-contrast="high"] .cs-switch input { border: 2px solid var(--s-ink); background: var(--s-panel); }
+:root[data-contrast="high"] .cs-switch input::before { background: var(--s-ink); box-shadow: none; inset-block-start: 1px; }
+:root[data-contrast="high"] .cs-switch input:checked { background: var(--s-good); border-color: var(--s-good); }
+:root[data-contrast="high"] .cs-switch input:checked::before { background: var(--s-panel); }
+:root[data-contrast="high"] .cs-rollline { border: 2px solid var(--line); border-inline-start-width: 4px; }
+
+@media print {
+  .cs-tablist, .cs-out, .cs-rollline { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
