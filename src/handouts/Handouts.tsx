@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
+import type { MessageKey } from '../i18n/locales/en'
 import type { Party } from '../party/types'
 import { shrinkImage } from './image'
-import { isDm, isUnread, problems, recipients, send, unreadCount, unsend, visibleHandouts } from './logic'
+import { isDm, isUnread, problems, recipients, send, tableLink, unreadCount, unsend, visibleHandouts } from './logic'
 import { watchHandouts } from './cloud'
 import { deleteHandout, HandoutSpaceError, listHandouts, markHandoutSeen, onHandoutsChanged, refreshHandouts, saveHandout } from './store'
 import type { Handout, HandoutKind } from './types'
 import './handouts.css'
 
-const KIND_LABEL: Record<HandoutKind, string> = { note: 'Note', image: 'Picture', map: 'Map' }
+const KINDS: HandoutKind[] = ['note', 'image', 'map', 'table']
+const kindKey = (k: HandoutKind) => `handouts.kind.${k}` as MessageKey
 
 function useHandouts(partyId: string): Handout[] {
   const [list, setList] = useState<Handout[]>([])
@@ -99,8 +102,10 @@ function HandoutCard({ handout: h, party, userId, nameOf, onOpen, onEdit }: {
   onOpen: () => void
   onEdit: () => void
 }) {
+  const { t } = useI18n()
   const dm = isDm(party, userId)
   const unread = isUnread(h, party, userId)
+  const link = h.kind === 'table' ? tableLink(h.url) : null
   const reach = recipients(h, party)
   const seen = reach.filter(id => h.seenBy[id])
   const toLabel = h.to === 'all' ? 'Everyone' : reach.map(nameOf).join(', ') || 'Nobody in the party'
@@ -110,11 +115,13 @@ function HandoutCard({ handout: h, party, userId, nameOf, onOpen, onEdit }: {
       <button className="handout-open" onClick={onOpen} aria-label={`Open ${h.title}`}>
         {h.image
           ? <img src={h.image} alt="" />
-          : <span className="note-peek">{h.text}</span>}
+          : h.kind === 'table'
+            ? <span className="table-peek"><span aria-hidden="true">🗺️</span>{link && t('handouts.tableOn', { site: link.site })}</span>
+            : <span className="note-peek">{h.text}</span>}
       </button>
       <div className="handout-meta">
         <div className="row">
-          <span className={`kind ${h.kind}`}>{KIND_LABEL[h.kind]}</span>
+          <span className={`kind ${h.kind}`}>{t(kindKey(h.kind))}</span>
           {!h.sentAt && <span className="kind draft-tag">Draft</span>}
           {unread && <span className="new-tag">New</span>}
         </div>
@@ -152,16 +159,22 @@ function Composer({ party, userId, initial, nameOf, onDone }: {
   const [title, setTitle] = useState(initial?.title ?? '')
   const [text, setText] = useState(initial?.text ?? '')
   const [image, setImage] = useState(initial?.image)
+  const [url, setUrl] = useState(initial?.url ?? '')
+  const { t } = useI18n()
   const [to, setTo] = useState<Handout['to']>(initial?.to ?? 'all')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const players = party.members.map(m => m.userId).filter(id => id !== party.dmId)
 
-  const draft = { kind, title, text, image: kind === 'note' ? undefined : image, to }
+  const draft = {
+    kind, title, text, to,
+    image: kind === 'image' || kind === 'map' ? image : undefined,
+    url: kind === 'table' ? tableLink(url)?.url ?? url.trim() : undefined,
+  }
   const missing = problems(draft)
 
   const pick = async (file: File | undefined, k: HandoutKind) => {
-    if (!file || k === 'note') return
+    if (!file || (k !== 'image' && k !== 'map')) return
     setBusy(true)
     setError('')
     try {
@@ -197,19 +210,30 @@ function Composer({ party, userId, initial, nameOf, onDone }: {
   return (
     <form className="glass composer" onSubmit={e => { e.preventDefault(); if (!missing.length) save(true) }}>
       <div className="glass-segmented" role="radiogroup" aria-label="Kind of hand-out">
-        {(Object.keys(KIND_LABEL) as HandoutKind[]).map(k => (
+        {KINDS.map(k => (
           <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)}>
-            {KIND_LABEL[k]}
+            {t(kindKey(k))}
           </button>
         ))}
       </div>
 
       <div className="field">
         <label htmlFor="handout-title">Title</label>
-        <input id="handout-title" className="glass-field" value={title} onChange={e => setTitle(e.target.value)} placeholder={kind === 'map' ? 'Map of Phandalin' : kind === 'image' ? 'The stranger at the inn' : "Letter from Gundren"} />
+        <input id="handout-title" className="glass-field" value={title} onChange={e => setTitle(e.target.value)} placeholder={kind === 'table' ? t('handouts.tableTitle') : kind === 'map' ? 'Map of Phandalin' : kind === 'image' ? 'The stranger at the inn' : "Letter from Gundren"} />
       </div>
 
-      {kind !== 'note' && (
+      {kind === 'table' && (
+        <div className="field">
+          <label htmlFor="handout-url">{t('handouts.tableLink')}</label>
+          <input id="handout-url" className="glass-field" type="url" inputMode="url" dir="ltr" value={url}
+            onChange={e => setUrl(e.target.value)} placeholder="https://www.owlbear.rodeo/room/…" aria-describedby="handout-url-hint" />
+          <span id="handout-url-hint" className={`small ${url.trim() && !tableLink(url) ? 'bad' : 'muted'}`}>
+            {url.trim() && !tableLink(url) ? t('handouts.tableBad') : t('handouts.tableHint')}
+          </span>
+        </div>
+      )}
+
+      {(kind === 'image' || kind === 'map') && (
         <div className="field">
           <label htmlFor="handout-file">{kind === 'map' ? 'Map image' : 'Picture'}</label>
           <input id="handout-file" type="file" accept="image/*" onChange={e => pick(e.target.files?.[0], kind)} />
@@ -249,6 +273,8 @@ function Composer({ party, userId, initial, nameOf, onDone }: {
 }
 
 function Viewer({ handout: h, onClose }: { handout: Handout; onClose: () => void }) {
+  const { t } = useI18n()
+  const link = h.kind === 'table' ? tableLink(h.url) : null
   const closeRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     closeRef.current?.focus()
@@ -266,6 +292,12 @@ function Viewer({ handout: h, onClose }: { handout: Handout; onClose: () => void
         </header>
         {h.kind === 'map' && h.image ? <MapView src={h.image} alt={h.title} />
           : h.image ? <img className="viewer-image" src={h.image} alt={h.title} /> : null}
+        {link && (
+          <div className="table-open">
+            <a className="glass-btn prominent" href={link.url} target="_blank" rel="noopener noreferrer">{t('handouts.openTable')} ↗</a>
+            <span className="muted small">{t('handouts.tableOn', { site: link.site })}</span>
+          </div>
+        )}
         {h.text && <div className={h.kind === 'note' ? 'parchment' : 'caption'}>{h.text}</div>}
       </div>
     </div>

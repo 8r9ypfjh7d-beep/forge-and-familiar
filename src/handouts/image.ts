@@ -2,7 +2,7 @@
 // Maps keep more pixels than plain images so players can zoom in on them.
 import type { HandoutKind } from './types'
 
-const MAX_SIDE: Record<Exclude<HandoutKind, 'note'>, number> = { image: 1280, map: 2048 }
+const MAX_SIDE: Record<Exclude<HandoutKind, 'note' | 'table'>, number> = { image: 1280, map: 2048 }
 
 /** Width and height that fit inside max on the longer side, never upscaled. */
 export function fitWithin(width: number, height: number, max: number): { width: number; height: number } {
@@ -10,7 +10,7 @@ export function fitWithin(width: number, height: number, max: number): { width: 
   return { width: Math.round(width * scale), height: Math.round(height * scale) }
 }
 
-export async function shrinkImage(file: File, kind: Exclude<HandoutKind, 'note'>): Promise<string> {
+export async function shrinkImage(file: File, kind: 'image' | 'map'): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('That file is not an image.')
   const bitmap = await createImageBitmap(file).catch(() => { throw new Error("That image couldn't be read.") })
   const { width, height } = fitWithin(bitmap.width, bitmap.height, MAX_SIDE[kind])

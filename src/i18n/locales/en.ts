@@ -556,6 +556,18 @@ export const en = {
   'party.vital.dead': 'Dead',
   'party.openMine': 'Open my sheet',
 
+  // Hand-outs: kinds and the online table link
+  'handouts.kind.note': 'Note',
+  'handouts.kind.image': 'Picture',
+  'handouts.kind.map': 'Map',
+  'handouts.kind.table': 'Online table',
+  'handouts.tableTitle': 'Battle map for tonight',
+  'handouts.tableLink': 'Table link',
+  'handouts.tableHint': 'For a live battle map with tokens, make a free room at owlbear.rodeo (or use TaleSpire, Roll20, any https link) and paste its link here.',
+  'handouts.tableBad': 'Paste a full https:// link.',
+  'handouts.tableOn': 'Opens on {site}',
+  'handouts.openTable': 'Open the table',
+
   // Import, export and level snapshots
   'levels.importError': 'Could not import that file.',
   'levels.importing': 'Importing…',

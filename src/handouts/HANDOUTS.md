@@ -1,13 +1,13 @@
 # Hand-outs
 
-The DM of a party writes notes, uploads pictures and maps, and sends them to the whole party or to chosen players. Shown inside a party's view, under the member cards.
+The DM of a party writes notes, uploads pictures and maps, shares a link to an online battle map, and sends them to the whole party or to chosen players. Shown inside a party's view, under the member cards.
 
 ## Files Covered
 
 | File | Purpose |
 |------|---------|
 | `types.ts` | `Handout`, `HandoutKind` (saved shape) |
-| `logic.ts` | Pure rules: `canSee`, `visibleHandouts`, `isUnread`, `unreadCount`, `recipients`, `send`, `unsend`, `markSeen`, `problems` |
+| `logic.ts` | Pure rules: `canSee`, `visibleHandouts`, `isUnread`, `unreadCount`, `recipients`, `send`, `unsend`, `markSeen`, `problems`, `tableLink` |
 | `image.ts` | Downscales uploads to JPEG data URLs (pictures 1280px, maps 2048px on the long side) |
 | `store.ts` | Async hand-out store (localStorage key `ff.handouts.v1`, also the offline copy of cloud parties' hand-outs), `refreshHandouts`, `onHandoutsChanged`, `HandoutSpaceError` |
 | `cloud.ts` | Supabase rows (`handouts`, `handout_seen`), pull, save, read receipts, `watchHandouts` |
@@ -22,6 +22,10 @@ The DM of a party writes notes, uploads pictures and maps, and sends them to the
 - `to: 'all'` includes players who join later; a list of ids reaches only those players while they stay in the party.
 - Players see "New" until they open one; the DM sees "seen by N of M" per hand-out. The party list shows a "N new hand-outs" badge.
 - Saving prunes hand-outs whose party no longer exists, so their images stop using storage.
+
+## Online table
+
+Live battle maps (tokens, fog, measuring) are left to dedicated tabletops instead of being built here. An "Online table" hand-out carries an https link (`url`) to Owlbear Rodeo (free, suggested in the composer), TaleSpire, Roll20 or any site; players open it in a new tab from the viewer. `tableLink` accepts https only and names known sites for the card. The link lives in the row's `data` JSON, so no migration was needed. Text for this part goes through `t()` (`handouts.*`); the older hand-out strings are still English.
 
 ## Across devices
 

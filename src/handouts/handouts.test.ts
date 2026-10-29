@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Party } from '../party/types'
 import { fitWithin } from './image'
-import { canSee, isUnread, markSeen, problems, recipients, send, unreadCount, unsend, visibleHandouts } from './logic'
+import { canSee, isUnread, markSeen, problems, recipients, send, tableLink, unreadCount, unsend, visibleHandouts } from './logic'
 import type { Handout } from './types'
 
 const T = '2026-01-01T00:00:00Z'
@@ -87,6 +87,23 @@ describe('checks before sending', () => {
     expect(problems(handout({ kind: 'map', text: '' }))).toEqual(['image'])
     expect(problems(handout({ kind: 'image', image: 'data:image/jpeg;base64,x', text: '' }))).toEqual([])
     expect(problems(handout({ to: [] }))).toEqual(['recipients'])
+  })
+
+  it('a table hand-out needs an https link instead of a picture', () => {
+    expect(problems(handout({ kind: 'table', text: '' }))).toEqual(['url'])
+    expect(problems(handout({ kind: 'table', text: '', url: 'javascript:alert(1)' }))).toEqual(['url'])
+    expect(problems(handout({ kind: 'table', text: '', url: 'http://owlbear.rodeo/room/abc' }))).toEqual(['url'])
+    expect(problems(handout({ kind: 'table', text: '', url: 'https://www.owlbear.rodeo/room/abc/Garden' }))).toEqual([])
+  })
+})
+
+describe('online table links', () => {
+  it('names the tabletop site and keeps the link', () => {
+    expect(tableLink(' https://www.owlbear.rodeo/room/abc ')).toEqual({ url: 'https://www.owlbear.rodeo/room/abc', site: 'Owlbear Rodeo' })
+    expect(tableLink('https://talespire.com/join/x')?.site).toBe('TaleSpire')
+    expect(tableLink('https://www.example.org/map')?.site).toBe('example.org')
+    expect(tableLink('not a link')).toBeNull()
+    expect(tableLink('https://localhost/x')).toBeNull()
   })
 })
 
