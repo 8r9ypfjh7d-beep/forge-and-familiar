@@ -29,7 +29,7 @@
 
 /* Tool strip: a thin glass track of quiet capsules, like a segmented control without a selection. */
 .heroes-tools {
-  display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill);
+  display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); min-width: 0;
   background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-inset);
 }
 .heroes-tools .ff-import { display: contents; }
@@ -56,6 +56,9 @@
   .heroes-head > .heroes-actions > .prominent { flex-basis: 100%; order: -1; }
   .heroes-main > .glass-btn, .heroes-head .glass-btn { min-height: 44px; }
   .heroes-tool { min-height: 40px; }
+  /* Six tools don't fit one row on a phone: two rows of three, the track rounded to match. */
+  .heroes-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: var(--r-md); }
+  .heroes-tool { border-radius: calc(var(--r-md) - 3px); }
   .heroes-empty .heroes-actions { flex-direction: column; inline-size: 100%; }
   .heroes-empty .glass-btn { inline-size: 100%; min-height: 44px; }
 }

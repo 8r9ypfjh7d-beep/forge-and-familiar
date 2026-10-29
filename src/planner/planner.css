@@ -1,0 +1,56 @@
+/* Build planner (PlanView), Liquid Glass (src/design/DESIGN.md). Logical properties only. */
+.ff-plan { display: grid; gap: var(--sp-4); }
+.ff-plan h2 { font-size: 1.75rem; margin: 0; }
+.ff-plan .row.spread p { margin: var(--sp-1) 0 0; }
+.plan-intro { margin: 0; max-inline-size: 68ch; }
+.plan-done { padding: var(--sp-4); margin: 0; }
+
+.plan-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-3); }
+.plan-tools select { min-height: 40px; }
+
+.plan-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+/* Card: 12px padding inside --r-lg, so the level badge uses --r-sm (concentric). */
+.plan-step { display: grid; gap: var(--sp-2); padding: var(--sp-3); min-width: 0; }
+.plan-step.blocked { box-shadow: var(--glass-highlight), var(--glass-shadow), inset 0 0 0 2px var(--bad); }
+.plan-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.plan-level {
+  inline-size: 40px; block-size: 40px; flex: none; display: grid; place-items: center;
+  border-radius: var(--r-sm); background: var(--glass-tint); font-weight: 700; font-variant-numeric: tabular-nums;
+  box-shadow: var(--glass-highlight), var(--glass-control-shadow);
+}
+.plan-head select { min-height: 40px; max-inline-size: 12rem; }
+.plan-classlevel { font-family: var(--font-display); }
+.plan-issue { margin: 0; color: var(--bad); }
+.plan-needs { margin: 0; color: var(--warn); }
+
+.plan-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.plan-pick > span { font-weight: 600; min-inline-size: 7rem; }
+.plan-pick select { min-height: 36px; min-inline-size: 0; max-inline-size: 100%; }
+.plan-feat { flex-basis: 100%; margin: 0; }
+
+.plan-gains { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); }
+.plan-gains li { padding-block: 2px; padding-inline: var(--sp-2); border-radius: var(--r-pill); background: var(--glass-thin); }
+.plan-gains .plan-feature { background: var(--glass-tint); }
+.plan-num { font-variant-numeric: tabular-nums; }
+
+.plan-summary { display: grid; gap: var(--sp-2); padding: var(--sp-4); }
+.plan-summary h3, .plan-summary p { margin: 0; }
+.plan-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--sp-2); margin: 0; }
+.plan-stats > div { display: grid; justify-items: center; padding: var(--sp-2); border-radius: var(--r-sm); background: var(--glass-thin); }
+.plan-stats dt { font-size: 0.75rem; color: var(--muted); }
+.plan-stats dd { margin: 0; font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+:root[data-contrast="high"] .plan-gains li, :root[data-contrast="high"] .plan-stats > div { border: 1px solid var(--line); }
+@media (max-width: 640px) {
+  .plan-head select { flex: 1 1 8rem; max-inline-size: none; }
+  .plan-pick > span { flex-basis: 100%; }
+}
+
+/* A feature chip opens its rules text below the chips. */
+.plan-feature summary { cursor: pointer; list-style: none; }
+.plan-feature summary::-webkit-details-marker { display: none; }
+.plan-feature details[open] summary { font-weight: 600; }
+.plan-feature-text { max-inline-size: 60ch; padding-block: var(--sp-1); }
+.plan-feature-text p { margin-block: var(--sp-1); }
+.plan-gains li:has(details[open]) { flex-basis: 100%; border-radius: var(--r-sm); }
+.plan-source summary { cursor: pointer; color: var(--muted); }
