@@ -92,5 +92,5 @@ Never set text colour from the backdrop; text uses `--ink`/`--muted`/`--accent` 
 - Do use `--glass-thick` for anything with paragraphs; `--glass-regular` for short labels and numbers.
 - Do keep the roll result card's current look (players like it); only move it onto the glass tokens.
 - Don't stack more than two glass layers; don't put `backdrop-filter` on an element whose children need their own glass (use the `::before` pattern from `.glass-chrome`).
-- Don't hard-code `#fff` or rgba surfaces in screen CSS; add a token here if one is missing. `design.test.ts` fails on hex colours outside `index.css`, `a11y.css`, `glass.css`, `print.css` (paper) and `crit.css` (effects).
+- Don't hard-code `#fff` or rgba surfaces in screen CSS; add a token here if one is missing. `design.test.ts` fails on hex colours outside `index.css`, `a11y.css`, `glass.css`, `print.css` (paper), `crit.css` and `rock.css` (effects).
 - Do mark a selected segment with `box-shadow: var(--glass-raised)` (custom segmented controls too, like `.mode-btn`); don't add per-screen high contrast or Reduce transparency rings for it.
