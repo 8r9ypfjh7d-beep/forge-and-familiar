@@ -14,6 +14,7 @@ import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
 import { explainKey, pitchKey, type WhyId } from './why'
+import { groupKitItems } from './kit'
 
 export interface StepProps {
   draft: CharacterDraft
@@ -712,28 +713,30 @@ function EquipmentChoices({ draft, update }: StepProps) {
                 <label key={o} className="kit-option">
                   <input type="radio" name={`kit-${i}`} checked={sel.option === o} onChange={() => setPick(i, o, [])} />
                   {opt.items.length === 0 && opt.gold !== undefined && <span>{t('builder.goldOnly', { gp: opt.gold })}</span>}
-                  {opt.items.map((id, k) => {
-                    const filter = anyFilter(id)
-                    if (!filter) return <span key={k}>{k > 0 && ' + '}{itemName(id)}</span>
-                    const n = slot++
-                    const list = anyOptions(filter)
-                    return (
-                      <span key={k}>
-                        {k > 0 && ' + '}
-                        {sel.option === o ? (
-                          <select
-                            value={sel.items[n] ?? ''}
-                            aria-label={t(`builder.any.${filter}`)}
-                            onChange={e => { const items = [...sel.items]; items[n] = e.target.value; setPick(i, o, items) }}
-                          >
-                            <option value="">{t(`builder.any.${filter}`)}</option>
-                            {list.map(x => <option key={x.id} value={x.id}>{itemName(x.id)}</option>)}
-                          </select>
-                        ) : t(`builder.any.${filter}`)}
-                      </span>
-                    )
-                  })}
-                  {opt.items.length > 0 && opt.gold ? <span className="muted small"> + {opt.gold} gp</span> : null}
+                  <span className="kit-items">
+                    {groupKitItems(opt.items).map(({ id, n: count }, k) => {
+                      const filter = anyFilter(id)
+                      if (!filter) return <span key={k}>{k > 0 && '+ '}{itemName(id)}{count > 1 ? ` ×${count}` : ''}</span>
+                      const n = slot++
+                      const list = anyOptions(filter)
+                      return (
+                        <span key={k}>
+                          {k > 0 && '+ '}
+                          {sel.option === o ? (
+                            <select
+                              value={sel.items[n] ?? ''}
+                              aria-label={t(`builder.any.${filter}`)}
+                              onChange={e => { const items = [...sel.items]; items[n] = e.target.value; setPick(i, o, items) }}
+                            >
+                              <option value="">{t(`builder.any.${filter}`)}</option>
+                              {list.map(x => <option key={x.id} value={x.id}>{itemName(x.id)}</option>)}
+                            </select>
+                          ) : t(`builder.any.${filter}`)}
+                        </span>
+                      )
+                    })}
+                    {opt.items.length > 0 && opt.gold ? <span className="muted small">{t('builder.kitGold', { gp: opt.gold })}</span> : null}
+                  </span>
                 </label>
               )
             })}

@@ -16,6 +16,8 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 | `Why.tsx`, `why.css` | "why?" button (topic or any title/text, optional capsule label), `Explain` (the picked option's line) and `ExplainList` (name + line per feature, trait, language, tool) |
 | `why.ts` | "why?" topic ids, `explainKey(kind, id)` and `pitchKey()`; topic text is in `i18n/locales/en.ts`, option explanations in `i18n/locales/explain.en.ts` / `explain.he.ts` |
 | `validate.test.ts` | Validation tests |
+| `kit.ts` | `groupKitItems()`: repeated kit items shown once with a count (Javelin ×10) |
+| `kit.test.ts` | Kit item grouping |
 | `edit.test.ts` | Editing keeps play state and gear |
 | `why.test.ts` | Every step, option and SRD entry (both editions) has an explanation |
 | `style.test.ts` | Builder, "why?" and level history CSS use logical properties and glass tokens only |
