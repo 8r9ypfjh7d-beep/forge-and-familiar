@@ -1,6 +1,6 @@
 // The "Sense rock" button on a dwarf's character card and its full-screen moment: the screen quakes,
 // pebbles fall, the stone wakes up and shares one deeply useless fact. Built like the nat 20 moment (dice/ui/CritFx):
-// short, closes itself, any tap, the ✕ or Escape closes it early, and reduce motion keeps a still card with the same words.
+// it stays until any tap, the ✕ or Escape closes it, and reduce motion keeps a still card with the same words.
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n, type MessageKey } from '../i18n'
@@ -9,7 +9,6 @@ import { motionReduced } from '../dice/ui/RollFx'
 import { canSenseRock, pickFact, pickMoisture, senseOneMoreRock } from './rocksense'
 import './rock.css'
 
-const ROCK_MS = 8000
 const LEAVE_MS = 320
 const PEBBLES = 22
 const DUST = 9
@@ -53,11 +52,9 @@ function RockFx({ sensing, still, onDone }: { sensing: Sensing; still: boolean; 
   const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
-    const auto = window.setTimeout(() => setLeaving(true), ROCK_MS)
     if (!still && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate([90, 40, 90, 40, 220]) } catch { /* not allowed here */ }
     }
-    return () => clearTimeout(auto)
   }, [sensing.key, still])
 
   useEffect(() => {
