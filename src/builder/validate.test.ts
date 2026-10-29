@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { emptyDraft } from './Builder'
 import { stepIssues } from './validate'
+import { createCharacter, derive } from '../rules'
 
 const base = () => ({ ...emptyDraft('u1'), raceId: 'half-elf', classes: [{ classId: 'rogue', level: 1 }], chosenLanguages: ['Dwarvish', 'Giant', 'Orc'] })
 
@@ -25,11 +26,11 @@ describe('builder validation', () => {
     expect(stepIssues('skills', { ...base(), chosenSkills: [...picks.slice(0, 5), 'insight'] })).toHaveLength(1)
   })
 
-  it('blocks the abilities step when a multiclass prerequisite is missing', () => {
+  it('only warns, never blocks, when a multiclass prerequisite is missing', () => {
     const d = { ...base(), raceId: 'human', classes: [{ classId: 'rogue', level: 3 }, { classId: 'wizard', level: 2 }], abilityMethod: 'manual' as const }
     const scores = { str: 8, dex: 14, con: 12, int: 11, wis: 10, cha: 10 }
-    expect(stepIssues('abilities', { ...d, baseAbilities: scores })).toEqual(['To multiclass, Wizard needs INT 13.'])
-    expect(stepIssues('abilities', { ...d, baseAbilities: { ...scores, int: 12 } })).toEqual([])
+    expect(stepIssues('abilities', { ...d, baseAbilities: scores })).toEqual([])
+    expect(derive(createCharacter({ ...d, baseAbilities: scores })).warnings).toContain('Multiclass prerequisite not met: Wizard needs INT 13.')
   })
 
   it('asks for language picks from race and background', () => {

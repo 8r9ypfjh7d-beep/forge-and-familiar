@@ -1,86 +1,117 @@
 import { useState } from 'react'
+import { useI18n } from '../i18n'
+import type { MessageKey } from '../i18n/locales/en'
 import {
-  ABILITIES, MAX_CHARACTER_LEVEL, MULTICLASS_PROFICIENCIES, MULTICLASS_PROFICIENCIES_2024, addClassIssues, classById, classesFor,
-  getCasterLevel, prereqLabel, rulesEdition, type CharacterDraft, type RulesEdition,
+  ABILITIES, MAX_CHARACTER_LEVEL, MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES, MULTICLASS_PROFICIENCIES_2024, classesFor,
+  getAbilityScores, getCasterLevel, meetsPrereq, rulesEdition, type Ability, type CharacterDraft, type RulesEdition,
 } from '../rules'
 import type { StepProps } from './steps'
 
 const scoresAssigned = (d: CharacterDraft) => ABILITIES.every(a => d.baseAbilities[a] > 0)
 
-const grantText = (classId: string, edition: RulesEdition) => {
-  const g = (edition === '2024' ? MULTICLASS_PROFICIENCIES_2024 : MULTICLASS_PROFICIENCIES)[classId]
-  if (!g) return ''
-  const parts = [...g.armor.map(a => (a === 'shield' ? 'shields' : `${a} armor`)), ...g.weapons.map(w => `${w} weapons`), ...(g.weaponIds ?? [])]
-  if (g.skills) parts.push(`${g.skills} skill`)
-  parts.push(...(g.other ?? []))
-  return parts.length ? parts.join(', ') : 'no new proficiencies'
+const OTHER_GRANTS: Record<string, MessageKey> = {
+  'one musical instrument': 'builder.mc.grant.instrument',
+  "thieves' tools": 'builder.mc.grant.thievesTools',
 }
 
 /** Optional extra classes after the first, with SRD prerequisites and caster-level math. */
 export function MulticlassPicker({ draft, update }: StepProps) {
+  const { t, className, abilityShort, item } = useI18n()
   const [open, setOpen] = useState(draft.classes.length > 1)
   const [first, ...extras] = draft.classes
   if (!first) return null
   const total = draft.classes.reduce((n, cl) => n + cl.level, 0)
-  const edition = rulesEdition(draft)
+  const edition: RulesEdition = rulesEdition(draft)
   const known = scoresAssigned(draft)
   const caster = getCasterLevel(draft)
+  const scores = getAbilityScores(draft)
+  // Missing minimums warn instead of blocking: plenty of tables allow it.
+  const short = (classId: string) => known && !meetsPrereq(classId, scores)
   const setExtras = (next: typeof extras) => update({ classes: [first, ...next] })
 
+  /** "STR 13 and CHA 13", "STR 13 or DEX 13", in the current language. */
+  const prereq = (classId: string) => {
+    const p = MULTICLASS_PREREQS[classId] ?? {}
+    const fmt = (m: Partial<Record<Ability, number>>) => (Object.entries(m) as [Ability, number][]).map(([a, n]) => `${abilityShort(a)} ${n}`)
+    return [fmt(p.all ?? {}).join(t('builder.mc.and')), fmt(p.any ?? {}).join(t('builder.mc.or'))].filter(Boolean).join(', ')
+  }
+
+  const grants = (classId: string) => {
+    const g = (edition === '2024' ? MULTICLASS_PROFICIENCIES_2024 : MULTICLASS_PROFICIENCIES)[classId]
+    if (!g) return ''
+    const parts = [
+      ...g.armor.map(a => t(`builder.mc.grant.${a}`)),
+      ...g.weapons.map(w => t(`builder.mc.grant.${w}`)),
+      ...(g.weaponIds ?? []).map(id => item(id, id)),
+      ...(g.skills ? [t('builder.mc.grant.skill')] : []),
+      ...(g.other ?? []).map(o => (OTHER_GRANTS[o] ? t(OTHER_GRANTS[o]) : o)),
+    ]
+    return parts.length ? parts.join(', ') : t('builder.mc.grant.none')
+  }
+
+  // Same math as getCasterLevel().explanation, built from translated pieces.
+  const slotMath = caster.parts
+    .map(p => (p.rounding
+      ? t(p.rounding === 'up' ? 'builder.mc.halfUp' : 'builder.mc.halfDown', { className: className(p.classId), level: p.level })
+      : `${className(p.classId)} ${p.level}`))
+    .join(' + ')
+
   if (!open) {
-    return <button className="glass-btn multiclass-open" onClick={() => setOpen(true)}>+ Multiclass (optional)</button>
+    return <button className="glass-btn multiclass-open" onClick={() => setOpen(true)}>{t('builder.mc.open')}</button>
   }
 
   const candidates = classesFor(edition).filter(c => !draft.classes.some(cl => cl.classId === c.id))
 
   return (
-    <section className="multiclass" aria-label="Multiclass">
-      <h3>Multiclass</h3>
+    <section className="multiclass" aria-label={t('builder.mc.title')}>
+      <h3>{t('builder.mc.title')}</h3>
       <p className="muted small">
-        Each class needs its ability minimums, and so does {classById(first.classId, edition)?.name} ({prereqLabel(first.classId)}).
-        {!known && ' Scores come in the next step; the builder checks them there.'}
+        {t('builder.mc.intro', { className: className(first.classId), prereq: prereq(first.classId) })}
+        {!known && <> {t('builder.mc.scoresLater')}</>}
       </p>
+      {extras.length > 0 && draft.classes.filter(cl => short(cl.classId)).map(cl => (
+        <p key={cl.classId} className="small multiclass-warn" role="note">{t('builder.mc.unmet', { className: className(cl.classId), prereq: prereq(cl.classId) })}</p>
+      ))}
       {extras.map((cl, i) => {
-        const def = classById(cl.classId, edition)
+        const name = className(cl.classId)
         const others = total - cl.level
         return (
           <div key={cl.classId} className="multiclass-row">
-            <strong>{def?.name}</strong>
+            <strong>{name}</strong>
             <select
-              aria-label={`${def?.name} level`}
+              aria-label={t('builder.mc.levelOf', { className: name })}
               value={cl.level}
               onChange={e => setExtras(extras.map((x, j) => (j === i ? { ...x, level: Number(e.target.value) } : x)))}
             >
-              {Array.from({ length: Math.max(1, MAX_CHARACTER_LEVEL - others) }, (_, l) => l + 1).map(l => <option key={l} value={l}>Level {l}</option>)}
+              {Array.from({ length: Math.max(1, MAX_CHARACTER_LEVEL - others) }, (_, l) => l + 1).map(l => <option key={l} value={l}>{t('builder.level', { level: l })}</option>)}
             </select>
-            <span className="muted small">Gains {grantText(cl.classId, edition)}</span>
-            <button className="glass-btn icon" onClick={() => setExtras(extras.filter((_, j) => j !== i))} aria-label={`Remove ${def?.name}`}>✕</button>
+            <span className="muted small">{t('builder.mc.gains', { list: grants(cl.classId) })}</span>
+            <button className="glass-btn icon" onClick={() => setExtras(extras.filter((_, j) => j !== i))} aria-label={t('builder.mc.remove', { className: name })}>✕</button>
           </div>
         )
       })}
       {total < MAX_CHARACTER_LEVEL && (
         <div className="multiclass-add">
           {candidates.map(c => {
-            const issues = known ? addClassIssues(draft, c.id) : []
+            const warn = short(c.id)
             return (
               <button
                 key={c.id}
-                className="glass-chip"
-                disabled={issues.length > 0}
-                title={issues.length ? issues.join(' ') : `Needs ${prereqLabel(c.id)}. Gains ${grantText(c.id, edition)}.`}
+                className={`glass-chip ${warn ? 'short' : ''}`}
+                title={t(warn ? 'builder.mc.blocked' : 'builder.mc.hint', { className: className(c.id), prereq: prereq(c.id), list: grants(c.id) })}
                 onClick={() => setExtras([...extras, { classId: c.id, level: 1 }])}
               >
-                + {c.name} <span className="muted small">{prereqLabel(c.id)}</span>
+                + {className(c.id)} <span className="muted small">{warn && '⚠ '}{prereq(c.id)}</span>
               </button>
             )
           })}
         </div>
       )}
       <p className="small">
-        <strong>Total level:</strong> {total} / {MAX_CHARACTER_LEVEL}
-        {caster.parts.length > 0 && <><br /><strong>Spell slots:</strong> {caster.explanation}</>}
+        <strong>{t('builder.mc.total')}</strong> {total} / {MAX_CHARACTER_LEVEL}
+        {caster.parts.length > 0 && <><br /><strong>{t('builder.mc.slots')}</strong> {t('builder.mc.casterLevel', { math: slotMath, level: caster.casterLevel })}</>}
       </p>
-      <p className="muted small">Saving throws and starting gear come from {classById(first.classId, edition)?.name} only.</p>
+      <p className="muted small">{t('builder.mc.firstOnly', { className: className(first.classId) })}</p>
     </section>
   )
 }

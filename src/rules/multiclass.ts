@@ -84,7 +84,8 @@ export function getProficiencies(c: Classes & Partial<Pick<Character, 'featureCh
 export interface CasterLevel {
   /** Level used on the full-caster slot table. */
   casterLevel: number
-  parts: { className: string; level: number; counts: number }[]
+  /** `rounding` is set for half casters. */
+  parts: { classId: string; className: string; level: number; counts: number; rounding?: 'up' | 'down' }[]
   /** Human-readable math, e.g. "Wizard 5 + Paladin 4 ÷ 2 = 7". */
   explanation: string
 }
@@ -97,8 +98,10 @@ export function getCasterLevel(c: Classes): CasterLevel {
   const casters = classesOf(c).filter(x => x.def.caster === 'full' || x.def.caster === 'half')
   const single = rulesEdition(c) === '2024' || (casters.length === 1 && casters[0].def.caster === 'half')
   const parts = casters.map(({ def, level }) => ({
+    classId: def.id,
     className: def.name,
     level,
+    rounding: def.caster === 'half' ? (single ? 'up' as const : 'down' as const) : undefined,
     counts: def.caster === 'full' ? level : single ? (level >= 2 || rulesEdition(c) === '2024' ? Math.ceil(level / 2) : 0) : Math.floor(level / 2),
   }))
   const casterLevel = Math.min(MAX_CHARACTER_LEVEL, parts.reduce((n, p) => n + p.counts, 0))
