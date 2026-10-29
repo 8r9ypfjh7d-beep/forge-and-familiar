@@ -56,8 +56,9 @@ describe('every screen follows the standard', () => {
   const sheets = (readdirSync(src, { recursive: true }) as string[])
     .filter(f => f.endsWith('.css'))
     .map(f => ({ file: f, text: readFileSync(new URL(f, src), 'utf8') }))
-  // Palettes live in index.css (colours), a11y.css (high contrast) and glass.css (glass); print is paper; crit and rock are effects.
-  const PALETTES = /(^|\/)(index|a11y|glass|print|crit|rock)\.css$/
+  // Palettes live in index.css (colours), a11y.css (high contrast) and glass.css (glass); print is paper;
+  // crit, rock and *.fx.css are full-screen effects.
+  const PALETTES = /(^|\/)(index|a11y|glass|print|crit|rock)\.css$|\.fx\.css$/
 
   it('finds the screen CSS', () => {
     expect(sheets.length).toBeGreaterThan(20)
