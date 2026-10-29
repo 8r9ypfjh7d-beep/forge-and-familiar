@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 // Builder, edit character, "why?" tips and level history follow src/design/DESIGN.md.
-const files = ['./builder.css', './why.css', '../portability/ui/portability.css']
+const files = ['../random/random.css', './builder.css', './why.css', '../portability/ui/portability.css']
 
 describe('builder styles', () => {
   for (const f of files) {
