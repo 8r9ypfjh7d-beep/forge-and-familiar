@@ -1,7 +1,7 @@
 import { useI18n } from '../../i18n'
 import type { Character, HitDie } from '../../model/character'
 import { abilityMod, formatMod, getAbilityScores } from '../../rules'
-import { canLongRest, effectiveMaxHp, hitDiceRemaining, longRest, shortRest, spendHitDie, vitals } from '../engine'
+import { canLongRest, effectiveMaxHp, hitDiceRemaining, hitDieAverage, hitDicePreview, longRest, shortRest, spendHitDie, vitals } from '../engine'
 import type { Apply } from '../types'
 import { useSheetRolls } from '../dice'
 import { defaultMeal, endDay } from '../../supplies/supplies'
@@ -17,6 +17,7 @@ export function Rests({ character, apply }: { character: Character; apply: Apply
   const dead = vitals(character) === 'dead'
   const hurt = vitals(character) === 'healthy' && character.state.currentHp < effectiveMaxHp(character)
   const { t } = useI18n()
+  const preview = hitDicePreview(character)
 
   const spend = (die: HitDie) => {
     const roll = rolls.hitDie(die, con)
@@ -40,9 +41,14 @@ export function Rests({ character, apply }: { character: Character; apply: Apply
         {t('sheet.hitDice', { list: dice.map(d => `${d.remaining}/${d.total} ${d.die}`).join(', ') })}
       </p>
       {hurt && dice.some(d => d.remaining > 0) && (
+        <p className="hint hit-dice-preview">
+          {t(preview.enough ? 'sheet.hitDicePreview' : 'sheet.hitDicePreviewShort', { missing: preview.missing, dice: preview.dice, heal: preview.heal })}
+        </p>
+      )}
+      {hurt && dice.some(d => d.remaining > 0) && (
         <div className="row hit-dice">
           {dice.filter(d => d.remaining > 0).map(d => (
-            <button key={d.die} type="button" className="btn small" onClick={() => spend(d.die)}>{t('sheet.rollDie', { die: d.die })}</button>
+            <button key={d.die} type="button" className="btn small" onClick={() => spend(d.die)}>{t('sheet.rollDieAvg', { die: d.die, avg: Math.round(hitDieAverage(d.die, con)) })}</button>
           ))}
         </div>
       )}

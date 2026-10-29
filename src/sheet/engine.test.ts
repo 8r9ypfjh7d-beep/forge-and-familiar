@@ -3,7 +3,7 @@ import { getMaxHp } from '../rules'
 import {
   canLongRest, grantTempHp, heal, hitDiceRemaining, longRest, rollDeathSave,
   setPactUsed, setResourceUsed, setSlotUsed, shortRest, spendHitDie, stabilize,
-  takeDamage, upsertCounter, vitals, dawn, dawnCounters,
+  takeDamage, upsertCounter, vitals, dawn, dawnCounters, hitDieAverage, hitDicePreview,
 } from './engine'
 import { makeCharacter } from './fixtures'
 
@@ -180,5 +180,28 @@ describe('old saves and dawn', () => {
     const c = longRest(charged)
     expect(c.state.counters?.find(k => k.id === 'wand')?.used).toBe(6)
     expect(dawnCounters(c)).toHaveLength(2)
+  })
+})
+
+describe('hit dice preview', () => {
+  it('averages a die plus CON, never below 0 per roll', () => {
+    expect(hitDieAverage('d8', 0)).toBe(4.5)
+    expect(hitDieAverage('d10', 2)).toBe(7.5)
+    expect(hitDieAverage('d6', -2)).toBe((0 + 0 + 1 + 2 + 3 + 4) / 6)
+  })
+  it('counts the dice needed to heal the missing HP', () => {
+    expect(hitDicePreview(fighter)).toMatchObject({ missing: 0, dice: 0, enough: true })
+    const hurt = takeDamage(fighter, 3)
+    const p = hitDicePreview(hurt)
+    expect(p).toMatchObject({ missing: 3, dice: 1, heal: 3, enough: true })
+  })
+  it('says when all dice are not enough', () => {
+    let c = takeDamage(fighter, MAX - 1)
+    const p = hitDicePreview(c)
+    const left = hitDiceRemaining(c).reduce((n, h) => n + h.remaining, 0)
+    expect(p.dice).toBe(left)
+    expect(p.enough).toBe(p.heal >= p.missing)
+    c = { ...c, state: { ...c.state, hitDiceSpent: Object.fromEntries(hitDiceRemaining(c).map(h => [h.die, h.total])) } }
+    expect(hitDicePreview(c)).toMatchObject({ dice: 0, heal: 0, enough: false })
   })
 })

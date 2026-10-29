@@ -172,6 +172,30 @@ export function spendHitDie(c: Character, die: HitDie, roll: number): Character 
   return withState(spent, { currentHp: Math.min(effectiveMaxHp(c), c.state.currentHp + gained) })
 }
 
+/** Average healing from one hit die: the roll plus CON, never below 0. */
+export function hitDieAverage(die: HitDie, con: number): number {
+  const sides = Number(die.slice(1))
+  let total = 0
+  for (let r = 1; r <= sides; r++) total += Math.max(0, r + con)
+  return total / sides
+}
+
+/** Short rest preview: how many hit dice (biggest first) should heal the missing HP, and about how much they heal. */
+export function hitDicePreview(c: Character): { missing: number; dice: number; heal: number; enough: boolean } {
+  const missing = Math.max(0, effectiveMaxHp(c) - c.state.currentHp)
+  const con = abilityMod(getAbilityScores(c).con)
+  const sides = (d: HitDie) => Number(d.slice(1))
+  let dice = 0
+  let heal = 0
+  for (const h of [...hitDiceRemaining(c)].sort((a, b) => sides(b.die) - sides(a.die))) {
+    for (let i = 0; i < h.remaining && heal < missing; i++) {
+      dice++
+      heal += hitDieAverage(h.die, con)
+    }
+  }
+  return { missing, dice, heal: Math.round(Math.min(heal, missing)), enough: heal >= missing }
+}
+
 function refreshes(recharge: RestType | 'dawn' | 'none', rest: RestType) {
   return recharge === 'short' || (recharge === 'long' && rest === 'long')
 }
