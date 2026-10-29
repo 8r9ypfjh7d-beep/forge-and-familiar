@@ -1779,6 +1779,17 @@ const messages: Messages = {
   'hist.field': 'שדה',
   'hist.before': 'לפני',
   'hist.after': 'אחרי',
+  'share.button': 'שיתוף',
+  'share.hint': 'העתקת קישור לצפייה בלבד שכל אחד יכול לפתוח, בלי חשבון. ההערות נשארות פרטיות.',
+  'share.text': '{name} ב-Forge & Familiar (צפייה בלבד)',
+  'share.copied': 'הועתק',
+  'share.linkLabel': 'קישור לצפייה בלבד בדמות',
+  'share.readOnly': 'דמות משותפת · צפייה בלבד',
+  'share.playState': 'הצגת נקודות פגיעה, משבצות ומצבים נוכחיים',
+  'share.openApp': 'פתיחת Forge & Familiar',
+  'share.loading': 'טוען את הדמות…',
+  'share.error.broken': 'קישור השיתוף שבור או קטוע. בקשו קישור חדש.',
+  'share.error.unknown': 'הדמות משתמשת בתוכן ביתי או בגרסה חדשה יותר של האפליקציה, ולכן אי אפשר להציג אותה כאן.',
 }
 
 const terms: Terms = {
