@@ -16,6 +16,13 @@ describe('dice styles', () => {
     expect(css).not.toMatch(/#[0-9a-f]{3,6}\b/i)
   })
 
+  it('wraps long roll notation inside the card instead of overflowing it', () => {
+    const css = read('dice.css')
+    expect(css).toMatch(/\.ff-roll__label \{[^}]*min-width: 0[^}]*overflow-wrap: anywhere/)
+    expect(css).toMatch(/\.ff-roll__total \{[^}]*flex: none/)
+    expect(css).toMatch(/\.ff-roll__detail \{[^}]*overflow-wrap: anywhere/)
+  })
+
   it('draws edges in high contrast', () => {
     expect(read('dice.css')).toMatch(/:root\[data-contrast="high"\] \.ff-dice-fab__button/)
   })
