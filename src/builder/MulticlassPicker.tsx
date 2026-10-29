@@ -6,6 +6,7 @@ import {
   getAbilityScores, getCasterLevel, meetsPrereq, rulesEdition, type Ability, type CharacterDraft, type RulesEdition,
 } from '../rules'
 import type { StepProps } from './steps'
+import { Why } from './Why'
 
 const scoresAssigned = (d: CharacterDraft) => ABILITIES.every(a => d.baseAbilities[a] > 0)
 
@@ -57,14 +58,14 @@ export function MulticlassPicker({ draft, update }: StepProps) {
     .join(' + ')
 
   if (!open) {
-    return <button className="glass-btn multiclass-open" onClick={() => setOpen(true)}>{t('builder.mc.open')}</button>
+    return <p className="multiclass-open"><button className="glass-btn" onClick={() => setOpen(true)}>{t('builder.mc.open')}</button> <Why id="multiclass" /></p>
   }
 
   const candidates = classesFor(edition).filter(c => !draft.classes.some(cl => cl.classId === c.id))
 
   return (
     <section className="multiclass" aria-label={t('builder.mc.title')}>
-      <h3>{t('builder.mc.title')}</h3>
+      <h3>{t('builder.mc.title')} <Why id="multiclass" /></h3>
       <p className="muted small">
         {t('builder.mc.intro', { className: className(first.classId), prereq: prereq(first.classId) })}
         {!known && <> {t('builder.mc.scoresLater')}</>}

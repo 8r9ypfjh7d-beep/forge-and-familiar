@@ -1,8 +1,10 @@
 // Hebrew (עברית). Instructions use the plural imperative, the usual gender-neutral form in Hebrew UIs.
 // Arrows point the way the page reads: "back" points right, "next" points left.
 import type { Messages, Terms } from '../translate'
+import { explainHe } from './explain.he'
 
 const messages: Messages = {
+  ...explainHe,
   'common.back': 'חזרה',
   'common.backArrow': '→',
   'common.cancel': 'ביטול',
@@ -265,6 +267,14 @@ const messages: Messages = {
   'builder.toolsFrom': '{source}: בחרו {count}',
   'builder.kitChoice': 'בחירה {n}',
   'builder.kitTotal': 'ציוד ההתחלה שלכם',
+  'builder.cardLegend': 'מה הכרטיסים מציגים:',
+  'builder.legend.bonus': 'תוספת יכולת',
+  'builder.legend.size': 'גודל',
+  'builder.legend.speed': 'מהירות',
+  'builder.legend.hitDie': 'קוביית פגיעה',
+  'builder.legend.primary': 'יכולת מרכזית',
+  'builder.legend.casting': 'הטלת לחשים',
+  'builder.kitChoices': 'בחרו אפשרות אחת בכל קבוצה.',
   'builder.any.simple': 'כל נשק פשוט',
   'builder.any.simple-melee': 'כל נשק פשוט לקרב פנים אל פנים',
   'builder.any.martial': 'כל נשק לוחמני',

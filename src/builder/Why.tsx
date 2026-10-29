@@ -1,16 +1,27 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
-import type { WhyId } from './why'
+import type { MessageKey } from '../i18n/locales/en'
+import { explainKey, type ExplainKind, type WhyId } from './why'
 import './why.css'
 
+type WhyProps = {
+  /** Shows a capsule with this text instead of "why?" (or "?" when compact). */
+  label?: string
+  compact?: boolean
+} & ({ id: WhyId } | { title: string; text: string })
+
 /** A small "why?" button that opens a plain-language explanation for new players. */
-export function Why({ id, compact }: { id: WhyId; compact?: boolean }) {
+export function Why(props: WhyProps) {
+  const { label, compact } = props
   const [open, setOpen] = useState(false)
   const [alignEnd, setAlignEnd] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
+  const popRef = useRef<HTMLSpanElement>(null)
+  const [shift, setShift] = useState(0)
   const popId = useId()
   const { t } = useI18n()
-  const title = t(`why.${id}.title`)
+  const title = 'id' in props ? t(`why.${props.id}.title`) : props.title
+  const text = 'id' in props ? t(`why.${props.id}.text`) : props.text
 
   useEffect(() => {
     if (!open) return
@@ -30,7 +41,21 @@ export function Why({ id, compact }: { id: WhyId; compact?: boolean }) {
     if (!open || !ref.current) return
     const nearRight = ref.current.getBoundingClientRect().left > window.innerWidth / 2
     setAlignEnd(getComputedStyle(ref.current).direction === 'rtl' ? !nearRight : nearRight)
+    setShift(0)
   }, [open])
+
+  // A button mid-line (like the card legend) can still push the bubble past an edge: nudge it back on screen.
+  useLayoutEffect(() => {
+    if (!open || !popRef.current) return
+    // Measure the unscaled box: the open animation starts at 94% size.
+    const r = popRef.current.getBoundingClientRect()
+    const half = popRef.current.offsetWidth / 2
+    const left = (r.left + r.right) / 2 - half
+    const right = left + 2 * half
+    const margin = 8
+    if (right > window.innerWidth - margin) setShift(s => s - (right - window.innerWidth + margin))
+    else if (left < margin) setShift(s => s + (margin - left))
+  }, [open, alignEnd])
 
   return (
     <span className={`why ${compact ? 'compact' : ''}`} ref={ref}>
@@ -42,14 +67,46 @@ export function Why({ id, compact }: { id: WhyId; compact?: boolean }) {
         aria-label={t('why.label', { title })}
         onClick={e => { e.preventDefault(); setOpen(o => !o) }}
       >
-        {compact ? '?' : t('why.button')}
+        {label ?? (compact ? '?' : t('why.button'))}
       </button>
       {open && (
-        <span id={popId} role="note" className={`why-pop glass-sheet ${alignEnd ? 'end' : ''}`}>
+        <span id={popId} ref={popRef} role="note" className={`why-pop glass-sheet ${alignEnd ? 'end' : ''}`} style={shift ? { translate: `${shift}px 0` } : undefined}>
           <strong>{title}</strong>
-          {t(`why.${id}.text`)}
+          {text}
         </span>
       )}
     </span>
   )
+}
+
+/** One option and the key that explains it (none for homebrew). */
+export interface ExplainItem {
+  name: string
+  key?: MessageKey
+  /** "Level 3" style note shown after the name. */
+  note?: string
+}
+
+/** Names with a one-line plain-language explanation each, e.g. a class's features or a race's traits. */
+export function ExplainList({ items }: { items: ExplainItem[] }) {
+  const { t } = useI18n()
+  if (items.length === 0) return null
+  return (
+    <ul className="why-list">
+      {items.map((it, i) => (
+        <li key={`${it.name}-${i}`}>
+          <strong>{it.name}</strong>
+          {it.note && <span className="muted"> · {it.note}</span>}
+          <span className="why-list-text">{it.key ? t(it.key) : t('why.homebrew')}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** The explanation line for one picked option; SRD options all have one, homebrew gets "ask your DM". */
+export function Explain({ kind, id }: { kind: ExplainKind; id: string }) {
+  const { t } = useI18n()
+  const key = explainKey(kind, id)
+  return <p className="why-explain small">{key ? t(key) : t('why.homebrew')}</p>
 }

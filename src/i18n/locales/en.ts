@@ -1,6 +1,9 @@
 // English UI text: the source of truth for message keys. Other locales may leave keys out.
 // Plural keys end in _one / _two / _other; pass the base key and a numeric `count`.
+import { explainEn } from './explain.en'
+
 export const en = {
+  ...explainEn,
   // Shared
   'common.back': 'Back',
   'common.backArrow': '←',
@@ -265,6 +268,14 @@ export const en = {
   'builder.toolsFrom': '{source}: pick {count}',
   'builder.kitChoice': 'Choice {n}',
   'builder.kitTotal': 'Your starting gear',
+  'builder.cardLegend': 'What the cards show:',
+  'builder.legend.bonus': 'Ability bonus',
+  'builder.legend.size': 'Size',
+  'builder.legend.speed': 'Speed',
+  'builder.legend.hitDie': 'Hit die',
+  'builder.legend.primary': 'Main ability',
+  'builder.legend.casting': 'Spellcasting',
+  'builder.kitChoices': 'Pick one option in each group.',
   'builder.any.simple': 'any simple weapon',
   'builder.any.simple-melee': 'any simple melee weapon',
   'builder.any.martial': 'any martial weapon',
