@@ -100,24 +100,26 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 .ff-dice__error { margin: 0; color: var(--ff-dice-fumble); font-size: 0.85rem; }
 .ff-dice__history-head { display: flex; justify-content: space-between; align-items: center; margin-block-start: var(--sp-1); }
 .ff-dice__history-head h3 { margin: 0; font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; }
-.ff-dice__history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.ff-dice__history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; overflow-x: hidden; }
 .ff-dice__empty { color: var(--ff-dice-muted); font-size: 0.85rem; }
 
 /* One roll: the same card players know (label, big total, dice), moved onto glass tokens. */
 .ff-roll {
   padding: var(--sp-2) var(--sp-3); border: 1px solid var(--ff-dice-line, var(--glass-hairline)); border-radius: var(--r-sm);
   background: var(--glass-thin); box-shadow: var(--glass-highlight);
+  min-width: 0;
 }
 .ff-roll--crit { border-color: var(--ff-dice-crit, var(--good)); background: color-mix(in srgb, var(--ff-dice-crit, var(--good)) 8%, var(--glass-thin)); }
 .ff-roll--fumble { border-color: var(--ff-dice-fumble, var(--bad)); background: color-mix(in srgb, var(--ff-dice-fumble, var(--bad)) 8%, var(--glass-thin)); }
 .ff-roll__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); }
-.ff-roll__label { font-weight: 600; }
+/* Long notation (1d4+1d6+...+1d100) is one unbreakable word: let it wrap so the total keeps its place. */
+.ff-roll__label { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .ff-roll__who, .ff-roll__mode { font-weight: 400; color: var(--ff-dice-muted, var(--muted)); }
-.ff-roll__total { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ff-roll__total { flex: none; font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .ff-roll--compact .ff-roll__total { font-size: 1.1rem; }
 .ff-roll--crit .ff-roll__total { color: var(--ff-dice-crit, var(--good)); }
 .ff-roll--fumble .ff-roll__total { color: var(--ff-dice-fumble, var(--bad)); }
-.ff-roll__detail { font-size: 0.8rem; color: var(--ff-dice-muted, var(--muted)); font-variant-numeric: tabular-nums; }
+.ff-roll__detail { overflow-wrap: anywhere; font-size: 0.8rem; color: var(--ff-dice-muted, var(--muted)); font-variant-numeric: tabular-nums; }
 .ff-roll__notation { margin-inline-start: var(--sp-2); opacity: 0.7; }
 .ff-roll__badge { margin-inline-start: var(--sp-2); font-weight: 600; }
 .ff-roll--crit .ff-roll__badge { color: var(--ff-dice-crit, var(--good)); }
