@@ -29,10 +29,12 @@ Up to 100 dice and 1000 sides per term.
 - `useRollHistory(characterId?)` gives the live list. `<RollView roll>` shows one roll.
 - `<FadingResult key onDone className?>` wraps a roll result card on a screen: it fades after `RESULT_SHOW_MS` (8 s), closes on tap, sideways swipe (touch), Enter or Escape, and holds while hovered, pressed or keyboard-focused. Give it a new `key` per roll so a new roll restarts it. The sheet's Attacks card and the combat page use it.
 - `<SecretRolls party userId character? nameOf>` sits on the party page: a player picks a skill, check or save and rolls it for the DM; the DM sees the results log.
-- `<DiceFab open onOpenChange character?>` is the floating dice button App.tsx puts on every screen (there is no dice page). It opens a small window with the `DiceTray`; the `D` shortcut and Escape toggle it. On a character's screen, free rolls are tagged with that character.
-- `<DiceTray character? showAll?>` is the full roller: d4 to d100 buttons, a modifier, an Adv/Dis toggle for a lone d20, a notation box and the history.
+- `<DiceFab open onOpenChange character? secretTo?>` is the floating dice button App.tsx puts on every screen (there is no dice page). It opens a small window with the `DiceTray`; the `D` shortcut and Escape toggle it. On a character's screen, free rolls are tagged with that character.
+- `<DiceTray character? showAll?>` is the full roller: d4 to d100 buttons, a modifier, an Adv/Dis toggle for a lone d20, a notation box and the history. With `secretTo` (App passes it for a player, not the DM, of the party in play) it adds a "Secret: only the DM sees" switch: rolls then go through `shareSecretRoll` and skip this device's history and the roll animation, so the player sees only "sent to the DM".
 
 ## Look
 `ui/dice.css` follows the Liquid Glass standard (`src/design/DESIGN.md`): the dice button is tinted accent glass, the window is a thick glass sheet that grows out of it, die keys and quiet buttons use a faint ink fill (`--ff-dice-fill`) so they show on light and dark glass, the advantage toggle is a segmented control, and roll cards keep their layout on `--glass-thin`. Colours come from the app tokens (crit/fumble from `--good`/`--bad`); the `--ff-*` hooks still override them. High contrast and Reduce transparency go solid through the glass tokens, with 2px edges in high contrast. The nat 20 / nat 1 overlays keep their own palettes; only their ✕ and hint are glass. `style.test.ts` keeps the CSS on logical properties.
+
+DM rolls stay private by design: the DM brings no character, so their rolls (monster stat blocks, combat tracker, free rolls) are never shared to the party feed or the cloud `rolls` table that members read.
 
 Every `RollResult` is plain JSON with `roller`, so Campaign Mode can broadcast the rolls to the DM later.

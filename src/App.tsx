@@ -252,7 +252,8 @@ export default function App() {
         {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}
         </>}
       </main>
-      <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen} />
+      <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}
+        secretTo={playing.party && !playing.isDm ? { partyId: playing.party.id, userId: active.id } : undefined} />
     </div>
     </DiceProvider>
   )

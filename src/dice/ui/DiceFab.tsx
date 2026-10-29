@@ -9,9 +9,11 @@ interface Props {
   onOpenChange: (open: boolean) => void
   /** The character on screen, if any. Free rolls are tagged with them; the history still shows every roll. */
   character?: { id: string; name: string }
+  /** A player in a party: the tray can send rolls to the DM only. */
+  secretTo?: { partyId: string; userId: string }
 }
 
-export function DiceFab({ open, onOpenChange, character }: Props) {
+export function DiceFab({ open, onOpenChange, character, secretTo }: Props) {
   const { t } = useI18n()
   const panelId = useId()
   const button = useRef<HTMLButtonElement>(null)
@@ -37,7 +39,7 @@ export function DiceFab({ open, onOpenChange, character }: Props) {
             <h2>{t('dice.roller')}</h2>
             <button type="button" className="ff-dice__ghost" onClick={() => { onOpenChange(false); button.current?.focus() }} aria-label={t('dice.close')}>✕</button>
           </div>
-          <DiceTray character={character} showAll />
+          <DiceTray character={character} showAll secretTo={secretTo} />
         </div>
       )}
       <button

@@ -2,8 +2,9 @@
 import { useState, type FormEvent } from 'react'
 import { useI18n } from '../../i18n'
 import { DiceNotationError, formatNotation, parseNotation } from '../notation'
-import { rollD20 } from '../roll'
-import type { RollMode, Term } from '../types'
+import { roll as rollNotation, rollD20 } from '../roll'
+import { shareSecretRoll } from '../secretCloud'
+import type { RollMode, RollOptions, RollResult, Term } from '../types'
 import { useDice, useRollHistory } from './DiceProvider'
 import { RollView } from './RollView'
 import './dice.css'
@@ -15,9 +16,11 @@ interface Props {
   character?: { id: string; name: string }
   /** Show every roll on this device instead of only this character's. */
   showAll?: boolean
+  /** A player in a party: offers a switch that sends rolls to the party's DM only (see secret.ts). */
+  secretTo?: { partyId: string; userId: string }
 }
 
-export function DiceTray({ character, showAll = false }: Props) {
+export function DiceTray({ character, showAll = false, secretTo }: Props) {
   const { record, roll, history } = useDice()
   const rolls = useRollHistory(showAll ? undefined : character?.id)
   const [pool, setPool] = useState<Record<number, number>>({})
@@ -25,7 +28,20 @@ export function DiceTray({ character, showAll = false }: Props) {
   const [mode, setMode] = useState<RollMode>('normal')
   const [text, setText] = useState('')
   const [error, setError] = useState<string>()
+  const [secretOn, setSecretOn] = useState(false)
+  const [sent, setSent] = useState<{ id: string; label: string }[]>([])
   const { t } = useI18n()
+  const secret = secretTo && secretOn ? secretTo : undefined
+
+  // A secret roll skips this device's history and the roll animation, so the player never sees the
+  // result and the party feed never gets it. Only the DM's secret log does.
+  const send = (r: RollResult) => {
+    if (!secret) return record(r)
+    void shareSecretRoll(secret.partyId, { roll: r, fromUserId: secret.userId }).catch(() => {})
+    setSent(list => [{ id: r.id, label: r.label ?? r.notation }, ...list].slice(0, 3))
+    return r
+  }
+  const rollText = (notation: string, opts: RollOptions) => (secret ? send(rollNotation(notation, opts)) : roll(notation, opts))
 
   const roller = character && { characterId: character.id, characterName: character.name }
   const poolTerms: Term[] = [
@@ -47,8 +63,8 @@ export function DiceTray({ character, showAll = false }: Props) {
   function rollPool() {
     if (!poolNotation) return
     // A lone d20 honours the advantage toggle; other pools roll as written.
-    if (d20Mode) record(rollD20(modifier, { mode, roller, label: rollLabel }, 'custom'))
-    else roll(poolNotation, { roller })
+    if (d20Mode) send(rollD20(modifier, { mode, roller, label: rollLabel }, 'custom'))
+    else rollText(poolNotation, { roller })
     reset()
   }
 
@@ -56,7 +72,7 @@ export function DiceTray({ character, showAll = false }: Props) {
     e.preventDefault()
     try {
       parseNotation(text)
-      roll(text, { roller, label: text.trim() })
+      rollText(text, { roller, label: text.trim() })
       setText('')
       setError(undefined)
     } catch (err) {
@@ -97,6 +113,14 @@ export function DiceTray({ character, showAll = false }: Props) {
         </div>
       </div>
 
+      {secretTo && (
+        <label className={`ff-dice__secret${secretOn ? ' is-on' : ''}`}>
+          <input type="checkbox" checked={secretOn} onChange={e => setSecretOn(e.target.checked)} />
+          <span aria-hidden="true">🔒</span> {t('dice.secret')}
+          {secretOn && <span className="ff-dice__secret-hint">{t('dice.secretHint')}</span>}
+        </label>
+      )}
+
       <div className="ff-dice__row">
         <button type="button" className="ff-dice__roll" disabled={!poolNotation} onClick={rollPool}>
           {poolNotation ? t('dice.rollPool', { notation: poolNotation }) + (d20Mode ? t(mode === 'advantage' ? 'dice.advShort' : 'dice.disShort') : '') : t('dice.pick')}
@@ -121,6 +145,11 @@ export function DiceTray({ character, showAll = false }: Props) {
         <button type="submit" className="ff-dice__roll" disabled={!text.trim()}>{t('dice.roll')}</button>
       </form>
       {error && <p className="ff-dice__error" role="alert">{error}</p>}
+      {secretTo && sent.length > 0 && (
+        <ol className="ff-dice__sent" aria-live="polite">
+          {sent.map(s => <li key={s.id}><span aria-hidden="true">🔒</span> {t('dice.secretSent', { label: s.label })}</li>)}
+        </ol>
+      )}
 
       <div className="ff-dice__history-head">
         <h3>{t('dice.history')}</h3>
