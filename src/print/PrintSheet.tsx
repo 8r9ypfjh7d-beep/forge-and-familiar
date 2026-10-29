@@ -51,6 +51,17 @@ export function PrintSheet({ characterId, onBack }: { characterId: string; onBac
   )
 }
 
+/** The two paper pages alone, for a character that is not in storage (the read-only share view). */
+export function PrintPages({ character, withPlayState }: { character: Character; withPlayState: boolean }) {
+  const s = buildPrintSheet(character, { withPlayState })
+  return (
+    <div className="ff-print">
+      <PageOne s={s} />
+      <PageTwo s={s} />
+    </div>
+  )
+}
+
 function PageOne({ s }: { s: Sheet }) {
   return (
     <article className="paper">

@@ -13,6 +13,7 @@ import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
 import { PartyPicker, PartyRollRelay, PartySwitcher, PartyView, useActiveParty } from './party'
 import { RulesQA } from './rulesqa'
+import { ShareButton } from './share'
 import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
 import { useI18n } from './i18n'
@@ -341,6 +342,7 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, editState,
                 <button className="heroes-tool" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
                 <button className="heroes-tool" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
                 <ExportButton character={c} className="heroes-tool" />
+                <ShareButton character={c} className="heroes-tool" />
                 <button className="heroes-tool danger" onClick={() => confirm(t('list.confirmDelete', { name: c.name })) && onDelete(c.id)}>{t('common.delete')}</button>
               </div>
             </article>

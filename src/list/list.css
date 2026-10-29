@@ -35,7 +35,7 @@
 .heroes-tools .ff-import { display: contents; }
 .heroes-tools .ff-import [role="alert"] { align-self: center; padding-inline: var(--sp-2); }
 .heroes-tool {
-  font: inherit; font-size: 0.85rem; font-weight: 500; flex: 1 1 0; min-width: 0; min-height: 34px;
+  font: inherit; font-size: 0.85rem; font-weight: 500; flex: 1 1 auto; min-width: 0; min-height: 34px;
   padding: 0 var(--sp-2); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
   transition: background-color var(--dur-fast) var(--ease-glass), transform var(--dur-fast) var(--ease-spring);

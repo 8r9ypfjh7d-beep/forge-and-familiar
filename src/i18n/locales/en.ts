@@ -1729,6 +1729,17 @@ export const en = {
   'hist.field': 'Field',
   'hist.before': 'Before',
   'hist.after': 'After',
+  'share.button': 'Share',
+  'share.hint': 'Copy a read-only link anyone can open, no account needed. Notes stay private.',
+  'share.text': '{name} on Forge & Familiar (read only)',
+  'share.copied': 'Copied',
+  'share.linkLabel': 'Read-only link to this character',
+  'share.readOnly': 'Shared character · read only',
+  'share.playState': 'Show current HP, slots and conditions',
+  'share.openApp': 'Open Forge & Familiar',
+  'share.loading': 'Loading the character…',
+  'share.error.broken': 'This share link is broken or cut off. Ask for a new one.',
+  'share.error.unknown': 'This character uses homebrew or a newer version of the app, so it cannot be shown here.',
 } as const
 
 export type MessageKey = keyof typeof en
