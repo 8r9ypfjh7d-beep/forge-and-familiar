@@ -1,12 +1,11 @@
 // Full-screen natural 20 / natural 1 moment: a god-power burst for a 20, a comic crash for a 1.
-// Short, closes itself, and any tap, the ✕ or Escape closes it early. Reduce motion keeps a still card with the same words.
+// It stays until the player taps anywhere, presses ✕ or Escape. Reduce motion keeps a still card with the same words.
 import { useEffect, useState, type CSSProperties } from 'react'
 import { useI18n } from '../../i18n'
 import type { MessageKey } from '../../i18n/locales/en'
 import type { CritKind } from '../fx'
 import './crit.css'
 
-const CRIT_MS: Record<CritKind, number> = { nat20: 4600, nat1: 4200 }
 const LEAVE_MS = 280
 const SPARKS = 30
 const RAYS = 3
@@ -62,11 +61,9 @@ export function CritFx({ crit, still, onDone }: { crit: Crit; still: boolean; on
   const { kind } = crit
 
   useEffect(() => {
-    const auto = window.setTimeout(() => setLeaving(true), CRIT_MS[kind])
     if (!still && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(kind === 'nat20' ? [40, 60, 40, 60, 160] : [400]) } catch { /* not allowed here */ }
     }
-    return () => clearTimeout(auto)
   }, [crit.key, kind, still])
 
   useEffect(() => {

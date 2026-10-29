@@ -1,6 +1,6 @@
 // Full-screen Super Saiyan power-up: the hero trembles, the clothes fly off in every direction, a flash,
 // golden hair and a roaring aura, and a censor bar slams down where it is needed. Built like the nat 20
-// moment (src/dice/ui/CritFx.tsx): closes itself, any tap, the ✕ or Escape closes it early, and reduce
+// moment (src/dice/ui/CritFx.tsx): it stays until any tap, the ✕ or Escape closes it, and reduce
 // motion keeps a still final frame with the same words.
 import { useEffect, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
@@ -8,7 +8,6 @@ import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import './strip.fx.css'
 
-const SHOW_MS = 6200
 const LEAVE_MS = 280
 const SPARKS = 24
 const MOTES = 18
@@ -64,11 +63,9 @@ export function StripFx({ strip, still, onDone }: { strip: Strip; still: boolean
   const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
-    const auto = window.setTimeout(() => setLeaving(true), SHOW_MS)
     if (!still && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate([30, 40, 30, 40, 30, 40, 300]) } catch { /* not allowed here */ }
     }
-    return () => clearTimeout(auto)
   }, [strip.key, still])
 
   useEffect(() => {

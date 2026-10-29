@@ -467,7 +467,7 @@ export const en = {
   'dice.nat1.line6': 'The dice gods are looking the other way. On purpose.',
   'dice.nat1.line7': 'Even the rat in the corner felt that one.',
   'dice.nat1.line8': "It's fine. It's fine. Everything is fine.",
-  'dice.crit.tap': 'Tap anywhere to continue',
+  'dice.crit.tap': 'Tap anywhere to close',
   'rock.button': 'Sense rock',
   'rock.buttonTitle': 'Stonecunning: ask the nearest rock what it knows',
   'rock.title': 'Stone Sense!',
