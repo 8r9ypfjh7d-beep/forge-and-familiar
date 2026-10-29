@@ -13,6 +13,7 @@ import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
 import { PartyPicker, PartyRollRelay, PartySwitcher, PartyView, useActiveParty } from './party'
 import { RulesQA } from './rulesqa'
+import { PlanView } from './planner'
 import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
 import { useI18n } from './i18n'
@@ -27,7 +28,7 @@ import {
   setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
+type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'plan'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
 
 const newId = () => crypto.randomUUID()
 
@@ -165,6 +166,7 @@ export default function App() {
             editState={editStateOf}
             onEdit={startEdit}
             onLevels={id => setView({ kind: 'levels', id })}
+            onPlan={id => setView({ kind: 'plan', id })}
             onPrint={id => setView({ kind: 'print', id })}
             onImported={refresh}
             onDelete={async id => {
@@ -230,6 +232,7 @@ export default function App() {
             }}
           />
         )}
+        {view.kind === 'plan' && <PlanView characterId={view.id} onBack={() => { refresh(); setView({ kind: 'list' }) }} />}
         {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView({ kind: 'list' })} />}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
@@ -285,7 +288,7 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
   )
 }
 
-function CharacterList({ owner, characters, onNew, onStarter, onOpen, editState, onEdit, onLevels, onPrint, onImported, onDelete }: {
+function CharacterList({ owner, characters, onNew, onStarter, onOpen, editState, onEdit, onLevels, onPlan, onPrint, onImported, onDelete }: {
   owner: UserProfile
   characters: Character[]
   onNew: () => void
@@ -294,6 +297,7 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, editState,
   editState: (id: string) => EditState
   onEdit: (id: string) => void
   onLevels: (id: string) => void
+  onPlan: (id: string) => void
   onPrint: (id: string) => void
   onImported: () => void
   onDelete: (id: string) => void
@@ -339,6 +343,7 @@ function CharacterList({ owner, characters, onNew, onStarter, onOpen, editState,
               </div>
               <div className="heroes-tools">
                 <button className="heroes-tool" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
+                <button className="heroes-tool" onClick={() => onPlan(c.id)}>{t('list.plan')}</button>
                 <button className="heroes-tool" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
                 <ExportButton character={c} className="heroes-tool" />
                 <button className="heroes-tool danger" onClick={() => confirm(t('list.confirmDelete', { name: c.name })) && onDelete(c.id)}>{t('common.delete')}</button>

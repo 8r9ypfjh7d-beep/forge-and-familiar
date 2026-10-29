@@ -81,6 +81,7 @@ export const en = {
   'list.export': 'Export',
   'list.exportHint': 'Download a file you can import on another profile or device.',
   'list.levels': 'Levels',
+  'list.plan': 'Plan',
   'list.confirmDelete': 'Delete {name}?',
 
   // Builder
@@ -1726,6 +1727,29 @@ export const en = {
   'hist.field': 'Field',
   'hist.before': 'Before',
   'hist.after': 'After',
+  'plan.title': 'Plan to level 20: {name}',
+  'plan.now': 'Now {classes}, level {level}.',
+  'plan.intro': 'Pick the class for each level ahead, and the subclass, Ability Score Improvement or feat when a level grants one. Each level shows what it brings. This is only a plan: the sheet changes when you level up with Edit.',
+  'plan.atMax': 'This character is already level 20. Nothing left to plan.',
+  'plan.fillLabel': 'Fill every level with',
+  'plan.fill': 'Fill to 20',
+  'plan.clear': 'Clear plan',
+  'plan.confirmClear': 'Clear the whole plan?',
+  'plan.levelLabel': 'Level {level}',
+  'plan.classFor': 'Class for level {level}',
+  'plan.newClass': 'New class, needs {prereq}',
+  'plan.pickSubclass': 'Choose…',
+  'plan.asi': 'Ability Score Improvement',
+  'plan.hp': '+{gain} HP ({total})',
+  'plan.prof': 'Proficiency {bonus}',
+  'plan.slot': 'Level {level} spells',
+  'plan.needSubclass': 'Pick a subclass',
+  'plan.needAsi': 'Pick two +1s or a feat',
+  'plan.needCap': 'A score would go over 20',
+  'plan.summary': 'At level {level}',
+  'plan.topSlot': 'Top slot',
+  'plan.feats': 'Feats: {feats}',
+  'plan.levelUpHint': 'To level up, open Edit on the character and raise {class} by one, following the plan.',
 } as const
 
 export type MessageKey = keyof typeof en
