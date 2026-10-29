@@ -22,3 +22,12 @@
 .why.compact .why-btn { padding-inline: 6px; }
 :root[data-contrast="high"] .why-btn { border: 2px solid var(--accent); }
 :root[data-contrast="high"] .why-pop { border-width: 2px; }
+
+/* Option explanations: the picked option's line, and name + line lists (features, traits, languages). */
+.why-explain { margin-block: var(--sp-1); color: var(--ink); }
+.why-list { list-style: none; margin-block: var(--sp-2); padding: 0; display: grid; gap: var(--sp-2); font-size: 0.875rem; line-height: 1.45; }
+.why-list li { padding-block: var(--sp-2); padding-inline: var(--sp-3); border-radius: var(--r-sm); background: var(--glass-thin); }
+.why-list .why-list-text { display: block; }
+.why-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); }
+.why-legend .why { margin-inline-start: 0; }
+:root[data-contrast="high"] .why-list li { border: 2px solid var(--line); }

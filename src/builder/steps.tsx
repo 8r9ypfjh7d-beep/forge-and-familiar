@@ -12,8 +12,8 @@ import {
 import { RandomName } from '../random/RandomBar'
 import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
-import { Why } from './Why'
-import { pitchKey } from './why'
+import { Explain, ExplainList, Why } from './Why'
+import { explainKey, pitchKey, type WhyId } from './why'
 
 export interface StepProps {
   draft: CharacterDraft
@@ -68,9 +68,16 @@ function RaceStep({ draft, update }: StepProps) {
   const racePitch = race && pitchKey(edition === '2024' ? 'race2024' : 'race', race.id)
   const subBonus = (b: Partial<Record<Ability, number>>) => (Object.keys(b).length ? ` (${bonusText(b, abilityShort)})` : '')
   const originFeats = allFeats(edition).filter(f => f.category === 'origin')
+  const raceTraits = race ? [...race.traits, ...(race.subraces?.find(s => s.id === draft.subraceId)?.traits ?? [])] : []
   return (
     <>
       <EditionPicker draft={draft} update={update} />
+      <p className="muted small why-legend">
+        {t('builder.cardLegend')}
+        <Why id={edition === '2024' ? 'bgBonus' : 'racial'} label={t('builder.legend.bonus')} />
+        <Why id="size" label={t('builder.legend.size')} />
+        <Why id="speed" label={t('builder.legend.speed')} />
+      </p>
       <div className="card-grid">
         {allRaces(edition).map(r => (
           <button
@@ -97,6 +104,7 @@ function RaceStep({ draft, update }: StepProps) {
               </button>
             ))}
           </div>
+          {draft.subraceId && <Explain kind={edition === '2024' ? 'sub2024' : 'sub2014'} id={draft.subraceId} />}
         </div>
       )}
       {race?.originFeatChoice && (
@@ -114,7 +122,7 @@ function RaceStep({ draft, update }: StepProps) {
       )}
       {race?.traitChoice && (
         <div className="field">
-          <label>{term('trait', race.traitChoice.name, race.traitChoice.name)}</label>
+          <label>{term('trait', race.traitChoice.name, race.traitChoice.name)} <Why id="ancestry" /></label>
           <div className="row">
             {race.traitChoice.options.map(o => (
               <button
@@ -137,13 +145,15 @@ function RaceStep({ draft, update }: StepProps) {
       {race && (
         <p className="small">
           {racePitch && <><strong>{t('why.pick', { name: term('race', race.id, race.name) })}</strong> {t(racePitch)}<br /></>}
-          <strong>{t('builder.traits')}</strong><Why id="traits" /> {[...race.traits, ...(race.subraces?.find(s => s.id === draft.subraceId)?.traits ?? [])].map(x => term('trait', x, x)).join(', ') || t('common.none')}
-          <br />
           <strong>{t('builder.languages')}</strong><Why id="languages" />{' '}
           {edition === '2024' ? t('builder.languages2024') : race.languages.map(x => term('language', x, x)).join(', ')}
           {languagePickCount({ ...draft, backgroundId: '' }) > 0 && <> {t('builder.languagesPlus', { count: languagePickCount({ ...draft, backgroundId: '' }) })}</>}
+          <br />
+          <strong>{t('builder.traits')}</strong><Why id="traits" />{' '}
+          {raceTraits.length === 0 && t('common.none')}
         </p>
       )}
+      {race && <ExplainList items={raceTraits.map(x => ({ name: term('trait', x, x), key: explainKey('trait', x) }))} />}
     </>
   )
 }
@@ -159,8 +169,15 @@ function ClassStep({ draft, update }: StepProps) {
   const extraLevels = extras.reduce((n, cl) => n + cl.level, 0)
   const { t, term, ability, abilityShort, className, item } = useI18n()
   const classPitch = cls && pitchKey('class', cls.id)
+  const classAbout = cls && explainKey('about', cls.id)
   return (
     <>
+      <p className="muted small why-legend">
+        {t('builder.cardLegend')}
+        <Why id="hitDie" label={t('builder.legend.hitDie')} />
+        <Why id="primary" label={t('builder.legend.primary')} />
+        <Why id="casting" label={t('builder.legend.casting')} />
+      </p>
       <div className="card-grid">
         {classesFor(edition).map(c => (
           <button
@@ -188,14 +205,16 @@ function ClassStep({ draft, update }: StepProps) {
       {cls && (
         <p className="small">
           {classPitch && <><strong>{t('why.pick', { name: className(cls.id) })}</strong> {t(classPitch)}<br /></>}
+          {classAbout && <>{t(classAbout)}<br /></>}
           <strong>{t('builder.savingThrows')}</strong><Why id="savingThrows" /> {cls.savingThrows.map(ability).join(', ')}
           <br />
           <strong>{t('builder.armor')}</strong><Why id="proficiencies" /> {cls.armor.length ? cls.armor.map(a => term('armor', a, a)).join(', ') : t('common.noneLower')} · <strong>{t('builder.weapons')}</strong>{' '}
           {[...cls.weapons.map(w => term('weapons', w, w)), ...(cls.weaponIds ?? []).map(id => item(id, itemById(id)?.name ?? id))].join(', ') || t('common.noneLower')}
           <br />
-          <strong>{t('builder.featuresTo', { level })}</strong><Why id="features" /> {cls.features.filter(f => f.level <= level).map(f => term('feature', f.name, f.name)).join(', ')}
+          <strong>{t('builder.featuresTo', { level })}</strong><Why id="features" />
         </p>
       )}
+      {cls && <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: explainKey('feature', f.name) }))} />}
       {cls && <SubclassPicker draft={draft} update={update} />}
       {cls && <ClassChoices draft={draft} update={update} />}
       <MulticlassPicker draft={draft} update={update} />
@@ -214,7 +233,7 @@ function ClassChoices({ draft, update }: StepProps) {
     <>
       {list.map(({ classId, choice, picked }) => (
         <div className="field" key={choiceKey(classId, choice.id)}>
-          <label>{term('feature', choice.name, choice.name)} ({className(classId)})</label>
+          <label>{term('feature', choice.name, choice.name)} ({className(classId)}) <Why id={`choice.${choice.id}` as WhyId} /></label>
           <div className="row">
             {choice.options.map(o => (
               <button key={o.id} className={`glass-chip ${picked?.id === o.id ? 'on' : ''}`} title={o.detail} onClick={() => pick(classId, choice.id, o.id)}>
@@ -247,7 +266,7 @@ function SubclassPicker({ draft, update }: StepProps) {
         const picked = subclassesFor(cl.classId, edition).find(s => s.id === cl.subclassId)
         return (
           <div className="field" key={cl.classId}>
-            <label>{t('builder.subclass', { title: term('feature', def.subclassTitle, def.subclassTitle), className: className(def.id) })}</label>
+            <label>{t('builder.subclass', { title: term('feature', def.subclassTitle, def.subclassTitle), className: className(def.id) })} <Why id="subclassChoice" /></label>
             <div className="row">
               {subclassesFor(cl.classId, edition).map(sc => (
                 <button key={sc.id} className={`glass-chip ${cl.subclassId === sc.id ? 'on' : ''}`} onClick={() => setSub(cl.classId, sc.id)}>
@@ -255,11 +274,8 @@ function SubclassPicker({ draft, update }: StepProps) {
                 </button>
               ))}
             </div>
-            {picked && (
-              <p className="muted small">
-                {picked.features.filter(f => f.level <= cl.level).map(f => term('feature', f.name, f.name)).join(', ')}
-              </p>
-            )}
+            {picked && <Explain kind="subclass" id={picked.id} />}
+            {picked && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: explainKey('feature', f.name) }))} />}
           </div>
         )
       })}
@@ -331,7 +347,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
         <tbody>
           {ABILITIES.map(a => (
             <tr key={a}>
-              <th scope="row">{ability(a)}</th>
+              <th scope="row">{ability(a)}<Why title={ability(a)} text={t(`why.ability.${a}`)} compact /></th>
               <td>
                 {draft.abilityMethod === 'standard' && (
                   <select value={draft.baseAbilities[a]} onChange={e => setScore(a, Number(e.target.value))} aria-label={t('builder.baseOf', { ability: ability(a) })}>
@@ -393,6 +409,7 @@ function BackgroundBonuses({ draft, update }: StepProps) {
       <select id="bg-abilities" value={draft.backgroundId} onChange={e => update({ backgroundId: e.target.value, freeAbilityBonuses: [], chosenSkills: [], chosenLanguages: [], chosenTools: [] })}>
         {backgroundsFor('2024').map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)}
       </select>
+      <Explain kind="bg2024" id={draft.backgroundId} />
       <p className="small">{t('builder.bgBonus.intro', { total })}</p>
       <div className="row">
         {allowed.map(a => (
@@ -420,7 +437,7 @@ function Improvements({ draft, update }: StepProps) {
     update({ improvements: [...(draft.improvements ?? []).filter(i => i.classId !== next.classId || i.level !== next.level), next] })
   return (
     <div className="field asi">
-      <label>{t('builder.asi.title')}</label>
+      <label>{t('builder.asi.title')} <Why id="asi" /></label>
       <p className="muted small">{t('builder.asi.intro')}</p>
       {slots.map(({ classId, level }) => {
         const imp = find(classId, level)
@@ -509,6 +526,7 @@ function SkillsStep({ draft, update }: StepProps) {
           {backgroundsFor(edition).map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)}
           {edition === '2014' && <option value={CUSTOM_BACKGROUND}>{t('builder.customBackground')}</option>}
         </select>
+        {!custom && <Explain kind={edition === '2024' ? 'bg2024' : 'bg'} id={draft.backgroundId} />}
         {bg && !custom && edition === '2014' && <p className="muted small">{t('builder.bgFeature', { feature: term('bgFeature', bg.feature, bg.feature) })}</p>}
         {bg?.feat && (
           <p className="muted small">
@@ -533,6 +551,7 @@ function SkillsStep({ draft, update }: StepProps) {
             <label key={s} className={`skill ${isGranted ? 'granted' : ''} ${!allowed && !isGranted ? 'dim' : ''}`}>
               <input type="checkbox" checked={checked} disabled={isGranted || (!allowed && !checked)} onChange={() => toggle(s)} />
               {skill(s)} <span className="muted small">{abilityShort(SKILLS[s].ability)}</span>
+              <Why title={skill(s)} text={t(`why.skill.${s}`)} compact />
               {isGranted && <span className="tag">{t('builder.tag.granted')}</span>}
               {!isGranted && classFrom.includes(s) && <span className="tag class">{t('builder.tag.class')}</span>}
             </label>
@@ -566,7 +585,7 @@ function CustomBackgroundForm({ draft, update }: StepProps) {
   const known = fixedLanguages({ ...draft, backgroundId: '' })
   return (
     <div className="custom-bg">
-      <p className="small">{t('builder.custom.intro')}</p>
+      <p className="small">{t('builder.custom.intro')} <Why id="customBackground" /></p>
       <div className="row custom-bg-fields">
         <div className="field">
           <label htmlFor="cb-name">{t('builder.custom.name')}</label>
@@ -639,7 +658,8 @@ function LanguagesAndTools({ draft, update }: StepProps) {
           ))}
         </div>
       )}
-      <label>{t('builder.toolsTitle')}</label>
+      <ExplainList items={[...fixedLangs, ...langs.filter(Boolean)].map(l => ({ name: term('language', l, l), key: explainKey('language', l) }))} />
+      <label>{t('builder.toolsTitle')} <Why id="tools" /></label>
       <p className="small">{t('builder.knownTools', { list: known.map(x => term('tool', x, x)).join(', ') || t('common.noneLower') })}</p>
       {groups.map(g => {
         const start = offset
@@ -659,6 +679,7 @@ function LanguagesAndTools({ draft, update }: StepProps) {
           </div>
         )
       })}
+      <ExplainList items={[...known, ...tools.filter(Boolean)].map(x => ({ name: term('tool', x, x), key: explainKey('tool', x) }))} />
     </div>
   )
 }
@@ -679,6 +700,7 @@ function EquipmentChoices({ draft, update }: StepProps) {
   const itemName = (id: string) => term('item', id, itemById(id)?.name ?? id)
   return (
     <div className="kit-choices">
+      <p className="small">{t('builder.kitChoices')} <Why id="kitChoice" /></p>
       {choices.map((choice, i) => {
         const sel = picks[i] ?? { option: 0, items: [] }
         return (
@@ -730,7 +752,7 @@ function EquipmentStep({ draft, update }: StepProps) {
     <>
       <p className="small">{t('builder.kitIntro')} <Why id="kit" /></p>
       <EquipmentChoices draft={draft} update={update} />
-      <h4 className="small">{t('builder.kitTotal')}</h4>
+      <h4 className="small">{t('builder.kitTotal')} <Why id="kitList" /></h4>
       <ul className="kit">
         {[...counts].map(([id, n]) => {
           const item = itemById(id)
@@ -806,6 +828,7 @@ function DetailsStep({ draft, update }: StepProps) {
           <select id="align" value={draft.alignment} onChange={e => update({ alignment: e.target.value })}>
             {ALIGNMENTS.map(a => <option key={a} value={a}>{term('alignment', a, a)}</option>)}
           </select>
+          {draft.alignment && <Explain kind="align" id={draft.alignment} />}
         </div>
       </div>
     </div>

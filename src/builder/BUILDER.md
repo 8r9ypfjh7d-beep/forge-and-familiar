@@ -13,11 +13,11 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 | `Summary.tsx` | Live preview panel using `derive()` |
 | `MulticlassPicker.tsx` | Optional extra classes on the Class step: prerequisites, proficiencies gained, caster-level math |
 | `builder.css` | Builder-only styles, on the Liquid Glass standard (`src/design/DESIGN.md`) |
-| `Why.tsx`, `why.css` | "why?" button that opens a plain-language explanation |
-| `why.ts` | "why?" topic ids and `pitchKey()`; the text is in `i18n/locales` under `why.*` |
+| `Why.tsx`, `why.css` | "why?" button (topic or any title/text, optional capsule label), `Explain` (the picked option's line) and `ExplainList` (name + line per feature, trait, language, tool) |
+| `why.ts` | "why?" topic ids, `explainKey(kind, id)` and `pitchKey()`; topic text is in `i18n/locales/en.ts`, option explanations in `i18n/locales/explain.en.ts` / `explain.he.ts` |
 | `validate.test.ts` | Validation tests |
 | `edit.test.ts` | Editing keeps play state and gear |
-| `why.test.ts` | Every step, race and class has an explanation |
+| `why.test.ts` | Every step, option and SRD entry (both editions) has an explanation |
 | `style.test.ts` | Builder, "why?" and level history CSS use logical properties and glass tokens only |
 
 ## Notes
@@ -39,7 +39,8 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 - Changing race clears language, tool and trait picks; changing the first class clears skills, tools, gear picks and ASIs.
 - Not in the builder yet: spell selection, Bard (Lore) / Ranger / Rogue extra skill and expertise picks, buying gear with starting gold.
 - Multiclass: `classes[0]` is the starting class (saves, skills, gear). Unmet prerequisites only warn (decided 2026-10-29: many tables allow it): once scores are set, the picker marks short classes with ⚠ and shows a translated note, and `derive().warnings` lists them in the summary. All picker text is in en + he (`builder.mc.*`).
-- "why?" tips are for new players: one short, jargon-light paragraph each. Add a race or class to `rules/data/` and `why.test.ts` will remind you to add its `why.race.<id>` / `why.class.<id>` pitch to `en.ts` and `he.ts`.
+- "why?" tips are for new players: one short, jargon-light paragraph each. Every option is explained: card stats (legend capsules), each race trait, subrace/lineage, class (`why.about.<id>` plus the `why.class.<id>` pitch), class and subclass feature up to the chosen level, subclass, Fighting Style/Order, ability, skill, background, language, tool, kit choice and alignment. Features and traits are keyed by name, artisan's tools, gaming sets and instruments share one line per group.
+- Add SRD content to `rules/data/` and `why.test.ts` fails until its line is in `explain.en.ts`; `i18n.test.ts` then asks for the Hebrew in `explain.he.ts`. Homebrew has no line and shows "ask your DM".
 - Editing: "Edit" on the character card or sheet header reopens the builder prefilled (`view: 'edit'`). Every step is reachable, Save works from any step once all steps pass, and Cancel asks before discarding changes.
 - An edit keeps id, XP, notes, coins, inventory and play state. Current HP moves by the change in max HP (0 HP stays 0); slots, hit dice and resources are clamped by the sheet's `normalize()`. If the class kit or background gear changes, a checkbox (on by default) swaps the old starting gear for the new; other items stay.
 - Saving an edit takes a "Before edit" level snapshot first, so Levels can roll it back. While editing, the Summary derives from the edited character, so AC uses its real gear.
