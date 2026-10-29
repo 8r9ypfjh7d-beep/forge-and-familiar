@@ -130,7 +130,10 @@
 .kit-choices { display: grid; gap: var(--sp-2); margin-block: var(--sp-3); }
 .kit-choice { border: 0; border-radius: var(--r-md); padding-block: var(--sp-2) var(--sp-3); padding-inline: var(--sp-3); margin: 0; background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); }
 .kit-choice legend { float: inline-start; inline-size: 100%; margin-block-end: var(--sp-1); font-weight: 600; }
-.kit-option { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 36px; padding-block: 2px; }
+/* clear: the floated legend otherwise squeezes the first option into a sliver beside it. */
+.kit-option { clear: both; display: flex; align-items: flex-start; gap: var(--sp-2); min-block-size: 36px; padding-block: 2px; }
+.kit-option > input { flex: none; margin-block-start: 0.35em; }
+.kit-items { flex: 1; min-inline-size: 0; display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; row-gap: 2px; overflow-wrap: anywhere; }
 
 /* Editing a saved character: a tinted note above the steps. */
 .edit-banner {

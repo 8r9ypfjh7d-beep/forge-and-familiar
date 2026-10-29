@@ -171,6 +171,7 @@ const messages: Messages = {
   'builder.plusGold': 'ועוד 15 מ"ז.',
   'builder.gold2024': 'ועוד {gp} מ"ז מערכת המקצוע ומהרקע.',
   'builder.goldOnly': '{gp} מ"ז במקום הערכה',
+  'builder.kitGold': '+ {gp} מ"ז',
   'builder.portrait': 'תמונת הדמות',
   'builder.noArt': 'אין תמונה עדיין',
   'builder.uploadArt': 'העלאת תמונה',

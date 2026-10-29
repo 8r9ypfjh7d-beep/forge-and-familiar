@@ -173,6 +173,7 @@ export const en = {
   'builder.plusGold': 'Plus 15 gp.',
   'builder.gold2024': 'Plus {gp} gp from your class kit and background.',
   'builder.goldOnly': '{gp} gp instead of the kit',
+  'builder.kitGold': '+ {gp} gp',
   'builder.portrait': 'Character portrait',
   'builder.noArt': 'No art yet',
   'builder.uploadArt': 'Upload art',
