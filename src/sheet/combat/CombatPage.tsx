@@ -14,6 +14,7 @@ import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCri
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
+import { RockSenseButton } from '../../rocksense'
 import { useSheetRolls } from '../dice'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
@@ -134,6 +135,7 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
           <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
             {t('cs.initiative', { bonus: formatMod(d.initiative) })}
           </button>
+          <RockSenseButton character={character} />
         </div>
         {last && <LastRoll key={last.roll.id} rolls={[last]} onDone={() => setLast(null)} />}
       </div>

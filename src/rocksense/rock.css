@@ -1,0 +1,197 @@
+/* Stone Sense full-screen moment (RockSense.tsx). Like crit.css, base styles are the final frame, so reduce motion
+   (.is-still, which drops every animation) still shows the rock, the fact and the report. */
+.ff-rock {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  color: #f3ead8;
+  background:
+    radial-gradient(circle at 50% 36%, #8c7f6b 0, #5b5144 26%, #2f2a24 62%, #120f0c 100%);
+  animation: ff-rock-in 200ms ease-out both;
+}
+.ff-rock.is-leaving { animation: ff-rock-out 320ms ease-in forwards; }
+.ff-rock.is-still *, .ff-rock.is-still { animation: none !important; }
+.ff-rock.is-still.is-leaving { opacity: 0; }
+
+.ff-rock__stage { position: absolute; inset: 0; display: grid; place-items: center; animation: ff-rock-quake 900ms linear 150ms both; }
+.ff-rock__stage > div[aria-hidden] { position: absolute; inset: 0; pointer-events: none; }
+.ff-rock__core {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(92vw, 640px);
+  max-height: 100%;
+  padding: 64px 16px 72px;
+  overflow-y: auto;
+  text-align: center;
+}
+
+/* ---------- The boulder ---------- */
+.ff-rock__boulder {
+  width: min(42vmin, 230px);
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 14px 18px rgb(0 0 0 / 0.6));
+  animation: ff-rock-drop 760ms cubic-bezier(.5,0,.9,.6) both, ff-rock-hum 2.6s ease-in-out 2.2s infinite;
+}
+.ff-rock__body { fill: url(#ff-rock-stone); stroke: #3a342d; stroke-width: 2.5; stroke-linejoin: round; }
+.ff-rock__moss { fill: #6d8a4a; opacity: 0.85; }
+.ff-rock__crack { fill: none; stroke: #3a342d; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
+.ff-rock__eye { fill: #1d1a16; transform-box: fill-box; transform-origin: center; animation: ff-rock-wake 1100ms ease-out 1300ms both; }
+.ff-rock__mouth { fill: none; stroke: #1d1a16; stroke-width: 2.4; stroke-linecap: round; animation: ff-rock-rise 400ms ease-out 1900ms both; }
+.ff-rock__drop { fill: #9fd3f0; stroke: #5b8fae; stroke-width: 1; animation: ff-rock-drip 2.4s ease-in 2.4s infinite; }
+
+/* ---------- Words ---------- */
+.ff-rock__title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 9vw, 5rem);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #e8dcc4;
+  text-shadow: 0 2px 0 #6a5d4b, 0 4px 0 #4a4136, 0 7px 14px rgb(0 0 0 / 0.7);
+  animation: ff-rock-thunk 520ms cubic-bezier(.2,1.6,.4,1) 700ms both;
+}
+.ff-rock__kicker { font-size: clamp(1rem, 3.8vw, 1.4rem); font-weight: 700; font-style: italic; color: #d4c6a8; animation: ff-rock-rise 500ms ease-out 1300ms both; }
+.ff-rock__fact {
+  font-size: clamp(1.05rem, 3.8vw, 1.35rem);
+  font-weight: 600;
+  max-width: 30em;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: rgb(20 16 12 / 0.55);
+  border: 1px solid rgb(232 220 196 / 0.25);
+  animation: ff-rock-rise 500ms ease-out 1900ms both;
+}
+.ff-rock__report {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin: var(--sp-1) 0 0;
+  animation: ff-rock-rise 500ms ease-out 2500ms both;
+}
+.ff-rock__report > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 7.5em;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: rgb(232 220 196 / 0.12);
+  border: 1px solid rgb(232 220 196 / 0.2);
+}
+.ff-rock__report dt { font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: #cbbd9f; }
+.ff-rock__report dd { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ff-rock__count { font-size: 0.85rem; color: #cbbd9f; animation: ff-rock-rise 500ms ease-out 2900ms both; }
+.ff-rock__hint {
+  position: absolute; inset-block-end: max(20px, env(safe-area-inset-bottom));
+  padding: var(--sp-1) var(--sp-3); border-radius: var(--r-pill); font-size: 0.8rem; letter-spacing: 0.06em;
+  background: rgb(0 0 0 / 0.3); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  opacity: 0.85;
+  animation: ff-rock-rise 500ms ease-out 3200ms both;
+}
+.ff-rock__close {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  background: rgb(0 0 0 / 0.3);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-tint-highlight);
+  color: inherit;
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.ff-rock__close:active { transform: scale(0.92); }
+.ff-rock__close:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
+
+/* ---------- Debris and the sensing ripples ---------- */
+.ff-rock__ring {
+  position: absolute;
+  inset-block-start: 30%;
+  inset-inline-start: 50%;
+  width: 36vmin;
+  height: 36vmin;
+  margin: -18vmin;
+  border-radius: 50%;
+  border: 3px dashed #d9c9a3;
+  opacity: 0;
+  animation: ff-rock-ring 2.4s ease-out calc(1100ms + var(--i) * 700ms) infinite;
+}
+.ff-rock__pebbles span {
+  position: absolute;
+  inset-block-start: -8%;
+  inset-inline-start: var(--x);
+  width: calc(18px * var(--z));
+  height: calc(14px * var(--z));
+  border-radius: 45% 55% 40% 60%;
+  background: #8a8073;
+  box-shadow: inset -2px -3px 0 #5e564b;
+  opacity: 0;
+  animation: ff-rock-fall 1300ms cubic-bezier(.5,0,1,1) calc(120ms + var(--i) * 45ms) both;
+}
+.ff-rock__dust span {
+  position: absolute;
+  inset-block-end: -6%;
+  inset-inline-start: var(--x);
+  width: 22vmin;
+  height: 14vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(205 190 160 / 0.5), transparent 70%);
+  opacity: 0;
+  animation: ff-rock-dust 1800ms ease-out calc(650ms + var(--i) * 40ms) both;
+}
+
+/* ---------- Sheet button ---------- */
+.cs-rock { white-space: nowrap; }
+
+/* ---------- Keyframes ---------- */
+@keyframes ff-rock-in { from { opacity: 0; } }
+@keyframes ff-rock-out { to { opacity: 0; } }
+@keyframes ff-rock-quake {
+  0%, 100% { transform: none; }
+  8% { transform: translate(-10px, 6px); }
+  16% { transform: translate(9px, -7px); }
+  24% { transform: translate(-8px, -4px); }
+  32% { transform: translate(7px, 6px); }
+  44% { transform: translate(-5px, 3px); }
+  56% { transform: translate(4px, -3px); }
+  70% { transform: translate(-2px, 2px); }
+  85% { transform: translate(1px, -1px); }
+}
+@keyframes ff-rock-drop {
+  0% { transform: translateY(-80vh) rotate(-25deg); }
+  70% { transform: translateY(0) rotate(4deg) scale(1.06, 0.92); }
+  85% { transform: translateY(-3%) rotate(-1deg); }
+  100% { transform: none; }
+}
+@keyframes ff-rock-hum { 50% { transform: translateY(-4px) rotate(-1.5deg); } }
+@keyframes ff-rock-wake { 0%, 40% { transform: scaleY(0.12); } 55% { transform: scaleY(1); } 70% { transform: scaleY(0.12); } 100% { transform: scaleY(1); } }
+@keyframes ff-rock-drip { 0% { opacity: 0; transform: translateY(-6px); } 15% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(22px); } }
+@keyframes ff-rock-thunk { 0% { opacity: 0; transform: translateY(-40px) scale(1.6); } 100% { opacity: 1; transform: none; } }
+@keyframes ff-rock-rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes ff-rock-ring { 0% { opacity: 0.8; transform: scale(0.4); } 100% { opacity: 0; transform: scale(3.2); } }
+@keyframes ff-rock-fall {
+  0% { opacity: 1; transform: translateY(0) rotate(0); }
+  100% { opacity: 1; transform: translateY(115vh) rotate(var(--r)); }
+}
+@keyframes ff-rock-dust { 0% { opacity: 0; transform: scale(0.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.8) translateY(-8vh); } }
+
+@media print { .ff-rock { display: none; } }

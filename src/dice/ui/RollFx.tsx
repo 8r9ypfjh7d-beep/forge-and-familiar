@@ -8,7 +8,7 @@ import './dice.css'
 const TUMBLE_MS = 650
 const HOLD_MS = 700
 
-function motionReduced(): boolean {
+export function motionReduced(): boolean {
   if (typeof document === 'undefined') return true
   if (document.documentElement.dataset.motion === 'reduce') return true
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
