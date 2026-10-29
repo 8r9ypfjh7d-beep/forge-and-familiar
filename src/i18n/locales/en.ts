@@ -524,6 +524,7 @@ export const en = {
   'levels.importError': 'Could not import that file.',
   'levels.importing': 'Importing…',
   'levels.import': 'Import file',
+  'levels.importHint': 'A Forge & Familiar file, a Foundry VTT actor export or a Dicecloud character JSON',
   'levels.storageFull': 'Storage is full. Delete old snapshots and try again.',
   'levels.error': 'Something went wrong.',
   'levels.saved': 'Snapshot saved.',

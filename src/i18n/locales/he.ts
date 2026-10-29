@@ -684,6 +684,7 @@ const messages: Messages = {
   'levels.importError': 'אי אפשר לייבא את הקובץ הזה.',
   'levels.importing': 'מייבא…',
   'levels.import': 'ייבוא קובץ',
+  'levels.importHint': 'קובץ של Forge & Familiar, ייצוא דמות מ-Foundry VTT או קובץ JSON של דמות מ-Dicecloud',
   'levels.storageFull': 'האחסון מלא. מחקו תמונות מצב ישנות ונסו שוב.',
   'levels.error': 'משהו השתבש.',
   'levels.saved': 'תמונת המצב נשמרה.',
