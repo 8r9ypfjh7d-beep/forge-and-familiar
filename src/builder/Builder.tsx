@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import { addSnapshots, takeSnapshot } from '../portability'
-import { createCharacter, type CharacterDraft } from '../rules'
+import { BackstoryHook, RandomCharacter, randomDraft, randomHookKey } from '../random'
+import { createCharacter, rulesEdition, type CharacterDraft } from '../rules'
 import { getCharacter, saveCharacter } from '../storage'
+import type { MessageKey } from '../i18n'
 import { applyEdit, draftFrom, startingGearChanged } from './edit'
 import { STEPS } from './steps'
 import { stepIssues } from './validate'
@@ -38,6 +40,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
   const [draft, setDraft] = useState<CharacterDraft>(initial)
   const [step, setStep] = useState(0)
   const [replaceGear, setReplaceGear] = useState(true)
+  const [hookKey, setHookKey] = useState<string>()
   const update = (patch: Partial<CharacterDraft>) => setDraft(d => ({ ...d, ...patch }))
   const { t } = useI18n()
   const stepsRef = useRef<HTMLElement>(null)
@@ -52,7 +55,16 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
   const isLast = step === STEPS.length - 1
   const gearChanged = !!editing && startingGearChanged(editing, draft)
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initial), [draft, initial])
-  const result = () => (editing ? applyEdit(editing, draft, { replaceGear: gearChanged && replaceGear }) : createCharacter(draft))
+  const result = () => (editing
+    ? applyEdit(editing, draft, { replaceGear: gearChanged && replaceGear })
+    : { ...createCharacter(draft), notes: hookKey ? t(hookKey as MessageKey) : '' })
+  // Fills every step at random, keeps the player's name and edition, and jumps to Details to review.
+  const rollRandom = () => {
+    if (dirty && !confirm(t('random.replace'))) return
+    setDraft({ ...randomDraft(ownerId, rulesEdition(draft)), playerName: draft.playerName })
+    setHookKey(randomHookKey())
+    setStep(STEPS.length - 1)
+  }
   const preview = useMemo(
     () => (editing && firstBlocked === -1 ? applyEdit(editing, draft, { replaceGear: gearChanged && replaceGear }) : undefined),
     [editing, draft, firstBlocked, gearChanged, replaceGear],
@@ -69,6 +81,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
           <p className="small">{t('builder.edit.intro')}</p>
         </div>
       )}
+      {!editing && <RandomCharacter onRoll={rollRandom} />}
       <nav className="steps" ref={stepsRef} aria-label={t('builder.steps')}>
         {STEPS.map((s, i) => {
           const reachable = firstBlocked === -1 || i <= firstBlocked
@@ -91,6 +104,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
           <h2>{t(`builder.step.${STEPS[step].id}`)}</h2>
           <p className="muted">{t(draft.rulesEdition === '2024' && (STEPS[step].id === 'race' || STEPS[step].id === 'abilities') ? `builder.step.${STEPS[step].id as 'race' | 'abilities'}.blurb2024` : `builder.step.${STEPS[step].id}.blurb`)} <Why id={`step.${STEPS[step].id}`} /></p>
           <Current draft={draft} update={update} />
+          {!editing && STEPS[step].id === 'details' && <BackstoryHook hookKey={hookKey} setHookKey={setHookKey} />}
           {issues[step].length > 0 && (
             <ul className="issues">
               {issues[step].map(m => <li key={m}>{m}</li>)}

@@ -1,0 +1,8 @@
+/* Random character, name and backstory hook, on the Liquid Glass standard (src/design/DESIGN.md). */
+.random-bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-block-end: var(--sp-3); }
+.name-row { display: flex; gap: var(--sp-2); align-items: center; }
+.name-row > input { flex: 1 1 auto; min-inline-size: 0; }
+.random-name { flex: none; min-inline-size: 40px; }
+.random-hook { margin-block-start: var(--sp-4); }
+.random-hook-text { margin-block: 0 var(--sp-2); padding-block: var(--sp-2); padding-inline: var(--sp-3); font-style: italic;
+  border-radius: var(--r-md); background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); }

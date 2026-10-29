@@ -9,6 +9,7 @@ import {
   languagePickCount, pointBuyCost, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type RulesEdition, type SkillId,
 } from '../rules'
+import { RandomName } from '../random/RandomBar'
 import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Why } from './Why'
@@ -791,7 +792,10 @@ function DetailsStep({ draft, update }: StepProps) {
       <div>
         <div className="field">
           <label htmlFor="name">{t('builder.name')}</label>
-          <input id="name" value={draft.name} onChange={e => update({ name: e.target.value })} placeholder={t('builder.namePlaceholder')} />
+          <div className="name-row">
+            <input id="name" value={draft.name} onChange={e => update({ name: e.target.value })} placeholder={t('builder.namePlaceholder')} />
+            <RandomName raceId={draft.raceId} onName={name => update({ name })} />
+          </div>
         </div>
         <div className="field">
           <label htmlFor="player">{t('builder.playerName')}</label>
