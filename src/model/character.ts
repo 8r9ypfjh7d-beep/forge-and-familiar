@@ -68,6 +68,18 @@ export interface KnownSpell {
   classId: string
 }
 
+/** One planned level: which class takes it and, when that class level allows, the subclass and ASI or feat. */
+export interface PlannedLevel {
+  /** Character level (total of all classes) this entry is for. */
+  level: number
+  classId: string
+  /** Picked when this level reaches the class's subclassLevel. */
+  subclassId?: string
+  /** At an ASI level: +2 to one ability or +1 to two, or a feat. */
+  abilities?: Partial<Abilities>
+  featId?: string
+}
+
 export type ActionKind = 'action' | 'bonus' | 'reaction' | 'free' | 'other'
 
 /** An action the player wrote on the combat page (Curse Another, Douse with Oil...). */
@@ -157,6 +169,8 @@ export interface Character {
   quickCast?: QuickCastEntry[]
   /** Actions, bonus actions, reactions and the like the player added on the combat page. */
   customActions?: CustomAction[]
+  /** Planned future levels (src/planner), one per character level above the current one. A plan, not the build. */
+  levelPlan?: PlannedLevel[]
   state: CharacterState
   createdAt: string
   updatedAt: string
