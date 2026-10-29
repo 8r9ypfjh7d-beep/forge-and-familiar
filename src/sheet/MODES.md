@@ -11,6 +11,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 | `components/Story.tsx` | `Notes` |
 | `components/SpellSlots.tsx` | Slot pips, shown in story's Spells card (`SpellsCard`) and combat's Spells tab (`Spellbook`), both in src/spellbook |
 | `combat/` | The combat page (see `combat/COMBAT_PAGE.md`) |
+| `../powerup/` | Tamir's Super Saiyan strip card, under the character card on his characters only (see `src/powerup/POWERUP.md`) |
 
 ## Layout
 

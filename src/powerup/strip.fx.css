@@ -1,0 +1,247 @@
+/* Super Saiyan strip full-screen moment (StripFx). Like crit.css, base styles are the final frame (clothes gone,
+   gold hair, aura, censor bar), so reduce motion (.is-still drops every animation) still shows the whole joke. */
+.ff-strip {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  color: #fff6d6;
+  background: radial-gradient(circle at 50% 40%, #fff3b8 0, #ffcb2e 12%, #d86a00 30%, #3a0f3f 62%, #08030d 100%);
+  animation: ff-strip-in 180ms ease-out both;
+}
+.ff-strip.is-leaving { animation: ff-strip-out 280ms ease-in forwards; }
+.ff-strip.is-still *, .ff-strip.is-still { animation: none !important; }
+.ff-strip.is-still.is-leaving { opacity: 0; }
+
+/* Before the transformation the room is dark; the flash at 1.35s turns the lights gold. */
+.ff-strip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%, #2b3550 0, #121626 55%, #05060b 100%);
+  opacity: 0;
+  animation: ff-strip-dark 1400ms steps(1) both;
+}
+
+.ff-strip__stage { position: absolute; inset: 0; display: grid; place-items: center; animation: ff-strip-tremble 90ms linear 300ms 12 both; }
+.ff-strip__stage > div[aria-hidden] { position: absolute; inset: 0; pointer-events: none; }
+.ff-strip__core {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(92vw, 680px);
+  padding-inline: 16px;
+  text-align: center;
+}
+
+/* The hero, the aura behind and the censor bar on top */
+.ff-strip__figure { position: relative; width: min(34vmin, 200px); aspect-ratio: 100 / 150; }
+.ff-strip__hero { position: relative; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 18px rgb(255 214 70 / 0.9)); }
+.ff-strip__body { fill: #f2c48d; stroke: #8a5527; stroke-width: 1.2; stroke-linejoin: round; }
+.ff-strip__face circle { fill: #3a2210; }
+.ff-strip__face path { fill: none; stroke: #3a2210; stroke-width: 1.6; stroke-linecap: round; }
+.ff-strip__hair--plain { fill: #2b1a10; opacity: 0; animation: ff-strip-hair-out 200ms linear 1350ms backwards; }
+.ff-strip__hair--gold {
+  fill: #ffe14d;
+  stroke: #ffb300;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: ff-strip-hair-in 450ms cubic-bezier(.2,1.6,.4,1) 1350ms both;
+}
+.ff-strip__cloth { transform-box: fill-box; transform-origin: 50% 50%; opacity: 0; stroke-width: 1.2; stroke-linejoin: round; }
+.ff-strip__cloth--shirt { fill: #c0392b; stroke: #6e1a12; animation: ff-strip-shirt 700ms cubic-bezier(.5,0,.8,.4) 950ms backwards; }
+.ff-strip__cloth--pants { fill: #5b4a8a; stroke: #2c2148; animation: ff-strip-pants 700ms cubic-bezier(.5,0,.8,.4) 1050ms backwards; }
+.ff-strip__cloth--boots { fill: #6b3d1f; stroke: #321a0a; animation: ff-strip-boots 700ms cubic-bezier(.5,0,.8,.4) 1120ms backwards; }
+
+.ff-strip__aura {
+  position: absolute;
+  inset: -30% -55% -10%;
+  border-radius: 50% 50% 42% 42% / 60% 60% 40% 40%;
+  background:
+    repeating-conic-gradient(from 180deg at 50% 85%, rgb(255 240 150 / 0.85) 0deg 4deg, transparent 4deg 11deg),
+    radial-gradient(ellipse at 50% 70%, #fff6c0 0, #ffd23a 35%, rgb(255 150 0 / 0.5) 60%, transparent 72%);
+  mask-image: radial-gradient(ellipse at 50% 70%, #000 30%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 70%, #000 30%, transparent 70%);
+  filter: blur(2px);
+  animation: ff-strip-aura-in 500ms ease-out 1350ms both, ff-strip-flicker 180ms steps(2) 1850ms infinite;
+}
+.ff-strip__motes span {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: var(--x);
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: #fff5b8;
+  box-shadow: 0 0 8px 2px #ffc93a;
+  opacity: 0;
+  animation: ff-strip-mote var(--s) linear calc(1500ms + var(--i) * 70ms) infinite;
+}
+.ff-strip__censor {
+  position: absolute;
+  inset-inline: 22%;
+  inset-block-start: 58%;
+  padding-block: 4px;
+  background: #050505;
+  color: #fff;
+  font-size: clamp(0.6rem, 2.6vmin, 0.95rem);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  box-shadow: 0 0 0 2px #fff, 0 6px 14px rgb(0 0 0 / 0.6);
+  transform: rotate(-4deg);
+  animation: ff-strip-censor 380ms cubic-bezier(.2,1.8,.4,1) 1550ms both;
+}
+
+/* Words */
+.ff-strip__title {
+  font-size: clamp(2.2rem, 10vw, 5.6rem);
+  white-space: nowrap;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ffffff 0%, #fff1a8 35%, #ffc21f 60%, #c26a00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 0 #6b2c00) drop-shadow(0 0 22px rgb(255 200 60 / 0.9));
+  animation: ff-strip-slam 520ms cubic-bezier(.2,1.5,.4,1) 1800ms both;
+}
+.ff-strip__kicker {
+  font-size: clamp(1.05rem, 4.2vw, 1.6rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffe9a3;
+  text-shadow: 0 0 14px #ff9d00, 0 2px 0 #4a1d00;
+  animation: ff-strip-rise 500ms ease-out 2250ms both;
+}
+.ff-strip__line { font-size: clamp(0.95rem, 3.4vw, 1.2rem); max-width: 34em; color: #fff8e6; text-shadow: 0 1px 3px #000; animation: ff-strip-rise 500ms ease-out 2650ms both; }
+.ff-strip__hint {
+  position: absolute;
+  inset-block-end: max(20px, env(safe-area-inset-bottom));
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-pill);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  background: rgb(0 0 0 / 0.25);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  opacity: 0.85;
+  animation: ff-strip-rise 500ms ease-out 3100ms both;
+}
+.ff-strip__close {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  background: rgb(0 0 0 / 0.28);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-tint-highlight);
+  color: inherit;
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.ff-strip__close:active { transform: scale(0.92); }
+.ff-strip__close:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
+
+/* Effects layer: rays, flying clothes, sparks, lightning, flash. The delayed ones fill forwards only, so they stay
+   hidden (opacity 0) until their moment. */
+.ff-strip__rays {
+  position: absolute;
+  inset-block-start: 40%;
+  inset-inline-start: 50%;
+  width: 220vmax;
+  height: 220vmax;
+  margin: -110vmax;
+  background: repeating-conic-gradient(from 0deg, rgb(255 236 160 / 0.28) 0deg 5deg, transparent 5deg 15deg);
+  mask-image: radial-gradient(circle, #000 0, #000 12%, transparent 48%);
+  -webkit-mask-image: radial-gradient(circle, #000 0, #000 12%, transparent 48%);
+  animation: ff-strip-rays-in 900ms ease-out 1350ms both, ff-strip-spin 12s linear infinite;
+}
+.ff-strip__clothes span {
+  position: absolute;
+  inset-block-start: 40%;
+  inset-inline-start: 50%;
+  width: 1em;
+  height: 1em;
+  margin: -0.5em;
+  font-size: clamp(2rem, 9vmin, 3.6rem);
+  line-height: 1;
+  opacity: 0;
+  animation: ff-strip-fly 1500ms cubic-bezier(.15,.75,.35,1) calc(950ms + var(--i) * 45ms) forwards;
+}
+.ff-strip__sparks span {
+  position: absolute;
+  inset-block-start: 40%;
+  inset-inline-start: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px;
+  border-radius: 50%;
+  background: #fff3b0;
+  box-shadow: 0 0 12px 4px #ffc93a;
+  opacity: 0;
+  animation: ff-strip-spark 1200ms cubic-bezier(.15,.8,.3,1) calc(1350ms + (var(--i) % 6) * 30ms) forwards;
+}
+.ff-strip__sparks span:nth-child(3n) { width: 5px; height: 20px; border-radius: 3px; }
+.ff-strip__bolt { position: absolute; width: min(16vmin, 100px); fill: #fffbe0; filter: drop-shadow(0 0 14px #fff) drop-shadow(0 0 30px #ffcf3a); opacity: 0; }
+.ff-strip__bolt--a { inset-block-start: 8%; inset-inline-start: 10%; transform: rotate(-18deg); animation: ff-strip-bolt 900ms steps(1) 1400ms forwards; }
+.ff-strip__bolt--b { inset-block-start: 12%; inset-inline-end: 10%; transform: scaleX(-1) rotate(-18deg); animation: ff-strip-bolt 900ms steps(1) 1560ms forwards; }
+.ff-strip__flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: ff-strip-flash 600ms ease-out 1350ms forwards; }
+
+/* Keyframes */
+@keyframes ff-strip-in { from { opacity: 0; } }
+@keyframes ff-strip-out { to { opacity: 0; } }
+@keyframes ff-strip-dark { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes ff-strip-tremble {
+  0%, 100% { transform: none; }
+  25% { transform: translate(-3px, 1px); }
+  50% { transform: translate(2px, -2px); }
+  75% { transform: translate(-1px, 2px); }
+}
+@keyframes ff-strip-hair-out { from { opacity: 1; } to { opacity: 1; } }
+@keyframes ff-strip-hair-in { from { opacity: 0; transform: scaleY(0.2); } }
+@keyframes ff-strip-shirt { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(-160%, -260%) rotate(-540deg) scale(0.6); } }
+@keyframes ff-strip-pants { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(170%, -220%) rotate(480deg) scale(0.6); } }
+@keyframes ff-strip-boots { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(-40%, -300%) rotate(300deg) scale(0.6); } }
+@keyframes ff-strip-aura-in { from { opacity: 0; transform: scale(0.3); } }
+@keyframes ff-strip-flicker { 50% { opacity: 0.82; transform: scale(1.04, 1.07); } }
+@keyframes ff-strip-mote { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-170%) scaleY(1.6); } }
+@keyframes ff-strip-censor { 0% { opacity: 0; transform: rotate(-4deg) scale(3); } }
+@keyframes ff-strip-slam { 0% { opacity: 0; transform: scale(3.2); letter-spacing: 0.5em; } 100% { opacity: 1; transform: scale(1); } }
+@keyframes ff-strip-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes ff-strip-rays-in { from { opacity: 0; scale: 0.2; } }
+@keyframes ff-strip-spin { to { rotate: 360deg; } }
+@keyframes ff-strip-fly {
+  0% { opacity: 1; transform: rotate(var(--a)) translateX(0) rotate(0) scale(0.6); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) rotate(var(--r)) scale(1.1); }
+}
+@keyframes ff-strip-spark {
+  0% { opacity: 1; transform: rotate(var(--a)) translateX(0) scale(1.4); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) scale(0.4); }
+}
+@keyframes ff-strip-bolt { 0% { opacity: 1; } 12% { opacity: 0; } 22% { opacity: 1; } 40% { opacity: 0; } 55% { opacity: 0.8; } 70%, 100% { opacity: 0; } }
+@keyframes ff-strip-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+@media print { .ff-strip { display: none; } }

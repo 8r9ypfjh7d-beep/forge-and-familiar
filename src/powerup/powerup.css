@@ -1,0 +1,16 @@
+/* Sheet card for the Super Saiyan strip. Content glass comes from the sheet's .card; this only lays it out
+   and adds a warm tint while powered up. */
+.powerup { display: grid; gap: var(--sp-2); }
+.powerup-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.powerup-icon { font-size: 1.8rem; line-height: 1; }
+.powerup-text { flex: 1 1 180px; min-inline-size: 0; }
+.powerup-text h2 { margin: 0; }
+.powerup-text .hint { margin: 0; }
+.powerup-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.powerup-buffs, .powerup-count { margin: 0; }
+.powerup-buffs { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.ff-sheet .powerup.is-on {
+  background: color-mix(in srgb, var(--warn) 14%, var(--glass-regular));
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--glass-stroke));
+}
+:root[data-contrast="high"] .ff-sheet .powerup.is-on { border: 2px solid var(--warn); }

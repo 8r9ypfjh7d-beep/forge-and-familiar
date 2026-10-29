@@ -13,6 +13,8 @@ export type SheetSection =
   | 'summary' | 'skills' | 'spellCard'
   // Combat page (src/sheet/combat): tabbed panel and its fight and features views.
   | 'tabs' | 'fight' | 'features'
+  // Tamir's Super Saiyan strip (src/powerup), only on his characters.
+  | 'powerUp'
 
 /** Tabs of the combat page's main panel, like Roll20's character sheet. */
 export type CombatTab = 'combat' | 'spells' | 'inventory' | 'features' | 'notes'
@@ -45,10 +47,11 @@ const SHARED_SIDE: SheetSection[] = ['skills']
  * (slots and pinned spells) above the skills and fills the main column with notes, attacks and
  * inventory; combat mode fills it with Roll20-style tabs for combat, spells, inventory, features
  * and notes, whose Spells tab already holds the slots and spells, so it has no Spells card.
- * A character at 0 HP gets death saves on top in either mode.
+ * A character at 0 HP gets death saves on top in either mode. `powerUp` adds Tamir's strip card under the character card.
  */
-export function sheetLayout(mode: SheetMode, { dying }: { dying: boolean }): SheetLayout {
-  const top = dying ? ['death' as const, ...SHARED_TOP] : SHARED_TOP
+export function sheetLayout(mode: SheetMode, { dying, powerUp }: { dying: boolean; powerUp?: boolean }): SheetLayout {
+  const shared: SheetSection[] = powerUp ? ['summary', 'powerUp', ...SHARED_TOP.slice(1)] : SHARED_TOP
+  const top = dying ? ['death' as const, ...shared] : shared
   const vitals: SheetSection[] = ['hp', 'rests']
   if (mode === 'combat') return { top, columns: [SHARED_SIDE, ['tabs']], vitals, tabs: COMBAT_TABS }
   return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'attacks', 'inventory']], vitals }

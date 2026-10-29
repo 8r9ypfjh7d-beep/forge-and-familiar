@@ -14,6 +14,7 @@ import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
 import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './mode'
 import { Notes } from './components/Story'
 import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, SkillsPanel } from './combat/CombatPage'
+import { canPowerUp, PowerUpCard } from '../powerup'
 import './sheet.css'
 
 export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
@@ -44,7 +45,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   onEdit?: () => void
 }) {
   const [mode, setMode] = useSheetMode(character.id)
-  const layout = sheetLayout(mode, { dying: character.state.currentHp === 0 })
+  const layout = sheetLayout(mode, { dying: character.state.currentHp === 0, powerUp: canPowerUp(character) })
   const p = { character, apply }
   const section = (s: SheetSection) => {
     switch (s) {
@@ -65,6 +66,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} /> : null
       case 'fight': return <Fight key={s} {...p} />
       case 'features': return <FeaturesTraits key={s} character={character} />
+      case 'powerUp': return <PowerUpCard key={s} {...p} />
     }
   }
   return (
