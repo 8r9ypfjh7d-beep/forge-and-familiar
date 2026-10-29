@@ -1,7 +1,7 @@
 import { translate, type Translate } from '../i18n/translate'
 import {
   ABILITIES, CUSTOM_BACKGROUND, activeImprovements, POINT_BUY_BUDGET, STANDARD_ARRAY, classById, classChoices, featById, featSkillPicks,
-  fixedLanguages, fixedTools, getAbilityScores, getBackground, improvementSlots, languagePickCount, meetsPrereq, pointBuyCost, prereqLabel,
+  fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
   raceById, racialBonuses, rulesEdition, subclassesFor, toolPickGroups,
   type CharacterDraft, type SkillId,
 } from '../rules'
@@ -94,12 +94,7 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
           if (asi[a] && d.baseAbilities[a] + racial[a] + asi[a] > 20) out.push(t('builder.issue.asiCap', { ability: a.toUpperCase() }))
         }
       }
-      if (d.classes.length > 1 && scores.every(s => s > 0)) {
-        const final = getAbilityScores(d)
-        for (const cl of d.classes) {
-          if (!meetsPrereq(cl.classId, final)) out.push(t('builder.issue.multiclass', { className: className(cl.classId), prereq: prereqLabel(cl.classId) }))
-        }
-      }
+      // Missing multiclass minimums only warn (MulticlassPicker, derive warnings): tables often allow it.
       break
     }
     case 'skills': {
