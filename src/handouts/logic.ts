@@ -45,13 +45,33 @@ export function unsend(h: Handout, at = new Date().toISOString()): Handout {
   return { ...h, sentAt: undefined, seenBy: {}, updatedAt: at }
 }
 
-export type HandoutProblem = 'title' | 'image' | 'text' | 'recipients'
+export type HandoutProblem = 'title' | 'image' | 'text' | 'url' | 'recipients'
 
-export function problems(h: Pick<Handout, 'kind' | 'title' | 'text' | 'image' | 'to'>): HandoutProblem[] {
+/** Known virtual tabletops, by host, so a table link can say where it goes. */
+const TABLES: [RegExp, string][] = [
+  [/(^|\.)owlbear\.rodeo$/, 'Owlbear Rodeo'],
+  [/(^|\.)talespire\.com$/, 'TaleSpire'],
+  [/(^|\.)roll20\.net$/, 'Roll20'],
+  [/(^|\.)forge-vtt\.com$/, 'Foundry (The Forge)'],
+  [/(^|\.)dndbeyond\.com$/, 'D&D Beyond Maps'],
+]
+
+/** A table link that is safe to open: https only. Returns the cleaned link and the site's name, or null. */
+export function tableLink(raw: string | undefined): { url: string; site: string } | null {
+  if (!raw?.trim()) return null
+  let u: URL
+  try { u = new URL(raw.trim()) } catch { return null }
+  if (u.protocol !== 'https:' || !u.hostname.includes('.')) return null
+  const host = u.hostname.toLowerCase()
+  return { url: u.href, site: TABLES.find(([re]) => re.test(host))?.[1] ?? host.replace(/^www\./, '') }
+}
+
+export function problems(h: Pick<Handout, 'kind' | 'title' | 'text' | 'image' | 'to'> & { url?: string }): HandoutProblem[] {
   const out: HandoutProblem[] = []
   if (!h.title.trim()) out.push('title')
   if (h.kind === 'note' && !h.text.trim()) out.push('text')
-  if (h.kind !== 'note' && !h.image) out.push('image')
+  if ((h.kind === 'image' || h.kind === 'map') && !h.image) out.push('image')
+  if (h.kind === 'table' && !tableLink(h.url)) out.push('url')
   if (h.to !== 'all' && h.to.length === 0) out.push('recipients')
   return out
 }

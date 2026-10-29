@@ -688,6 +688,17 @@ const messages: Messages = {
   'party.vital.dead': 'מת',
   'party.openMine': 'פתיחת הדף שלי',
 
+  'handouts.kind.note': 'פתק',
+  'handouts.kind.image': 'תמונה',
+  'handouts.kind.map': 'מפה',
+  'handouts.kind.table': 'שולחן מקוון',
+  'handouts.tableTitle': 'מפת הקרב של הערב',
+  'handouts.tableLink': 'קישור לשולחן',
+  'handouts.tableHint': 'למפת קרב חיה עם אסימונים, פתחו חדר חינמי ב-owlbear.rodeo (או TaleSpire, Roll20, כל קישור https) והדביקו כאן את הקישור.',
+  'handouts.tableBad': 'הדביקו קישור מלא שמתחיל ב-https://.',
+  'handouts.tableOn': 'נפתח ב-{site}',
+  'handouts.openTable': 'פתיחת השולחן',
+
   'levels.importError': 'אי אפשר לייבא את הקובץ הזה.',
   'levels.importing': 'מייבא…',
   'levels.import': 'ייבוא קובץ',
