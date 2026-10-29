@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
+import { BackstoryHelper } from '../../backstory'
 import { setNotes } from '../engine'
 import type { Apply } from '../types'
 
@@ -21,6 +22,7 @@ export function Notes({ character, apply }: { character: Character; apply: Apply
       <h2 id="notes-title"><label htmlFor="story-notes-box">{t('sheet.story.notes')}</label></h2>
       <textarea id="story-notes-box" value={text} rows={6} placeholder={t('sheet.story.notesPlaceholder')}
         onFocus={() => setEditing(true)} onChange={e => setText(e.target.value)} onBlur={save} />
+      <BackstoryHelper character={character} apply={apply} />
     </section>
   )
 }
