@@ -257,3 +257,9 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 .fading-result:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
 :root[data-motion="reduce"] .fading-result { transition: none; animation: none; }
 @media (prefers-reduced-motion: reduce) { .fading-result { transition: none; animation: none; } }
+
+/* Secret switch in the tray (players in a party): rolls go to the DM only. */
+.ff-dice__secret { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--ff-dice-muted); cursor: pointer; }
+.ff-dice__secret.is-on { color: var(--ff-dice-fg); font-weight: 600; }
+.ff-dice__secret-hint { flex-basis: 100%; font-weight: 400; color: var(--ff-dice-muted); padding-inline-start: 22px; }
+.ff-dice__sent { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 0.85rem; color: var(--ff-dice-muted); }
