@@ -18,6 +18,14 @@ describe('builder validation', () => {
     expect(stepIssues('abilities', { ...d, baseAbilities: { ...d.baseAbilities, str: 15 }, freeAbilityBonuses: ['dex', 'con'] })).toHaveLength(1)
   })
 
+  it('asks to roll, then to use each rolled score once', () => {
+    const d = { ...base(), abilityMethod: 'rolled' as const, freeAbilityBonuses: ['dex' as const, 'con' as const] }
+    expect(stepIssues('abilities', d)).toEqual(['Roll your six scores first.'])
+    const rolled = { ...d, rolledScores: [17, 13, 13, 11, 9, 6] }
+    expect(stepIssues('abilities', { ...rolled, baseAbilities: { str: 17, dex: 13, con: 13, int: 11, wis: 9, cha: 0 } })).toEqual(['Assign each rolled score to one ability.'])
+    expect(stepIssues('abilities', { ...rolled, baseAbilities: { str: 17, dex: 13, con: 13, int: 11, wis: 9, cha: 6 } })).toEqual([])
+  })
+
   it('counts class and free race skill picks', () => {
     // Rogue picks 4 from its list, half-elf adds 2 of any kind; acolyte grants insight + religion.
     const picks = ['stealth', 'acrobatics', 'deception', 'perception', 'arcana', 'history'] as const

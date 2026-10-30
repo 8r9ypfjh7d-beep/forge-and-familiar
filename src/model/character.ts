@@ -3,7 +3,7 @@
 import type { QuickCastEntry } from '../quickcast/types'
 import type { Abilities, Ability, ConditionId, InventoryEntry, ItemEffect, SkillId, SubclassData } from '../rules/types'
 
-export type AbilityMethod = 'standard' | 'pointBuy' | 'manual'
+export type AbilityMethod = 'standard' | 'pointBuy' | 'rolled' | 'manual'
 export type HitDie = 'd6' | 'd8' | 'd10' | 'd12'
 
 export interface ClassLevel {
@@ -137,6 +137,8 @@ export interface Character {
   customSubclasses?: SubclassData[]
   xp: number
   abilityMethod: AbilityMethod
+  /** The six totals rolled in the builder (4d6, drop the lowest), kept so going back or editing never rerolls them. */
+  rolledScores?: number[]
   /** Scores before racial bonuses. Use getAbilityScores() for final scores. */
   baseAbilities: Abilities
   /**

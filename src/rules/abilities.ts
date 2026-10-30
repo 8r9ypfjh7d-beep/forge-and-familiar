@@ -25,6 +25,29 @@ export function pointBuyCost(scores: Abilities): number | null {
   return total
 }
 
+/** Dice notation for one rolled ability score: four d6, drop the lowest. */
+export const ROLLED_NOTATION = '4d6dl1'
+
+/**
+ * Rolled method: give ability `a` the pool value `v`. When every copy of `v` is already
+ * held by other abilities, one of them takes `a`'s old value, so nothing has to be cleared first.
+ */
+export function assignRolled(base: Abilities, pool: readonly number[], a: Ability, v: number): Abilities {
+  const next = { ...base, [a]: v }
+  if (!v) return next
+  const allowed = pool.filter(x => x === v).length
+  const holders = ABILITIES.filter(x => x !== a && next[x] === v)
+  if (holders.length >= allowed && holders.length) next[holders[0]] = base[a]
+  return next
+}
+
+/** True when the six base scores use each rolled value exactly once. */
+export function usesRolledPool(base: Abilities, pool: readonly number[]): boolean {
+  if (pool.length !== ABILITIES.length) return false
+  const sorted = (xs: readonly number[]) => [...xs].sort((x, y) => x - y).join()
+  return sorted(ABILITIES.map(a => base[a])) === sorted(pool)
+}
+
 export function emptyAbilities(value = 10): Abilities {
   return { str: value, dex: value, con: value, int: value, wis: value, cha: value }
 }

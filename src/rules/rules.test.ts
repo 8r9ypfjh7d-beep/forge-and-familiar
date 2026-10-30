@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
 import {
   abilityMod, createCharacter, derive, getCritRange, getDamageRiders, getAbilityScores, getArmorClass, getAttacks, getMaxHp,
-  getResources, getSpellSlots, pointBuyCost, type CharacterDraft,
+  getResources, getSpellSlots, pointBuyCost, assignRolled, usesRolledPool, ROLLED_NOTATION, type CharacterDraft,
 } from './index'
 
 const draft = (over: Partial<CharacterDraft> = {}): CharacterDraft => ({
@@ -38,6 +38,20 @@ describe('abilities', () => {
   it('prices point buy and rejects out-of-range scores', () => {
     expect(pointBuyCost({ str: 15, dex: 15, con: 15, int: 8, wis: 8, cha: 8 })).toBe(27)
     expect(pointBuyCost({ str: 16, dex: 8, con: 8, int: 8, wis: 8, cha: 8 })).toBeNull()
+  })
+
+  it('assigns rolled scores from the pool, swapping when every copy is taken', () => {
+    const pool = [16, 12, 12, 9, 14, 7]
+    const zero = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
+    let b = assignRolled(zero, pool, 'str', 12)
+    b = assignRolled(b, pool, 'dex', 12)
+    expect([b.str, b.dex]).toEqual([12, 12])
+    b = assignRolled({ ...b, con: 16 }, pool, 'int', 16)
+    expect([b.con, b.int]).toEqual([0, 16])
+    const full = { str: 16, dex: 14, con: 12, int: 12, wis: 9, cha: 7 }
+    expect(usesRolledPool(full, pool)).toBe(true)
+    expect(usesRolledPool({ ...full, cha: 12 }, pool)).toBe(false)
+    expect(ROLLED_NOTATION).toBe('4d6dl1')
   })
 
   it('applies race, subrace and half-elf free bonuses', () => {

@@ -167,3 +167,7 @@
 .custom-sub-feature textarea { inline-size: 100%; }
 .custom-sub .custom-bg-fields .custom-sub-level { flex: 0 1 6rem; }
 :root[data-contrast="high"] .custom-sub-feature { box-shadow: inset 0 0 0 1px var(--line); }
+.rolled-pool { margin-block-end: var(--sp-3); }
+.rolled-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); list-style: none; margin: 0; margin-block-start: var(--sp-2); padding: 0; }
+.rolled-chips li { display: inline-flex; align-items: baseline; gap: var(--sp-2); }
+.rolled-dice { display: inline-flex; gap: var(--sp-1); }
