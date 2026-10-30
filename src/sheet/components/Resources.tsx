@@ -30,23 +30,14 @@ export function Resources({ character, apply }: { character: Character; apply: A
   const dawnItems = resources.filter(r => r.recharge === 'dawn').map(r => ({ ...r, used: character.state.resources[r.id]?.used ?? 0 }))
 
   const [out, setOut] = useState<{ key: number; name: string; rolls: Shown[]; note?: string } | null>(null)
-  const [pool, setPool] = useState<string | null>(null)
+  const { use: spendUse, pool, setPool, spendPool } = useResourceUse(character, apply, o => setOut(p => ({ key: (p?.key ?? 0) + 1, ...o })))
   // A race's or feat's once-per-rest spell (Hellish Rebuke) is cast by Use, the same as its Cast under Spells.
   const spells = useSpells(character)
   const casting = useCast(character, apply)
   const spellCaster = itemSpellCaster(spells, casting.cast)
   const spellOf = (r: ResourceInfo) => (r.id.startsWith('spell:') ? itemSpellsOf(character).find(s => s.useId === r.id) : undefined)
 
-  /** Spends points from a pool: on yourself they heal you, on an ally they are only spent. */
-  const spendPool = (r: ResourceInfo, label: string, n: number, self: boolean) => {
-    const left = r.max - (character.state.resources[r.id]?.used ?? 0)
-    const plan = planUse(r.id, label, { edition: rulesEdition(character), classLevel: resourceClassLevel(character, r.id) })
-    apply(t(self ? 'use.log.poolSelf' : 'use.log.pool', { label, n }), c => spendResource(c, r.id, plan, self ? { heal: n } : {}, n))
-    setOut(o => ({ key: (o?.key ?? 0) + 1, name: label, rolls: [], note: [self ? t('cast.healed', { n }) : t('use.spentPool', { n }), t('use.left', { n: Math.max(0, left - n), max: r.max })].join(' · ') }))
-    setPool(null)
-  }
-
-  /** One tap: spends a use, rolls its healing (Second Wind) and starts its effect (Rage shows under Effects). */
+  /** One tap: casts a spell resource, or spends a use, rolls its healing (Second Wind) and starts its effect (Rage shows under Effects). */
   const use = (r: ResourceInfo, label: string) => {
     const spell = spellOf(r)
     if (spell && spellCaster.can(spell)) {
@@ -54,19 +45,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
       if (cast) setOut(o => ({ key: (o?.key ?? 0) + 1, name: cast.name, rolls: cast.rolls, note: cast.note }))
       return
     }
-    const plan = planUse(r.id, label, { edition: rulesEdition(character), classLevel: resourceClassLevel(character, r.id) })
-    // A pool (Lay on Hands) asks how many points first.
-    if (plan.pool && pool !== r.id) return setPool(r.id)
-    const shown: Shown[] = []
-    let healed: number | undefined
-    if (plan.heal) {
-      const roll = rolls.spell(label, { damage: plan.heal, damageType: 'healing' }).damage
-      if (roll) { shown.push({ roll, what: t('cs.roll.healing') }); healed = roll.total }
-    }
-    const left = r.max - (character.state.resources[r.id]?.used ?? 0)
-    const notes = [left <= 0 ? t('use.noneLeft') : t('use.left', { n: left - 1, max: r.max }), plan.effect ? t('cast.inEffect') : '', healed ? t('cast.healed', { n: healed }) : ''].filter(Boolean)
-    apply(t('use.log', { label }), c => spendResource(c, r.id, plan, { heal: healed }))
-    setOut(o => ({ key: (o?.key ?? 0) + 1, name: label, rolls: shown, note: notes.join(' · ') }))
+    spendUse(r, label)
   }
 
   const onDawn = () => {
@@ -123,8 +102,47 @@ export function Resources({ character, apply }: { character: Character; apply: A
   )
 }
 
+
+export interface UseOut { name: string; rolls: Shown[]; note?: string }
+
+/**
+ * Using a resource in one tap: spends a use, rolls its healing (Second Wind) and starts its effect (Rage shows under Effects).
+ * A pool (Lay on Hands) asks how many points first: `pool` is the resource whose PoolForm is open.
+ */
+export function useResourceUse(character: Character, apply: Apply, show: (o: UseOut) => void) {
+  const { t } = useI18n()
+  const rolls = useSheetRolls(character)
+  const [pool, setPool] = useState<string | null>(null)
+  const planOf = (r: ResourceInfo, label: string) => planUse(r.id, label, { edition: rulesEdition(character), classLevel: resourceClassLevel(character, r.id) })
+
+  /** Spends points from a pool: on yourself they heal you, on an ally they are only spent. */
+  const spendPool = (r: ResourceInfo, label: string, n: number, self: boolean) => {
+    const left = r.max - (character.state.resources[r.id]?.used ?? 0)
+    apply(t(self ? 'use.log.poolSelf' : 'use.log.pool', { label, n }), c => spendResource(c, r.id, planOf(r, label), self ? { heal: n } : {}, n))
+    show({ name: label, rolls: [], note: [self ? t('cast.healed', { n }) : t('use.spentPool', { n }), t('use.left', { n: Math.max(0, left - n), max: r.max })].join(' · ') })
+    setPool(null)
+  }
+
+  const use = (r: ResourceInfo, label: string) => {
+    const plan = planOf(r, label)
+    if (plan.pool && pool !== r.id) return setPool(r.id)
+    const shown: Shown[] = []
+    let healed: number | undefined
+    if (plan.heal) {
+      const roll = rolls.spell(label, { damage: plan.heal, damageType: 'healing' }).damage
+      if (roll) { shown.push({ roll, what: t('cs.roll.healing') }); healed = roll.total }
+    }
+    const left = r.max - (character.state.resources[r.id]?.used ?? 0)
+    const notes = [left <= 0 ? t('use.noneLeft') : t('use.left', { n: left - 1, max: r.max }), plan.effect ? t('cast.inEffect') : '', healed ? t('cast.healed', { n: healed }) : ''].filter(Boolean)
+    apply(t('use.log', { label }), c => spendResource(c, r.id, plan, { heal: healed }))
+    show({ name: label, rolls: shown, note: notes.join(' · ') })
+  }
+
+  return { use, pool, setPool, spendPool }
+}
+
 /** How many points to spend from a pool, then on me (heals) or on an ally. */
-function PoolForm({ left, missing, label, onSpend }: { left: number; missing: number; label: string; onSpend: (n: number, self: boolean) => void }) {
+export function PoolForm({ left, missing, label, onSpend }: { left: number; missing: number; label: string; onSpend: (n: number, self: boolean) => void }) {
   const { t } = useI18n()
   const [n, setN] = useState(Math.max(1, Math.min(left, missing || 5)))
   const amount = Math.max(1, Math.min(left, n))

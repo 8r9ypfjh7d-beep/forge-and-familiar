@@ -6,7 +6,7 @@ The sheet's Inventory card: coins, carried weight, every item the character owns
 
 | File | Purpose |
 |------|---------|
-| `inventory.ts` | Pure helpers: `addItem` (plain items stack), `updateEntry` (one pact weapon at a time), `setQty`, `setEquipped`, `removeEntry`, `setCoins`, `fromLibrary`, `fromMagicItem`, `withBase`, `knownInfusions`, `infusionStats` (Artificer: what an Infusion or plan puts on an item) |
+| `inventory.ts` | Pure helpers: `addItem` (plain items stack), `updateEntry` (one pact weapon at a time), `summonPactWeapon` and `isMeleeWeapon` (the combat page's Summon), `setQty`, `setEquipped`, `removeEntry`, `setCoins`, `fromLibrary`, `fromMagicItem`, `withBase`, `knownInfusions`, `infusionStats` (Artificer: what an Infusion or plan puts on an item) |
 | `Inventory.tsx` | The card: coin inputs, item rows (equip, quantity, edit), the add panel and the item editor |
 | `inventory.css` | Styles, scoped to the sheet's tokens |
 | `inventory.test.ts` | Helpers, plus magic bonus, pact weapon and extra damage reaching `derive()` |

@@ -2,7 +2,7 @@
 // AC and speed), the skills on the side, and tabs. Tabs reuse the sheet's own cards; only the
 // summary, skills rail, attacks table, effects, action lists and features view live here.
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BUNDLED, loadKind, type Equipment, type Feat, type Feature, type Spell, type Trait } from '../../content'
+import { BUNDLED, loadKind, type CharacterClass, type Equipment, type Feat, type Feature, type Spell, type Subclass, type Trait } from '../../content'
 import type { RollMode } from '../../dice'
 import { featExplainKey, optionKey, optionName } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
@@ -12,11 +12,18 @@ import type { Ability, ItemEffect } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
 import type { SlotChoice } from '../../quickcast'
 import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
-import { castPlan, castSpell } from '../../spellbook/cast'
-import { useCast } from '../../spellbook/Cast'
+import { castPlan, castSpell, fixedAmount } from '../../spellbook/cast'
+import { CastButton, useCast } from '../../spellbook/Cast'
+import { SpellRow } from '../../spellbook/Spellbook'
+import { spellAccess } from '../../spellbook/access'
+import { isMeleeWeapon, summonPactWeapon } from '../../inventory'
+import { heal } from '../engine'
+import { applyUse, spendResource } from '../uses'
+import { PoolForm, useResourceUse } from '../components/Resources'
+import { turnActions, type TurnRow } from './turn'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
-import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, classOptionById, derive, entryItem, planUse, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
@@ -38,9 +45,11 @@ interface Library {
   traits: Trait[]
   feats: Feat[]
   equipment: Equipment[]
+  classes: CharacterClass[]
+  subclasses: Subclass[]
 }
 
-const EMPTY: Library = { spells: [], features: [], traits: [], feats: [], equipment: [] }
+const EMPTY: Library = { spells: [], features: [], traits: [], feats: [], equipment: [], classes: [], subclasses: [] }
 
 /** The character's edition of the content library. Empty while loading or if it fails: the page still works. */
 function useLibrary(character: Character): Library {
@@ -53,8 +62,9 @@ function useLibrary(character: Character): Library {
     Promise.all([
       loadKind('spells', { sources: spellSourcesFor(edition) }), loadKind('features', { sources }), loadKind('traits', { sources }),
       loadKind('feats', { sources }), loadKind('equipment', { sources }),
+      loadKind('classes', { sources: spellSourcesFor(edition) }), loadKind('subclasses', { sources: spellSourcesFor(edition) }),
     ])
-      .then(([spells, features, traits, feats, equipment]) => { if (live) setLib({ source, data: { spells, features, traits, feats, equipment } }) })
+      .then(([spells, features, traits, feats, equipment, classes, subclasses]) => { if (live) setLib({ source, data: { spells, features, traits, feats, equipment, classes, subclasses } }) })
       .catch(() => { if (live) setLib({ source, data: EMPTY }) })
     return () => { live = false }
   }, [source])
@@ -281,7 +291,7 @@ export function HpChip({ character }: { character: Character }) {
 
 // ---------- Combat tab: attacks, weapon mastery, effects, actions ----------
 
-interface Outcome { name: string; rolls: Shown[]; note?: string; effects?: UsedEffect[] }
+interface Outcome { name: string; rolls: Shown[]; note?: string; effects?: UsedEffect[]; healMe?: number }
 
 export function Fight({ character, apply }: { character: Character; apply: Apply }) {
   const i18n = useI18n()
@@ -300,7 +310,14 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   // Actions sit far below the result box, so bring the result into view after every roll.
   useEffect(() => { if (out) outRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }) }, [out])
   const effects = effectToggles(character, d, lib.spells)
-  const spells = spellAttackRows(character, d, lib.spells)
+  // The attacks table holds action spells; bonus action and reaction spells (Hellish Rebuke) sit in their own lists below.
+  const spells = spellAttackRows(character, d, lib.spells).filter(r => {
+    const s = lib.spells.find(x => x.name.toLowerCase() === r.name.toLowerCase())
+    return !s || castingKind(s.castingTime) === 'action'
+  })
+  const alwaysPrepared = spellAccess(character, lib.classes, lib.subclasses, d.abilities, undefined, lib.spells).flatMap(a => a.alwaysPrepared)
+  const turn = turnActions(character, d, { spells: lib.spells, alwaysPrepared, inTable: new Set(spells.map(r => r.name.toLowerCase())) })
+  const [healedKey, setHealedKey] = useState(-1)
   const critRange = getCritRange(character)
   // Custom action effects are saved on the action, running spells on the character (their stat changes reach derive()); Rage and Sneak Attack are per-session switches.
   const isOn = (e: EffectToggle) =>
@@ -452,6 +469,12 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         <FadingResult key={outKey} ref={outRef} className="cs-out" onDone={() => setOut(null)}>
           <strong>{out.name}</strong>
           <LastRoll rolls={out.rolls} note={out.note} />
+          {out.healMe !== undefined && healedKey !== outKey && character.state.currentHp > 0 && (
+            <button type="button" className="glass-btn small" onClick={() => {
+              setHealedKey(outKey)
+              apply(t('cast.log.healMe', { n: out.healMe!, name: out.name }), c => heal(c, out.healMe!))
+            }}>{t('cast.healMe', { n: out.healMe })}</button>
+          )}
           {!!out.effects?.length && (
             <div className="cs-used">
               <span className="cs-used-title">{t('cs.effectsUsed')}</span>
@@ -486,7 +509,8 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         ? <EffectRows character={character} effects={effects} isOn={isOn} onToggle={toggle} apply={apply} />
         : <p className="hint">{t('cs.noEffects')}</p>}
 
-      <CustomActions character={character} apply={apply} onRoll={runAction} />
+      <CustomActions character={character} apply={apply} onRoll={runAction}
+        auto={k => <TurnRows rows={turn[k]} character={character} apply={apply} features={lib.features} onOut={show} />} hasAuto={k => turn[k].length > 0} />
     </section>
   )
 }
@@ -498,7 +522,11 @@ const KIND_TITLE: Record<ActionKind, MessageKey> = {
 }
 
 /** The player's own actions, bonus actions, reactions, free actions and other abilities, grouped like Roll20. */
-function CustomActions({ character, apply, onRoll }: { character: Character; apply: Apply; onRoll: (a: CustomAction) => void }) {
+function CustomActions({ character, apply, onRoll, auto, hasAuto }: {
+  character: Character; apply: Apply; onRoll: (a: CustomAction) => void
+  /** The rows filled in from the character's spells and features, above the player's own. */
+  auto: (k: ActionKind) => ReactNode; hasAuto: (k: ActionKind) => boolean
+}) {
   const { t, abilityShort, term } = useI18n()
   const d = derive(character)
   const [adding, setAdding] = useState<ActionKind | null>(null)
@@ -528,7 +556,8 @@ function CustomActions({ character, apply, onRoll }: { character: Character; app
               <ActionForm kind={k} stats={d} onCancel={() => setAdding(null)}
                 onSave={a => { apply(t('cs.log.actionAdded', { name: a.name }), c => addAction(c, { ...a, id: newActionId() })); setAdding(null) }} />
             )}
-            {list.length === 0 && adding !== k && <p className="hint">{t('cs.noActions')}</p>}
+            {list.length === 0 && adding !== k && !hasAuto(k) && <p className="hint">{t('cs.noActions')}</p>}
+            {auto(k)}
             <ul className="cs-rows">
               {list.map(a => {
                 if (editing === a.id) {
@@ -566,6 +595,174 @@ function CustomActions({ character, apply, onRoll }: { character: Character; app
         )
       })}
     </>
+  )
+}
+
+/**
+ * The rows filled in from the character: spells with Cast (free ones spend their own use), resources with Use,
+ * features that spend a pool or trigger (Dark One's Blessing), reminders (Cunning Action) and the pact weapon.
+ */
+function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]; character: Character; apply: Apply; features: Feature[]; onOut: (o: Outcome) => void }) {
+  const i18n = useI18n()
+  const { t, term } = i18n
+  const casting = useCast(character, apply)
+  const uses = useResourceUse(character, apply, onOut)
+  const rolls = useSheetRolls(character)
+  const d = derive(character)
+  if (!rows.length) return null
+  const spellRows = rows.filter((r): r is Extract<TurnRow, { type: 'spell' }> => r.type === 'spell')
+  const other = rows.filter(r => r.type !== 'spell')
+  const left = (id: string) => {
+    const r = d.resources.find(x => x.id === id)
+    return r ? { n: r.max - (character.state.resources[r.id]?.used ?? 0), max: r.max, label: term('resource', r.id, r.label) } : undefined
+  }
+  const castFree = (r: Extract<TurnRow, { type: 'spell' }>) => onOut(casting.cast(r.spell, undefined, r.free))
+
+  /** A feature without uses: spends from its pool (Flurry of Blows) and does what its template says (Dark One's Blessing). */
+  const triggerFeature = (r: Extract<TurnRow, { type: 'feature' }>) => {
+    const cl = character.classes.find(x => x.classId === r.className.toLowerCase())
+    const plan = r.use ? planUse(r.use, r.name, { edition: rulesEdition(character), classLevel: cl?.level ?? d.level, mods: d.mods }) : {}
+    const shown: Shown[] = []
+    const amount = (notation: string | undefined, what: string) => {
+      if (!notation) return undefined
+      const fixed = fixedAmount(notation)
+      if (fixed !== undefined) return fixed
+      const roll = rolls.spell(r.name, { damage: notation, damageType: what }).damage
+      if (roll) shown.push({ roll, what })
+      return roll?.total
+    }
+    const tempHp = amount(plan.tempHp, t('cast.tempHp'))
+    const healed = amount(plan.heal, t('cs.roll.healing'))
+    const pool = r.spend && left(r.spend.id)
+    const notes = [
+      pool ? t('turn.spent', { n: r.spend!.n, pool: pool.label }) : '',
+      pool ? (pool.n < r.spend!.n ? t('use.noneLeft') : t('use.left', { n: pool.n - r.spend!.n, max: pool.max })) : '',
+      tempHp ? t('cast.gotTempHp', { n: tempHp }) : '', healed ? t('cast.healed', { n: healed }) : '', plan.effect ? t('cast.inEffect') : '',
+    ].filter(Boolean)
+    apply(t('use.log', { label: r.name }), c => r.spend ? spendResource(c, r.spend.id, plan, { tempHp, heal: healed }, r.spend.n) : applyUse(c, plan, { tempHp, heal: healed }))
+    onOut({ name: r.name, rolls: shown, note: notes.join(' · ') || undefined })
+  }
+
+  return (
+    <>
+      {other.length > 0 && (
+        <ul className="cs-rows cs-turn">
+          {other.map(r => {
+            if (r.type === 'pact') return <PactRow key={r.key} character={character} apply={apply} />
+            if (r.type === 'resource') {
+              const res = r.resource
+              const label = term('resource', res.id, res.label)
+              const l = left(res.id)
+              return (
+                <li key={r.key} className="cs-action">
+                  <div className="cs-action-row">
+                    <FeatureName name={label} text={describe(features, d, res.label, t)} />
+                    <span className="cs-action-tools">
+                      {l && <span className="track-count" dir="ltr">{l.n}/{l.max}</span>}
+                      <button type="button" className="glass-btn small prominent" aria-label={t('use.useName', { label })} aria-expanded={uses.pool === res.id || undefined}
+                        onClick={() => (uses.pool === res.id ? uses.setPool(null) : uses.use(res, label))}>{t('use.use')}</button>
+                    </span>
+                  </div>
+                  {uses.pool === res.id && l && (
+                    <PoolForm left={l.n} missing={Math.max(0, d.maxHp - character.state.currentHp)} label={label} onSpend={(n, self) => uses.spendPool(res, label, n, self)} />
+                  )}
+                </li>
+              )
+            }
+            const l = r.spend && left(r.spend.id)
+            const button = r.use === 'dark-ones-blessing' ? t('turn.droppedFoe') : t('use.use')
+            return (
+              <li key={r.key} className="cs-action">
+                <div className="cs-action-row">
+                  <FeatureName name={r.name} text={r.text ?? describe(features, d, r.name, t)} />
+                  {(r.use || r.spend) && (
+                    <span className="cs-action-tools">
+                      {l && <span className="track-count" dir="ltr">{l.n}/{l.max}</span>}
+                      <button type="button" className="glass-btn small prominent" onClick={() => triggerFeature(r)}
+                        aria-label={r.use === 'dark-ones-blessing' ? t('turn.droppedFoeName', { name: r.name }) : t('use.useName', { label: r.name })}>{button}</button>
+                    </span>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {spellRows.length > 0 && (
+        <ul className="sb-list cs-turn-spells">
+          {spellRows.map(r => {
+            const badge = r.spell.level === 0 ? t('spells.cantrip') : t(`sheet.slot.${r.free?.level ?? r.spell.level}` as MessageKey)
+            const running = (character.state.effects ?? []).some(e => e.id === `spell:${r.spell.id}` && e.on)
+            const l = r.free?.spend && left(r.free.spend.id)
+            return (
+              <SpellRow key={r.key} spell={r.spell} badge={r.free ? `${badge} · ${t('turn.from', { source: r.free.source })}` : badge} running={running}>
+                {l && <span className="track-count" dir="ltr">{l.n}/{l.max}</span>}
+                {r.free
+                  ? <button type="button" className="glass-btn small prominent" aria-label={t('use.castFree', { name: r.spell.name, source: r.free.source })} onClick={() => castFree(r)}>{t('cast.cast')}</button>
+                  : <CastButton character={character} spell={r.spell} onCast={(s, slot) => onOut(casting.cast(s, slot))} />}
+              </SpellRow>
+            )
+          })}
+        </ul>
+      )}
+    </>
+  )
+}
+
+/** A feature's text from the library or the builder's explanations, found by its name. */
+function describe(features: Feature[], d: DerivedStats, name: string, explain: (key: MessageKey) => string): string | undefined {
+  const base = name.replace(/\s*\(.*\)\s*$/, '')
+  const f = d.features.find(x => x.name === name || x.name === base)
+  return f ? featureDescription(features, f, explain) : undefined
+}
+
+/** The feature's name; tapping it opens its text when there is any. */
+function FeatureName({ name, text }: { name: string; text?: string }) {
+  return text
+    ? <details><summary><span>{name}</span></summary><div className="cs-desc-text"><Markdown text={text} /></div></details>
+    : <span className="cs-action-name">{name}</span>
+}
+
+/** Pact of the Blade: which weapon is the pact weapon now, and Summon to make one of yours it or conjure a new one. */
+function PactRow({ character, apply }: { character: Character; apply: Apply }) {
+  const i18n = useI18n()
+  const { t } = i18n
+  const [open, setOpen] = useState(false)
+  const nameOf = (e: Character['inventory'][number]) => e.name ?? i18n.item(e.itemId, entryItem(e)?.name ?? e.itemId)
+  const current = character.inventory.find(e => e.pact)
+  const mine = character.inventory.filter(e => isMeleeWeapon(entryItem(e)))
+  const conjurable = ITEMS.filter(isMeleeWeapon)
+  const summon = (pick: { uid: string } | { itemId: string }, name: string) => {
+    apply(t('turn.log.pact', { name }), c => summonPactWeapon(c, pick))
+    setOpen(false)
+  }
+  return (
+    <li className="cs-action">
+      <div className="cs-action-row">
+        <span className="cs-action-name">{t('turn.pact')}<small className="hint"> · {current ? nameOf(current) : t('turn.pactNone')}</small></span>
+        <span className="cs-action-tools">
+          <button type="button" className="glass-btn small prominent" aria-expanded={open} aria-label={t('turn.pactSummonName')} onClick={() => setOpen(o => !o)}>{t('turn.pactSummon')}</button>
+        </span>
+      </div>
+      {open && (
+        <div className="cs-pact" role="group" aria-label={t('turn.pactSummonName')}>
+          {mine.length > 0 && <>
+            <span className="hint">{t('turn.pactYours')}</span>
+            <div className="cs-pact-chips">
+              {mine.map(e => (
+                <button key={e.uid} type="button" className={`glass-chip${e.pact ? ' on' : ''}`} aria-pressed={!!e.pact} onClick={() => summon({ uid: e.uid }, nameOf(e))}>{nameOf(e)}</button>
+              ))}
+            </div>
+          </>}
+          <label className="hint">{t('turn.pactConjure')}
+            <select value="" onChange={e => { const w = conjurable.find(x => x.id === e.target.value); if (w) summon({ itemId: w.id }, i18n.item(w.id, w.name)) }}>
+              <option value="">…</option>
+              {conjurable.map(w => <option key={w.id} value={w.id}>{i18n.item(w.id, w.name)}</option>)}
+            </select>
+          </label>
+        </div>
+      )}
+    </li>
   )
 }
 
