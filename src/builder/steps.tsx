@@ -6,7 +6,7 @@ import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, SKILLS, TOOLS, allLanguages, allTools, homebrewProficiencyText,
   CUSTOM_FEAT, ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, improvementFeat, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
-  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, stalePicks, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
+  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, setSubclass, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
   type Ability, type Background, type CharacterDraft, type ClassChoiceOption, type RulesEdition, type SkillId, type TraitChoice,
   averageWealth, BACKGROUND_GOLD_2024, takesBackgroundGold, takesClassGold, wealthDice,
 } from '../rules'
@@ -479,12 +479,8 @@ function SubclassPicker({ draft, update, classId }: StepProps & { classId: strin
   const own = draft.classes.find(cl => cl.classId === classId)
   const ownDef = classById(classId, edition)
   const slots = subclassSlots(draft).filter(cl => cl.classId === classId)
-  // Picks from the old subclass's lists (maneuvers, runes...) go with it.
-  const setSub = (classId: string, subclassId: string) => {
-    const classes = draft.classes.map(cl => (cl.classId === classId ? { ...cl, subclassId } : cl))
-    const stale = stalePicks({ ...draft, classes })
-    update({ classes, ...(stale.length ? { classOptions: (draft.classOptions ?? []).filter(p => !stale.includes(p)) } : {}) })
-  }
+  // Picks from the old subclass's lists (maneuvers, runes...) go with it, also when switching to Custom.
+  const setSub = (classId: string, subclassId: string) => update(setSubclass(draft, classId, subclassId))
   return (
     <>
       {own && ownDef && own.level < ownDef.subclassLevel && (
@@ -494,10 +490,6 @@ function SubclassPicker({ draft, update, classId }: StepProps & { classId: strin
         const def = classById(cl.classId, edition)!
         const custom = cl.subclassId === CUSTOM_SUBCLASS
         const picked = custom ? subclassOf(draft, cl) : subclassesFor(cl.classId, edition).find(s => s.id === cl.subclassId)
-        const pickCustom = () => update({
-          classes: draft.classes.map(x => (x.classId === cl.classId ? { ...x, subclassId: CUSTOM_SUBCLASS } : x)),
-          customSubclasses: draft.customSubclasses?.some(s => s.classId === cl.classId) ? draft.customSubclasses : [...(draft.customSubclasses ?? []), blankSubclass(cl.classId)],
-        })
         const spells = (picked?.spells ?? []).filter(s => s.level <= cl.level && s.names.length)
         return (
           <div className="field" key={cl.classId}>
@@ -511,19 +503,21 @@ function SubclassPicker({ draft, update, classId }: StepProps & { classId: strin
                 id: sc.id, name: term('subclass', sc.id, sc.name), search: [sc.name],
                 group: sc.id.startsWith('hb:') ? t('builder.compact.homebrew') : sc.source,
               }))}
-              extra={{ name: t('builder.customSubclass', { title: term('feature', def.subclassTitle, def.subclassTitle) }), onPick: pickCustom }}
+              extra={{ name: t('builder.customSubclass', { title: term('feature', def.subclassTitle, def.subclassTitle) }), onPick: () => setSub(cl.classId, CUSTOM_SUBCLASS) }}
               extraOn={custom}
+              after={<>
+                {picked && !custom && <Explain kind="subclass" id={picked.id} />}
+                {picked?.source && <p className="muted small">{t('builder.subSource', { source: picked.source })}</p>}
+                {picked && !custom && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: featureKey(f.name, picked.id), text: f.text }))} />}
+                {picked && !custom && <SubclassPicks draft={draft} update={update} classId={cl.classId} />}
+                {!custom && spells.length > 0 && (
+                  <p className="small">
+                    <strong>{t('builder.subSpells')}</strong> {spells.map(s => `${t('builder.level', { level: s.level })}: ${s.names.map(n => term('spell', n, n)).join(', ')}`).join(' · ')}
+                  </p>
+                )}
+                {custom && <CustomSubclassForm draft={draft} classId={cl.classId} update={update} />}
+              </>}
             />
-            {picked && !custom && <Explain kind="subclass" id={picked.id} />}
-            {picked?.source && <p className="muted small">{t('builder.subSource', { source: picked.source })}</p>}
-            {picked && !custom && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: featureKey(f.name, picked.id), text: f.text }))} />}
-            {picked && !custom && <SubclassPicks draft={draft} update={update} classId={cl.classId} />}
-            {!custom && spells.length > 0 && (
-              <p className="small">
-                <strong>{t('builder.subSpells')}</strong> {spells.map(s => `${t('builder.level', { level: s.level })}: ${s.names.map(n => term('spell', n, n)).join(', ')}`).join(' · ')}
-              </p>
-            )}
-            {custom && <CustomSubclassForm draft={draft} classId={cl.classId} update={update} />}
           </div>
         )
       })}
