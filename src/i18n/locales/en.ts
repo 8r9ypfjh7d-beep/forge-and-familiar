@@ -12,6 +12,7 @@ import { explainProficienciesEn } from './explain.proficiencies.en'
 import { explainMetamagicEn } from './explain.metamagic.en'
 import { explainSpeciesEn } from './explain.species.en'
 import { explainRacesEn } from './explain.races.en'
+import { explainRaces2014En } from './explain.races2014.en'
 import { itemsEn } from './items.en'
 import { picks2014En } from './picks2014.en'
 
@@ -28,6 +29,7 @@ export const en = {
   ...explainRacesEn,
   ...explainInvocationsEn,
   ...explainFeatsEn,
+  ...explainRaces2014En,
   ...itemsEn,
   ...picks2014En,
   // Shared

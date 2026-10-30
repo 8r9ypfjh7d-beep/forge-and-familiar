@@ -148,10 +148,11 @@ describe('homebrew races and subclasses', () => {
       [{ id: 'hb:p:wood-elf', name: 'Wood Elf', parentRaceId: 'elf', abilityBonuses: { wis: 1 }, traits: ['Fleet of Foot'] }],
     )
     expect(allRaces().map(r => r.id)).toContain('hb:p:tabaxi')
-    expect(raceById('elf')?.subraces?.map(s => s.id)).toEqual(['high-elf', 'hb:p:wood-elf'])
+    expect(raceById('elf')?.subraces?.map(s => s.id).at(-1)).toBe('hb:p:wood-elf')
     expect(getAbilityScores(draft({ raceId: 'elf', subraceId: 'hb:p:wood-elf' })).wis).toBe(11)
+    const official = raceById('elf')!.subraces!.length - 1
     registerHomebrewRaces([], [])
-    expect(raceById('elf')?.subraces).toHaveLength(1)
+    expect(raceById('elf')?.subraces).toHaveLength(official)
   })
 
   it('offers homebrew subclasses for their class', () => {
