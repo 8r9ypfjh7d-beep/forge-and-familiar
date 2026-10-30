@@ -4,7 +4,7 @@ import { FadingResult, RollView } from '../../dice/ui'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
-import { derive, formatMod, getCritRange, getDamageRiders, getRollMode, type DamageRider } from '../../rules'
+import { derive, featureEffectId, formatMod, getCritRange, getDamageRiders, getRollMode, type DamageRider } from '../../rules'
 import { useSheetRolls } from '../dice'
 import { spendOnceEffects } from '../effects'
 import type { Apply } from '../types'
@@ -20,13 +20,15 @@ export function Attacks({ character, apply }: { character: Character; apply?: Ap
   const { attacks } = derive(character)
   if (!attacks.length) return null
 
+  // Rage used from Resources is running: its rider is on without the checkbox.
+  const raging = (character.state.effects ?? []).some(e => e.on && e.id === featureEffectId('rage'))
   const own = getRollMode(character, 'attack')
   const critRange = getCritRange(character)
   const offered = new Map<DamageRider['id'], DamageRider>()
   for (const a of attacks) for (const r of getDamageRiders(character, a)) if (!offered.has(r.id)) offered.set(r.id, r)
 
   const attack = (a: (typeof attacks)[number]) => {
-    const riders = getDamageRiders(character, a).filter(r => on[r.id])
+    const riders = getDamageRiders(character, a).filter(r => on[r.id] || (r.id === 'rage' && raging))
     // Running spells that add to hits (Hex, Divine Favor, a smite), switched on under Effects.
     const live = (character.state.effects ?? []).filter(e => e.on && e.damage)
     // An item's own extra damage ("1d6 fire") rolls on every hit, like a rider that is always on.
@@ -64,7 +66,7 @@ export function Attacks({ character, apply }: { character: Character; apply?: Ap
         <div className="riders">
           {[...offered.values()].map(r => (
             <label key={r.id} className="rider">
-              <input type="checkbox" checked={!!on[r.id]} onChange={e => setOn(o => ({ ...o, [r.id]: e.target.checked }))} />
+              <input type="checkbox" checked={!!on[r.id] || (r.id === 'rage' && raging)} onChange={e => setOn(o => ({ ...o, [r.id]: e.target.checked }))} />
               {t(r.id === 'rage' ? 'sheet.attacks.raging' : 'sheet.attacks.sneak', { name: term('feature', r.name, r.name), damage: r.damage })}
             </label>
           ))}

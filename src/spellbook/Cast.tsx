@@ -24,14 +24,16 @@ export function useCast(character: Character, apply: Apply) {
   const rolls = useSheetRolls(character)
   const [out, setOut] = useState<{ key: number; value: CastOut } | null>(null)
 
-  const cast = (spell: Spell, slot: SlotChoice | undefined = defaultSlot(character, spell)) => {
+  /** `free`: cast without a slot (an item's or a race's spell), at `free.level` when it says so. */
+  const cast = (spell: Spell, chosen?: SlotChoice, free?: { level?: number }) => {
+    const slot = free ? undefined : chosen ?? defaultSlot(character, spell)
     const d = derive(character)
-    const plan = castPlan(character, d, spell, slot)
-    const level = slot?.level ?? spell.level
+    const level = slot?.level ?? free?.level ?? spell.level
+    const plan = castPlan(character, d, spell, slot, level)
     const shown: Shown[] = []
     const notes: string[] = []
     if (slot) notes.push(t(slot.source === 'pact' ? 'cs.usedPact' : 'cs.usedSlot', { level: slot.level }))
-    else if (spell.level > 0) notes.push(t('cast.noSlot'))
+    else if (spell.level > 0 && !free) notes.push(t('cast.noSlot'))
 
     // Attack, save and damage or healing, as the attacks table rolls them.
     const entry = toQuickCast(withRollFromText(spell))
