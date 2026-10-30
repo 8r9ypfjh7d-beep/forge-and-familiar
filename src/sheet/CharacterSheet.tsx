@@ -19,7 +19,7 @@ import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, HpChi
 import { canPowerUp, PowerUpCard } from '../powerup'
 import './sheet.css'
 
-export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: string; onBack: () => void; onEdit?: () => void }) {
+export function CharacterSheet({ characterId, onBack, onEdit, onLevelUp }: { characterId: string; onBack: () => void; onEdit?: () => void; onLevelUp?: () => void }) {
   const { character, apply, undo, undoTo, redo, canRedo, log } = useLiveCharacter(characterId)
   const { t } = useI18n()
 
@@ -33,10 +33,10 @@ export function CharacterSheet({ characterId, onBack, onEdit }: { characterId: s
     )
   }
 
-  return <Sheet character={character} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} />
+  return <Sheet character={character} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} onLevelUp={onLevelUp} />
 }
 
-function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
+function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit, onLevelUp }: {
   character: Character
   apply: Apply
   undo: () => void
@@ -45,6 +45,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   log: LogEntry[]
   onBack: () => void
   onEdit?: () => void
+  onLevelUp?: () => void
 }) {
   const [mode, setMode] = useSheetMode(character.id)
   const narrow = useNarrow()
@@ -66,7 +67,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'metamagic': return <Metamagic key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
       case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
-      case 'summary': return <CharacterCard key={s} character={character} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />
+      case 'summary': return <CharacterCard key={s} character={character} apply={apply} onLevelUp={onLevelUp} vitals={(layout.vitals ?? []).map(section)} />
       case 'skills': return <SkillsPanel key={s} character={character} />
       case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} aside={narrow ? <HpChip character={character} /> : undefined} /> : null
       case 'fight': return <Fight key={s} {...p} />

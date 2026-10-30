@@ -53,9 +53,21 @@ export const XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 4800
 /** XP needed for the next level, or undefined at level 20. */
 export const xpForNextLevel = (level: number): number | undefined => XP_THRESHOLDS[Math.max(1, level)]
 
+/** The level `xp` reaches (1-20). */
+export const levelForXp = (xp: number): number => XP_THRESHOLDS.filter(n => xp >= n).length || 1
+
+/** True when the character's XP reaches a level above the one it has (and it isn't 20 yet). */
+export const xpReady = (c: Pick<Character, 'classes' | 'xp'>) => {
+  const level = c.classes.reduce((n, cl) => n + cl.level, 0)
+  return level < 20 && levelForXp(c.xp) > level
+}
+
+/** Key of one level's rolled hit points in Character.hpRolls: class id and that class's level, e.g. `fighter.4`. */
+export const hpRollKey = (classId: string, classLevel: number) => `${classId}.${classLevel}`
+
 // ---------- Hit points ----------
 
-/** Max HP: max die at 1st level, fixed average after, plus CON and racial extras. */
+/** Max HP: max die at 1st level, then the rolled hit die (`hpRolls`) or the fixed average, plus CON and racial extras. */
 export function getMaxHp(c: Character): number {
   const con = getAbilityMods(getAbilityScores(c)).con
   const perLevelBonus = raceProfile(c).hpPerLevel + featBonus(c, 'hpPerLevel')
@@ -63,7 +75,8 @@ export function getMaxHp(c: Character): number {
   let first = true
   for (const { def, level, subclass } of classesOf(c)) {
     for (let i = 0; i < level; i++) {
-      const roll = first ? def.hitDie : def.hitDie / 2 + 1
+      const rolled = c.hpRolls?.[hpRollKey(def.id, i + 1)]
+      const roll = first ? def.hitDie : rolled && rolled >= 1 && rolled <= def.hitDie ? rolled : def.hitDie / 2 + 1
       first = false
       hp += Math.max(1, roll + con) + perLevelBonus + (subclass?.hpPerLevel ?? 0)
     }

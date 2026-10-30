@@ -23,7 +23,7 @@ import { PoolForm, useResourceUse } from '../components/Resources'
 import { turnActions, type TurnRow } from './turn'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
-import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, classOptionById, derive, entryItem, planUse, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, classOptionById, derive, entryItem, planUse, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, totalLevel, xpForNextLevel, xpReady, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
@@ -77,7 +77,7 @@ function useLibrary(character: Character): Library {
  * The top card in both sheet modes: portrait and level, class, race, background, XP, proficiency,
  * armor class, speed and passive perception, Level Up and Initiative, with the sheet's HP and Rest.
  */
-export function CharacterCard({ character, vitals, onEdit }: { character: Character; vitals: ReactNode; onEdit?: () => void }) {
+export function CharacterCard({ character, vitals, onLevelUp, apply }: { character: Character; vitals: ReactNode; onLevelUp?: () => void; apply?: Apply }) {
   const { t, term, className, raceName } = useI18n()
   const d = derive(character)
   const rolls = useSheetRolls(character)
@@ -107,7 +107,7 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
             <p key={cl.classId} className="cs-warn" role="note">{t('cs.subclassMissing', { className: className(cl.classId), id: cl.subclassId! })}</p>
           ))}
           <p>{[raceName(character.raceId, character.subraceId, character.rulesEdition), bg && term('background', bg.id, bg.name)].filter(Boolean).join(' · ')}</p>
-          <p className="cs-xp">{next ? t('cs.xp', { xp: character.xp, next }) : t('cs.xpMax', { xp: character.xp })}</p>
+          <XpLine character={character} next={next} apply={apply} />
         </div>
         <dl className="cs-stats">
           <div><dt>{t('stat.ac')}</dt><dd className="cs-shield">{m('ac', d.armorClass.value)}</dd></div>
@@ -117,7 +117,12 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
         </dl>
         <Perks d={d} />
         <div className="cs-hero-actions">
-          {onEdit && <button type="button" className="btn cs-levelup" onClick={onEdit}>{t('cs.levelUp')}</button>}
+          {onLevelUp && d.level < 20 && (
+            <button type="button" className={`btn cs-levelup${xpReady(character) ? ' primary ready' : ''}`} onClick={onLevelUp}
+              title={xpReady(character) ? t('xp.ready', { level: d.level + 1 }) : undefined}>
+              {xpReady(character) && <span aria-hidden="true">⬆ </span>}{t('cs.levelUp')}
+            </button>
+          )}
           <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
             {t('cs.initiative', { bonus: formatMod(d.initiative) })}
           </button>
@@ -127,6 +132,36 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
       </div>
       <div className="cs-vitals">{vitals}</div>
     </section>
+  )
+}
+
+/** XP under the name: tap it to add XP (a minus number takes some away). */
+function XpLine({ character, next, apply }: { character: Character; next?: number; apply?: Apply }) {
+  const { t } = useI18n()
+  const [open, setOpen] = useState(false)
+  const [amount, setAmount] = useState('')
+  const text = next ? t('cs.xp', { xp: character.xp, next }) : t('cs.xpMax', { xp: character.xp })
+  if (!apply) return <p className="cs-xp">{text}</p>
+  const n = Math.trunc(Number(amount))
+  const add = () => {
+    if (!n) return
+    apply(t('xp.log', { n: n > 0 ? `+${n}` : n }), c => ({ ...c, xp: Math.max(0, c.xp + n) }))
+    setAmount('')
+    setOpen(false)
+  }
+  return (
+    <div className="cs-xp">
+      <button type="button" className="cs-xp-btn" aria-expanded={open} onClick={() => setOpen(o => !o)} title={t('xp.add')}>
+        {text} <span aria-hidden="true">＋</span>
+      </button>
+      {xpReady(character) && <span className="cs-xp-ready small">{t('xp.ready', { level: totalLevel(character) + 1 })}</span>}
+      {open && (
+        <form className="cs-xp-add" onSubmit={e => { e.preventDefault(); add() }}>
+          <input type="number" inputMode="numeric" autoFocus value={amount} onChange={e => setAmount(e.target.value)} aria-label={t('xp.addLabel')} placeholder="XP" />
+          <button className="btn small primary" disabled={!n}>{t('xp.addButton')}</button>
+        </form>
+      )}
+    </div>
   )
 }
 

@@ -8,6 +8,7 @@ import {
 } from '../rules'
 
 export type StepId = 'race' | 'class' | 'abilities' | 'skills' | 'spells' | 'equipment' | 'details'
+export const STEP_IDS: StepId[] = ['race', 'class', 'abilities', 'skills', 'spells', 'equipment', 'details']
 
 /** Skills granted automatically by race and background (not choosable). */
 export function grantedSkills(d: CharacterDraft): Set<SkillId> {
@@ -64,7 +65,7 @@ export function suggestedMasteryWeapons(d: CharacterDraft): string[] {
 
 const english: Translate = (key, vars) => translate('en', key, vars)
 /** Localised SRD names (useI18n's `term`). */
-type Term = (kind: string, id: string, name: string) => string
+export type Term = (kind: string, id: string, name: string) => string
 
 /** Problems that block leaving a step. Empty means the step is complete. */
 export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = english, term: Term = (_kind, _id, name) => name): string[] {

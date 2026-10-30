@@ -5,7 +5,7 @@ import { coinsFromCp, createCharacter, startingCoins, startingItemIds, type Char
 import { effectiveMaxHp, normalize } from '../sheet/engine'
 
 /** Fields a character has that the builder does not edit. */
-const NOT_IN_DRAFT = ['id', 'schemaVersion', 'inventory', 'state', 'createdAt', 'updatedAt', 'xp', 'notes', 'coins'] as const
+const NOT_IN_DRAFT = ['id', 'schemaVersion', 'inventory', 'state', 'createdAt', 'updatedAt', 'xp', 'notes', 'coins', 'appliedAwards'] as const
 
 /** The builder draft for an existing character. Lists are copied so edits never touch the original. */
 export function draftFrom(c: Character): CharacterDraft {
