@@ -10,6 +10,8 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 | `types.ts` | `Encounter`, `Combatant`, `Effect`, `PendingCheck`, `CONDITIONS` |
 | `engine.ts` | Every encounter change, pure. Tested in `engine.test.ts` |
 | `storage.ts` | Encounters in localStorage (`ff.encounters.v1`), async API, filtered by `ownerId` |
+| `liveLogic.ts` | Pure battle-map rules: `healthOf`, `projectPublic` (what players see), `placeTokens`, `tokenLabel`, `moveProblem`, `moveTokenOn`. Tested in `live.test.ts` |
+| `live.ts` | Live combat in Supabase: `startLiveCombat`, `mirrorEncounter`, `setLiveMap`, `updateBoard`, `moveToken`, `endLiveCombat`, `watchLiveCombat`, `pullLiveCombat` |
 | `ui/useEncounter.ts` | Loads an encounter and its party characters, saves both, undo |
 | `ui/rolls.ts` | Initiative and concentration rolls through `src/dice`, recorded in the dice history |
 | `ui/CombatTracker.tsx` | Encounter list and the open encounter (`initialOpenId` opens one straight away, used by the DM screen) |
@@ -27,3 +29,13 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 - **Text.** UI strings are `combat.*` keys in `src/i18n/locales` (English and Hebrew). Log lines are stored as `{ key, vars }` and translated when shown; plain strings in older saves show as written.
 - **Look.** Cards are `.glass` (effects and log `.glass.thick`), one `.glass-btn.prominent` per surface (New encounter, Next turn, Roll save, Add). The active row wears the lens (accent tint, accent edge, accent initiative badge). Damage and heal are tinted glass. High contrast draws 2px edges where state is shown by fill. Phone controls are 44px tall.
 - **Undo** restores the encounter and any party characters the step changed.
+
+## Live combat and the battle map
+
+Design: `/mnt/project-files/combat-maps/brainstorm.md`. The map editor lives in `src/maps` (unit B), the map view in the tracker is unit C, the players' Map tab is unit D; this module is their shared foundation.
+
+- `Encounter.board` (`Board`: `mapId`, `tokens`, `fog` as "x,y" cell keys, `locked`) is the DM's copy of everything on the map that changes during play. A `Token` covers `size × size` cells from `(x, y)`, counted from the top-left corner; `hidden` tokens exist only for the DM. `placeTokens` gives every combatant a token (party along the bottom edge, monsters along the top) so starting a combat needs no placement.
+- For a cloud party (`cloudForParty`), `startLiveCombat(partyId, encounter, map)` writes one row per party to `party_encounters` (`20261030210000_party_encounters.sql`): `encounter` (no log), `map` (the full map definition, `LiveMap` is the part this module needs), `board`, `rev`. It is the only way a combat reaches players; the scenario planner (task 4) calls it. `mirrorEncounter` follows every tracker change and never touches the board; `updateBoard` changes fog, lock, hidden and token lists conditionally on `rev`; `endLiveCombat` deletes the row. A local party gets no row and every call returns null or does nothing.
+- A trigger keeps `party_encounters_public`, the only table players read: no log, no hidden tokens, no tokens under fog (and their combatants leave the turn order), monster `hp` replaced by `health` (`healthy`, `bloodied` at half HP or less, `down`). `projectPublic` in `liveLogic.ts` is the same rule in TypeScript; `live.test.ts` and `supabase/tests/rls_test.sql` both check it.
+- Moves go through the `move_token` RPC (`moveToken`): the DM moves any token; a player only the token whose `characterId` is the character they bring to the party, and not while `locked`; nothing leaves the map. `moveProblem` is the same check client-side for instant feedback. Moves bump `rev`, so a DM board write racing a player move is retried on the fresh board.
+- `watchLiveCombat(partyId, asDm, fn)` calls `fn` now and after every realtime change with the row (full for the DM, public for players) or null when the combat ended. Maps are cached by `map_id` so a token move doesn't re-download a picture.

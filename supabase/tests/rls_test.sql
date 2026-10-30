@@ -29,6 +29,8 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261028090000_party_shared.sql
 \ir ../migrations/20261028100000_party_dm.sql
 \ir ../migrations/20261030120000_homebrew_packs.sql
+\ir ../migrations/20261030150000_end_party.sql
+\ir ../migrations/20261030210000_party_encounters.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -418,6 +420,85 @@ set test.uid = '00000000-0000-0000-0000-00000000000e';
 select pg_temp.check((select count(*) from homebrew_packs) = 0, 'unlinked device reads no packs');
 set test.uid = '00000000-0000-0000-0000-00000000000a';
 
+
+-- Live combat: Roy (DM of p-2) pushes a combat; Tamir sees the public copy and moves only his token.
+set role authenticated;
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+insert into party_encounters (party_id, encounter, map, map_id, board, started_at) values ('p-2',
+  '{"id":"e1","round":1,"log":["secret"],"combatants":[
+     {"id":"vex","kind":"pc","name":"Brin","characterId":"c-tamir","conditions":[]},
+     {"id":"g1","kind":"npc","name":"Goblin","hp":{"current":3,"max":7,"temp":0},"ac":15,"conditions":[]},
+     {"id":"g2","kind":"npc","name":"Goblin","hp":{"current":7,"max":7,"temp":0},"conditions":[]},
+     {"id":"amb","kind":"npc","name":"Assassin","hp":{"current":50,"max":50,"temp":0},"conditions":[]}]}',
+  '{"id":"m1","name":"Tavern","width":10,"height":8}', 'm1',
+  '{"tokens":[
+     {"id":"t-vex","combatantId":"vex","characterId":"c-tamir","kind":"pc","label":"B","x":0,"y":7,"size":1},
+     {"id":"t-g1","combatantId":"g1","kind":"npc","label":"G1","x":0,"y":0,"size":1},
+     {"id":"t-g2","combatantId":"g2","kind":"npc","label":"G2","x":5,"y":0,"size":1},
+     {"id":"t-amb","combatantId":"amb","kind":"npc","label":"A","x":9,"y":0,"size":1,"hidden":true}],
+    "fog":["4,0","5,0","6,0","4,1","5,1","6,1"],"locked":false}', iso_now());
+select pg_temp.check((select count(*) from party_encounters_public where party_id = 'p-2') = 1, 'the public copy is written by the trigger');
+select pg_temp.check((select encounter ? 'log' from party_encounters_public where party_id = 'p-2') = false, 'public copy has no log');
+select pg_temp.check((select encounter->'combatants'->1->>'health' from party_encounters_public where party_id = 'p-2') = 'bloodied', 'monster HP becomes a health word');
+select pg_temp.check((select encounter->'combatants'->1 ? 'hp' from party_encounters_public where party_id = 'p-2') = false, 'monster HP numbers are gone');
+select pg_temp.check((select jsonb_array_length(encounter->'combatants') from party_encounters_public where party_id = 'p-2') = 2, 'hidden and fogged combatants are gone from the public turn order');
+select pg_temp.check((select board->'tokens'->>0 from party_encounters_public where party_id = 'p-2')::jsonb->>'id' = 't-vex', 'public tokens keep the player token');
+select pg_temp.check((select jsonb_array_length(board->'tokens') from party_encounters_public where party_id = 'p-2') = 2, 'hidden and fogged tokens are not sent');
+select pg_temp.check(move_token('p-2', 't-amb', 8, 0) = 2, 'the DM moves a hidden monster');
+do $$ begin
+  perform move_token('p-2', 't-vex', 10, 7);
+  raise exception 'FAILED: moved off the map';
+exception when others then
+  if sqlerrm <> 'off the map' then raise; end if;
+  raise notice 'ok: nothing leaves the map';
+end $$;
+
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select count(*) from party_encounters) = 0, 'a player cannot read the full row');
+select pg_temp.check((select count(*) from party_encounters_public where party_id = 'p-2') = 1, 'a member reads the public copy');
+do $$ begin
+  insert into party_encounters_public (party_id, encounter, board, rev, started_at) values ('p-2', '{}', '{}', 1, 'x');
+  raise exception 'FAILED: player wrote the public copy';
+exception when insufficient_privilege then raise notice 'ok: players cannot write the public copy';
+end $$;
+do $$ begin
+  update party_encounters set board = '{}' where party_id = 'p-2';
+  if found then raise exception 'FAILED: player changed the DM row'; end if;
+  raise notice 'ok: players cannot change the DM row';
+end $$;
+select pg_temp.check(move_token('p-2', 't-vex', 3, 6) = 3, 'a player moves the token of the character they bring');
+select pg_temp.check((select board->'tokens'->0->>'x' from party_encounters_public where party_id = 'p-2') = '3', 'the move shows in the public copy');
+do $$ begin
+  perform move_token('p-2', 't-g1', 1, 1);
+  raise exception 'FAILED: moved a monster';
+exception when others then
+  if sqlerrm <> 'not your token' then raise; end if;
+  raise notice 'ok: a player cannot move a monster';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  perform move_token('p-2', 't-vex', 1, 1);
+  raise exception 'FAILED: moved another player''s token';
+exception when others then
+  if sqlerrm <> 'not your token' then raise; end if;
+  raise notice 'ok: a watcher cannot move another player''s token';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+update party_encounters set board = jsonb_set(board, '{locked}', 'true'), rev = rev + 1 where party_id = 'p-2';
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  perform move_token('p-2', 't-vex', 2, 2);
+  raise exception 'FAILED: moved on a locked board';
+exception when others then
+  if sqlerrm <> 'locked' then raise; end if;
+  raise notice 'ok: a locked board stops players';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+select pg_temp.check((select count(*) from party_encounters_public) = 0, 'an unlinked device sees no live combat');
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+delete from party_encounters where party_id = 'p-2';
+select pg_temp.check((select count(*) from party_encounters_public where party_id = 'p-2') = 0, 'ending the combat removes the public copy');
+
 -- Signed out: nothing.
 reset role;
 set role anon;
@@ -446,6 +527,11 @@ do $$ begin
   perform * from homebrew_packs;
   raise exception 'FAILED: anon read packs';
 exception when insufficient_privilege then raise notice 'ok: anon cannot read packs';
+end $$;
+do $$ begin
+  perform * from party_encounters_public;
+  raise exception 'FAILED: anon read live combat';
+exception when insufficient_privilege then raise notice 'ok: anon cannot read live combat';
 end $$;
 reset role;
 select pg_temp.check(true, 'all RLS checks passed');
