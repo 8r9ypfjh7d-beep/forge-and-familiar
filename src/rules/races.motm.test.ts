@@ -3,6 +3,7 @@ import { stepIssues } from '../builder/validate'
 import { explainKey } from '../builder/why'
 import { he } from '../i18n/locales/he'
 import type { Character } from '../model/character'
+import { LEGACY_RACES } from './data/books/races.legacy'
 import { MOTM_RACES } from './data/books/races.motm'
 import { allRaces, createCharacter, derive, getAbilityScores, getFeats, raceProfile, raceUseId, type CharacterDraft } from './index'
 
@@ -82,16 +83,34 @@ describe('Monsters of the Multiverse, Witchlight, Strixhaven and Tasha races', (
     expect(stepIssues('race', draft({ raceId: 'changeling', traitChoices: { changelingInstincts: 'insight,deception' } }))).toEqual([])
   })
 
+  it("offers the older Volo's, Elemental Evil, Mordenkainen and Tortle Package printings", () => {
+    const ids = allRaces('2014').map(r => r.id)
+    for (const id of ['aasimar-volo', 'bugbear-volo', 'firbolg-volo', 'genasi-eepc', 'gith', 'goblin-volo', 'goliath-volo', 'hobgoblin-volo',
+      'kenku-volo', 'kobold-volo', 'lizardfolk-volo', 'orc-volo', 'tabaxi-volo', 'triton-volo', 'yuan-ti-volo', 'aarakocra-eepc', 'tortle-ttp']) expect(ids, id).toContain(id)
+    const kobold = getAbilityScores(make({ raceId: 'kobold-volo', freeAbilityBonuses: [] }))
+    expect([kobold.dex, kobold.str]).toEqual([16, 13])
+    const yuanti = derive(make({ raceId: 'yuan-ti-volo' }))
+    expect(yuanti.defenses.immunities).toContain('poison')
+    expect(yuanti.defenses.conditionImmunities).toContain('poisoned')
+    expect(derive(make({ raceId: 'aarakocra-eepc' })).speeds.fly).toBe(50)
+    const scourge = (level: number) => derive(make({ raceId: 'aasimar-volo', subraceId: 'scourge-aasimar', classes: [{ classId: 'fighter', level }] })).resources.map(r => r.id)
+    expect(scourge(3)).toContain(raceUseId('Radiant Consumption'))
+    expect(scourge(2)).not.toContain(raceUseId('Radiant Consumption'))
+    const gith = derive(make({ raceId: 'gith', subraceId: 'githyanki-mtf' }))
+    expect(gith.abilities.str).toBe(15 + 2)
+    expect(gith.attacks.length).toBeGreaterThan(0)
+  })
+
   it('explains every race, lineage and trait in English and names them in Hebrew', () => {
     const traitKey = (raceId: string, name: string) => explainKey('trait', `${raceId}.${name}`) ?? explainKey('trait', name)
-    const missing = MOTM_RACES.flatMap(r => [
+    const missing = [...MOTM_RACES, ...LEGACY_RACES].flatMap(r => [
       ...(explainKey('race', r.id) ? [] : [r.id]),
       ...(r.subraces ?? []).filter(s => !explainKey('sub2014', s.id)).map(s => s.id),
       ...[...r.traits, ...(r.subraces ?? []).flatMap(s => s.traits), ...(r.choices ?? []).map(ch => ch.name)]
         .filter(t => !traitKey(r.id, t)).map(t => `${r.id}: ${t}`),
     ])
     expect(missing).toEqual([])
-    const names = MOTM_RACES.flatMap(r => [`race.${r.id}`, ...(r.subraces ?? []).map(s => `race.${s.id}`), ...r.traits.map(t => `trait.${t}`)])
+    const names = [...MOTM_RACES, ...LEGACY_RACES].flatMap(r => [`race.${r.id}`, ...(r.subraces ?? []).map(s => `race.${s.id}`), ...r.traits.map(t => `trait.${t}`)])
     expect(names.filter(k => !(k in he.terms))).toEqual([])
   })
 })
