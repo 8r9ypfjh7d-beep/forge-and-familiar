@@ -1,5 +1,6 @@
 // English UI text: the source of truth for message keys. Other locales may leave keys out.
 // Plural keys end in _one / _two / _other; pass the base key and a numeric `count`.
+import { explainBackgroundsEn } from './explain.backgrounds.en'
 import { explainBooksEn } from './explain.books.en'
 import { explainClassesEn } from './explain.classes.en'
 import { explainEn } from './explain.en'
@@ -11,6 +12,7 @@ import { itemsEn } from './items.en'
 export const en = {
   ...explainEn,
   ...explainBooksEn,
+  ...explainBackgroundsEn,
   ...explainClassesEn,
   ...explainProficienciesEn,
   ...explainMetamagicEn,

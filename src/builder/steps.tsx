@@ -4,7 +4,7 @@ import type { AbilityMethod } from '../model/character'
 import type { CustomBackground, Improvement } from '../model/character'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
-  ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
+  ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type Background, type CharacterDraft, type RulesEdition, type SkillId, type TraitChoice,
@@ -599,9 +599,10 @@ function BackgroundBonuses({ draft, update }: StepProps) {
     <div className="field bg-bonus">
       <label htmlFor="bg-abilities">{t('builder.background')} <Why id="background" /></label>
       <select id="bg-abilities" value={draft.backgroundId} onChange={e => update({ backgroundId: e.target.value, freeAbilityBonuses: bonusesAfterBackground(draft), chosenSkills: [], chosenLanguages: [], chosenTools: [] })}>
-        {backgroundsFor('2024').map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)}
+        <BackgroundOptions edition="2024" />
       </select>
       <BackgroundExplain kind="bg2024" bg={bg} id={draft.backgroundId} />
+      <BackgroundSource id={draft.backgroundId} edition="2024" />
       <p className="small">
         {t('builder.bgBonus.intro', { total, background: bg ? term('background', bg.id, bg.name) : '', abilities: listed.map(a => ability(a)).join(', ') })}
         {' '}<Why id="bgBonus" />
@@ -765,14 +766,15 @@ function SkillsStep({ draft, update }: StepProps) {
       <div className="field">
         <label htmlFor="bg">{t('builder.background')} <Why id="background" /></label>
         <select id="bg" value={draft.backgroundId} onChange={e => pickBackground(e.target.value)}>
-          {backgroundsFor(edition).map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)}
+          <BackgroundOptions edition={edition} />
           {edition === '2014' && <option value={CUSTOM_BACKGROUND}>{t('builder.customBackground')}</option>}
         </select>
         {!custom && <BackgroundExplain kind={edition === '2024' ? 'bg2024' : 'bg'} bg={bg} id={draft.backgroundId} />}
+        {!custom && <BackgroundSource id={draft.backgroundId} edition={edition} />}
         {bg && !custom && edition === '2014' && <p className="muted small">{t('builder.bgFeature', { feature: term('bgFeature', bg.feature, bg.feature) })}</p>}
         {bg?.feat && (
           <p className="muted small">
-            {t('builder.bgFeat', { feat: `${term('feat', bg.feat.id, featById(bg.feat.id, edition)?.name ?? bg.feat.id)}${bg.feat.note ? ` (${bg.feat.note})` : ''}` })}
+            {t('builder.bgFeat', { feat: `${term('feat', bg.feat.id, featById(bg.feat.id, edition)?.name ?? bg.feat.name ?? bg.feat.id)}${bg.feat.note ? ` (${bg.feat.note})` : ''}` })}
             {edition === '2024' && <> {t('builder.bgFeat.bonusNote')}</>}
           </p>
         )}
@@ -816,6 +818,22 @@ function BackgroundExplain({ kind, bg, id }: { kind: 'bg' | 'bg2024'; bg?: Backg
       {bg?.description ?? t('why.homebrew')} <Why id="hbBackground" />
     </p>
   )
+}
+
+/** Background options: the SRD ones first, then one group per book. */
+function BackgroundOptions({ edition }: { edition: RulesEdition }) {
+  const { term } = useI18n()
+  const groups = new Map<string, Background[]>()
+  for (const b of backgroundsFor(edition)) groups.set(b.source ?? '', [...(groups.get(b.source ?? '') ?? []), b])
+  const options = (list: Background[]) => list.map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)
+  return <>{[...groups].map(([source, list]) => (source ? <optgroup key={source} label={source}>{options(list)}</optgroup> : options(list)))}</>
+}
+
+/** Which book a background comes from, when it isn't in the SRD. */
+function BackgroundSource({ id, edition }: { id: string; edition: RulesEdition }) {
+  const { t } = useI18n()
+  const source = backgroundById(id, edition)?.source
+  return source ? <p className="muted small">{t('builder.subSource', { source })}</p> : null
 }
 
 /** PHB "Customizing a Background": any two skills, two tools or languages in total, and a feature. */

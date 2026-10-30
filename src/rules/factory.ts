@@ -3,6 +3,7 @@ import { classKit, kitGold } from './choices'
 import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { itemById } from './data/items'
+import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS } from './data/proficiencies'
 import { getMaxHp } from './derive'
 import type { Item } from './types'
 import { rulesEdition } from './edition'
@@ -57,6 +58,9 @@ export function startingCoins(draft: GearInput & Pick<CharacterDraft, 'purchases
 
 const AMMO_BUNDLE: Record<string, number> = { arrows: 20, bolts: 20, rations: 5, torch: 5 }
 
+/** Kit items that stand for the tool the player picks ("Artisan's Tools (same as above)"). */
+const PICKED_TOOL: Record<string, string[]> = { 'artisans-tools': ARTISAN_TOOLS, 'gaming-set': GAMING_SETS, 'musical-instrument': MUSICAL_INSTRUMENTS }
+
 /** Turn a finished draft into a saved character, full HP, starting kit equipped. */
 export function createCharacter(draft: CharacterDraft, now = new Date()): Character {
   const inventory: Character['inventory'] = []
@@ -83,7 +87,8 @@ export function createCharacter(draft: CharacterDraft, now = new Date()): Charac
       equipped = weapons < 2
       weapons += 1
     }
-    inventory.push({ uid: uid(), itemId, qty: qty ?? AMMO_BUNDLE[itemId] ?? 1, equipped, ...(embedded ? { item: embedded } : {}) })
+    const picked = PICKED_TOOL[itemId] && draft.chosenTools?.find(t => PICKED_TOOL[itemId].includes(t))
+    inventory.push({ uid: uid(), itemId, qty: qty ?? AMMO_BUNDLE[itemId] ?? 1, equipped, ...(embedded ? { item: embedded } : {}), ...(picked ? { name: picked } : {}) })
   }
 
   const base: Character = {

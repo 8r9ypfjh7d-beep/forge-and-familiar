@@ -1,6 +1,7 @@
 // Hebrew (עברית). Instructions use the plural imperative, the usual gender-neutral form in Hebrew UIs.
 // Arrows point the way the page reads: "back" points right, "next" points left.
 import type { Messages, Terms } from '../translate'
+import { backgroundTermsHe, explainBackgroundsHe } from './explain.backgrounds.he'
 import { explainBooksHe } from './explain.books.he'
 import { explainClassesHe } from './explain.classes.he'
 import { explainHe } from './explain.he'
@@ -12,6 +13,7 @@ import { itemsHe } from './items.he'
 const messages: Messages = {
   ...explainHe,
   ...explainBooksHe,
+  ...explainBackgroundsHe,
   ...explainClassesHe,
   ...explainProficienciesHe,
   ...explainMetamagicHe,
@@ -2160,6 +2162,7 @@ const terms: Terms = {
   ...proficiencyTermsHe,
   ...metamagicTermsHe,
   ...speciesTermsHe,
+  ...backgroundTermsHe,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',

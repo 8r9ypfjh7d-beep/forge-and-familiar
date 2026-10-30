@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { en } from '../i18n/locales/en'
 import {
-  ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_SPECIES_2024, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
+  ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_BACKGROUNDS_2024, BOOK_SPECIES_2024, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
   SUBCLASSES, SUBCLASSES_2024, TOOLS,
 } from '../rules'
 import { STEPS } from './steps'
@@ -41,7 +41,7 @@ describe('why? tooltips', () => {
 
   it('explains every background, ability, skill, alignment, language and tool', () => {
     expect(missing('bg', BACKGROUNDS.map(b => b.id))).toEqual([])
-    expect(missing('bg2024', BACKGROUNDS_2024.map(b => b.id))).toEqual([])
+    expect(missing('bg2024', [...BACKGROUNDS_2024, ...BOOK_BACKGROUNDS_2024].map(b => b.id))).toEqual([])
     expect(missing('ability', [...ABILITIES])).toEqual([])
     expect(missing('skill', ALL_SKILLS)).toEqual([])
     expect(missing('align', ALIGNMENTS)).toEqual([])

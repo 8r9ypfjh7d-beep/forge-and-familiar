@@ -1,5 +1,6 @@
 import type { Character } from '../../model/character'
 import type { Background, RulesEdition } from '../types'
+import { BOOK_BACKGROUNDS_2024 } from './books/backgrounds2024'
 import { BACKGROUNDS_2024 } from './srd52/backgrounds'
 
 // The SRD 5.1 includes only one background.
@@ -28,13 +29,13 @@ let homebrew: HomebrewBackgroundDef[] = []
 
 /** Replace the registered homebrew backgrounds. SRD ids always win. */
 export function registerHomebrewBackgrounds(list: HomebrewBackgroundDef[]): void {
-  const srd = new Set([...BACKGROUNDS, ...BACKGROUNDS_2024].map(b => b.id))
+  const srd = new Set([...BACKGROUNDS, ...BACKGROUNDS_2024, ...BOOK_BACKGROUNDS_2024].map(b => b.id))
   homebrew = list.filter(b => !srd.has(b.id) && b.id !== CUSTOM_BACKGROUND)
 }
 
-/** SRD backgrounds of an edition, then homebrew ones offered in it. */
+/** Backgrounds of an edition: the SRD ones, the books' (2024), then homebrew ones offered in it. */
 export const backgroundsFor = (edition: RulesEdition = '2014'): Background[] => [
-  ...(edition === '2024' ? BACKGROUNDS_2024 : BACKGROUNDS),
+  ...(edition === '2024' ? [...BACKGROUNDS_2024, ...BOOK_BACKGROUNDS_2024] : BACKGROUNDS),
   // 2014 has no background ability scores or Origin feat, so a two-edition homebrew background drops them there.
   ...homebrew.filter(b => b.editions.includes(edition)).map(b => (edition === '2024' ? b : { ...b, abilityScores: undefined, feat: undefined })),
 ]
