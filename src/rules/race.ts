@@ -28,7 +28,7 @@ export interface RaceProfile {
   weapons: WeaponCategory[]
   weaponIds: string[]
   /** Free +1 picks (Half-Elf, Mark of Making human); undefined when there are none or the race is flexible. */
-  freeAbilityBonuses?: { count: number; exclude: Ability[] }
+  freeAbilityBonuses?: { count: number; exclude: Ability[]; value?: number }
   /** +2/+1 or +1/+1/+1 picked freely (Monsters of the Multiverse style). */
   flexibleAbilityBonuses: boolean
   /** The player picks a feat: an Origin feat (2024 Human) or any feat (Variant Human). */
@@ -40,6 +40,8 @@ export interface RaceProfile {
   /** Limited-use traits in play. */
   uses: RaceUse[]
   naturalArmor?: { base: number; dex: boolean }
+  naturalWeapons: { name: string; damage: string; type: string }[]
+  initiativeProficiency: boolean
   hpPerLevel: number
 }
 
@@ -93,11 +95,13 @@ export function raceProfile(c: RaceInput): RaceProfile {
     weaponIds: uniq(parts.flatMap(p => p.weaponIds ?? [])),
     ...(free ? { freeAbilityBonuses: free } : {}),
     flexibleAbilityBonuses: !replaces && !!race?.flexibleAbilityBonuses,
-    ...(subrace?.featChoice ? { featChoice: 'any' as const } : race?.originFeatChoice ? { featChoice: 'origin' as const } : {}),
+    ...(subrace?.featChoice || race?.featChoice ? { featChoice: 'any' as const } : race?.originFeatChoice ? { featChoice: 'origin' as const } : {}),
     choices,
     effects,
     uses: parts.flatMap(p => p.uses ?? []).filter(u => (u.level ?? 1) <= level),
     ...((subrace?.naturalArmor ?? race?.naturalArmor) ? { naturalArmor: subrace?.naturalArmor ?? race?.naturalArmor } : {}),
+    naturalWeapons: parts.flatMap(p => p.naturalWeapons ?? []),
+    initiativeProficiency: parts.some(p => p.initiativeProficiency),
     hpPerLevel: (race?.hpPerLevel ?? 0) + (subrace?.hpPerLevel ?? 0),
   }
 }

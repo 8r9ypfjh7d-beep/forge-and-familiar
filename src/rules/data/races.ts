@@ -1,4 +1,5 @@
 import type { Race, RulesEdition, Subrace } from '../types'
+import { MOTM_RACES } from './books/races.motm'
 import { SETTING_RACES, SETTING_SUBRACES } from './books/races.settings'
 import { BOOK_SPECIES_2024 } from './books/species2024'
 import { SPECIES } from './srd52/species'
@@ -97,7 +98,7 @@ export const RACES: Race[] = [
 
 // Official races from other books (names and mechanics only; our own text lives in i18n explain files).
 // Each book group keeps its own file under books/; subraces with parentRaceId attach to that race.
-export const BOOK_RACES: Record<RulesEdition, Race[]> = { '2014': [...SETTING_RACES], '2024': [...BOOK_SPECIES_2024] }
+export const BOOK_RACES: Record<RulesEdition, Race[]> = { '2014': [...MOTM_RACES, ...SETTING_RACES], '2024': [...BOOK_SPECIES_2024] }
 export const BOOK_SUBRACES: Record<RulesEdition, Subrace[]> = { '2014': [...SETTING_SUBRACES], '2024': [] }
 
 /** Attach subraces to their race (by parentRaceId); unknown parents are dropped. */

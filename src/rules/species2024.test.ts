@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BOOK_SPECIES_2024, RACES, SPECIES, allRaces, createCharacter, derive, getAbilityScores, legacyRaces, raceById, type CharacterDraft } from './index'
+import { BOOK_RACES, BOOK_SPECIES_2024, RACES, SPECIES, allRaces, createCharacter, derive, getAbilityScores, legacyRaces, raceById, type CharacterDraft } from './index'
 
 // 2024 species from books outside the SRD, and 2014 races played under 2024 rules.
 const draft = (over: Partial<CharacterDraft> = {}): CharacterDraft => ({
@@ -51,7 +51,7 @@ describe('legacy races under 2024 rules', () => {
   it('offers every 2014 race without a 2024 version, with no racial ability bonuses', () => {
     const legacy = legacyRaces()
     const has2024 = new Set([...SPECIES, ...BOOK_SPECIES_2024].map(r => r.id))
-    expect(legacy.map(r => r.id)).toEqual(RACES.filter(r => !has2024.has(r.id)).map(r => r.id))
+    expect(legacy.map(r => r.id)).toEqual([...RACES, ...BOOK_RACES['2014']].filter(r => !has2024.has(r.id)).map(r => r.id))
     expect(legacy.map(r => r.id)).toEqual(expect.arrayContaining(['half-elf', 'half-orc']))
     for (const r of legacy) {
       expect(r.legacy).toBe(true)

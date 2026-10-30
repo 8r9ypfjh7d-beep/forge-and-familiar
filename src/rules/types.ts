@@ -68,6 +68,10 @@ export interface RaceRules {
   weapons?: WeaponCategory[]
   /** Specific weapon ids the race is trained with (Drow: rapier, shortsword, hand crossbow). */
   weaponIds?: string[]
+  /** Unarmed strikes with a body part (Tabaxi claws, Minotaur horns): an attack row with this die + STR. */
+  naturalWeapons?: { name: string; damage: string; type: string }[]
+  /** Add the proficiency bonus to initiative (Harengon Hare-Trigger). */
+  initiativeProficiency?: boolean
 }
 
 export interface Subrace extends RaceRules {
@@ -108,8 +112,10 @@ export interface Race extends RaceRules {
    * `freeAbilityBonuses` (one entry per +1, at most +2 to one), like 2024 background bonuses.
    */
   flexibleAbilityBonuses?: boolean
-  /** Number of +1 bonuses the player assigns freely (Half-Elf). */
-  freeAbilityBonuses?: { count: number; exclude: Ability[] }
+  /** Number of bonuses the player assigns freely (Half-Elf: two +1s); `value` per pick, default 1 (Custom Lineage: one +2). */
+  freeAbilityBonuses?: { count: number; exclude: Ability[]; value?: number }
+  /** One feat of the player's choice (any 2014 feat), saved as originFeatId (Custom Lineage). */
+  featChoice?: boolean
   skillProficiencies?: SkillId[]
   /** Number of skills of the player's choice (Half-Elf, 2024 Human and Elf). */
   freeSkillChoices?: number

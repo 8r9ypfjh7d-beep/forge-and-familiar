@@ -67,7 +67,8 @@ export function getFeats(c: FeatInput): Feat[] {
     ? [{ id: `bg:${background.id}`, name: `${background.name} (${background.feature})`, description: background.feature, effects: background.effects }]
     : []
   const fromAsi = [...fromBackground, ...activeImprovements(c).flatMap(i => byId(i.featId))]
-  if (edition !== '2024') return fromAsi
+  // 2014: a race's feat pick (Variant Human, Custom Lineage); the builder only sets originFeatId for those.
+  if (edition !== '2024') return [...byId(c.originFeatId), ...fromAsi]
   const bg = background?.feat
   return [
     ...byId(bg?.id, bg?.note),

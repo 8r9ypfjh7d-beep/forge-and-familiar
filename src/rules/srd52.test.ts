@@ -36,7 +36,7 @@ describe('2024 content', () => {
   it('has the nine SRD 5.2 species and keeps 2014 races separate', () => {
     expect(SPECIES.map(r => r.id).sort()).toEqual(['dragonborn', 'dwarf', 'elf', 'gnome', 'goliath', 'halfling', 'human', 'orc', 'tiefling'])
     expect(raceById('orc', '2024')).toBeDefined()
-    expect(raceById('orc')).toBeUndefined()
+    expect(raceById('orc')?.source).toBe('Monsters of the Multiverse')
     expect(raceById('half-elf', '2024')?.legacy).toBe(true)
   })
 
