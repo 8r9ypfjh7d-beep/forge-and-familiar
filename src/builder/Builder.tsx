@@ -4,6 +4,7 @@ import type { Character } from '../model/character'
 import { addSnapshots, takeSnapshot } from '../portability'
 import { BackstoryHook, RandomCharacter, randomDraft, randomHookKey } from '../random'
 import { createCharacter, rulesEdition, type CharacterDraft } from '../rules'
+import { followPlan } from '../planner/plan'
 import { getCharacter, saveCharacter } from '../storage'
 import type { MessageKey } from '../i18n'
 import { applyEdit, draftFrom, startingGearChanged } from './edit'
@@ -42,7 +43,11 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
   const [furthest, setFurthest] = useState(editing ? STEPS.length - 1 : 0)
   const [replaceGear, setReplaceGear] = useState(true)
   const [hookKey, setHookKey] = useState<string>()
-  const update = (patch: Partial<CharacterDraft>) => setDraft(d => ({ ...d, ...patch }))
+  // In Edit, levels gained take the picks saved in the build planner.
+  const update = (patch: Partial<CharacterDraft>) => setDraft(d => {
+    const next = { ...d, ...patch }
+    return editing && patch.classes ? followPlan(editing, d, next) : next
+  })
   const { t, term } = useI18n()
   const stepsRef = useRef<HTMLElement>(null)
   // On phones the step bar is one swipeable row: keep the current step in view.

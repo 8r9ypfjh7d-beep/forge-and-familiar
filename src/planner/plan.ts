@@ -3,8 +3,8 @@
 import type { Feature } from '../content/types'
 import type { Character, Improvement, PlannedLevel } from '../model/character'
 import {
-  ABILITIES, MAX_CHARACTER_LEVEL, addClassIssues, classById, derive, getAbilityScores, rulesEdition, totalLevel,
-  type DerivedStats,
+  ABILITIES, CUSTOM_SUBCLASS, MAX_CHARACTER_LEVEL, addClassIssues, blankSubclass, classById, derive, getAbilityScores, rulesEdition, totalLevel,
+  type CharacterDraft, type DerivedStats,
 } from '../rules'
 
 export type Need = 'subclass' | 'asi' | 'abilityCap'
@@ -101,7 +101,8 @@ export function planSteps(c: Character, plan?: PlannedLevel[]): PlanStep[] {
     const subclassDue = !!def && classLevel === def.subclassLevel
     const asiDue = !!def?.asiLevels.includes(classLevel)
     const needs: Need[] = []
-    if (subclassDue && !entry.subclassId) needs.push('subclass')
+    // A subclass kept from before (a level lowered in Edit) counts as picked.
+    if (subclassDue && !taken?.subclassId) needs.push('subclass')
     if (asiDue && !entry.featId && plusTotal(entry.abilities) !== 2) needs.push('asi')
     // Item effects (a belt) are left out: the 20 cap is on the scores themselves.
     const scores = getAbilityScores({ ...before, inventory: [] })
@@ -163,4 +164,58 @@ export function stepLibraryFeatures(all: Feature[], step: Pick<PlanStep, 'entry'
     // Once a subclass is planned its own features replace "Martial Archetype feature" / "Fighter Subclass" placeholders.
     !(step.subclassId && / (feature|Subclass)$/.test(f.name)),
   )
+}
+
+/** The plan's picks by class level: the subclass and the ASI or feat each class takes on its way to 20. */
+export function plannedPicks(c: Character, plan?: PlannedLevel[]): { subclasses: Map<string, string>; improvements: Improvement[] } {
+  const edition = rulesEdition(c)
+  const levels = new Map(c.classes.map(cl => [cl.classId, cl.level]))
+  const subclasses = new Map<string, string>()
+  const improvements: Improvement[] = []
+  for (const entry of routeFor(c, plan)) {
+    const def = classById(entry.classId, edition)
+    const level = (levels.get(entry.classId) ?? 0) + 1
+    levels.set(entry.classId, level)
+    if (!def) continue
+    if (level === def.subclassLevel && entry.subclassId) subclasses.set(entry.classId, entry.subclassId)
+    if (def.asiLevels.includes(level) && (entry.featId || plusTotal(entry.abilities) > 0)) {
+      improvements.push({ classId: entry.classId, level, ...(entry.featId ? { featId: entry.featId } : { abilities: entry.abilities }) })
+    }
+  }
+  return { subclasses, improvements }
+}
+
+/**
+ * Levelling up in Edit: class levels the draft just gained (compared to `before`) take the saved plan's picks.
+ * Only empty picks are filled, so the player's own choices always win; a planned custom subclass gets a blank form.
+ */
+export function followPlan(original: Character, before: CharacterDraft, draft: CharacterDraft): CharacterDraft {
+  if (!original.levelPlan?.length) return draft
+  const edition = rulesEdition(draft)
+  const { subclasses, improvements } = plannedPicks(original)
+  const was = (classId: string) => before.classes.find(cl => cl.classId === classId)?.level ?? 0
+  const gained = (classId: string, level: number) => {
+    const now = draft.classes.find(cl => cl.classId === classId)?.level ?? 0
+    return level > was(classId) && level <= now
+  }
+  let customSubclasses = draft.customSubclasses
+  const classes = draft.classes.map(cl => {
+    const planned = subclasses.get(cl.classId)
+    const def = classById(cl.classId, edition)
+    if (cl.subclassId || !planned || !def || !gained(cl.classId, def.subclassLevel)) return cl
+    if (planned === CUSTOM_SUBCLASS && !customSubclasses?.some(s => s.classId === cl.classId)) {
+      customSubclasses = [...(customSubclasses ?? []), blankSubclass(cl.classId)]
+    }
+    return { ...cl, subclassId: planned }
+  })
+  const taken = (i: Improvement) => draft.improvements?.some(x => x.classId === i.classId && x.level === i.level)
+  const added = improvements.filter(i => gained(i.classId, i.level) && !taken(i))
+  const changed = classes.some((cl, i) => cl !== draft.classes[i])
+  if (!changed && !added.length) return draft
+  return {
+    ...draft,
+    classes,
+    ...(customSubclasses !== draft.customSubclasses ? { customSubclasses } : {}),
+    ...(added.length ? { improvements: [...(draft.improvements ?? []), ...added] } : {}),
+  }
 }
