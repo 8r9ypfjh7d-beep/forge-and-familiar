@@ -3,6 +3,7 @@
 import type { Character } from '../model/character'
 import { entryItem } from './data/items'
 import { ALL_SKILLS } from './data/skills'
+import { classOptionEffects } from './classOptions'
 import { subclassEffects } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type BonusEffectKind, type ConditionId, type InventoryEntry, type ItemEffect, type MoveMode,
@@ -11,7 +12,7 @@ import {
 
 type EffectOf<K extends ItemEffect['kind']> = ItemEffect & { kind: K }
 
-type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses'>>
+type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions'>>
 
 /** An entry's effects work while it is equipped. */
 export const effectsActive = (e: InventoryEntry) => e.equipped
@@ -27,24 +28,26 @@ export function activeItemEffects(c: Owner): ActiveEffect[] {
   // A custom action's stat changes (Rage-like stances, a blessing) count while it is switched on.
   const actions = (c.customActions ?? []).flatMap(a => (a.active ? (a.stats ?? []).map(effect => ({ source: a.name, effect })) : []))
   // Subclass features that change the sheet (Thought Shield's psychic resistance, Gift of the Sea's swim speed).
-  return [...items, ...actions, ...subclassEffects(c)]
+  // Picked class options (invocations, fighting styles, infusions...) that change the sheet.
+  return [...items, ...actions, ...subclassEffects(c), ...classOptionEffects(c)]
 }
 
 /**
  * Each item's bonus of one kind; `unarmored` bonuses only count when `unarmored` is true.
- * `weapon` is the attack being made: bonuses marked melee-only or ranged-only skip the other kind.
+ * `armored` bonuses only count while wearing armor. `weapon` is the attack being made: bonuses marked melee-only or ranged-only skip the other kind.
  */
-export function itemBonuses(c: Owner, kind: BonusEffectKind, unarmored = true, weapon?: 'melee' | 'ranged'): { source: string; value: number }[] {
+export function itemBonuses(c: Owner, kind: BonusEffectKind, unarmored = true, weapon?: 'melee' | 'ranged', armored = false): { source: string; value: number }[] {
   return effectsOf(c, kind).flatMap(({ source, effect: f }) => {
     const b = f as Extract<ItemEffect, { kind: BonusEffectKind }>
     if (b.unarmored && !unarmored) return []
+    if (b.armored && !armored) return []
     if (b.only && weapon && b.only !== weapon) return []
     return [{ source, value: b.value }]
   })
 }
 
-export const itemBonus = (c: Owner, kind: BonusEffectKind, unarmored = true, weapon?: 'melee' | 'ranged') =>
-  itemBonuses(c, kind, unarmored, weapon).reduce((n, b) => n + b.value, 0)
+export const itemBonus = (c: Owner, kind: BonusEffectKind, unarmored = true, weapon?: 'melee' | 'ranged', armored = false) =>
+  itemBonuses(c, kind, unarmored, weapon, armored).reduce((n, b) => n + b.value, 0)
 
 /** Every active effect of one kind, with the item (or action) it came from. */
 export function effectsOf<K extends ItemEffect['kind']>(c: Owner, ...kinds: K[]): { source: string; effect: EffectOf<K> }[] {

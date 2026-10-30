@@ -17,6 +17,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `edition.ts` | `rulesEdition(c)` ('2014' or '2024') and `uses2024Spells(c)` |
 | `multiclass.ts` | Prerequisites, multiclass proficiencies, caster level breakdown, per-class spell DCs, multiclass warnings |
 | `subclass.ts` | `subclassOf(c, cl)` (official, homebrew or the character's custom subclass), `activeSubclasses`, `subclassFeatures`, `subclassEffects`, `subclassSpellNames` |
+| `classOptions.ts` | Shared registry of class option lists (invocations, pact boons, metamagic, maneuvers, fighting styles, infusions, and any other kind): `registerClassOptions(origin, list)`, `classOptions(kind, edition)`, `classOptionById(id, edition)`, `homebrewClassOptions`, `pickedClassOptions`, `classOptionEffects` |
 | `data/books/subclasses.ts` | Subclasses from official books outside the SRD (`BOOK_SUBCLASSES`, `BOOK_SUBCLASSES_2024`) for every class: names, levels and mechanics only; feature text is our own summary in `explain.books.*.ts` (warlock) and `explain.classes.*.ts` (the rest) |
 | `data/books/martial.ts`, `casters.ts` | Barbarian/fighter/monk/rogue and the caster classes' book subclasses (2014, 2024, and `*_REWRITTEN` ids that 2024 redid so they are not also offered as legacy) |
 | `data/books/helpers.ts` | Builders for the book data: source names, `f` (feature), `short`/`long` uses, `fx`, `resist`, `dark`, `move`, `fullSpells`/`halfSpells`/`spells2024`, `legacy` |
@@ -72,3 +73,11 @@ Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missi
 ## Stable API (used by the sheet and dice)
 
 `derive`, `getMaxHp`, `getHitDice`, `getResources`, `getSpellSlots`, `getArmorClass`, `getAttacks`, `getRollMode`, `autoFailsSave`, `createCharacter`, `freshState`, `getCasterLevel`, `getSpellcastingByClass`, `addClassIssues`, `meetsPrereq`. Field names on `DerivedStats` (`saves`, `skills`, `attacks`, `initiative`) are relied on by `src/dice`.
+
+## Class options
+
+Option lists a class or subclass picks from share one shape, `ClassOption` (`classOptions.ts`). Each feature thread registers its official list under its own origin (`'invocations'`, `'metamagic'`, `'subclass'`, `'artificer'`...); homebrew packs register under `'homebrew'`, listed last. Pickers list `classOptions(kind, edition)` and filter by `classIds`, `subclassIds` and `minLevel`; saved ids resolve through `classOptionById(id, edition)`, which prefers that edition's entry when 2014 and 2024 share an id.
+
+- Picks are saved in `Character.classOptions` (`{ kind, id, classId?, level?, choice? }`). 2014 and 2024 fighting styles are the exception: they stay in `featureChoices`, and the picker appends `classOptions('fightingStyle')` to the Fighting Style pool.
+- A picked option's `effects`, its `later` effects from their class level, and its `spells` (as `spell` effects, from their level) apply through `activeItemEffects`, labelled with the option name. `uses` (same shape as subclass feature uses, counted from the picking class's level) become a resource `opt:<optionId>`.
+- `cost` (+ `costPerSpellLevel`) is the points it spends; `repeatable` options may be picked more than once; `choiceKind` says what a pick's `choice` names.

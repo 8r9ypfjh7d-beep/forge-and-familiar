@@ -140,7 +140,7 @@ function armorClass(c: Character): StatMath {
   if (shield) lines.push({ label: shield.name, value: shield.baseAc })
   const magic = c.inventory.filter(e => e.equipped && e.magicBonus && entryItem(e)?.kind === 'armor').reduce((n, e) => n + (e.magicBonus ?? 0), 0)
   if (magic) lines.push({ label: 'Magic armor and shield', value: magic })
-  lines.push(...itemLines(c, 'ac', !armor && !shield))
+  lines.push(...itemLines(c, 'ac', !armor && !shield, undefined, !!armor))
   return make('Armor class', lines, { notes })
 }
 

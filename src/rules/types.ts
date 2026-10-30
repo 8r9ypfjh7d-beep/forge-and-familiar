@@ -315,8 +315,11 @@ export type Recharge = 'short' | 'long' | 'dawn' | 'none'
 export type AdvantageOn = `skill:${SkillId}` | `save:${Ability}` | 'saves' | 'checks' | 'initiative' | 'attacks' | 'concentration'
 
 export type ItemEffect =
-  /** `unarmored`: only without armor and shield (Bracers of Defense). `only`: just melee or just ranged weapons (Bracers of Archery). */
-  | { kind: BonusEffectKind; value: number; unarmored?: boolean; only?: 'melee' | 'ranged' }
+  /**
+   * `unarmored`: only without armor and shield (Bracers of Defense). `armored`: only while wearing armor (Defense style).
+   * `only`: just melee or just ranged weapons (Bracers of Archery).
+   */
+  | { kind: BonusEffectKind; value: number; unarmored?: boolean; armored?: boolean; only?: 'melee' | 'ranged' }
   /** Score becomes this unless already higher (Gauntlets of Ogre Power: STR 19). */
   | { kind: 'abilitySet'; ability: Ability; value: number }
   /** Adds to the score, up to `max` (Ioun Stone of Agility: DEX +2, max 20). */

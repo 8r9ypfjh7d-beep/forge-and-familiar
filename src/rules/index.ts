@@ -17,6 +17,7 @@ export { BACKGROUNDS, ALIGNMENTS, CUSTOM_BACKGROUND, backgroundById, backgrounds
 export { BACKGROUNDS_2024 } from './data/srd52/backgrounds'
 export { CUSTOM_SUBCLASS, SUBCLASSES, registerHomebrewSubclasses, subclassById, subclassesFor, type SubclassDef } from './data/subclasses'
 export { BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024 } from './data/books/subclasses'
+export * from './classOptions'
 export { activeSubclasses, blankSubclass, subclassFeatures, subclassOf, subclassSpellNames } from './subclass'
 export { FEATS, allFeats, featById, registerHomebrewFeats } from './data/feats'
 export { FEATS_2024 } from './data/srd52/feats'

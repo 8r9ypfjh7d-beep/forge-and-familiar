@@ -1,6 +1,7 @@
 import type { Character, HitDie } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
 import { classChoices, featBonus, featEffects, getFeats, getLanguages, getTools } from './choices'
+import { classOptionResourceId, pickedClassOptions } from './classOptions'
 import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { entryItem } from './data/items'
@@ -14,7 +15,7 @@ import { getCasterLevel, getProficiencies, multiclassWarnings } from './multicla
 import { slug, subclassFeatures, subclassOf } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type ClassDef, type ConditionId, type InventoryEntry, type Item, type MoveMode, type Recharge,
-  type Sense, type SkillId,
+  type Sense, type SkillId, type SubclassFeature,
 } from './types'
 
 type Weapon = Extract<Item, { kind: 'weapon' }>
@@ -117,6 +118,13 @@ export function getItemCharges(c: Pick<Character, 'inventory'>): ResourceInfo[] 
   })
 }
 
+/** How many uses a feature has at a class level. */
+function usesMax(u: NonNullable<SubclassFeature['uses']>, level: number, prof: number, mods: Abilities): number {
+  const count = u.steps ? u.steps.reduce((n, [from, v]) => (level >= from ? v : n), 0) : u.count
+  const base = typeof count === 'number' ? count : count === 'pb' ? prof : count === 'level' ? level : mods[count]
+  return Math.max(u.min ?? 1, base * (u.mult ?? 1) + (u.add ?? 0))
+}
+
 export function getResources(c: Character): ResourceInfo[] {
   const mods = getAbilityMods(getAbilityScores(c))
   const out: ResourceInfo[] = []
@@ -136,10 +144,15 @@ export function getResources(c: Character): ResourceInfo[] {
   for (const { level, subclass, feature } of subclassFeatures(c)) {
     const u = feature.uses
     if (!u) continue
-    const count = u.steps ? u.steps.reduce((n, [from, v]) => (level >= from ? v : n), 0) : u.count
-    const base = typeof count === 'number' ? count : count === 'pb' ? prof : count === 'level' ? level : mods[count]
-    const max = Math.max(u.min ?? 1, base * (u.mult ?? 1) + (u.add ?? 0))
+    const max = usesMax(u, level, prof, mods)
     if (max > 0) out.push({ id: `sub:${subclass.id}:${slug(feature.name)}`, label: feature.name, max, recharge: u.recharge })
+  }
+  // Picked class options with uses (a homebrew invocation once per long rest), counted from the picking class's level.
+  for (const { option, level } of pickedClassOptions(c)) {
+    const u = option.uses
+    if (!u || out.some(o => o.id === classOptionResourceId(option))) continue
+    const max = usesMax(u, level, prof, mods)
+    if (max > 0) out.push({ id: classOptionResourceId(option), label: option.name, max, recharge: u.recharge })
   }
   return [...out, ...getItemCharges(c)]
 }
@@ -227,7 +240,7 @@ export function getArmorClass(c: Character): { value: number; source: string } {
     value += shield.baseAc
     source += ' + Shield'
   }
-  const magic = equippedArmor(c).bonus + itemBonus(c, 'ac', !armor && !shield)
+  const magic = equippedArmor(c).bonus + itemBonus(c, 'ac', !armor && !shield, undefined, !!armor)
   if (magic) {
     value += magic
     source += ` + ${magic} magic`
