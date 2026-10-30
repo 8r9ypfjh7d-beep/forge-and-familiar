@@ -287,3 +287,11 @@ form.inline input { width: 84px; }
 .use-out > .glass-btn { justify-self: start; }
 .pool-form { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-2); border-radius: var(--r-md); background: var(--glass-thin); border: 1px solid var(--glass-hairline); }
 .item-spells .track-count { justify-self: end; }
+
+/* The DM looking at a player's sheet: a standing notice, which calls out after a tap that would have changed something. */
+.ff-sheet .view-only-bar {
+  margin: 0 0 var(--sp-4); padding: var(--sp-2) var(--sp-3); border-radius: 12px;
+  background: color-mix(in srgb, var(--s-accent) 12%, transparent); border: 1px solid var(--glass-hairline);
+  color: var(--s-muted); font-size: .9rem; transition: background .2s, color .2s;
+}
+.ff-sheet .view-only-bar.noticed { background: color-mix(in srgb, var(--s-accent) 28%, transparent); color: var(--s-ink); font-weight: 600; }

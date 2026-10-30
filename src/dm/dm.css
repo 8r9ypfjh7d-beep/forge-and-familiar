@@ -235,3 +235,6 @@
 @media print {
   .ff-sheet.ff-dm .card, .ff-dm .cs-tablist { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+.dm-sheets { margin-block-start: var(--sp-4); padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
+.dm-sheet-list { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); }
+.dm-sheet-list li { display: flex; align-items: center; gap: var(--sp-2); }

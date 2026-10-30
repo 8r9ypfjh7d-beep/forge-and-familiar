@@ -8,6 +8,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 |------|---------|
 | `mode.ts` | `sheetLayout(mode, { dying })` (pure section order), `useSheetMode` (per-character choice) |
 | `mode.test.ts` | Layout tests |
+| `WatchSheet.tsx` | A player's sheet opened by the DM or admin (`#/watch/<id>`): `loadWatched` takes the newer of the device copy and the cloud party copy, re-reads on local and realtime changes, and renders `Sheet` with `viewOnly` (no Edit, Level up or history; a tap that would change something shows "View only: only <player> can change this sheet") |
 | `components/Story.tsx` | `Notes` |
 | `uses.ts` | Pure: `spendResource` (one use of a feature: spent, its effect started, healing), `drinkPotion` |
 | `components/Effects.tsx` | `EffectRows` (Effects switches with running spells and features: on casts a known spell like Cast, off ends a running effect, On me chip), `EffectsCard` (story mode), `toggleEffect`, `useSpells` |

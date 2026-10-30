@@ -9,7 +9,7 @@ import { SessionScheduler } from '../schedule'
 import { vitals } from '../sheet/engine'
 import { getCharacter, listCharacters, listProfiles, onCharactersChanged } from '../storage'
 import { fetchAccountNames, fetchPartyCharacters, watchPartyCharacters } from './cloud'
-import { markPicked } from './active'
+import { canWatchSheets, markPicked } from './active'
 import { CampaignManage } from './CampaignsHome'
 import { formatCode } from './code'
 import { PartyStash } from './PartyStash'
@@ -21,9 +21,11 @@ import './party.css'
 
 /** Parties the player is in, plus create and join. Opens one party's read-only table view.
  *  The campaigns home opens it on one party (openId) or straight on start/join (startWith). */
-export function PartyView({ userId, onOpenCharacter, openId: initialOpen, startWith, onRoute }: {
+export function PartyView({ userId, onOpenCharacter, onWatchCharacter, openId: initialOpen, startWith, onRoute }: {
   userId: string
   onOpenCharacter: (id: string) => void
+  /** Opens another member's sheet view only (the DM and the admin). */
+  onWatchCharacter?: (id: string) => void
   openId?: string
   startWith?: 'start' | 'join'
   /** Puts the open party in the URL (#/party/<id>), so refresh and back keep it. `replace` for a just-made party. */
@@ -50,7 +52,7 @@ export function PartyView({ userId, onOpenCharacter, openId: initialOpen, startW
 
   if (parties === null) return null
   const open = parties.find(p => p.id === openId)
-  if (open) return <PartyTable party={open} userId={userId} onBack={() => setOpenId(null)} onOpenCharacter={onOpenCharacter} />
+  if (open) return <PartyTable party={open} userId={userId} onBack={() => setOpenId(null)} onOpenCharacter={onOpenCharacter} onWatchCharacter={onWatchCharacter} />
 
   return (
     <section className="ff-party">
@@ -176,11 +178,12 @@ function JoinForm({ userId, onJoined }: { userId: string; onJoined: (partyId: st
   )
 }
 
-function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
+function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCharacter }: {
   party: Party
   userId: string
   onBack: () => void
   onOpenCharacter: (id: string) => void
+  onWatchCharacter?: (id: string) => void
 }) {
   const [party, setParty] = useState(initial)
   const [profiles, setProfiles] = useState<UserProfile[]>([])
@@ -216,6 +219,13 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
 
   const me = party.members.find(m => m.userId === userId)
   const nameOf = (id: string) => profiles.find(p => p.id === id)?.displayName ?? accountNames[id] ?? t('party.unknownPlayer')
+  // The DM (and the admin) open every member's sheet, view only; a player opens only their own.
+  const watcher = !!onWatchCharacter && canWatchSheets(party, userId)
+  const openFor = (m: PartyMember) => {
+    if (!m.characterId) return undefined
+    if (m.userId === userId) return () => onOpenCharacter(m.characterId!)
+    return watcher ? () => onWatchCharacter!(m.characterId!) : undefined
+  }
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(formatCode(party.code))
@@ -260,7 +270,8 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
             playerName={nameOf(m.userId)}
             isDm={m.userId === party.dmId}
             character={m.characterId ? characters[m.characterId] : undefined}
-            onOpen={m.userId === userId && m.characterId ? () => onOpenCharacter(m.characterId!) : undefined}
+            mine={m.userId === userId}
+            onOpen={openFor(m)}
           />
         ))}
       </div>
@@ -276,11 +287,12 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
 
 const VITALS_LABEL = { dying: 'party.vital.dying', stable: 'party.vital.stable', dead: 'party.vital.dead' } as const
 
-function MemberCard({ member, playerName, isDm, character, onOpen }: {
+function MemberCard({ member, playerName, isDm, character, mine, onOpen }: {
   member: PartyMember
   playerName: string
   isDm: boolean
   character?: Character
+  mine: boolean
   onOpen?: () => void
 }) {
   const { t, term, classLine } = useI18n()
@@ -334,7 +346,7 @@ function MemberCard({ member, playerName, isDm, character, onOpen }: {
         </ul>
       )}
 
-      {onOpen && <button className="glass-btn small" onClick={onOpen}>{t('party.openMine')}</button>}
+      {onOpen && <button className="glass-btn small" onClick={onOpen}>{mine ? t('party.openMine') : t('party.openTheirs', { name: playerName })}</button>}
     </article>
   )
 }

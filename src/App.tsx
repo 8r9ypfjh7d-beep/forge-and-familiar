@@ -24,6 +24,7 @@ import { useI18n } from './i18n'
 import type { MessageKey } from './i18n/locales/en'
 import { AppNav, canOpen, useHashView } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
+import { WatchSheet } from './sheet/WatchSheet'
 import { StarterPicker } from './starters'
 import './list/list.css'
 import { DuplicatePrompt, SyncBadge, useCloudSync } from './sync'
@@ -273,6 +274,9 @@ export default function App() {
             }}
           />
         )}
+        {view.kind === 'watch' && isDm && (
+          <WatchSheet key={view.id} characterId={view.id} parties={playing.parties ?? undefined} onBack={() => setView(partyDm ? { kind: 'dm' } : { kind: 'party' })} />
+        )}
         {view.kind === 'levels' && (
           <LevelHistory
             characterId={view.id}
@@ -287,7 +291,7 @@ export default function App() {
         {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView({ kind: 'list' })} />}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
-        {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
+        {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} onOpenSheet={id => setView({ kind: 'watch', id })} />}
         {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
         {view.kind === 'admin' && admin && (
@@ -302,7 +306,7 @@ export default function App() {
         {view.kind === 'party' && (
           <PartyView key={active.id} userId={active.id} openId={view.partyId} startWith={view.startWith}
             onRoute={(partyId, replace) => setView(partyId ? { kind: 'party', partyId } : { kind: 'party' }, replace)}
-            onOpenCharacter={id => setView({ kind: 'sheet', id })} />
+            onOpenCharacter={id => setView({ kind: 'sheet', id })} onWatchCharacter={isDm ? id => setView({ kind: 'watch', id }) : undefined} />
         )}
       </main>
       <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}

@@ -48,6 +48,9 @@ export const isPartyDm = (party: Party | undefined, userId: string) => !!party &
 /** Whether this player may end the campaign for everyone: its DM, or the admin. */
 export const canEndParty = (party: Party, userId: string) => isPartyDm(party, userId) || isAdmin(userId)
 
+/** Whether this player may open every member's full sheet, view only: the campaign's DM, or the admin. */
+export const canWatchSheets = (party: Party | undefined, userId: string) => isPartyDm(party, userId) || isAdmin(userId)
+
 /** Where tapping a campaign on the home screen leads: its DM runs the game, a player opens the sheet they
  *  bring when it is on this device, else the party page to pick (or find) their character. */
 export type CampaignTarget = { kind: 'dm' } | { kind: 'sheet'; id: string } | { kind: 'party'; partyId: string }

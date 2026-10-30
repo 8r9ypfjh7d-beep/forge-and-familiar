@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeParty, campaignTarget, canEndParty, isPartyDm, NO_PARTY } from './active'
+import { activeParty, campaignTarget, canEndParty, canWatchSheets, isPartyDm, NO_PARTY } from './active'
 import type { Party } from './types'
 
 const party = (id: string, dmId: string): Party => ({
@@ -22,6 +22,13 @@ describe('party in play', () => {
     expect(isPartyDm(garden, 'acct-noa')).toBe(true)
     expect(isPartyDm(side, 'acct-noa')).toBe(false)
     expect(isPartyDm(undefined, 'acct-noa')).toBe(false)
+  })
+
+  it('lets only the DM and the admin open every member\'s sheet', () => {
+    expect(canWatchSheets(garden, 'acct-noa')).toBe(true)
+    expect(canWatchSheets(side, 'acct-noa')).toBe(false)
+    expect(canWatchSheets(garden, 'acct-ziv')).toBe(true)
+    expect(canWatchSheets(undefined, 'acct-noa')).toBe(false)
   })
 })
 
