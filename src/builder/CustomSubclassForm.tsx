@@ -16,7 +16,7 @@ type UsesKind = 'none' | 'fixed' | 'pb' | 'level' | Ability
 const usesKind = (f: SubclassFeature): UsesKind => (!f.uses ? 'none' : typeof f.uses.count === 'number' ? 'fixed' : f.uses.count)
 
 export function CustomSubclassForm({ draft, classId, update }: { draft: CharacterDraft; classId: string; update: (patch: Partial<CharacterDraft>) => void }) {
-  const { t } = useI18n()
+  const { t, term } = useI18n()
   const def = classById(classId, rulesEdition(draft))
   const sub = draft.customSubclasses?.find(s => s.classId === classId) ?? blankSubclass(classId)
   const set = (patch: Partial<SubclassData>) =>
