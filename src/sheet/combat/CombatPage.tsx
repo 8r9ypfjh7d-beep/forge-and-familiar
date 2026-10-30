@@ -687,7 +687,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
       <h2 id="cs-features-title">{t('cs.classFeatures')}</h2>
       <ul className="cs-rows">
         {d.features.map(f => (
-          <Described key={`${f.className}-${f.level}-${f.name}`} name={term('feature', f.name, f.name)} meta={t('cs.featureMeta', { cls: f.className, level: f.level })}
+          <Described key={`${f.className}-${f.level}-${f.name}`} name={term('feature', f.name, f.name)} meta={t('cs.featureMeta', { cls: f.className, level: f.level }) + (f.detail ? ` · ${term('detail', f.detail, f.detail)}` : '')}
             text={featureText(f)} />
         ))}
       </ul>

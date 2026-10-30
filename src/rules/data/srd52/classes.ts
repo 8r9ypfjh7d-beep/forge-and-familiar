@@ -1,4 +1,5 @@
-import type { ClassChoice, ClassDef } from '../../types'
+import type { Ability, ClassChoice, ClassDef, ClassFeature, ItemEffect } from '../../types'
+import { ALL_SAVES, DANGER_SENSE } from '../classFeatures2014'
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from '../proficiencies'
 import { ALL_SKILLS } from '../skills'
 
@@ -10,6 +11,9 @@ const scale = (table: [number, number][]) => (level: number) => {
   return v
 }
 const f = (level: number, ...names: string[]) => names.map(name => ({ level, name }))
+/** A feature that changes the sheet (shared with 2014 where the rule is the same). */
+const fx = (level: number, name: string, ...effects: ItemEffect[]): ClassFeature => ({ level, name, effects })
+const plus4 = (...abilities: Ability[]): ItemEffect[] => abilities.map(ability => ({ kind: 'ability', ability, value: 4, max: 25 }))
 const kit = (items: string[], gold: number, onlyGold: number) => [{ options: [{ items, gold }, { items: [], gold: onlyGold }] }]
 const ASI = [4, 8, 12, 16, 19]
 
@@ -31,9 +35,9 @@ export const CLASSES_2024: ClassDef[] = [
     startingEquipment: [], equipmentChoices: kit(['greataxe', 'handaxe', 'handaxe', 'handaxe', 'handaxe', 'explorers-pack'], 15, 75),
     subclassLevel: 3, subclassTitle: 'Primal Path', asiLevels: ASI, weaponMastery: [[1, 2], [4, 3], [10, 4]],
     features: [
-      ...f(1, 'Rage', 'Unarmored Defense', 'Weapon Mastery'), ...f(2, 'Danger Sense', 'Reckless Attack'), ...f(3, 'Primal Knowledge'),
-      ...f(5, 'Extra Attack', 'Fast Movement'), ...f(7, 'Feral Instinct', 'Instinctive Pounce'), ...f(9, 'Brutal Strike'), ...f(11, 'Relentless Rage'),
-      ...f(13, 'Improved Brutal Strike'), ...f(15, 'Persistent Rage'), ...f(18, 'Indomitable Might'), ...f(19, 'Epic Boon'), ...f(20, 'Primal Champion'),
+      ...f(1, 'Rage', 'Unarmored Defense', 'Weapon Mastery'), fx(2, 'Danger Sense', DANGER_SENSE), ...f(2, 'Reckless Attack'), ...f(3, 'Primal Knowledge'),
+      ...f(5, 'Extra Attack', 'Fast Movement'), fx(7, 'Feral Instinct', { kind: 'advantage', on: 'initiative' }), ...f(7, 'Instinctive Pounce'), ...f(9, 'Brutal Strike'), ...f(11, 'Relentless Rage'),
+      ...f(13, 'Improved Brutal Strike'), ...f(15, 'Persistent Rage'), ...f(18, 'Indomitable Might'), ...f(19, 'Epic Boon'), fx(20, 'Primal Champion', ...plus4('str', 'con')),
     ],
   },
   {
@@ -128,8 +132,8 @@ export const CLASSES_2024: ClassDef[] = [
     features: [
       ...f(1, 'Martial Arts', 'Unarmored Defense'), ...f(2, "Monk's Focus", 'Unarmored Movement', 'Uncanny Metabolism'), ...f(3, 'Deflect Attacks'),
       ...f(4, 'Slow Fall'), ...f(5, 'Extra Attack', 'Stunning Strike'), ...f(6, 'Empowered Strikes'), ...f(7, 'Evasion'), ...f(9, 'Acrobatic Movement'),
-      ...f(10, 'Heightened Focus', 'Self-Restoration'), ...f(13, 'Deflect Energy'), ...f(14, 'Disciplined Survivor'), ...f(15, 'Perfect Focus'),
-      ...f(18, 'Superior Defense'), ...f(19, 'Epic Boon'), ...f(20, 'Body and Mind'),
+      ...f(10, 'Heightened Focus', 'Self-Restoration'), ...f(13, 'Deflect Energy'), fx(14, 'Disciplined Survivor', ...ALL_SAVES), ...f(15, 'Perfect Focus'),
+      ...f(18, 'Superior Defense'), ...f(19, 'Epic Boon'), fx(20, 'Body and Mind', ...plus4('dex', 'wis')),
     ],
   },
   {
@@ -145,7 +149,7 @@ export const CLASSES_2024: ClassDef[] = [
     choices: [fightingStyle(2, { id: 'blessed-warrior', name: 'Blessed Warrior', detail: 'Two cleric cantrips that count as paladin spells.' })],
     features: [
       ...f(1, 'Lay On Hands', 'Spellcasting', 'Weapon Mastery'), ...f(2, 'Fighting Style', "Paladin's Smite"), ...f(3, 'Channel Divinity'),
-      ...f(5, 'Extra Attack', 'Faithful Steed'), ...f(6, 'Aura of Protection'), ...f(9, 'Abjure Foes'), ...f(10, 'Aura of Courage'),
+      ...f(5, 'Extra Attack', 'Faithful Steed'), ...f(6, 'Aura of Protection'), ...f(9, 'Abjure Foes'), fx(10, 'Aura of Courage', { kind: 'conditionImmunity', condition: 'frightened' }),
       ...f(11, 'Radiant Strikes'), ...f(14, 'Restoring Touch'), ...f(18, 'Aura Expansion'), ...f(19, 'Epic Boon'),
     ],
   },
@@ -160,7 +164,7 @@ export const CLASSES_2024: ClassDef[] = [
     features: [
       ...f(1, 'Favored Enemy', 'Spellcasting', 'Weapon Mastery'), ...f(2, 'Deft Explorer', 'Fighting Style'), ...f(5, 'Extra Attack'), ...f(6, 'Roving'),
       ...f(9, 'Expertise'), ...f(10, 'Tireless'), ...f(13, 'Relentless Hunter'), ...f(14, "Nature's Veil"), ...f(17, 'Precise Hunter'),
-      ...f(18, 'Feral Senses'), ...f(19, 'Epic Boon'), ...f(20, 'Foe Slayer'),
+      fx(18, 'Feral Senses', { kind: 'sense', sense: 'blindsight', value: 30 }), ...f(19, 'Epic Boon'), ...f(20, 'Foe Slayer'),
     ],
   },
   {
@@ -175,7 +179,7 @@ export const CLASSES_2024: ClassDef[] = [
     features: [
       ...f(1, 'Expertise', 'Sneak Attack', "Thieves' Cant", 'Weapon Mastery'), ...f(2, 'Cunning Action'), ...f(3, 'Steady Aim'),
       ...f(5, 'Cunning Strike', 'Uncanny Dodge'), ...f(7, 'Evasion', 'Reliable Talent'), ...f(11, 'Improved Cunning Strike'), ...f(14, 'Devious Strikes'),
-      ...f(15, 'Slippery Mind'), ...f(18, 'Elusive'), ...f(19, 'Epic Boon'), ...f(20, 'Stroke of Luck'),
+      fx(15, 'Slippery Mind', { kind: 'saveProficiency', ability: 'wis' }, { kind: 'saveProficiency', ability: 'cha' }), ...f(18, 'Elusive'), ...f(19, 'Epic Boon'), ...f(20, 'Stroke of Luck'),
     ],
   },
   {
