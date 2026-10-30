@@ -37,6 +37,15 @@
 }
 .cs-stats dt { font-size: .7rem; font-weight: 600; letter-spacing: .02em; color: var(--s-muted); text-align: center; overflow-wrap: anywhere; }
 .cs-stats dd { margin: 0; font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; line-height: 1; min-block-size: 40px; display: grid; place-items: center; }
+/* Perks from items and effects: fly speed, darkvision, resistances, advantages */
+.cs-perks { grid-column: 1 / -1; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.cs-perks li {
+  padding-block: 4px; padding-inline: 10px; border-radius: var(--r-pill); font-size: .8rem; font-weight: 600;
+  background: var(--glass-tint); color: var(--s-accent); border: 1px solid color-mix(in srgb, var(--s-accent) 22%, transparent);
+}
+.cs-adv { font-size: .62rem; font-weight: 700; letter-spacing: .03em; color: var(--s-accent); margin-inline-start: 6px; }
+.cs-roll .cs-adv { position: absolute; inset-block-start: 2px; inset-inline-end: 3px; margin: 0; font-size: .55rem; color: var(--s-accent); }
+:root[data-contrast="high"] .cs-perks li { border-width: 2px; }
 .cs-hero-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .cs-hero-actions .btn { flex: 1 1 120px; }
 .cs-init { font-size: 1rem; }

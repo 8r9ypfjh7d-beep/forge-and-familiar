@@ -257,17 +257,48 @@ export interface InventoryEntry {
   effects?: ItemEffect[]
 }
 
-/** A bonus an item gives while worn: AC, saves, ability checks, spell attack and DC, walking speed. */
-/** `attack` and `damage` apply to weapon attacks (and the unarmed strike). */
-export type BonusEffectKind = 'ac' | 'saves' | 'checks' | 'spellAttack' | 'spellDc' | 'speed' | 'attack' | 'damage' | 'initiative'
+/** A flat bonus an item gives while worn. `attack` and `damage` apply to weapon attacks (and the unarmed strike). */
+export type BonusEffectKind =
+  | 'ac' | 'saves' | 'checks' | 'spellAttack' | 'spellDc' | 'speed' | 'attack' | 'damage' | 'initiative'
+  | 'hp' | 'passivePerception'
+
+export type MoveMode = 'fly' | 'swim' | 'climb' | 'burrow'
+export type Sense = 'darkvision' | 'blindsight' | 'tremorsense' | 'truesight'
+export type Recharge = 'short' | 'long' | 'dawn' | 'none'
+
+/** What an advantage effect covers: one skill, one save, every save or check, initiative, weapon attacks, concentration saves. */
+export type AdvantageOn = `skill:${SkillId}` | `save:${Ability}` | 'saves' | 'checks' | 'initiative' | 'attacks' | 'concentration'
 
 export type ItemEffect =
-  /** `unarmored`: only without armor and shield (Bracers of Defense). */
-  | { kind: BonusEffectKind; value: number; unarmored?: boolean }
+  /** `unarmored`: only without armor and shield (Bracers of Defense). `only`: just melee or just ranged weapons (Bracers of Archery). */
+  | { kind: BonusEffectKind; value: number; unarmored?: boolean; only?: 'melee' | 'ranged' }
   /** Score becomes this unless already higher (Gauntlets of Ogre Power: STR 19). */
   | { kind: 'abilitySet'; ability: Ability; value: number }
   /** Adds to the score, up to `max` (Ioun Stone of Agility: DEX +2, max 20). */
   | { kind: 'ability'; ability: Ability; value: number; max?: number }
+  /** Bonus to one saving throw or one skill. */
+  | { kind: 'save'; ability: Ability; value: number }
+  | { kind: 'skill'; skill: SkillId; value: number }
+  /** Proficiency in a save or skill; `expertise` doubles the skill's proficiency bonus. */
+  | { kind: 'saveProficiency'; ability: Ability }
+  | { kind: 'skillProficiency'; skill: SkillId; expertise?: boolean }
+  /** Advantage. With `when` (e.g. "against spells") it is situational: shown, not rolled automatically. */
+  | { kind: 'advantage'; on: AdvantageOn; when?: string }
+  /** Half damage (resistance) or none (immunity) from a damage type. */
+  | { kind: 'resistance' | 'immunity'; damage: string }
+  | { kind: 'conditionImmunity'; condition: ConditionId }
+  /** A flying, swimming, climbing or burrowing speed; 0 means equal to your walking speed (Winged Boots). */
+  | { kind: 'moveSpeed'; mode: MoveMode; value: number }
+  /** A sense with its range in feet (Goggles of Night: darkvision 60). */
+  | { kind: 'sense'; sense: Sense; value: number }
+  /** Extra spell slots of one level, back on a long rest. */
+  | { kind: 'spellSlot'; level: number; value: number }
+  /** Extra warlock pact slots, back on a short rest. */
+  | { kind: 'pactSlot'; value: number }
+  /** Charges the item spends, tracked on the sheet's Resources. `regain`: dice regained at dawn, blank for all. */
+  | { kind: 'charges'; value: number; recharge: Recharge; regain?: string }
+  /** A spell the item lets you cast, with how (e.g. "1 charge", "once a day"). */
+  | { kind: 'spell'; spell: string; note?: string }
 
 export type ConditionId =
   | 'blinded' | 'charmed' | 'deafened' | 'frightened' | 'grappled'

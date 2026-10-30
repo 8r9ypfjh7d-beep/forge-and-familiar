@@ -55,6 +55,17 @@ const CASES: [string, Character][] = [
     ]
     return c
   })()],
+  ['items with save, skill, HP and ranged-only effects', (() => {
+    const c = make({ classes: [{ classId: 'ranger', level: 5 }], baseAbilities: { str: 12, dex: 16, con: 14, int: 10, wis: 13, cha: 8 } }, ['longbow', 'shortsword'])
+    c.inventory.push(
+      { uid: 'x', itemId: 'bracers', qty: 1, equipped: true, effects: [{ kind: 'damage', value: 2, only: 'ranged' }, { kind: 'attack', value: 1, only: 'melee' }] },
+      { uid: 'y', itemId: 'amulet', qty: 1, equipped: true, effects: [
+        { kind: 'save', ability: 'wis', value: 2 }, { kind: 'saveProficiency', ability: 'cha' }, { kind: 'skill', skill: 'stealth', value: 3 },
+        { kind: 'skillProficiency', skill: 'arcana', expertise: true }, { kind: 'hp', value: 10 }, { kind: 'passivePerception', value: 5 },
+      ] },
+    )
+    return c
+  })()],
 ]
 
 function keysFor(c: Character): StatKey[] {

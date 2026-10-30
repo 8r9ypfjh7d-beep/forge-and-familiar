@@ -2,6 +2,7 @@
 import { addItem } from '../inventory/inventory'
 import type { Character, CustomAction } from '../model/character'
 import type { Ability, ItemEffect } from '../rules/types'
+import { sanitizeEffect } from '../rules/itemEffects'
 import type { DmRequest, RequestKind, RequestStatus } from './types'
 
 export interface RequestInput {
@@ -199,8 +200,6 @@ export function encodeShared(type: Shared['type'], r: DmRequest): string {
 }
 
 const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
-const EFFECT_KINDS = ['ac', 'saves', 'checks', 'spellAttack', 'spellDc', 'speed', 'attack', 'damage', 'initiative', 'abilitySet', 'ability']
-const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(-99, Math.min(99, Math.round(v))) : 0)
 
 function readMechanics(r: Record<string, unknown>): Mechanics {
   const roll = r.roll as Record<string, unknown> | undefined
@@ -216,12 +215,7 @@ function readMechanics(r: Record<string, unknown>): Mechanics {
       type: str(roll.type, 30),
     } : undefined,
     extraDamage: extra && typeof extra === 'object' ? { damage: str(extra.damage, 40), type: str(extra.type, 30) } : undefined,
-    stats: stats.filter(f => f && EFFECT_KINDS.includes(f.kind as string)).map(f => {
-      const kind = f.kind as ItemEffect['kind']
-      if (kind === 'abilitySet') return { kind, ability: ability(f.ability) ?? 'str', value: num(f.value) }
-      if (kind === 'ability') return { kind, ability: ability(f.ability) ?? 'str', value: num(f.value), ...(typeof f.max === 'number' ? { max: num(f.max) } : {}) }
-      return { kind, value: num(f.value), ...(f.unarmored === true ? { unarmored: true } : {}) }
-    }),
+    stats: stats.flatMap(f => sanitizeEffect(f) ?? []),
   })
 }
 

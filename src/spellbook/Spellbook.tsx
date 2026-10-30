@@ -7,7 +7,7 @@ import { removeEntry, type SpellEntry } from '../quickcast'
 import { derive, formatMod } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import { SearchField } from '../rulesqa/SearchField'
-import { SpellSlots, hasSlots } from '../sheet/components/SpellSlots'
+import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlots'
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, sourceFor, spellAccess, type SpellAccess } from './access'
 import { addSpell, isPinned, pinnedSpells, removeSpell, setEdition, spellsOf, toggleSpellPin } from './spellbook'
@@ -47,7 +47,8 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
   const current = access.find(a => a.classId === classId) ?? access[0]
 
   // Non-casters (and casters below their first spell level) get no card at all.
-  if (lib && lib !== 'error' && access.length === 0) return null
+  // Items can still give them slots or spells.
+  if (lib && lib !== 'error' && access.length === 0 && !hasSlots(character) && !itemSpellsOf(character).length) return null
 
   return (
     <section className="card spellbook" aria-labelledby="spells-title">
@@ -112,7 +113,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
   const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities) : []
   const slots = hasSlots(character)
   const noSpells = !!lib && lib !== 'error' && access.length === 0
-  if (noSpells && !slots) return null
+  if (noSpells && !slots && !itemSpellsOf(character).length) return null
 
   const spells = lib && lib !== 'error' ? lib.spells : []
   const byName = new Map(spells.map(s => [s.name.toLowerCase(), s]))

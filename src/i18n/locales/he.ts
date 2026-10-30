@@ -2,9 +2,11 @@
 // Arrows point the way the page reads: "back" points right, "next" points left.
 import type { Messages, Terms } from '../translate'
 import { explainHe } from './explain.he'
+import { itemsHe } from './items.he'
 
 const messages: Messages = {
   ...explainHe,
+  ...itemsHe,
   'common.back': 'חזרה',
   'common.backArrow': '→',
   'common.cancel': 'ביטול',

@@ -5,10 +5,12 @@ import { BUNDLED, loadKind, searchEntries, type Edition, type Equipment, type Ma
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import {
-  ABILITIES, ABILITY_NAMES, derive, ITEMS, uses2024Spells, type Ability, type InventoryEntry, type Item, type ItemEffect, type WeaponProperty,
+  ABILITIES, ABILITY_NAMES, ALL_SKILLS, CONDITIONS, derive, isUsefulEffect, ITEMS, uses2024Spells, type AdvantageOn, type Ability, type InventoryEntry, type Item,
+  type ItemEffect, type MoveMode, type Recharge, type Sense, type SkillId, type WeaponProperty,
 } from '../rules'
 import type { Apply } from '../sheet/types'
 import { editionOf, sourceFor } from '../spellbook/access'
+import { Why } from '../builder/Why'
 import {
   addItem, COINS, fromLibrary, fromMagicItem, isWarlock, itemOf, removeEntry, setCoins, setEquipped,
   setQty, updateEntry, withBase,
@@ -87,16 +89,40 @@ export function Inventory({ character, apply }: { character: Character; apply: A
 
 type T = ReturnType<typeof useI18n>
 
-/** "+1 AC", "STR becomes 19", "+2 CON (max 20)"… Also used by custom actions on the combat page. */
-export function effectText({ t, term }: T, f: ItemEffect): string {
+/** "+1 AC", "STR becomes 19", "Resistant to fire"… Also used by custom actions on the combat page and DM requests. */
+export function effectText({ t, term, skill }: T, f: ItemEffect): string {
   const n = 'value' in f ? f.value : 0
   const signed = `${n >= 0 ? '+' : '−'}${Math.abs(n)}`
   const ability = (a: Ability) => term('ability', a, ABILITY_NAMES[a])
   switch (f.kind) {
     case 'abilitySet': return t('inv.fx.text.abilitySet', { ability: ability(f.ability), n })
     case 'ability': return t(f.max ? 'inv.fx.text.abilityMax' : 'inv.fx.text.ability', { ability: ability(f.ability), n: signed, max: f.max ?? '' })
-    default: return t(`inv.fx.text.${f.kind}` as MessageKey, { n: signed }) + (f.unarmored ? ` ${t('inv.fx.text.unarmored')}` : '')
+    case 'save': return t('inv.fx.text.save', { n: signed, ability: ability(f.ability) })
+    case 'skill': return t('inv.fx.text.skill', { n: signed, skill: skill(f.skill) })
+    case 'saveProficiency': return t('inv.fx.text.saveProficiency', { ability: ability(f.ability) })
+    case 'skillProficiency': return t(f.expertise ? 'inv.fx.text.skillExpertise' : 'inv.fx.text.skillProficiency', { skill: skill(f.skill) })
+    case 'advantage': return t(f.when?.trim() ? 'inv.fx.text.advantageWhen' : 'inv.fx.text.advantage', { on: advantageName({ t, term, skill } as T, f.on), when: f.when?.trim() ?? '' })
+    case 'resistance':
+    case 'immunity': return t(`inv.fx.text.${f.kind}`, { damage: term('damage', f.damage, f.damage) })
+    case 'conditionImmunity': return t('inv.fx.text.conditionImmunity', { condition: term('condition', f.condition, f.condition) })
+    case 'moveSpeed': return t(f.value ? 'inv.fx.text.moveSpeed' : 'inv.fx.text.moveSpeedWalk', { mode: t(`inv.move.${f.mode}`), n })
+    case 'sense': return t('inv.fx.text.sense', { sense: t(`inv.sense.${f.sense}`), n })
+    case 'spellSlot': return t('inv.fx.text.spellSlot', { n: signed, level: t(`sheet.slot.${f.level}` as MessageKey) })
+    case 'pactSlot': return t('inv.fx.text.pactSlot', { n: signed })
+    case 'charges': return t('inv.fx.text.charges', { n, recharge: t(RECHARGE_KEYS[f.recharge]) + (f.recharge === 'dawn' && f.regain ? ` +${f.regain}` : '') })
+    case 'spell': return t(f.note?.trim() ? 'inv.fx.text.spellNote' : 'inv.fx.text.spell', { spell: f.spell, note: f.note?.trim() ?? '' })
+    default: return t(`inv.fx.text.${f.kind}` as MessageKey, { n: signed })
+      + (f.unarmored ? ` ${t('inv.fx.text.unarmored')}` : '') + (f.only ? ` ${t(`inv.fx.text.${f.only}`)}` : '')
   }
+}
+
+const RECHARGE_KEYS = { short: 'rest.short', long: 'rest.long', dawn: 'rest.dawn', none: 'rest.none' } as const
+
+/** "Stealth", "DEX saves", "all saving throws"… */
+export function advantageName({ t, term, skill }: T, on: AdvantageOn): string {
+  if (on.startsWith('skill:')) return skill(on.slice(6) as SkillId)
+  if (on.startsWith('save:')) return t('inv.adv.save', { ability: term('ability', on.slice(5), ABILITY_NAMES[on.slice(5) as Ability]) })
+  return t(`inv.adv.${on as 'saves'}`)
 }
 
 function Row({ entry: e, apply, onEdit }: { entry: InventoryEntry; apply: Apply; onEdit: () => void }) {
@@ -187,7 +213,7 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
       magicBonus: item.kind === 'gear' ? undefined : magic,
       extraDamage: item.kind === 'weapon' ? extra.trim() || undefined : undefined,
       pact: item.kind === 'weapon' && pact,
-      effects: effects.filter(f => f.value),
+      effects: effects.filter(isUsefulEffect),
     }), e.uid, qty))
     onDone()
   }
@@ -198,19 +224,19 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
 
   return (
     <form className="inv-editor" onSubmit={save} aria-label={t('inv.editName', { name: item.name })}>
-      <label className="wide">{t('inv.f.name')}<input value={item.name} onChange={ev => patch({ name: ev.target.value })} required /></label>
-      <label>{t('inv.f.kind')}
+      <label className="wide"><span className="inv-label">{t('inv.f.name')} <Why title={t('inv.why.name.title')} text={t('inv.why.name.text')} /></span><input value={item.name} onChange={ev => patch({ name: ev.target.value })} required /></label>
+      <label><span className="inv-label">{t('inv.f.kind')} <Why title={t('inv.why.kind.title')} text={t('inv.why.kind.text')} /></span>
         <select value={item.kind} onChange={ev => setKind(ev.target.value as Item['kind'])}>
           <option value="gear">{t('inv.kind.gear')}</option>
           <option value="weapon">{t('inv.kind.weapon')}</option>
           <option value="armor">{t('inv.kind.armor')}</option>
         </select>
       </label>
-      <label>{t('inv.f.qty')}<input type="number" min={1} value={qty} onChange={ev => setQtyDraft(Math.max(1, Number(ev.target.value) || 1))} /></label>
-      <label>{t('inv.f.weight')}<input type="number" min={0} step="0.25" value={item.weight} onChange={ev => patch({ weight: Math.max(0, Number(ev.target.value) || 0) })} /></label>
+      <label><span className="inv-label">{t('inv.f.qty')} <Why title={t('inv.why.qty.title')} text={t('inv.why.qty.text')} /></span><input type="number" min={1} value={qty} onChange={ev => setQtyDraft(Math.max(1, Number(ev.target.value) || 1))} /></label>
+      <label><span className="inv-label">{t('inv.f.weight')} <Why title={t('inv.why.weight.title')} text={t('inv.why.weight.text')} /></span><input type="number" min={0} step="0.25" value={item.weight} onChange={ev => patch({ weight: Math.max(0, Number(ev.target.value) || 0) })} /></label>
 
       {item.kind !== 'gear' && (
-        <label>{t('inv.f.base')}
+        <label><span className="inv-label">{t('inv.f.base')} <Why title={t('inv.why.base.title')} text={t('inv.why.base.text')} /></span>
           <select value="" onChange={ev => startFrom(ev.target.value)}>
             <option value="">{t('inv.f.basePick')}</option>
             {BASES.filter(b => b.kind === item.kind).map(b => <option key={b.id} value={b.id}>{term('item', b.id, b.name)}</option>)}
@@ -220,48 +246,49 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
 
       {item.kind === 'weapon' && (
         <>
-          <label>{t('inv.f.damage')}<input value={item.damage} onChange={ev => patch({ damage: ev.target.value })} dir="ltr" /></label>
-          <label>{t('inv.f.damageType')}
+          <label><span className="inv-label">{t('inv.f.damage')} <Why title={t('inv.why.damage.title')} text={t('inv.why.damage.text')} /></span><input value={item.damage} onChange={ev => patch({ damage: ev.target.value })} dir="ltr" /></label>
+          <label><span className="inv-label">{t('inv.f.damageType')} <Why title={t('inv.why.damageType.title')} text={t('inv.why.damageType.text')} /></span>
             <select value={item.damageType} onChange={ev => patch({ damageType: ev.target.value })}>
               {DAMAGE_TYPES.map(d => <option key={d} value={d}>{term('damage', d, d)}</option>)}
             </select>
           </label>
-          <label>{t('inv.f.category')}
+          <label><span className="inv-label">{t('inv.f.category')} <Why title={t('inv.why.category.title')} text={t('inv.why.category.text')} /></span>
             <select value={item.category} onChange={ev => patch({ category: ev.target.value as 'simple' | 'martial' })}>
               <option value="simple">{t('inv.simple')}</option>
               <option value="martial">{t('inv.martial')}</option>
             </select>
           </label>
           {item.properties.includes('versatile') && (
-            <label>{t('inv.f.versatile')}<input value={item.versatile ?? ''} onChange={ev => patch({ versatile: ev.target.value || undefined })} dir="ltr" /></label>
+            <label><span className="inv-label">{t('inv.f.versatile')} <Why title={t('inv.why.versatile.title')} text={t('inv.why.versatile.text')} /></span><input value={item.versatile ?? ''} onChange={ev => patch({ versatile: ev.target.value || undefined })} dir="ltr" /></label>
           )}
           {(item.properties.includes('ranged') || item.properties.includes('thrown')) && (
-            <label>{t('inv.f.range')}<input value={item.range ?? ''} placeholder="20/60" onChange={ev => patch({ range: ev.target.value || undefined })} dir="ltr" /></label>
+            <label><span className="inv-label">{t('inv.f.range')} <Why title={t('inv.why.range.title')} text={t('inv.why.range.text')} /></span><input value={item.range ?? ''} placeholder="20/60" onChange={ev => patch({ range: ev.target.value || undefined })} dir="ltr" /></label>
           )}
           <fieldset className="wide inv-props">
-            <legend>{t('inv.f.properties')}</legend>
+            <legend className="why-legend">{t('inv.f.properties')} <Why title={t('inv.why.properties.title')} text={t('inv.why.properties.text')} /></legend>
             {PROPERTIES.map(p => (
               <label key={p} className="check">
                 <input type="checkbox" checked={item.properties.includes(p)}
                   onChange={ev => patch({ properties: ev.target.checked ? [...item.properties, p] : item.properties.filter(x => x !== p) })} />
                 {t(`inv.prop.${p}` as MessageKey)}
+                <Why compact title={t(`inv.prop.${p}` as MessageKey)} text={t(`inv.why.prop.${p}` as MessageKey)} />
               </label>
             ))}
           </fieldset>
-          <label>{t('inv.f.extra')}<input value={extra} placeholder="1d6 fire" onChange={ev => setExtra(ev.target.value)} dir="ltr" /></label>
+          <label><span className="inv-label">{t('inv.f.extra')} <Why title={t('inv.why.extra.title')} text={t('inv.why.extra.text')} /></span><input value={extra} placeholder="1d6 fire" onChange={ev => setExtra(ev.target.value)} dir="ltr" /></label>
         </>
       )}
 
       {item.kind === 'armor' && (
         <>
-          <label>{t('inv.f.armorType')}
+          <label><span className="inv-label">{t('inv.f.armorType')} <Why title={t('inv.why.armorType.title')} text={t('inv.why.armorType.text')} /></span>
             <select value={item.category} onChange={ev => patch({ category: ev.target.value as 'light' })}>
               {(['light', 'medium', 'heavy', 'shield'] as const).map(k => <option key={k} value={k}>{t(`inv.armor.${k}` as MessageKey)}</option>)}
             </select>
           </label>
-          <label>{t('inv.f.ac')}<input type="number" value={item.baseAc} onChange={ev => patch({ baseAc: Number(ev.target.value) || 0 })} /></label>
+          <label><span className="inv-label">{t('inv.f.ac')} <Why title={t('inv.why.ac.title')} text={t('inv.why.ac.text')} /></span><input type="number" value={item.baseAc} onChange={ev => patch({ baseAc: Number(ev.target.value) || 0 })} /></label>
           {item.category !== 'shield' && (
-            <label>{t('inv.f.dexCap')}
+            <label><span className="inv-label">{t('inv.f.dexCap')} <Why title={t('inv.why.dexCap.title')} text={t('inv.why.dexCap.text')} /></span>
               <select value={item.dexCap ?? 'none'} onChange={ev => patch({ dexCap: ev.target.value === 'none' ? undefined : Number(ev.target.value) })}>
                 <option value="none">{t('inv.dexFull')}</option>
                 <option value="2">{t('inv.dexMax', { n: 2 })}</option>
@@ -273,7 +300,7 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
       )}
 
       {item.kind !== 'gear' && (
-        <label>{t('inv.f.magic')}
+        <label><span className="inv-label">{t('inv.f.magic')} <Why title={t('inv.why.magic.title')} text={t('inv.why.magic.text')} /></span>
           <select value={magic} onChange={ev => setMagic(Number(ev.target.value))}>
             {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n ? `+${n}` : t('inv.none')}</option>)}
           </select>
@@ -282,11 +309,11 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
       {item.kind === 'weapon' && isWarlock(character) && (
         <label className="check wide inv-pact">
           <input type="checkbox" checked={pact} onChange={ev => setPact(ev.target.checked)} />
-          <span>{t('inv.f.pact')}<small>{t(uses2024Spells(character) ? 'inv.pactHint2024' : 'inv.pactHint')}</small></span>
+          <span><span className="inv-label">{t('inv.f.pact')} <Why title={t('inv.why.pact.title')} text={t('inv.why.pact.text')} /></span><small>{t(uses2024Spells(character) ? 'inv.pactHint2024' : 'inv.pactHint')}</small></span>
         </label>
       )}
       <EffectsEditor effects={effects} onChange={setEffects} />
-      <label className="wide">{t('inv.f.notes')}<textarea rows={4} value={notes} onChange={ev => setNotes(ev.target.value)} placeholder={t('inv.f.notesHint')} /></label>
+      <label className="wide"><span className="inv-label">{t('inv.f.notes')} <Why title={t('inv.why.notes.title')} text={t('inv.why.notes.text')} /></span><textarea rows={4} value={notes} onChange={ev => setNotes(ev.target.value)} placeholder={t('inv.f.notesHint')} /></label>
 
       <div className="wide inv-editor-actions">
         <button type="submit" className="btn primary">{t('inv.save')}</button>
@@ -297,43 +324,160 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
   )
 }
 
-const EFFECT_KINDS = ['ac', 'saves', 'checks', 'attack', 'damage', 'initiative', 'spellAttack', 'spellDc', 'speed', 'abilitySet', 'ability'] as const
+const EFFECT_GROUPS: { key: MessageKey; kinds: ItemEffect['kind'][] }[] = [
+  { key: 'inv.fx.group.numbers', kinds: ['ac', 'saves', 'checks', 'attack', 'damage', 'initiative', 'spellAttack', 'spellDc', 'speed', 'hp', 'passivePerception'] },
+  { key: 'inv.fx.group.abilities', kinds: ['abilitySet', 'ability'] },
+  { key: 'inv.fx.group.rolls', kinds: ['save', 'skill', 'saveProficiency', 'skillProficiency', 'advantage'] },
+  { key: 'inv.fx.group.defense', kinds: ['resistance', 'immunity', 'conditionImmunity', 'moveSpeed', 'sense'] },
+  { key: 'inv.fx.group.magic', kinds: ['spellSlot', 'pactSlot', 'charges', 'spell'] },
+]
+const MOVES: MoveMode[] = ['fly', 'swim', 'climb', 'burrow']
+const SENSES: Sense[] = ['darkvision', 'blindsight', 'tremorsense', 'truesight']
+const RECHARGES: Recharge[] = ['long', 'short', 'dawn', 'none']
+const ADVANTAGE_TARGETS: AdvantageOn[] = [
+  'saves', 'checks', 'initiative', 'attacks', 'concentration', ...ABILITIES.map(a => `save:${a}` as const), ...ALL_SKILLS.map(s => `skill:${s}` as const),
+]
 
 function blankEffect(kind: ItemEffect['kind'], prev?: ItemEffect): ItemEffect {
   if (kind === prev?.kind) return prev
-  if (kind === 'abilitySet') return { kind, ability: 'str', value: 19 }
-  if (kind === 'ability') return { kind, ability: 'str', value: 2, max: 20 }
-  return { kind, value: kind === 'speed' ? 10 : 1 }
+  switch (kind) {
+    case 'abilitySet': return { kind, ability: 'str', value: 19 }
+    case 'ability': return { kind, ability: 'str', value: 2, max: 20 }
+    case 'save': return { kind, ability: 'wis', value: 1 }
+    case 'skill': return { kind, skill: 'perception', value: 1 }
+    case 'saveProficiency': return { kind, ability: 'wis' }
+    case 'skillProficiency': return { kind, skill: 'perception' }
+    case 'advantage': return { kind, on: 'skill:stealth' }
+    case 'resistance': case 'immunity': return { kind, damage: 'fire' }
+    case 'conditionImmunity': return { kind, condition: 'poisoned' }
+    case 'moveSpeed': return { kind, mode: 'fly', value: 0 }
+    case 'sense': return { kind, sense: 'darkvision', value: 60 }
+    case 'spellSlot': return { kind, level: 1, value: 1 }
+    case 'pactSlot': return { kind, value: 1 }
+    case 'charges': return { kind, value: 3, recharge: 'long' }
+    case 'spell': return { kind, spell: '' }
+    default: return { kind, value: kind === 'speed' ? 10 : 1 }
+  }
 }
 
 /** Stat effects of an item (or a custom action): pick what it changes and by how much. */
 export function EffectsEditor({ effects, onChange, legend }: { effects: ItemEffect[]; onChange: (fx: ItemEffect[]) => void; legend?: string }) {
-  const { t, term } = useI18n()
+  const i18n = useI18n()
+  const { t, term, skill } = i18n
   const put = (i: number, f: ItemEffect) => onChange(effects.map((x, j) => (j === i ? f : x)))
+  const abilityPick = (i: number, f: ItemEffect & { ability: Ability }) => (
+    <select aria-label={t('inv.fx.ability')} value={f.ability} onChange={ev => put(i, { ...f, ability: ev.target.value as Ability } as ItemEffect)}>
+      {ABILITIES.map(a => <option key={a} value={a}>{term('ability', a, ABILITY_NAMES[a])}</option>)}
+    </select>
+  )
+  const skillPick = (i: number, f: ItemEffect & { skill: SkillId }) => (
+    <select aria-label={t('inv.fx.skill')} value={f.skill} onChange={ev => put(i, { ...f, skill: ev.target.value as SkillId } as ItemEffect)}>
+      {ALL_SKILLS.map(s => <option key={s} value={s}>{skill(s)}</option>)}
+    </select>
+  )
+  const number = (i: number, f: ItemEffect & { value: number }, label: string, opts: { min?: number; placeholder?: string } = {}) => (
+    <input type="number" aria-label={label} title={label} min={opts.min} placeholder={opts.placeholder} value={f.value}
+      onChange={ev => put(i, { ...f, value: Number(ev.target.value) || 0 } as ItemEffect)} />
+  )
   return (
     <fieldset className="wide inv-effects-editor">
-      <legend>{legend ?? t('inv.f.effects')}</legend>
+      <legend className="why-legend">{legend ?? t('inv.f.effects')} <Why title={t('inv.why.effects.title')} text={t('inv.why.effects.text')} /></legend>
       {effects.length === 0 && <p className="hint">{t('inv.fx.none')}</p>}
       {effects.map((f, i) => (
         <div key={i} className="inv-effect">
           <select aria-label={t('inv.fx.kind')} value={f.kind} onChange={ev => put(i, blankEffect(ev.target.value as ItemEffect['kind'], f))}>
-            {EFFECT_KINDS.map(k => <option key={k} value={k}>{t(`inv.fx.kind.${k}` as MessageKey)}</option>)}
+            {EFFECT_GROUPS.map(g => (
+              <optgroup key={g.key} label={t(g.key)}>
+                {g.kinds.map(k => <option key={k} value={k}>{t(`inv.fx.kind.${k}` as MessageKey)}</option>)}
+              </optgroup>
+            ))}
           </select>
-          {(f.kind === 'abilitySet' || f.kind === 'ability') && (
-            <select aria-label={t('inv.fx.ability')} value={f.ability} onChange={ev => put(i, { ...f, ability: ev.target.value as Ability })}>
-              {ABILITIES.map(a => <option key={a} value={a}>{term('ability', a, ABILITY_NAMES[a])}</option>)}
+          <Why compact title={t(`inv.fx.kind.${f.kind}` as MessageKey)} text={t(`inv.whyfx.${f.kind}` as MessageKey)} />
+          {(f.kind === 'abilitySet' || f.kind === 'ability' || f.kind === 'save' || f.kind === 'saveProficiency') && abilityPick(i, f)}
+          {(f.kind === 'skill' || f.kind === 'skillProficiency') && skillPick(i, f)}
+          {f.kind === 'advantage' && (
+            <>
+              <select aria-label={t('inv.fx.on')} value={f.on} onChange={ev => put(i, { ...f, on: ev.target.value as AdvantageOn })}>
+                {ADVANTAGE_TARGETS.map(on => <option key={on} value={on}>{advantageName(i18n, on)}</option>)}
+              </select>
+              <input aria-label={t('inv.fx.when')} placeholder={t('inv.fx.whenHint')} value={f.when ?? ''}
+                onChange={ev => put(i, { ...f, when: ev.target.value || undefined })} />
+            </>
+          )}
+          {(f.kind === 'resistance' || f.kind === 'immunity') && (
+            <select aria-label={t('inv.fx.damageType')} value={f.damage} onChange={ev => put(i, { ...f, damage: ev.target.value })}>
+              {DAMAGE_TYPES.map(d => <option key={d} value={d}>{term('damage', d, d)}</option>)}
             </select>
           )}
-          <input type="number" aria-label={t('inv.fx.value')} value={f.value} onChange={ev => put(i, { ...f, value: Number(ev.target.value) || 0 })} />
+          {f.kind === 'conditionImmunity' && (
+            <select aria-label={t('inv.fx.condition')} value={f.condition} onChange={ev => put(i, { ...f, condition: ev.target.value as typeof f.condition })}>
+              {CONDITIONS.map(c => <option key={c} value={c}>{term('condition', c, c)}</option>)}
+            </select>
+          )}
+          {f.kind === 'moveSpeed' && (
+            <>
+              <select aria-label={t('inv.fx.mode')} value={f.mode} onChange={ev => put(i, { ...f, mode: ev.target.value as MoveMode })}>
+                {MOVES.map(m => <option key={m} value={m}>{t(`inv.move.${m}`)}</option>)}
+              </select>
+              {number(i, f, t('inv.fx.feet'), { min: 0, placeholder: t('inv.fx.speedHint') })}
+            </>
+          )}
+          {f.kind === 'sense' && (
+            <>
+              <select aria-label={t('inv.fx.sense')} value={f.sense} onChange={ev => put(i, { ...f, sense: ev.target.value as Sense })}>
+                {SENSES.map(x => <option key={x} value={x}>{t(`inv.sense.${x}`)}</option>)}
+              </select>
+              {number(i, f, t('inv.fx.feet'), { min: 0 })}
+            </>
+          )}
+          {f.kind === 'spellSlot' && (
+            <>
+              <select aria-label={t('inv.fx.level')} value={f.level} onChange={ev => put(i, { ...f, level: Number(ev.target.value) })}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(l => <option key={l} value={l}>{t(`sheet.slot.${l}` as MessageKey)}</option>)}
+              </select>
+              {number(i, f, t('inv.fx.count'))}
+            </>
+          )}
+          {f.kind === 'charges' && (
+            <>
+              {number(i, f, t('inv.fx.count'), { min: 1 })}
+              <select aria-label={t('inv.fx.recharge')} value={f.recharge} onChange={ev => put(i, { ...f, recharge: ev.target.value as Recharge })}>
+                {RECHARGES.map(r => <option key={r} value={r}>{t(RECHARGE_KEYS[r])}</option>)}
+              </select>
+              {f.recharge === 'dawn' && (
+                <input aria-label={t('inv.fx.regain')} placeholder={t('inv.fx.regainHint')} value={f.regain ?? ''} dir="ltr"
+                  onChange={ev => put(i, { ...f, regain: ev.target.value || undefined })} />
+              )}
+            </>
+          )}
+          {f.kind === 'spell' && (
+            <>
+              <input aria-label={t('inv.fx.spell')} placeholder={t('inv.fx.spellHint')} value={f.spell} onChange={ev => put(i, { ...f, spell: ev.target.value })} />
+              <input aria-label={t('inv.fx.spellNote')} placeholder={t('inv.fx.spellNoteHint')} value={f.note ?? ''}
+                onChange={ev => put(i, { ...f, note: ev.target.value || undefined })} />
+            </>
+          )}
+          {(f.kind === 'pactSlot' || f.kind === 'abilitySet' || f.kind === 'ability' || f.kind === 'save' || f.kind === 'skill' || isBonus(f)) && number(i, f, t('inv.fx.value'))}
           {f.kind === 'ability' && (
             <input type="number" aria-label={t('inv.fx.max')} placeholder={t('inv.fx.max')} value={f.max ?? ''}
               onChange={ev => put(i, { ...f, max: ev.target.value ? Number(ev.target.value) : undefined })} />
+          )}
+          {f.kind === 'skillProficiency' && (
+            <label className="check">
+              <input type="checkbox" checked={!!f.expertise} onChange={ev => put(i, { ...f, expertise: ev.target.checked || undefined })} />
+              {t('inv.fx.expertise')}
+            </label>
           )}
           {f.kind === 'ac' && (
             <label className="check">
               <input type="checkbox" checked={!!f.unarmored} onChange={ev => put(i, { ...f, unarmored: ev.target.checked || undefined })} />
               {t('inv.fx.unarmored')}
             </label>
+          )}
+          {(f.kind === 'attack' || f.kind === 'damage') && (
+            <select aria-label={t('inv.fx.only')} value={f.only ?? 'all'} onChange={ev => put(i, { ...f, only: ev.target.value === 'all' ? undefined : ev.target.value as 'melee' | 'ranged' })}>
+              {(['all', 'melee', 'ranged'] as const).map(o => <option key={o} value={o}>{t(`inv.fx.only.${o}`)}</option>)}
+            </select>
           )}
           <button type="button" className="btn ghost small inv-effect-remove" aria-label={t('inv.fx.remove')} onClick={() => onChange(effects.filter((_, j) => j !== i))}>✕</button>
         </div>
@@ -342,6 +486,9 @@ export function EffectsEditor({ effects, onChange, legend }: { effects: ItemEffe
     </fieldset>
   )
 }
+
+const BONUS_KINDS = new Set<string>(EFFECT_GROUPS[0].kinds)
+const isBonus = (f: ItemEffect): f is Extract<ItemEffect, { unarmored?: boolean }> => BONUS_KINDS.has(f.kind)
 
 function AddPanel({ lib, onAdd, onClose, source }: {
   lib: Library | 'error' | null

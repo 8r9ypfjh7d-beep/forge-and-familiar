@@ -222,7 +222,15 @@ export function dawn(c: Character, rolled: Record<string, number> = {}): Charact
     const back = k.regain?.trim() ? Math.max(0, rolled[k.id] ?? 0) : k.used
     return { ...k, used: Math.max(0, k.used - back) }
   })
-  return withState(c, { counters })
+  // Charges of equipped items (an item effect) work the same way, keyed by resource id.
+  const resources = { ...c.state.resources }
+  for (const r of getResources(c)) {
+    if (r.recharge !== 'dawn') continue
+    const used = resources[r.id]?.used ?? 0
+    const back = r.regain ? Math.max(0, rolled[r.id] ?? 0) : used
+    resources[r.id] = { used: Math.max(0, used - back) }
+  }
+  return withState(c, { counters, resources })
 }
 
 /** Ends a short rest: short-rest resources and warlock pact slots come back. Hit dice are spent separately. */

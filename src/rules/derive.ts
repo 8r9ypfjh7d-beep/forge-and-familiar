@@ -9,9 +9,12 @@ import { raceById } from './data/races'
 import { subclassById, type SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { rulesEdition, uses2024Spells } from './edition'
-import { itemBonus } from './itemEffects'
+import { effectsOf, itemBonus } from './itemEffects'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
-import { ABILITIES, type Abilities, type Ability, type ClassDef, type InventoryEntry, type Item, type RestType, type SkillId } from './types'
+import {
+  ABILITIES, type Abilities, type Ability, type AdvantageOn, type ClassDef, type ConditionId, type InventoryEntry, type Item, type MoveMode, type Recharge,
+  type Sense, type SkillId,
+} from './types'
 
 type Weapon = Extract<Item, { kind: 'weapon' }>
 type Armor = Extract<Item, { kind: 'armor' }>
@@ -51,7 +54,7 @@ export function getMaxHp(c: Character): number {
       hp += Math.max(1, roll + con) + perLevelBonus + (subclass?.hpPerLevel ?? 0)
     }
   }
-  return Math.max(1, hp)
+  return Math.max(1, hp + itemBonus(c, 'hp'))
 }
 
 export function getHitDice(c: Character): { die: HitDie; total: number }[] {
@@ -75,12 +78,17 @@ const FULL_CASTER_SLOTS: number[][] = [
 export function getSpellSlots(c: Character): { slots: number[]; pact?: { level: number; count: number } } {
   const row = FULL_CASTER_SLOTS[getCasterLevel(c).casterLevel]
   const slots = Array.from({ length: 9 }, (_, i) => row[i] ?? 0)
+  // Items can add slots of any level (even to a character who has none), or more pact slots.
+  for (const { effect: f } of effectsOf(c, 'spellSlot')) {
+    const i = Math.min(9, Math.max(1, Math.round(f.level))) - 1
+    slots[i] = Math.max(0, slots[i] + f.value)
+  }
 
   const warlock = classesOf(c).find(x => x.def.caster === 'pact')
   if (!warlock) return { slots }
   const l = warlock.level
-  const count = l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1
-  return { slots, pact: { level: Math.min(5, Math.ceil(l / 2)), count } }
+  const count = (l >= 17 ? 4 : l >= 11 ? 3 : l >= 2 ? 2 : 1) + effectsOf(c, 'pactSlot').reduce((n, x) => n + x.effect.value, 0)
+  return { slots, pact: { level: Math.min(5, Math.ceil(l / 2)), count: Math.max(1, count) } }
 }
 
 // ---------- Class resources ----------
@@ -89,9 +97,23 @@ export interface ResourceInfo {
   id: string
   label: string
   max: number
-  /** Already resolved for the character's level. */
-  recharge: RestType
+  /** Already resolved for the character's level. Item charges can also come back at dawn, or never. */
+  recharge: Recharge
   shortRestFromLevel?: number
+  /** Item charges: dice regained at dawn; blank means all of them. */
+  regain?: string
+}
+
+/** Charges of equipped items, as resources with ids `item:<uid>` (a second charges effect on one item gets `:2`). */
+export function getItemCharges(c: Pick<Character, 'inventory'>): ResourceInfo[] {
+  return (c.inventory ?? []).filter(e => e.equipped).flatMap(e => {
+    const name = entryItem(e)?.name ?? e.name ?? e.itemId
+    return (e.effects ?? []).flatMap((f, i, all) => {
+      if (f.kind !== 'charges' || f.value <= 0) return []
+      const nth = all.slice(0, i).filter(x => x.kind === 'charges').length
+      return [{ id: `item:${e.uid}${nth ? `:${nth + 1}` : ''}`, label: name, max: f.value, recharge: f.recharge, ...(f.regain?.trim() ? { regain: f.regain.trim() } : {}) }]
+    })
+  })
 }
 
 export function getResources(c: Character): ResourceInfo[] {
@@ -108,7 +130,7 @@ export function getResources(c: Character): ResourceInfo[] {
       else out.push({ id: r.id, label: r.name, max, recharge, shortRestFromLevel: r.shortRestFromLevel })
     }
   }
-  return out
+  return [...out, ...getItemCharges(c)]
 }
 
 /** Weapon Mastery (2024): how many kinds of weapon the character can use mastery properties with. 0 in 2014. */
@@ -263,7 +285,8 @@ export function getAttacks(c: Character): Attack[] {
     if (entry.pact && uses2024Spells(c) && mods.cha > mods[ability]) ability = 'cha'
     const proficient = entry.pact || isWeaponProficient(c, item)
     const magic = entry.magicBonus ?? 0
-    const dmgMod = mods[ability] + magic + itemBonus(c, 'damage')
+    const reach = ranged ? 'ranged' : 'melee'
+    const dmgMod = mods[ability] + magic + itemBonus(c, 'damage', true, reach)
     const notes: string[] = []
     if (entry.pact) notes.push('pact weapon')
     if (magic || entry.pact) notes.push('magical')
@@ -273,7 +296,7 @@ export function getAttacks(c: Character): Attack[] {
     if (!proficient) notes.push('not proficient')
     out.push({
       name: item.name,
-      bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack') + (ranged ? rangedBonus : 0),
+      bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack', true, reach) + (ranged ? rangedBonus : 0),
       damage: withMod(item.damage, dmgMod),
       damageType: item.damageType,
       ability,
@@ -291,10 +314,10 @@ export function getAttacks(c: Character): Attack[] {
   const unarmedAbility: Ability = martialArts && mods.dex > mods.str ? 'dex' : 'str'
   out.push({
     name: 'Unarmed Strike',
-    bonus: mods[unarmedAbility] + prof + itemBonus(c, 'attack'),
+    bonus: mods[unarmedAbility] + prof + itemBonus(c, 'attack', true, 'melee'),
     damage: martialArts
-      ? withMod(martialArtsDie(monk.level, edition), mods[unarmedAbility] + itemBonus(c, 'damage'))
-      : `${Math.max(0, 1 + mods.str + itemBonus(c, 'damage'))}`,
+      ? withMod(martialArtsDie(monk.level, edition), mods[unarmedAbility] + itemBonus(c, 'damage', true, 'melee'))
+      : `${Math.max(0, 1 + mods.str + itemBonus(c, 'damage', true, 'melee'))}`,
     damageType: 'bludgeoning',
     ability: unarmedAbility,
     proficient: true,
@@ -312,11 +335,24 @@ export interface DerivedStats {
   proficiencyBonus: number
   abilities: Abilities
   mods: Abilities
-  saves: Record<Ability, { bonus: number; proficient: boolean }>
-  skills: Record<SkillId, { bonus: number; proficient: boolean; ability: Ability }>
+  /** `advantage`: an item or action always gives advantage on it (rolled automatically). */
+  saves: Record<Ability, { bonus: number; proficient: boolean; advantage?: boolean }>
+  skills: Record<SkillId, { bonus: number; proficient: boolean; ability: Ability; expertise?: boolean; advantage?: boolean }>
   passivePerception: number
   initiative: number
+  initiativeAdvantage?: boolean
+  /** Ability checks with advantage from items (skills and initiative already include it). */
+  checkAdvantage: Partial<Record<Ability, boolean>>
   speed: number
+  /** Flying, swimming, climbing and burrowing speeds from items. */
+  speeds: Partial<Record<MoveMode, number>>
+  senses: Partial<Record<Sense, number>>
+  /** Damage resistances and immunities and condition immunities from items and switched-on actions. */
+  defenses: { resistances: string[]; immunities: string[]; conditionImmunities: ConditionId[] }
+  /** Every advantage from items, situational ones (with `when`) included. */
+  advantages: { on: AdvantageOn; when?: string; source: string }[]
+  /** Spells items let the character cast. */
+  itemSpells: { spell: string; note?: string; source: string }[]
   armorClass: { value: number; source: string }
   maxHp: number
   baseMaxHp: number
@@ -362,20 +398,46 @@ export function derive(c: Character): DerivedStats {
 
   const itemSaves = itemBonus(c, 'saves')
   const itemChecks = itemBonus(c, 'checks')
+  const advantages = effectsOf(c, 'advantage').map(({ source, effect: f }) => ({ on: f.on, ...(f.when?.trim() ? { when: f.when.trim() } : {}), source }))
+  const hasAdv = (...on: AdvantageOn[]) => advantages.some(x => !x.when && on.includes(x.on)) || undefined
+  const saveProfs = new Set(effectsOf(c, 'saveProficiency').map(x => x.effect.ability))
   const saves = {} as DerivedStats['saves']
   for (const a of ABILITIES) {
-    // Saving throw proficiencies come from the first class only.
-    const proficient = !!firstClass?.savingThrows.includes(a)
-    saves[a] = { bonus: mods[a] + (proficient ? prof : 0) + itemSaves, proficient }
+    // Saving throw proficiencies come from the first class only (and items).
+    const proficient = !!firstClass?.savingThrows.includes(a) || saveProfs.has(a)
+    const extra = effectsOf(c, 'save').reduce((n, x) => n + (x.effect.ability === a ? x.effect.value : 0), 0)
+    const advantage = hasAdv('saves', `save:${a}`)
+    saves[a] = { bonus: mods[a] + (proficient ? prof : 0) + itemSaves + extra, proficient, ...(advantage ? { advantage } : {}) }
   }
 
   const profSkills = getSkillProficiencies(c)
+  const skillFx = effectsOf(c, 'skillProficiency')
   const skills = {} as DerivedStats['skills']
   for (const s of ALL_SKILLS) {
     const ability = SKILLS[s].ability
-    const proficient = profSkills.has(s)
-    skills[s] = { bonus: mods[ability] + (proficient ? prof : jackOfAllTrades) + itemChecks, proficient, ability }
+    const proficient = profSkills.has(s) || skillFx.some(x => x.effect.skill === s)
+    const expertise = skillFx.some(x => x.effect.skill === s && x.effect.expertise) || undefined
+    const extra = effectsOf(c, 'skill').reduce((n, x) => n + (x.effect.skill === s ? x.effect.value : 0), 0)
+    const advantage = hasAdv('checks', `skill:${s}`)
+    skills[s] = {
+      bonus: mods[ability] + (expertise ? 2 * prof : proficient ? prof : jackOfAllTrades) + itemChecks + extra,
+      proficient, ability, ...(expertise ? { expertise } : {}), ...(advantage ? { advantage } : {}),
+    }
   }
+  const allChecks = hasAdv('checks')
+  const checkAdvantage: DerivedStats['checkAdvantage'] = allChecks ? Object.fromEntries(ABILITIES.map(a => [a, true])) : {}
+  const initiativeAdvantage = hasAdv('checks', 'initiative')
+  const speeds: DerivedStats['speeds'] = {}
+  const senses: DerivedStats['senses'] = {}
+  for (const { effect: f } of effectsOf(c, 'sense')) senses[f.sense] = Math.max(senses[f.sense] ?? 0, f.value)
+  const uniq = <T,>(xs: T[]) => [...new Set(xs)]
+  const defenses: DerivedStats['defenses'] = {
+    resistances: uniq(effectsOf(c, 'resistance').map(x => x.effect.damage.trim().toLowerCase()).filter(Boolean)),
+    immunities: uniq(effectsOf(c, 'immunity').map(x => x.effect.damage.trim().toLowerCase()).filter(Boolean)),
+    conditionImmunities: uniq(effectsOf(c, 'conditionImmunity').map(x => x.effect.condition)),
+  }
+  // Immunity beats resistance to the same type.
+  defenses.resistances = defenses.resistances.filter(d => !defenses.immunities.includes(d))
 
   const { armor, shield } = getEquippedArmor(c)
   let speed = (subrace?.speed ?? race?.speed ?? 30) + featBonus(c, 'speed') + itemBonus(c, 'speed')
@@ -387,6 +449,8 @@ export function derive(c: Character): DerivedStats {
   if (monk && !armor && !shield) speed += MONK_MOVEMENT.find(([l]) => monk.level >= l)?.[1] ?? 0
   const barb = classes.find(x => x.def.id === 'barbarian')
   if (barb && barb.level >= 5 && armor?.category !== 'heavy') speed += 10
+  // "Equal to your walking speed" (value 0) or a set number; the best of each kind wins.
+  for (const { effect: f } of effectsOf(c, 'moveSpeed')) speeds[f.mode] = Math.max(speeds[f.mode] ?? 0, f.value || speed)
 
   for (const a of [armor, shield]) {
     if (a && !isArmorProficient(c, a)) warnings.push(`Not proficient with ${a.name}: disadvantage on STR/DEX rolls, no spellcasting.`)
@@ -406,10 +470,17 @@ export function derive(c: Character): DerivedStats {
     mods,
     saves,
     skills,
-    passivePerception: 10 + skills.perception.bonus,
+    passivePerception: 10 + skills.perception.bonus + itemBonus(c, 'passivePerception'),
     // 2024 Alert adds the proficiency bonus instead of Jack of All Trades' half.
     initiative: mods.dex + (featEffects(c, 'initiativeProficiency').length ? prof : jackOfAllTrades) + featBonus(c, 'initiative') + itemChecks + itemBonus(c, 'initiative'),
+    ...(initiativeAdvantage ? { initiativeAdvantage } : {}),
+    checkAdvantage,
     speed,
+    speeds,
+    senses,
+    defenses,
+    advantages,
+    itemSpells: effectsOf(c, 'spell').map(({ source, effect: f }) => ({ spell: f.spell.trim(), ...(f.note?.trim() ? { note: f.note.trim() } : {}), source })),
     armorClass: getArmorClass(c),
     maxHp: getMaxHp(c),
     baseMaxHp: getMaxHp(c),
