@@ -1,0 +1,30 @@
+# Confirms each push to main reached the live site and the app opens without errors.
+# Threads read this run's result (GitHub Actions) instead of asking someone to open the site.
+name: Live site check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: live-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Wait for deploy and open the site
+        env:
+          EXPECTED: ${{ github.sha }}
+        run: node scripts/live/check.mjs
