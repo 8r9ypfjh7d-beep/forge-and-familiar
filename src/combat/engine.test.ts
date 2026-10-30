@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { makeCharacter } from '../sheet/fixtures'
 import {
   addCombatant, addEffect, breakConcentration, concentrationDc, concentrationOf, createEncounter, damageNpc,
-  effectConditions, elapsedSeconds, endCombat, isBloodied, legendaryCost, nextTurn, rechargeAction, removeCombatant, resolveCheck,
-  setInitiative, spendAction, startCombat, statusOf, syncPartyConditions, useLegendary,
+  critDice, effectConditions, elapsedSeconds, endCombat, isBloodied, legendaryCost, nextTurn, rechargeAction, removeCombatant, resolveCheck,
+  setInitiative, spendAction, startCombat, statusOf, syncPartyConditions, spendLegendary,
 } from './engine'
 import type { Encounter } from './types'
 
@@ -200,10 +200,10 @@ describe('stat block actions', () => {
 
   it('limits legendary actions to three a round and refills them on the creature\'s turn', () => {
     let e = startCombat(party()) // wizard's turn
-    e = useLegendary(e, 'goblin', 'Tail Attack', 1)
-    e = useLegendary(e, 'goblin', 'Wing Attack (Costs 2 Actions)', legendaryCost('Wing Attack (Costs 2 Actions)'))
+    e = spendLegendary(e, 'goblin', 'Tail Attack', 1)
+    e = spendLegendary(e, 'goblin', 'Wing Attack (Costs 2 Actions)', legendaryCost('Wing Attack (Costs 2 Actions)'))
     expect(e.combatants.find(c => c.id === 'goblin')?.legendaryUsed).toBe(3)
-    const refused = useLegendary(e, 'goblin', 'Detect', 1)
+    const refused = spendLegendary(e, 'goblin', 'Detect', 1)
     expect(refused).toBe(e)
     e = nextTurn(e) // goblin's turn: legendary actions come back
     expect(e.combatants.find(c => c.id === 'goblin')?.legendaryUsed).toBe(0)
@@ -214,5 +214,14 @@ describe('stat block actions', () => {
     expect(isBloodied({ current: 6, max: 10 })).toBe(false)
     expect(isBloodied({ current: 0, max: 10 })).toBe(false)
     expect(isBloodied(undefined)).toBe(false)
+  })
+})
+
+describe('critical hit dice', () => {
+  it('keeps only the dice of a damage formula', () => {
+    expect(critDice('2d6+5')).toBe('2d6')
+    expect(critDice('2d10 + 6')).toBe('2d10')
+    expect(critDice('1d8+1d6+3')).toBe('1d8+1d6')
+    expect(critDice('5')).toBeNull()
   })
 })

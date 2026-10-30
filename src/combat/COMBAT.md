@@ -8,7 +8,7 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 | File | Purpose |
 |------|---------|
 | `types.ts` | `Encounter`, `Combatant` (with `monster` stat block ref, `spent` uses, `legendaryUsed`, `npcId`), `Effect`, `PendingCheck`, `CONDITIONS` |
-| `engine.ts` | Every encounter change, pure: turns, timers, concentration, `spendAction` / `rechargeAction` / `useLegendary` / `isBloodied`. Tested in `engine.test.ts` |
+| `engine.ts` | Every encounter change, pure: turns, timers, concentration, `spendAction` / `rechargeAction` / `spendLegendary` / `critDice` / `isBloodied`. Tested in `engine.test.ts` |
 | `campaign.ts` | `campaignRows`: the party in play as `pc` rows, from this device or read from the cloud |
 | `storage.ts` | Encounters in localStorage (`ff.encounters.v1`), async API, filtered by `ownerId` |
 | `playerView.ts` | Pure: `playerView(encounter)`, what the party may see of a fight (`PlayerEncounter`); `healthLook`, `DM_ONLY_FIELDS`. Tested in `playerView.test.ts` |
@@ -18,7 +18,7 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 | `ui/apply.ts` | `applyDamage` / `applyHeal` on any row: monsters through the encounter, party members through the sheet engine, remote ones only logged |
 | `ui/MonsterActions.tsx` | A monster row's stat block in the fight: one-tap attack + damage with a target picker, save DCs, recharge / X/Day / legendary tracking |
 | `ui/rolls.ts` | Initiative and concentration rolls through `src/dice`, recorded in the dice history |
-| `ui/CombatTracker.tsx` | Encounter list and the open encounter (`initialOpenId` opens one straight away, used by the DM screen); `campaign` = the party in play; `useMonsterIndex` loads stat blocks; Next turn rolls the new monster's recharges |
+| `ui/CombatTracker.tsx` | Encounter list and the open encounter (`initialOpenId` opens one straight away, used by the DM screen); `campaign` = the party in play; `ui/useMonsterIndex.ts` loads stat blocks; Next turn rolls the new monster's recharges |
 | `ui/CombatantRow.tsx`, `AddCombatants.tsx`, `Effects.tsx`, `PendingChecks.tsx` | Parts of the encounter screen |
 | `ui/combat.css` | Liquid Glass styles (src/design/DESIGN.md): `.glass` cards, `.glass-btn` buttons, `.glass-chip` chips; logical properties only |
 | `ui/style.test.ts` | Keeps `combat.css` on logical properties and glass tokens |

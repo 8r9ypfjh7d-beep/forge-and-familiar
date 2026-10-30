@@ -8,16 +8,13 @@ import { RollView, useDice } from '../../dice/ui'
 import { useI18n } from '../../i18n'
 import { formatMod } from '../../rules'
 import type { Ability } from '../../rules'
-import { addLog, legendaryCost, spendAction, rechargeAction, useLegendary, type Party } from '../engine'
+import { addLog, critDice, legendaryCost, spendAction, rechargeAction, spendLegendary, type Party } from '../engine'
 import type { Combatant, Encounter } from '../types'
 import { applyDamage } from './apply'
 import type { Act } from './useEncounter'
 
 const newId = () => crypto.randomUUID()
 const LEGENDARY_MAX = 3
-
-/** The dice of a damage roll without its flat bonus, rolled again on a critical hit. */
-export const critDice = (dice: string) => dice.replace(/\s/g, '').split(/(?=[+-])/).filter(t => /d/i.test(t)).join('') || null
 
 interface Hit {
   action: string
@@ -61,7 +58,7 @@ export function MonsterActions({ enc, combatant: c, monster: m, party: _party, a
     setHit(h.toHit || h.damage.length ? h : null)
     act(e => {
       let next = e
-      if (group === 'legendary') next = useLegendary(next, c.id, a.name, legendaryCost(a.name), LEGENDARY_MAX)
+      if (group === 'legendary') next = spendLegendary(next, c.id, a.name, legendaryCost(a.name), LEGENDARY_MAX)
       else if (a.usage?.type === 'recharge' || a.usage?.type === 'per day') next = spendAction(next, c.id, a.name)
       if (h.toHit) next = addLog(next, 'combat.log.attackRoll', { name: c.name, action: a.name, total: h.toHit.total })
       if (h.damage.length) next = addLog(next, 'combat.log.damageRoll', { name: c.name, action: a.name, amount: total(h), type: h.damage.map(d => d.type).join(' + ') })

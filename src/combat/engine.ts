@@ -254,13 +254,16 @@ export function rechargeAction(enc: Encounter, id: string, action: string, total
 }
 
 /** Spends legendary actions (1, or 2 for "Costs 2 Actions"); refused when fewer are left. */
-export function useLegendary(enc: Encounter, id: string, action: string, cost: number, max = 3): Encounter {
+export function spendLegendary(enc: Encounter, id: string, action: string, cost: number, max = 3): Encounter {
   const c = byId(enc, id)
   if (!c) return enc
   const used = c.legendaryUsed ?? 0
   if (used + cost > max) return enc
   return log(updateCombatant(enc, id, { legendaryUsed: used + cost }), line('combat.log.legendary', { name: c.name, action, left: max - used - cost }))
 }
+
+/** The dice of a damage roll without its flat bonus ("2d6+5" → "2d6"), rolled again on a critical hit. */
+export const critDice = (dice: string) => dice.replace(/\s/g, '').split(/(?=[+-])/).filter(t => /d/i.test(t)).join('') || null
 
 /** "Wing Attack (Costs 2 Actions)" → 2. */
 export function legendaryCost(name: string): number {

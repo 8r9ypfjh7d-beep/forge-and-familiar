@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { loadKind, type Monster } from '../../content'
 import { roll } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Translate } from '../../i18n/translate'
@@ -13,23 +12,13 @@ import { Effects } from './Effects'
 import { PendingChecks } from './PendingChecks'
 import { useCombatRolls } from './rolls'
 import { useEncounter } from './useEncounter'
+import { useMonsterIndex } from './useMonsterIndex'
 import './combat.css'
 
 const newId = () => crypto.randomUUID()
 
 function elapsedText(seconds: number, t: Translate): string {
   return seconds < 60 ? t('combat.elapsedS', { s: seconds }) : t('combat.elapsedMin', { m: Math.floor(seconds / 60), s: seconds % 60 })
-}
-
-/** Monster stat blocks by "source:id", for rows that came from the library. */
-export function useMonsterIndex(): Map<string, Monster> {
-  const [index, setIndex] = useState(() => new Map<string, Monster>())
-  useEffect(() => {
-    let live = true
-    loadKind('monsters').then(list => { if (live) setIndex(new Map(list.map(m => [`${m.source}:${m.id}`, m]))) }).catch(() => {})
-    return () => { live = false }
-  }, [])
-  return index
 }
 
 /** Encounter list, and the open encounter. Each player profile keeps its own encounters. `campaign` is the party in play (its members join in one tap). */
