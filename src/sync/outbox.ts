@@ -1,6 +1,6 @@
 // Sync bookkeeping in localStorage (ff.sync.v1): the server revision each character was last
-// synced at, local changes waiting to be pushed (characters, snapshots, homebrew packs), and pull
-// cursors per account.
+// synced at, local changes waiting to be pushed (characters, snapshots, homebrew packs, NPC sheets),
+// and pull cursors per account.
 // No imports from the stores, so they can call it without a cycle.
 
 const KEY = 'ff.sync.v1'
@@ -28,6 +28,15 @@ export interface PackMeta {
   deleted?: true
 }
 
+/** A DM's NPC sheet (src/npc). Owned by one account, like a character. */
+export interface NpcMeta {
+  ownerId: string
+  /** The sheet's updatedAt when it was last on the server. */
+  synced?: string
+  dirty?: true
+  deleted?: true
+}
+
 export interface OwnerMeta {
   /** Set after the first full sync: everything made before it has been uploaded. */
   initialized?: true
@@ -38,12 +47,16 @@ export interface OwnerMeta {
   /** Set after this device's packs were first queued for this account. */
   packsInitialized?: true
   packCursor?: string
+  /** Set after this device's NPC sheets were first queued for this account. */
+  npcsInitialized?: true
+  npcCursor?: string
 }
 
 interface Meta {
   chars: Record<string, CharMeta>
   snaps: Record<string, SnapMeta>
   packs: Record<string, PackMeta>
+  npcs: Record<string, NpcMeta>
   owners: Record<string, OwnerMeta>
 }
 
@@ -51,9 +64,9 @@ export function readMeta(): Meta {
   try {
     const raw = localStorage.getItem(KEY)
     const m = raw ? (JSON.parse(raw) as Partial<Meta>) : {}
-    return { chars: m.chars ?? {}, snaps: m.snaps ?? {}, packs: m.packs ?? {}, owners: m.owners ?? {} }
+    return { chars: m.chars ?? {}, snaps: m.snaps ?? {}, packs: m.packs ?? {}, npcs: m.npcs ?? {}, owners: m.owners ?? {} }
   } catch {
-    return { chars: {}, snaps: {}, packs: {}, owners: {} }
+    return { chars: {}, snaps: {}, packs: {}, npcs: {}, owners: {} }
   }
 }
 
@@ -102,10 +115,18 @@ export function markPackDirty(id: string, deleted = false) {
   }, true)
 }
 
+/** Called by the NPC store when a sheet is saved or deleted on this device. */
+export function markNpcDirty(id: string, ownerId: string, deleted = false) {
+  updateMeta(m => {
+    const synced = m.npcs[id]?.synced
+    m.npcs[id] = deleted ? { ownerId, synced, dirty: true, deleted: true } : { ownerId, synced, dirty: true }
+  }, true)
+}
+
 /** Local changes not yet pushed for this account. */
 export function pendingCount(ownerId: string): number {
   const m = readMeta()
   const count = (r: Record<string, { ownerId: string; dirty?: true }>) =>
     Object.values(r).filter(x => x.ownerId === ownerId && x.dirty).length
-  return count(m.chars) + count(m.snaps) + Object.values(m.packs).filter(p => p.dirty).length
+  return count(m.chars) + count(m.snaps) + count(m.npcs) + Object.values(m.packs).filter(p => p.dirty).length
 }

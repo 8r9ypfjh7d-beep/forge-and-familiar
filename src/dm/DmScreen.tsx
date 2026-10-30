@@ -2,19 +2,17 @@
 // Uses the sheet's card style (.ff-sheet) so it reads like the rest of the app.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createEncounter, addCombatant, saveEncounter } from '../combat'
-import { BUNDLED, loadKind, type Monster, type MonsterAction } from '../content'
-import { rollD20 } from '../dice'
-import { RollView, useDice } from '../dice/ui'
+import { BUNDLED, loadKind, type Monster } from '../content'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { DmRequestsTab, inbox, StoryReminders, useRequests } from '../requests'
 import type { Party } from '../party'
 import { fetchPartyCharacters } from '../party/cloud'
-import { formatMod, totalLevel } from '../rules'
+import { StatBlock } from '../monsters'
+import { totalLevel } from '../rules'
 import { getCharacter } from '../storage'
-import type { Ability } from '../rules'
 import {
-  abilityMod, activePlan, addMonster, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterTypes,
+  activePlan, addMonster, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterTypes,
   groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
@@ -28,7 +26,6 @@ import './dm.css'
 
 const newId = () => crypto.randomUUID()
 const SOURCE = 'srd-5.1'
-const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 
 export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'reference' | 'npcs' | 'requests'
 type Tab = DmTab
@@ -410,115 +407,9 @@ function MonstersTab({ monsters, openId, onOpen, onAdd, planName }: {
         <MonsterBrowser monsters={monsters} onAdd={onAdd} onOpen={onOpen} openId={openId} />
       </section>
       {open
-        ? <StatBlock key={open.id} m={open} onAdd={() => onAdd(open)} planName={planName} />
+        ? <StatBlock key={open.id} m={open} actions={<button className="btn small primary" onClick={() => onAdd(open)} title={planName}>{t('dm.addToPlan')}</button>} />
         : <section className="card"><p className="hint">{t('dm.pickMonster')}</p></section>}
     </div>
-  )
-}
-
-const speedText = (s: Monster['speed']) =>
-  Object.entries(s).filter(([, v]) => typeof v === 'string').map(([k, v]) => (k === 'walk' ? v : `${k} ${v}`)).join(', ')
-
-const usageText = (a: MonsterAction) =>
-  a.usage?.type === 'recharge' ? ` (Recharge ${a.usage.dice === '1d6' ? `${a.usage.minimum}–6` : a.usage.dice})`
-    : a.usage?.type === 'per day' ? ` (${a.usage.times}/Day)` : ''
-
-function StatBlock({ m, onAdd, planName }: { m: Monster; onAdd: () => void; planName?: string }) {
-  const { t, abilityShort } = useI18n()
-  const { record, roll } = useDice()
-  const [last, setLast] = useState<ReturnType<typeof record> | null>(null)
-  const say = (r: ReturnType<typeof record>) => setLast(r)
-  const d20 = (bonus: number, label: string, type: 'check' | 'save' | 'attack') => say(record(rollD20(bonus, { label: `${m.name}: ${label}` }, type)))
-  const dmg = (dice: string, label: string) => {
-    try { say(roll(dice, { label: `${m.name}: ${label}` })) } catch { /* not dice notation */ }
-  }
-  const list = (k: MessageKey, items: string[]) => items.length ? <p><b>{t(k)}</b> {items.join(', ')}</p> : null
-  const senses = Object.entries(m.senses).map(([k, v]) => `${k.replace(/_/g, ' ')} ${v}`)
-  const saves = Object.entries(m.savingThrows) as [Ability, number][]
-  const skills = Object.entries(m.skills)
-
-  return (
-    <section className="card dm-statblock" aria-labelledby="dm-sb-name" lang="en" dir="ltr">
-      <div className="card-head">
-        <div>
-          <h3 id="dm-sb-name">{m.name}</h3>
-          <p className="hint">{m.sizes.join(' or ')} {m.type}{m.subtype ? ` (${m.subtype})` : ''}, {m.alignment}</p>
-        </div>
-        <button className="btn small primary" onClick={onAdd} title={planName}>{t('dm.addToPlan')}</button>
-      </div>
-      <dl className="dm-sb-core">
-        <div><dt>{t('stat.ac')}</dt><dd>{m.armorClass.map(a => `${a.value}${a.type ? ` (${a.type})` : ''}`).join(', ')}</dd></div>
-        <div><dt>{t('stat.hp')}</dt><dd>{m.hitPoints} <button className="chip-roll" onClick={() => dmg(m.hitPointsRoll, t('stat.hp'))}>{m.hitPointsRoll}</button></dd></div>
-        <div><dt>{t('stat.speed')}</dt><dd>{speedText(m.speed)}</dd></div>
-        <div><dt>{t('dm.crLabel')}</dt><dd>{crLabel(m.challengeRating)} ({m.xp.toLocaleString()} XP) · {t('stat.prof')} {formatMod(m.proficiencyBonus)}</dd></div>
-      </dl>
-      <div className="dm-sb-abilities" role="group" aria-label={t('dm.abilityChecks')}>
-        {ABILITIES.map(a => {
-          const mod = abilityMod(m.abilities[a])
-          return (
-            <button key={a} onClick={() => d20(mod, abilityShort(a), 'check')}>
-              <span>{abilityShort(a)}</span><b>{m.abilities[a]}</b><small>{formatMod(mod)}</small>
-            </button>
-          )
-        })}
-      </div>
-      <div className="dm-sb-lines">
-        {saves.length > 0 && (
-          <p><b>{t('dm.saves')}</b> {saves.map(([a, v]) => (
-            <button key={a} className="chip-roll" onClick={() => d20(v, `${abilityShort(a)} save`, 'save')}>{abilityShort(a)} {formatMod(v)}</button>
-          ))}</p>
-        )}
-        {skills.length > 0 && (
-          <p><b>{t('dm.skills')}</b> {skills.map(([s, v]) => (
-            <button key={s} className="chip-roll" onClick={() => d20(v, s, 'check')}>{s} {formatMod(v)}</button>
-          ))}</p>
-        )}
-        {list('dm.vulnerable', m.damageVulnerabilities)}
-        {list('dm.resist', m.damageResistances)}
-        {list('dm.immune', m.damageImmunities)}
-        {list('dm.condImmune', m.conditionImmunities)}
-        {list('dm.senses', senses)}
-        {m.languages && <p><b>{t('dm.languages')}</b> {m.languages}</p>}
-      </div>
-      {last && <div className="dm-roll" aria-live="polite"><RollView roll={last} compact /></div>}
-      <Actions title={t('dm.traits')} list={m.traits} onD20={d20} onDmg={dmg} />
-      <Actions title={t('dm.actions')} list={m.actions} onD20={d20} onDmg={dmg} />
-      <Actions title={t('dm.bonusActions')} list={m.bonusActions} onD20={d20} onDmg={dmg} />
-      <Actions title={t('dm.reactions')} list={m.reactions} onD20={d20} onDmg={dmg} />
-      <Actions title={t('dm.legendary')} list={m.legendaryActions} onD20={d20} onDmg={dmg} />
-    </section>
-  )
-}
-
-function Actions({ title, list, onD20, onDmg }: {
-  title: string
-  list: MonsterAction[]
-  onD20: (bonus: number, label: string, type: 'attack') => void
-  onDmg: (dice: string, label: string) => void
-}) {
-  const { t } = useI18n()
-  if (!list.length) return null
-  return (
-    <>
-      <h2 className="sub-title">{title}</h2>
-      <ul className="plain dm-actions">
-        {list.map((a, i) => (
-          <li key={i}>
-            <p><b>{a.name}{usageText(a)}.</b> {a.description}</p>
-            {(a.attackBonus != null || a.damage.length > 0 || a.damageChoice?.length) && (
-              <div className="dm-action-rolls">
-                {a.attackBonus != null && (
-                  <button className="btn small" onClick={() => onD20(a.attackBonus!, a.name, 'attack')}>{t('dm.toHit', { bonus: formatMod(a.attackBonus) })}</button>
-                )}
-                {[...a.damage, ...(a.damageChoice ?? [])].map((d, j) => (
-                  <button key={j} className="btn small" onClick={() => onDmg(d.dice, `${a.name} (${d.type})`)}>{d.dice} {d.type}</button>
-                ))}
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    </>
   )
 }
 

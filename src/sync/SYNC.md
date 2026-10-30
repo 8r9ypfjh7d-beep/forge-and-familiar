@@ -1,6 +1,6 @@
 # Cloud sync
 
-Characters (with their play state, inventory and coins), level snapshots, roll history and homebrew packs save to the server and load on any device the player signs in on with their activation code. Works offline: everything is saved on the device first and uploaded when the connection is back.
+Characters (with their play state, inventory and coins), level snapshots, roll history, homebrew packs and the DM's NPC sheets save to the server and load on any device the player signs in on with their activation code. Works offline: everything is saved on the device first and uploaded when the connection is back.
 
 ## Files Covered
 
@@ -10,6 +10,7 @@ Characters (with their play state, inventory and coins), level snapshots, roll h
 | `outbox.ts` | Bookkeeping in `ff.sync.v1`: server revision per character, unsent changes, pull cursors per account |
 | `engine.ts` | `syncOnce(remote, ownerId)`: first upload, push, pull, conflicts; `resolveConflict`, `mergeRolls` |
 | `packs.ts` | `syncPacks`: the device's homebrew library to and from the account, party members' packs down read-only |
+| `npcs.ts` | `syncNpcs`: the DM's NPC sheets (src/npc) to and from their account; owner only |
 | `runner.ts` | `startSync(remote, ownerId)` schedules passes; `getSyncStatus` / `onSyncStatus` |
 | `supabaseRemote.ts` | `RemoteStore` over the Supabase tables, with realtime on `characters` |
 | `useCloudSync.ts` | App hook: runs sync while the device is linked (`src/cloud`) and that account is the active player |
@@ -18,9 +19,11 @@ Characters (with their play state, inventory and coins), level snapshots, roll h
 | `DuplicatePrompt.tsx` | Character list card that asks which copy to keep |
 | `SyncBadge.tsx`, `sync.css` | "Saved to cloud / Offline / N changes waiting" chip |
 | `packs.test.ts` | Packs across devices, to the party DM, privacy outside the party, deletes, conflicts, missing table |
+| `npcs.test.ts` | NPC sheets across the DM's devices, never to another account, play state, deletes, conflicts, missing table |
 | `sync.test.ts` | Two-device tests: first upload, new device, offline, conflicts, deletes, same character twice |
 | `../../supabase/migrations/20261027100000_sync.sql` | `snapshots` and `rolls` tables and their access rules (checks in `supabase/tests/rls_test.sql`) |
 | `../../supabase/migrations/20261030120000_homebrew_packs.sql` | `homebrew_packs` table: owner writes, owner + party members + admin read |
+| `../../supabase/migrations/20261030210000_npc_sheets.sql` | `npc_sheets` table (from the hide-NPC-sheets work): owner or admin only, deletes are tombstones |
 
 ## How it works
 
@@ -41,6 +44,10 @@ A push is refused when another device wrote the character since this one last sy
 - If the other copy's build differs (`BUILD_FIELDS`: level, classes, scores, feats...), it is kept as a snapshot labelled `CONFLICT_LABEL`, so Level history can roll back to it. Play state from the older copy (HP, slots) is dropped.
 
 Snapshots and rolls never conflict: snapshots are written once (deletes sync as tombstones) and rolls are merged by id, newest 100 kept. Clearing roll history only clears this device until the next pull.
+
+## NPC sheets
+
+`src/npc/store.ts` marks saves and deletes (`markNpcDirty`); sync writes back through `applyRemoteNpc`, which doesn't. Rows are keyed by owner and sheet id in `npc_sheets`, pulled by `owner_id` only (the server's policies allow the owner and the admin, nobody else), pushed as upserts; a delete is a tombstone row. Conflicts: an edit beats a delete, otherwise the sheet with the later `updatedAt` wins. The first pass for an account queues every sheet already on the device (`npcsInitialized`). While the live database has no `npc_sheets` table yet, the remote throws `MissingTableError` and the pass skips NPCs, leaving them queued.
 
 ## Homebrew packs
 
