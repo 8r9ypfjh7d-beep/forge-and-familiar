@@ -34,6 +34,12 @@ describe('2024 Elf Keen Senses', () => {
     const ranger = suggestedSkills(draft({ classes: [{ classId: 'ranger', level: 1 }] }))
     expect(ranger).toHaveLength(4)
     expect(stepIssues('skills', draft({ classes: [{ classId: 'ranger', level: 1 }], chosenSkills: ranger }))).toEqual([])
+    expect(stepWarnings('skills', draft({ classes: [{ classId: 'ranger', level: 1 }], chosenSkills: ranger }))).toEqual([])
+  })
+
+  it('does not warn when the Keen Senses pick is also on the class list', () => {
+    const d = draft({ classes: [{ classId: 'ranger', level: 1 }], chosenSkills: ['insight', 'animalHandling', 'perception', 'athletics'] })
+    expect(stepWarnings('skills', d)).not.toContain('Some skills are not on your class or background list. Fine if your DM agrees.')
   })
 })
 

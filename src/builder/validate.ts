@@ -278,8 +278,12 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
       const fromClass = d.chosenSkills.filter(s => classFrom.includes(s)).length
       const fromBg = d.chosenSkills.filter(s => bgFrom.includes(s) && !classFrom.includes(s)).length
       const fromRace = d.chosenSkills.filter(s => raceFrom.includes(s) && !classFrom.includes(s) && !bgFrom.includes(s)).length
+      // A race pick that is also on the class list (Keen Senses Perception for a Ranger) fills a race slot once the class slots are full.
+      const overlap = d.chosenSkills.filter(s => raceFrom.includes(s) && classFrom.includes(s)).length
+      const raceOnly = Math.min(fromRace, raceListCount)
+      const raceShared = Math.min(raceListCount - raceOnly, overlap, Math.max(0, fromClass - classCount))
       const listed = classCount + bgCount + raceListCount
-      const onList = Math.min(fromClass, classCount) + fromBg + Math.min(fromRace, raceListCount)
+      const onList = Math.min(fromClass, classCount) + fromBg + raceOnly + raceShared
       if (listed && d.chosenSkills.length && onList < Math.min(listed, d.chosenSkills.length)) out.push(t('builder.warn.skillsOffList'))
       const tools = d.chosenTools ?? []
       let at = 0
