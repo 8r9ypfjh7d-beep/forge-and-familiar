@@ -3,7 +3,7 @@ import { useI18n } from '../i18n'
 import type { AbilityMethod } from '../model/character'
 import type { CustomBackground, Improvement } from '../model/character'
 import {
-  ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
+  ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, SKILLS, TOOLS, allLanguages, allTools, homebrewProficiencyText,
   CUSTOM_FEAT, ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, improvementFeat, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, stalePicks, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
@@ -27,6 +27,7 @@ import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validat
 import { Explain, ExplainList, Why } from './Why'
 import { explainKey, featExplainKey, featureKey, optionKey, optionName, pitchKey, type WhyId } from './why'
 import { groupKitItems } from './kit'
+import { effectText } from '../inventory/Inventory'
 import { PickOrWrite, useLanguageGroups, useToolGroups } from './ProficiencyPick'
 
 export interface StepProps {
@@ -78,7 +79,8 @@ function EditionPicker({ draft, update }: StepProps) {
 function RaceStep({ draft, update }: StepProps) {
   const edition = rulesEdition(draft)
   const race = raceById(draft.raceId, edition)
-  const { t, term, abilityShort, skill } = useI18n()
+  const i18n = useI18n()
+  const { t, term, abilityShort, skill } = i18n
   // Legacy (2014) races under 2024 rules keep their 2014 pitch and subrace explanations.
   const racePitch = race && (pitchKey(edition === '2024' && !race.legacy ? 'race2024' : 'race', race.id))
   const subBonus = (b: Partial<Record<Ability, number>>) => (Object.keys(b).length ? ` (${bonusText(b, abilityShort)})` : '')
@@ -153,6 +155,12 @@ function RaceStep({ draft, update }: StepProps) {
             ))}
           </div>
         </div>
+      )}
+      {race?.id.startsWith('hb:') && edition === '2024' && (Object.keys(race.abilityBonuses).length > 0 || race.freeAbilityBonuses) && (
+        <p className="muted small">{t('builder.race.bonus2024Ignored')}</p>
+      )}
+      {race?.id.startsWith('hb:') && race.effects && race.effects.length > 0 && (
+        <p className="small"><strong>{t('builder.race.effects')}</strong> {race.effects.map(f => effectText(i18n, f)).join(' · ')}</p>
       )}
       {profile.featChoice && (
         <div className="field">
@@ -235,7 +243,7 @@ function OriginSwapsPicker({ draft, update }: StepProps) {
     update({ originSwaps: { ...swaps, [kind]: { ...swaps?.[kind], [from]: to === from ? undefined : to } } })
   const rows: { kind: keyof OriginSwaps; ids: string[]; options: string[]; name: (id: string) => string }[] = [
     { kind: 'skills', ids: book.skills, options: ALL_SKILLS, name: id => skill(id as SkillId) },
-    { kind: 'languages', ids: book.languages, options: LANGUAGES, name: id => term('language', id, id) },
+    { kind: 'languages', ids: book.languages, options: allLanguages(), name: id => term('language', id, id) },
     { kind: 'weapons', ids: book.weapons, options: weapons.map(w => w.id), name: id => term('item', id, itemById(id)?.name ?? id) },
   ]
   return (
@@ -1013,7 +1021,8 @@ function LanguagesAndTools({ draft, update }: StepProps) {
   }
   // A name the player wrote has no line of ours; say so instead of calling it group homebrew.
   const explained = (kind: 'language' | 'tool', x: string) => ({
-    name: term(kind, x, x), key: explainKey(kind, x), text: (kind === 'language' ? LANGUAGES : TOOLS).includes(x) ? undefined : t('builder.writtenOwn'),
+    name: term(kind, x, x), key: explainKey(kind, x),
+    text: homebrewProficiencyText(kind, x) ?? ((kind === 'language' ? allLanguages() : allTools()).includes(x) ? undefined : t('builder.writtenOwn')),
   })
   let offset = 0
   return (

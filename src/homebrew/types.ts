@@ -1,6 +1,8 @@
-// Homebrew content: spells, items, feats, races, subclasses, backgrounds class options and classes a group writes themselves, grouped into shareable packs.
+// Homebrew content: spells, items, feats, races, subclasses, backgrounds, class options, classes, languages and tools a group writes themselves, grouped into shareable packs.
 import type { ClassOption, HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
-import type { Abilities, Ability, ArmorCategory, CasterType, ClassFeature, ClassSpellcasting, Feat, FeatEffect, Item, ItemEffect, Size, SkillId, WeaponCategory } from '../rules/types'
+import type {
+  Abilities, Ability, ArmorCategory, CasterType, ClassFeature, ClassSpellcasting, Feat, FeatEffect, Item, ItemEffect, RulesEdition, Size, SkillId, WeaponCategory,
+} from '../rules/types'
 
 export type { FeatEffect }
 
@@ -64,6 +66,47 @@ export interface HomebrewRace {
   languageChoices: number
   traits: string[]
   hpPerLevel: number
+  description?: string
+  /** Made for one edition only ('2024' species take ability bonuses from the background); missing means both. */
+  edition?: RulesEdition
+  /** Extra sizes the player may pick instead of `size` (2024 style "Small or Medium"). */
+  sizeOptions?: Size[]
+  /** Sheet changes: senses, resistances, immunities, speeds, advantage, innate spells, uses per rest... */
+  effects?: ItemEffect[]
+  /** Tools every member knows, and free tool picks of any tool. */
+  tools?: string[]
+  toolChoices?: number
+  armor?: ArmorCategory[]
+  weapons?: WeaponCategory[]
+  /** Natural armor: unarmored AC is this + DEX (0 or missing: none). */
+  naturalArmor?: number
+  /** A named pick (lineage, ancestry, heritage); each option can change the sheet. */
+  choice?: { name: string; options: { name: string; detail: string; effects?: ItemEffect[] }[] }
+}
+
+export const LANGUAGE_KINDS = ['standard', 'rare', 'secret'] as const
+export type LanguageKind = (typeof LANGUAGE_KINDS)[number]
+
+/** A language the group invented; characters can pick it wherever they pick a language. */
+export interface HomebrewLanguage {
+  id: string
+  name: string
+  kind: LanguageKind
+  script?: string
+  speakers?: string
+  description?: string
+}
+
+export const TOOL_KINDS = ['artisan', 'gaming', 'instrument', 'other'] as const
+export type ToolKind = (typeof TOOL_KINDS)[number]
+
+/** A tool, kit, game or instrument the group invented; characters can pick it wherever they pick a tool. */
+export interface HomebrewTool {
+  id: string
+  name: string
+  kind: ToolKind
+  /** The ability its checks usually use. */
+  ability?: Ability
   description?: string
 }
 
@@ -170,11 +213,15 @@ export interface HomebrewPack {
   /** Invocations, metamagic, maneuvers, fighting styles, infusions. Older packs load with none. */
   classOptions: HomebrewClassOption[]
   classes: HomebrewClass[]
+  /** Missing in packs saved before languages and tools existed; sanitizePack fills them in. */
+  languages: HomebrewLanguage[]
+  tools: HomebrewTool[]
   /** Author's change history, only in downloaded pack files. Validated by src/history, never stored in the library. */
   history?: unknown[]
 }
 
-export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions' | 'classes'
+export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions' | 'classes' | 'languages' | 'tools'
 
-
-export type HomebrewEntry = HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass | HomebrewBackground | HomebrewClassOption | HomebrewClass
+export type HomebrewEntry =
+  | HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass | HomebrewBackground | HomebrewClassOption | HomebrewClass
+  | HomebrewLanguage | HomebrewTool

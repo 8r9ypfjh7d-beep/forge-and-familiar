@@ -9,14 +9,17 @@ import { listCharacters, saveCharacter } from '../../storage'
 import { allEntries, blankClass, decodePack, describeEffect, encodeShareCode, entryId, newPack, PackError, sanitizeEntry, slug } from '../pack'
 import { deletePack, importPack, listPacks, onPacksChanged, savePack } from '../store'
 import type { Ability } from '../../rules'
-import type { ContentKind, HomebrewBackground, HomebrewClass, HomebrewClassOption, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
-import { BackgroundForm, ClassOptionForm, FeatForm, ItemForm, RaceForm, SpellForm, SubclassForm } from './forms'
+import type {
+  ContentKind, HomebrewBackground, HomebrewClass, HomebrewClassOption, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewLanguage, HomebrewPack, HomebrewRace,
+  HomebrewSpell, HomebrewSubclass, HomebrewTool,
+} from '../types'
+import { BackgroundForm, ClassOptionForm, FeatForm, ItemForm, LanguageForm, RaceForm, SpellForm, SubclassForm, ToolForm } from './forms'
 import { ClassForm } from './ClassForm'
 import './homebrew.css'
 
 const shortId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 
-const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds', 'classOptions', 'classes']
+const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds', 'classOptions', 'classes', 'languages', 'tools']
 
 /** "2 spells · 1 item", or "Empty". */
 const packCounts = (t: Translate, p: HomebrewPack) =>
@@ -152,6 +155,8 @@ type Editing =
   | { kind: 'backgrounds'; entry: HomebrewBackground }
   | { kind: 'classOptions'; entry: HomebrewClassOption }
   | { kind: 'classes'; entry: HomebrewClass }
+  | { kind: 'languages'; entry: HomebrewLanguage }
+  | { kind: 'tools'; entry: HomebrewTool }
 
 function blank(kind: ContentKind): Editing {
   if (kind === 'spells') {
@@ -183,6 +188,8 @@ function blank(kind: ContentKind): Editing {
   }
   if (kind === 'classOptions') return { kind, entry: { id: '', kind: 'invocation', name: '', text: '', classIds: OPTION_KIND_CLASSES.invocation, effects: [] } }
   if (kind === 'classes') return { kind, entry: blankClass() }
+  if (kind === 'languages') return { kind, entry: { id: '', name: '', kind: 'standard' } }
+  if (kind === 'tools') return { kind, entry: { id: '', name: '', kind: 'other' } }
   return { kind, entry: { id: '', name: '', description: '', effects: [] } }
 }
 
@@ -209,6 +216,8 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
     else if (e.kind === 'backgrounds') next.backgrounds = upsert(pack.backgrounds, (entry = withId(e.entry)))
     else if (e.kind === 'classOptions') next.classOptions = upsert(pack.classOptions, (entry = withId(e.entry)))
     else if (e.kind === 'classes') next.classes = upsert(pack.classes, (entry = withId(e.entry)))
+    else if (e.kind === 'languages') next.languages = upsert(pack.languages, (entry = withId(e.entry)))
+    else if (e.kind === 'tools') next.tools = upsert(pack.tools, (entry = withId(e.entry)))
     else next.feats = upsert(pack.feats, (entry = withId(e.entry)))
     await savePack(next)
     await recordRevision({ kind: e.kind, entry, authorId: profile.id, authorName: profile.displayName, ...meta })
@@ -244,6 +253,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
       // A copied pack's subclasses follow its classes to their new ids.
       subclasses: pack.subclasses.map(sc => ({ ...rename(sc), classId: sc.classId.replace(`hb:${pack.id}:`, `hb:${id}:`) })),
       classes: pack.classes.map(c => ({ ...rename(c), ...(c.spellcasting ? { spellcasting: { ...c.spellcasting, list: c.spellcasting.list.replace(`hb:${pack.id}:`, `hb:${id}:`) } } : {}) })),
+      languages: pack.languages.map(rename), tools: pack.tools.map(rename),
     })
     onOpen(copy.id)
   }
@@ -310,6 +320,8 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
           {editing?.kind === 'classOptions' && <ClassOptionForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'classOptions', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'subclasses' && <SubclassForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'subclasses', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'classes' && <ClassForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'classes', entry })} onCancel={() => setEditing(null)} />}
+          {editing?.kind === 'languages' && <LanguageForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'languages', entry })} onCancel={() => setEditing(null)} />}
+          {editing?.kind === 'tools' && <ToolForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'tools', entry })} onCancel={() => setEditing(null)} />}
 
           {!editing && (
             <EntryList
@@ -378,7 +390,8 @@ function EntryList({ kind, pack, mine, profile, onEdit, onDelete, onRestore }: {
 
 type I18n = ReturnType<typeof useI18n>
 
-function subtitle({ t, className }: I18n, kind: ContentKind, e: HomebrewEntry): string {
+function subtitle(i18n: I18n, kind: ContentKind, e: HomebrewEntry): string {
+  const { t, className } = i18n
   if (kind === 'spells') {
     const s = e as HomebrewSpell
     const school = t(`hb.school.${s.school}`)
@@ -395,8 +408,17 @@ function subtitle({ t, className }: I18n, kind: ContentKind, e: HomebrewEntry): 
   }
   if (kind === 'races') {
     const r = e as HomebrewRace
-    if (r.parentRaceId) return t('hb.sub.subraceOf', { race: raceById(r.parentRaceId)?.name ?? t('hb.sub.unknownRace') })
-    return t('hb.sub.race', { size: t(r.size === 'Small' ? 'hb.f.small' : 'hb.f.medium'), speed: r.speed })
+    if (r.parentRaceId) return t('hb.sub.subraceOf', { race: (raceById(r.parentRaceId) ?? raceById(r.parentRaceId, '2024'))?.name ?? t('hb.sub.unknownRace') })
+    const sizes = [...new Set([r.size, ...(r.sizeOptions ?? [])])].map(x => t(`hb.size.${x}`)).join('/')
+    return [t('hb.sub.race', { size: sizes, speed: r.speed }), r.edition && t(`hb.edition.${r.edition}`)].filter(Boolean).join(' · ')
+  }
+  if (kind === 'languages') {
+    const l = e as HomebrewLanguage
+    return [t(`hb.langKind.${l.kind}`), l.script && t('hb.sub.script', { script: l.script })].filter(Boolean).join(' · ')
+  }
+  if (kind === 'tools') {
+    const x = e as HomebrewTool
+    return [t(`hb.toolKind.${x.kind}`), x.ability && i18n.ability(x.ability)].filter(Boolean).join(' · ')
   }
   if (kind === 'subclasses') {
     const sc = e as HomebrewSubclass
@@ -466,6 +488,12 @@ function EntryBody({ i18n, kind, entry }: { i18n: I18n; kind: ContentKind; entry
       !r.parentRaceId && t('hb.race.languages', { list: list([...r.languages, ...choice(r.languageChoices)]) || t('hb.race.none') }),
       (r.skillProficiencies.length > 0 || r.freeSkillChoices > 0) && t('hb.race.skills', { list: list([...r.skillProficiencies.map(skill), ...choice(r.freeSkillChoices)]) }),
       r.hpPerLevel > 0 && t('hb.race.hp', { n: r.hpPerLevel }),
+      (r.tools?.length || r.toolChoices) && t('hb.race.tools', { list: list([...(r.tools ?? []), ...choice(r.toolChoices ?? 0)]) }),
+      (r.armor?.length || r.weapons?.length) && t('hb.race.training', { list: list([...(r.armor ?? []).map(a => t(`hb.cat.${a}`)), ...(r.weapons ?? []).map(w => t(`hb.cat.${w}`))]) }),
+      r.naturalArmor && t('hb.race.naturalArmor', { n: r.naturalArmor }),
+      r.effects?.length && t('hb.race.effects', { list: r.effects.map(f => effectText(i18n, f)).join(' · ') }),
+      r.choice && t('hb.race.pick', { name: r.choice.name, list: list(r.choice.options.map(o => o.name)) }),
+      r.edition === '2024' && t('hb.race.2024'),
     ].filter(Boolean)
     return (
       <>
@@ -534,6 +562,19 @@ function EntryBody({ i18n, kind, entry }: { i18n: I18n; kind: ContentKind; entry
         {o.repeatable && <p className="muted small">{t('hb.opt.repeatable')}</p>}
       </>
     )
+  }
+  if (kind === 'languages') {
+    const l = entry as HomebrewLanguage
+    return (
+      <>
+        {l.speakers && <p className="small">{t('hb.lang.speakers', { list: l.speakers })}</p>}
+        {l.description && <p className="hb-text">{l.description}</p>}
+      </>
+    )
+  }
+  if (kind === 'tools') {
+    const x = entry as HomebrewTool
+    return x.description ? <p className="hb-text">{x.description}</p> : null
   }
   const f = entry as HomebrewFeat
   return (

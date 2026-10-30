@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
-  backgroundsFor, createCharacter, derive, featSkillPicks, fixedLanguages, fixedTools, getAbilityScores, getArmorClass, getAttacks, getBackground,
-  getFeats, getSkillProficiencies, itemById, registerHomebrewBackgrounds, registerHomebrewFeats, registerHomebrewItems, startingGold, toolPickGroups,
+  allLanguages, allRaces, allTools, backgroundsFor, createCharacter, derive, featSkillPicks, fixedLanguages, fixedTools, getAbilityScores, getArmorClass, getAttacks,
+  getBackground, getFeats, raceProfile, getSkillProficiencies, homebrewProficiencyText, itemById, registerHomebrewBackgrounds, registerHomebrewFeats,
+  registerHomebrewItems, registerHomebrewProficiencies, registerHomebrewRaces, startingGold, toolPickGroups,
 } from '../rules'
-import { toBackground } from './store'
-import { backgroundIssues, classOptionIssues, decodePack, encodeShareCode, entryId, featIssues, itemIssues, newPack, PackError, sanitizeEntry, sanitizePack, spellIssues } from './pack'
+import { toBackground, toRace } from './store'
+import {
+  backgroundIssues, classOptionIssues, decodePack, encodeShareCode, entryId, featIssues, itemIssues, languageIssues, newPack, PackError, raceIssues, sanitizeEntry,
+  sanitizePack, spellIssues, toolIssues,
+} from './pack'
 import type { HomebrewItem, HomebrewPack, HomebrewSpell } from './types'
 
 const author = { id: 'u1', displayName: 'Ziv' }
@@ -254,5 +258,79 @@ describe('homebrew class options', () => {
     expect(classOptionIssues({ ...p.classOptions[0], name: '', classIds: [] })).toHaveLength(2)
     expect(decodePack(encodeShareCode(p)).classOptions).toEqual(p.classOptions)
     expect(sanitizeEntry('classOptions', p.classOptions[2], p.id)).toEqual(p.classOptions[2])
+  })
+})
+
+describe('homebrew species for 2024 and every trait type', () => {
+  const raw = {
+    format: 'ff-homebrew', version: 1, id: 'abcd1234', name: 'Book', updatedAt: '2026-10-30T00:00:00Z',
+    races: [{
+      name: 'Shellkin', size: 'Small', sizeOptions: ['Medium', 'Gargantuan'], speed: 25, edition: '2024', abilityBonuses: { con: 2 },
+      effects: [{ kind: 'sense', sense: 'darkvision', value: 60 }, { kind: 'resistance', damage: 'cold' }, { kind: 'moveSpeed', mode: 'swim', value: 0 }, { kind: 'bogus' }],
+      tools: ["Cook's utensils"], toolChoices: 1, armor: ['light', 'plate'], weapons: ['martial'], naturalArmor: 13,
+      choice: { name: 'Tide', options: [{ name: 'Ebb', detail: 'Cold blood', effects: [{ kind: 'immunity', damage: 'cold' }] }, { name: 'Flow', detail: 'Quick' }, { name: '' }] },
+    }],
+    languages: [{ name: 'Seaspeak', kind: 'rare', script: 'Shells' }, { name: 'Seaspeak', kind: 'loud' }],
+    tools: [{ name: 'Tide charts', kind: 'other', ability: 'wis' }],
+  }
+
+  it('sanitizes the new race fields, languages and tools', () => {
+    const p = sanitizePack(raw)
+    expect(p.races[0]).toMatchObject({
+      edition: '2024', sizeOptions: ['Medium'], tools: ["Cook's utensils"], toolChoices: 1, armor: ['light'], weapons: ['martial'], naturalArmor: 13,
+      choice: { name: 'Tide', options: [{ name: 'Ebb', effects: [{ kind: 'immunity', damage: 'cold' }] }, { name: 'Flow' }] },
+    })
+    expect(p.races[0].effects).toHaveLength(3)
+    expect(p.languages).toMatchObject([{ id: 'hb:abcd1234:seaspeak', name: 'Seaspeak', kind: 'rare', script: 'Shells' }, { id: 'hb:abcd1234:seaspeak-2', kind: 'standard' }])
+    expect(p.tools).toMatchObject([{ id: 'hb:abcd1234:tide-charts', kind: 'other', ability: 'wis' }])
+    // Packs from before languages and tools load with empty lists; plain races stay as they were.
+    const old = sanitizePack({ format: 'ff-homebrew', version: 1, id: 'abcd1234', races: [{ name: 'Plain' }] })
+    expect(old.languages).toEqual([])
+    expect(old.tools).toEqual([])
+    expect(Object.keys(old.races[0])).not.toContain('effects')
+  })
+
+  it('plays as a 2024 species: background bonuses, size pick, lineage effects, natural armor, tools and training', () => {
+    const p = sanitizePack(raw)
+    registerHomebrewProficiencies(p.languages, p.tools)
+    registerHomebrewRaces(p.races.map(toRace), [])
+    const id = p.races[0].id
+    expect(allRaces('2024').some(r => r.id === id)).toBe(true)
+    expect(allRaces('2014').some(r => r.id === id)).toBe(false)
+    expect(allLanguages()).toContain('Seaspeak')
+    expect(allTools()).toContain('Tide charts')
+    expect(homebrewProficiencyText('tool', 'Tide charts')).toBeUndefined()
+
+    const c = createCharacter({
+      name: 'S', ownerId: 'u1', playerName: '', alignment: 'True Neutral', raceId: id, backgroundId: 'acolyte', rulesEdition: '2024',
+      classes: [{ classId: 'wizard', level: 1 }], abilityMethod: 'standard',
+      baseAbilities: { str: 10, dex: 14, con: 13, int: 15, wis: 12, cha: 8 }, freeAbilityBonuses: ['int', 'int', 'con'], chosenSkills: [],
+    })
+    c.traitChoices = { [`${id}:choice`]: 'ebb' }
+    c.sizeChoice = 'Medium'
+    const d = derive(c)
+    expect(d.abilities.con).toBe(14) // background +1 only; the species' +2 CON is a 2014 thing
+    expect(d.size).toBe('Medium')
+    expect(derive({ ...c, sizeChoice: 'Large' }).size).toBe('Small') // not offered: species default
+    expect(d.senses.darkvision).toBe(60)
+    expect(d.speeds.swim).toBe(25)
+    expect(d.defenses.immunities).toContain('cold')
+    expect(d.defenses.resistances).not.toContain('cold') // immunity from the Ebb pick wins
+    expect(d.traits.some(t => t.startsWith('Tide (Ebb'))).toBe(true)
+    expect(d.armorClass).toEqual({ value: 15, source: 'Natural Armor' })
+    expect(d.tools).toContain("Cook's utensils")
+    expect(toolPickGroups(c)[0]).toMatchObject({ source: 'Shellkin', count: 1 })
+    expect(toolPickGroups(c)[0].from).toContain('Tide charts')
+    expect(raceProfile(c)).toMatchObject({ armor: ['light'], weapons: ['martial'] })
+    registerHomebrewRaces([], [])
+    registerHomebrewProficiencies([], [])
+  })
+
+  it('validates the lineage pick and names', () => {
+    const base = sanitizePack(raw).races[0]
+    expect(raceIssues(base)).toEqual([])
+    expect(raceIssues({ ...base, choice: { name: '', options: [{ name: 'A', detail: '' }] } })).toHaveLength(2)
+    expect(languageIssues({ id: '', name: ' ', kind: 'standard' })).toHaveLength(1)
+    expect(toolIssues({ id: '', name: 'Dice', kind: 'gaming' })).toEqual([])
   })
 })

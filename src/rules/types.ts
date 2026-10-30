@@ -19,7 +19,9 @@ export type SkillId =
   | 'nature' | 'perception' | 'performance' | 'persuasion' | 'religion'
   | 'sleightOfHand' | 'stealth' | 'survival'
 
-export type Size = 'Small' | 'Medium'
+/** Creature size. Official species are Small or Medium; homebrew may be Tiny or Large too. */
+export type Size = 'Tiny' | 'Small' | 'Medium' | 'Large'
+export const SIZES: Size[] = ['Tiny', 'Small', 'Medium', 'Large']
 
 /** Rules edition: '2014' is SRD 5.1, '2024' is SRD 5.2. */
 export type RulesEdition = '2014' | '2024'
@@ -137,6 +139,8 @@ export interface Race extends RaceRules {
   subraceOptional?: boolean
   /** A 2014 race offered under 2024 rules (no 2024 version exists); its ability bonuses come from the background. */
   legacy?: boolean
+  /** Homebrew made for one edition only; missing means both. */
+  edition?: RulesEdition
 }
 
 export type ArmorCategory = 'light' | 'medium' | 'heavy' | 'shield'

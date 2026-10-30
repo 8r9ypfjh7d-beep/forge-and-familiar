@@ -4,19 +4,19 @@ import { parseNotation } from '../dice/notation'
 import { HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
 import { sanitizeEffect } from '../rules/itemEffects'
 import {
-  ABILITIES, ABILITY_NAMES, type Abilities, type Ability, type ArmorCategory, type CasterType, type ClassFeature, type ItemEffect, type SkillId, type UsesCount,
+  ABILITIES, ABILITY_NAMES, SIZES, type Abilities, type Ability, type ArmorCategory, type CasterType, type ClassFeature, type ItemEffect, type SkillId, type UsesCount,
   type WeaponCategory,
 } from '../rules/types'
 import { ALL_SKILLS, SKILLS } from '../rules/data/skills'
 import {
-  HIT_DICE, PACK_FORMAT, PACK_VERSION, RARITIES, SPELL_SCHOOLS,
-  BACKGROUND_EDITIONS,
-  type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClass, type HomebrewClassOption, type HomebrewEntry, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace,
-  type HomebrewSpell, type HomebrewSubclass,
+  BACKGROUND_EDITIONS, HIT_DICE, LANGUAGE_KINDS, PACK_FORMAT, PACK_VERSION, RARITIES, SPELL_SCHOOLS, TOOL_KINDS,
+  type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClass, type HomebrewClassOption, type HomebrewEntry, type HomebrewFeat, type HomebrewItem,
+  type HomebrewLanguage, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type HomebrewTool,
 } from './types'
 
 /** Every entry in a pack, all kinds. */
-export const allEntries = (p: HomebrewPack): HomebrewEntry[] => [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds, ...p.classOptions, ...p.classes]
+export const allEntries = (p: HomebrewPack): HomebrewEntry[] =>
+  [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds, ...p.classOptions, ...p.classes, ...p.languages, ...p.tools]
 
 export const SHARE_PREFIX = 'FFHB1.'
 export const LIMITS = { entries: 500, name: 80, text: 4000, short: 120 }
@@ -41,7 +41,7 @@ export function newPack(id: string, author: { id: string; displayName: string },
   return {
     format: PACK_FORMAT, version: PACK_VERSION, id, name, description: '',
     authorId: author.id, authorName: author.displayName, updatedAt: new Date().toISOString(),
-    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [], classes: [],
+    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [], classes: [], languages: [], tools: [],
   }
 }
 
@@ -88,7 +88,17 @@ export function raceIssues(r: HomebrewRace): string[] {
   const out: string[] = []
   if (!r.name.trim()) out.push('Give the race a name.')
   if (!r.parentRaceId && !(r.speed >= 0 && r.speed <= 120)) out.push('Speed must be between 0 and 120 ft.')
+  if (r.choice && !r.choice.name.trim()) out.push('Name the choice (for example "Lineage").')
+  if (r.choice && r.choice.options.filter(o => o.name.trim()).length < 2) out.push('A choice needs at least two named options.')
   return out
+}
+
+export function languageIssues(l: HomebrewLanguage): string[] {
+  return l.name.trim() ? [] : ['Give the language a name.']
+}
+
+export function toolIssues(t: HomebrewTool): string[] {
+  return t.name.trim() ? [] : ['Give the tool a name.']
 }
 
 export function subclassIssues(s: HomebrewSubclass): string[] {
@@ -294,7 +304,6 @@ function cleanFeat(v: Obj, packId: string, seen: Set<string>): HomebrewFeat {
 /** `{ key: values }` when there are any, so empty lists stay out of saved packs. */
 const optList = <K extends string, T>(key: K, values: T[]) => (values.length ? { [key]: values } as Record<K, T[]> : {})
 
-const SIZES = ['Small', 'Medium'] as const
 const ARMOR = ['light', 'medium', 'heavy', 'shield'] as const
 const textList = (v: unknown, max = 30) => list(v).map(x => str(x, LIMITS.name).trim()).filter(Boolean).slice(0, max)
 
@@ -326,6 +335,61 @@ function cleanRace(v: Obj, packId: string, seen: Set<string>): HomebrewRace {
     languageChoices: int(v.languageChoices, 0, 6),
     traits: textList(v.traits),
     hpPerLevel: int(v.hpPerLevel, 0, 5),
+    description: optStr(v.description, LIMITS.text),
+    ...cleanRaceExtras(v),
+  }
+}
+
+const WEAPONS = ['simple', 'martial'] as const
+
+/** The 2024-era race fields; each is left out when empty so older packs stay byte-identical. */
+function cleanRaceExtras(v: Obj): Partial<HomebrewRace> {
+  const out: Partial<HomebrewRace> = {}
+  const edition = optOneOf(v.edition, ['2014', '2024'] as const)
+  if (edition) out.edition = edition
+  const sizes = [...new Set(list(v.sizeOptions).filter((x): x is HomebrewRace['size'] => SIZES.includes(x as HomebrewRace['size'])))]
+  if (sizes.length) out.sizeOptions = sizes
+  const effects = cleanEffects(v.effects)
+  if (effects.length) out.effects = effects
+  const tools = textList(v.tools, 10)
+  if (tools.length) out.tools = tools
+  const toolChoices = int(v.toolChoices, 0, 6)
+  if (toolChoices) out.toolChoices = toolChoices
+  const armor = [...new Set(list(v.armor).filter((a): a is ArmorCategory => ARMOR.includes(a as ArmorCategory)))]
+  if (armor.length) out.armor = armor
+  const weapons = [...new Set(list(v.weapons).filter((w): w is WeaponCategory => WEAPONS.includes(w as WeaponCategory)))]
+  if (weapons.length) out.weapons = weapons
+  const naturalArmor = int(v.naturalArmor, 0, 20)
+  if (naturalArmor) out.naturalArmor = naturalArmor
+  if (isObj(v.choice)) {
+    const options = list(v.choice.options).filter(isObj).slice(0, 20).map(o => {
+      const fx = cleanEffects(o.effects)
+      return { name: str(o.name, LIMITS.name), detail: str(o.detail, LIMITS.text), ...(fx.length ? { effects: fx } : {}) }
+    }).filter(o => o.name.trim())
+    if (options.length) out.choice = { name: str(v.choice.name, LIMITS.name) || 'Choice', options }
+  }
+  return out
+}
+
+function cleanLanguage(v: Obj, packId: string, seen: Set<string>): HomebrewLanguage {
+  const name = str(v.name, LIMITS.name).trim() || 'Unnamed language'
+  return {
+    id: ownId(v.id, packId, name, seen),
+    name,
+    kind: oneOf(v.kind, LANGUAGE_KINDS, 'standard'),
+    script: optStr(v.script, LIMITS.name),
+    speakers: optStr(v.speakers),
+    description: optStr(v.description, LIMITS.text),
+  }
+}
+
+function cleanTool(v: Obj, packId: string, seen: Set<string>): HomebrewTool {
+  const name = str(v.name, LIMITS.name).trim() || 'Unnamed tool'
+  return {
+    id: ownId(v.id, packId, name, seen),
+    name,
+    kind: oneOf(v.kind, TOOL_KINDS, 'other'),
+    ability: optOneOf(v.ability, ABILITIES),
     description: optStr(v.description, LIMITS.text),
   }
 }
@@ -411,7 +475,6 @@ function cleanClassOption(v: Obj, packId: string, seen: Set<string>): HomebrewCl
   }
 }
 
-const WEAPONS = ['simple', 'martial'] as const
 const CASTERS = ['full', 'half', 'third', 'pact', 'none'] as const
 
 /** [class level, count] steps, sorted by level. */
@@ -509,6 +572,8 @@ export function sanitizePack(raw: unknown): HomebrewPack {
     backgrounds: list(raw.backgrounds).filter(isObj).map(v => cleanBackground(v, id, seen)),
     classOptions: list(raw.classOptions).filter(isObj).map(v => cleanClassOption(v, id, seen)),
     classes: list(raw.classes).filter(isObj).map(v => cleanClass(v, id, seen)),
+    languages: list(raw.languages).filter(isObj).map(v => cleanLanguage(v, id, seen)),
+    tools: list(raw.tools).filter(isObj).map(v => cleanTool(v, id, seen)),
     history: Array.isArray(raw.history) ? raw.history.slice(0, LIMITS.entries * 20) : undefined,
   }
 }
@@ -524,6 +589,8 @@ export function sanitizeEntry(kind: ContentKind, raw: unknown, packId: string): 
   if (kind === 'backgrounds') return cleanBackground(raw, packId, seen)
   if (kind === 'classOptions') return cleanClassOption(raw, packId, seen)
   if (kind === 'classes') return cleanClass(raw, packId, seen)
+  if (kind === 'languages') return cleanLanguage(raw, packId, seen)
+  if (kind === 'tools') return cleanTool(raw, packId, seen)
   return cleanFeat(raw, packId, seen)
 }
 

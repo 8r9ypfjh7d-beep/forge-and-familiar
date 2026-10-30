@@ -84,3 +84,30 @@ export const TOOL_GROUPS: { id: ToolGroupId; tools: string[] }[] = [
   { id: 'instrument', tools: MUSICAL_INSTRUMENTS },
   { id: 'other', tools: OTHER_TOOLS },
 ]
+// Homebrew languages and tools registered at runtime by src/homebrew. Names are what characters save.
+export interface HomebrewProficiency { name: string; description?: string }
+let homebrewLanguages: HomebrewProficiency[] = []
+let homebrewTools: HomebrewProficiency[] = []
+
+const fresh = (list: HomebrewProficiency[], srd: string[]) =>
+  list.filter((x, i) => x.name && !srd.includes(x.name) && list.findIndex(y => y.name === x.name) === i)
+
+/** Replace the registered homebrew languages and tools. Names already in the official lists (or repeated) are skipped. */
+export function registerHomebrewProficiencies(languages: HomebrewProficiency[], tools: HomebrewProficiency[]): void {
+  homebrewLanguages = fresh(languages, LANGUAGES)
+  homebrewTools = fresh(tools, TOOLS)
+}
+
+/** Homebrew language and tool names, for the builder's "Homebrew" group. */
+export const homebrewLanguageNames = (): string[] => homebrewLanguages.map(x => x.name)
+export const homebrewToolNames = (): string[] => homebrewTools.map(x => x.name)
+
+/** Official languages then homebrew ones. */
+export const allLanguages = (): string[] => [...LANGUAGES, ...homebrewLanguages.map(x => x.name)]
+
+/** Official tools then homebrew ones. */
+export const allTools = (): string[] => [...TOOLS, ...homebrewTools.map(x => x.name)]
+
+/** The pack author's description of a homebrew language or tool, if it is one. */
+export const homebrewProficiencyText = (kind: 'language' | 'tool', name: string): string | undefined =>
+  (kind === 'language' ? homebrewLanguages : homebrewTools).find(x => x.name === name)?.description

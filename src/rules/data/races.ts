@@ -127,7 +127,7 @@ export function legacyRaces(): Race[] {
 }
 
 // Homebrew races and subraces registered at runtime (ids namespaced `hb:<packId>:<slug>`).
-// Homebrew is offered with both editions; homebrew subraces attach to the edition's race of that id.
+// Homebrew is offered with both editions unless it sets `edition` (listing only; raceById still finds it); homebrew subraces attach to the edition's race of that id.
 let merged: Record<RulesEdition, Race[]> = { '2014': official('2014'), '2024': official('2024') }
 
 /** Replace the registered homebrew races. Subraces (parentRaceId set) attach to their race; official ids always win. */
@@ -141,6 +141,6 @@ export function registerHomebrewRaces(races: Race[], subraces: Subrace[]): void 
 }
 
 /** SRD and book races (2024: species, then legacy 2014 races) followed by homebrew ones, with subraces attached. */
-export const allRaces = (edition: RulesEdition = '2014'): Race[] => merged[edition]
+export const allRaces = (edition: RulesEdition = '2014'): Race[] => merged[edition].filter(r => !r.edition || r.edition === edition)
 
 export const raceById = (id: string, edition: RulesEdition = '2014') => merged[edition].find(r => r.id === id)
