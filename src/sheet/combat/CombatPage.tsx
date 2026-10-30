@@ -4,14 +4,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BUNDLED, loadKind, type Equipment, type Feat, type Feature, type Spell, type Trait } from '../../content'
 import type { RollMode, RollResult } from '../../dice'
-import { featureKey } from '../../builder/why'
+import { featureKey, optionKey, optionName } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
 import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
-import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCritRange, getDamageRiders, itemById, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getCritRange, getDamageRiders, itemById, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
@@ -702,7 +702,17 @@ export function FeaturesTraits({ character }: { character: Character }) {
   }
   const featText = (name: string) => lib.feats.find(x => x.name.toLowerCase() === name.toLowerCase())?.description
   // Custom subclass text, then the SRD library, then our own summary (subclasses from other books).
+  const option = (f: DerivedStats['features'][number]) => (f.optionId ? classOptionById(f.optionId, rulesEdition(character)) : undefined)
+  const featureName = (f: DerivedStats['features'][number]) => {
+    const o = option(f)
+    return o ? optionName(o, term) : term('feature', f.name, f.name)
+  }
   const featureText = (f: DerivedStats['features'][number]) => {
+    const o = option(f)
+    if (o) {
+      const k = optionKey(o)
+      return f.text || (k ? t(k) : undefined)
+    }
     const key = featureKey(f.name, f.subclassId)
     return f.text || matchFeature(lib.features, f.name, f.className)?.description || (key ? t(key) : undefined)
   }
@@ -712,7 +722,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
       <h2 id="cs-features-title">{t('cs.classFeatures')}</h2>
       <ul className="cs-rows">
         {d.features.map(f => (
-          <Described key={`${f.className}-${f.level}-${f.name}`} name={term('feature', f.name, f.name)} meta={t('cs.featureMeta', { cls: f.className, level: f.level }) + (f.detail ? ` · ${term('detail', f.detail, f.detail)}` : '')}
+          <Described key={`${f.className}-${f.level}-${f.optionId ?? f.name}`} name={featureName(f)} meta={t('cs.featureMeta', { cls: f.className, level: f.level }) + (f.detail ? ` · ${term('detail', f.detail, f.detail)}` : '')}
             text={featureText(f)} />
         ))}
       </ul>

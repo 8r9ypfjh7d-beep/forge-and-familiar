@@ -267,6 +267,23 @@ export interface SubclassFeature {
   effects?: ItemEffect[]
 }
 
+/**
+ * A list a subclass feature picks from (maneuvers, runes, totem animals). The options are ClassOption entries
+ * of the same `kind` (rules/classOptions); picks are saved in Character.classOptions.
+ */
+export interface SubclassPickList {
+  kind: string
+  /** The subclass feature that offers the list, used as its title. */
+  feature: string
+  subclassIds: string[]
+  /** Edition the list belongs to; none means both. */
+  edition?: RulesEdition
+  /** [class level, total picks] steps. */
+  count: [number, number][]
+  /** Picks can change: one per level gained, or after a rest (2024 Hunter's Prey, Land type). */
+  swap?: 'level' | 'rest'
+}
+
 /** A subclass with every mechanic the engine applies. Official subclasses and the player's custom ones share it. */
 export interface SubclassData {
   classId: string

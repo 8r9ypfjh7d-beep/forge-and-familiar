@@ -3,6 +3,7 @@
 import { explainBackgroundsEn } from './explain.backgrounds.en'
 import { explainBooksEn } from './explain.books.en'
 import { explainClassesEn } from './explain.classes.en'
+import { explainPicksEn } from './explain.picks.en'
 import { explainEn } from './explain.en'
 import { explainProficienciesEn } from './explain.proficiencies.en'
 import { explainMetamagicEn } from './explain.metamagic.en'
@@ -17,6 +18,7 @@ export const en = {
   ...explainProficienciesEn,
   ...explainMetamagicEn,
   ...explainSpeciesEn,
+  ...explainPicksEn,
   ...itemsEn,
   // Shared
   'common.back': 'Back',
@@ -312,6 +314,9 @@ export const en = {
   'builder.warn.originSwapped': 'You swapped racial proficiencies (Tasha\'s optional rule). Check with your DM.',
   'builder.warn.asiCap': 'Scores stop at 20, so part of your {ability} increase is lost.',
   'builder.warn.featLevel': '{feat} is usually taken from level {level}. Fine if your DM agrees.',
+  'builder.warn.picks': '{feature} ({className}): pick {max}, {picked} chosen so far.',
+  'builder.warn.picksOver': '{feature} ({className}): {picked} chosen, the rules give {max}. Fine if your DM agrees.',
+  'builder.warn.pickLevel': '{option} is usually learned from level {level}. Fine if your DM agrees.',
   'builder.warn.skillsOffList': 'Some skills are not on your class list. Fine if your DM agrees.',
   'builder.warn.toolsOffList': 'Some tools are not on the usual list. Fine if your DM agrees.',
   'builder.warn.secretLanguage': '{language} is normally taught only by its class (Druid or Rogue). Fine if your DM agrees.',
@@ -393,6 +398,9 @@ export const en = {
   'builder.customSubclass': 'Custom {title}',
   'builder.subSource': 'From {source}. Feature text here is our own short summary; your book has the full rules.',
   'builder.subSpells': 'Bonus spells:',
+  'builder.picks.count': '{picked} of {max} picked',
+  'builder.picks.swapLevel': 'You can swap one of these each time you gain a level in this class.',
+  'builder.picks.swapRest': 'You can change this after a long rest. Pick the one you use most.',
   'builder.issue.customSubclass': 'Give your custom {title} a name.',
   'builder.cs.intro': 'Build your own {title}. Give it features by level; each one can track uses on the sheet and change your numbers.',
   'builder.cs.why.title': 'Custom subclass',

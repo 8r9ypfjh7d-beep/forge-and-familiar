@@ -18,14 +18,15 @@ afterEach(() => {
 
 describe('class option registry', () => {
   it('lists official options before homebrew and filters by edition', () => {
-    registerClassOptions('homebrew', [{ id: 'hb:p:mine', kind: 'maneuver', name: 'Mine' }])
+    // A kind of its own, so the official lists registered at import (subclass maneuvers...) stay out of it.
+    registerClassOptions('homebrew', [{ id: 'hb:p:mine', kind: 'testList', name: 'Mine' }])
     registerClassOptions('test', [
-      { id: 'trip', kind: 'maneuver', name: 'Trip 2014', edition: '2014' },
-      { id: 'trip', kind: 'maneuver', name: 'Trip 2024', edition: '2024' },
+      { id: 'trip', kind: 'testList', name: 'Trip 2014', edition: '2014' },
+      { id: 'trip', kind: 'testList', name: 'Trip 2024', edition: '2024' },
       { id: 'agonizing', kind: 'invocation', name: 'Agonizing' },
     ])
-    expect(classOptions('maneuver', '2014').map(o => o.name)).toEqual(['Trip 2014', 'Mine'])
-    expect(classOptions('maneuver').map(o => o.name)).toEqual(['Trip 2014', 'Trip 2024', 'Mine'])
+    expect(classOptions('testList', '2014').map(o => o.name)).toEqual(['Trip 2014', 'Mine'])
+    expect(classOptions('testList').map(o => o.name)).toEqual(['Trip 2014', 'Trip 2024', 'Mine'])
     expect(classOptionById('trip', '2024')?.name).toBe('Trip 2024')
     expect(classOptionById('hb:p:mine', '2024')?.name).toBe('Mine')
   })

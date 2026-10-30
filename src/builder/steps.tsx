@@ -6,7 +6,7 @@ import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
   ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
-  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
+  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, stalePicks, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
   type Ability, type Background, type CharacterDraft, type RulesEdition, type SkillId, type TraitChoice,
   averageWealth, BACKGROUND_GOLD_2024, takesBackgroundGold, takesClassGold, wealthDice,
 } from '../rules'
@@ -22,7 +22,7 @@ import { MulticlassPicker } from './MulticlassPicker'
 import { SpellsStep } from './SpellsStep'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
-import { explainKey, featureKey, pitchKey, type WhyId } from './why'
+import { explainKey, featureKey, optionKey, optionName, pitchKey, type WhyId } from './why'
 import { groupKitItems } from './kit'
 import { PickOrWrite, useLanguageGroups, useToolGroups } from './ProficiencyPick'
 
@@ -350,14 +350,56 @@ function ClassChoices({ draft, update }: StepProps) {
   )
 }
 
+/** Inner picks of the subclass's features: maneuvers, runes, totem animals, Hunter options, bonus skills... */
+function SubclassPicks({ draft, update, classId }: StepProps & { classId: string }) {
+  const { t, term } = useI18n()
+  return (
+    <>
+      {subclassPickLists(draft).filter(l => l.classId === classId).map(at => {
+        const ids = new Set(at.picked.map(p => p.id))
+        const chosen = at.options.filter(o => ids.has(o.id))
+        const feature = term('feature', at.list.feature, at.list.feature)
+        const listKey = explainKey('pick', at.list.kind)
+        return (
+          <div className="field sub-picks" key={at.list.kind}>
+            <label>
+              {feature} <span className="muted small">{t('builder.picks.count', { picked: ids.size, max: at.max })}</span>
+              {listKey && <> <Why title={feature} text={t(listKey)} /></>}
+            </label>
+            <div className="row">
+              {at.options.map(o => {
+                const later = o.minLevel && o.minLevel > at.level ? o.minLevel : 0
+                return (
+                  <button key={o.id} className={`glass-chip ${ids.has(o.id) ? 'on' : ''}`} aria-pressed={ids.has(o.id)}
+                    onClick={() => update({ classOptions: togglePick(draft, at, o.id) })}>
+                    {optionName(o, term)}{later ? ` · ${t('builder.level', { level: later })}` : ''}
+                  </button>
+                )
+              })}
+            </div>
+            {at.list.swap && <p className="muted small">{t(at.list.swap === 'rest' ? 'builder.picks.swapRest' : 'builder.picks.swapLevel')}</p>}
+            {at.list.kind !== 'kenseiWeapon' && (
+              <ExplainList items={chosen.map(o => ({ name: optionName(o, term), key: optionKey(o), text: o.text, ...(o.minLevel ? { note: t('builder.level', { level: o.minLevel }) } : {}) }))} />
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
 function SubclassPicker({ draft, update }: StepProps) {
   const { t, term, className } = useI18n()
   const edition = rulesEdition(draft)
   const first = draft.classes[0]
   const firstDef = classById(first.classId, edition)!
   const slots = subclassSlots(draft)
-  const setSub = (classId: string, subclassId: string) =>
-    update({ classes: draft.classes.map(cl => (cl.classId === classId ? { ...cl, subclassId } : cl)) })
+  // Picks from the old subclass's lists (maneuvers, runes...) go with it.
+  const setSub = (classId: string, subclassId: string) => {
+    const classes = draft.classes.map(cl => (cl.classId === classId ? { ...cl, subclassId } : cl))
+    const stale = stalePicks({ ...draft, classes })
+    update({ classes, ...(stale.length ? { classOptions: (draft.classOptions ?? []).filter(p => !stale.includes(p)) } : {}) })
+  }
   return (
     <>
       {first.level < firstDef.subclassLevel && (
@@ -388,6 +430,7 @@ function SubclassPicker({ draft, update }: StepProps) {
             {picked && !custom && <Explain kind="subclass" id={picked.id} />}
             {picked?.source && <p className="muted small">{t('builder.subSource', { source: picked.source })}</p>}
             {picked && !custom && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: featureKey(f.name, picked.id), text: f.text }))} />}
+            {picked && !custom && <SubclassPicks draft={draft} update={update} classId={cl.classId} />}
             {!custom && spells.length > 0 && (
               <p className="small">
                 <strong>{t('builder.subSpells')}</strong> {spells.map(s => `${t('builder.level', { level: s.level })}: ${s.names.map(n => term('spell', n, n)).join(', ')}`).join(' · ')}

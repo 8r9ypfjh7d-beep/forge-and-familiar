@@ -2,6 +2,7 @@
 // Official lists and homebrew packs register here, so every picker lists both and any saved id resolves.
 import type { Character } from '../model/character'
 import { rulesEdition } from './edition'
+import { activeSubclasses } from './subclass'
 import type { ItemEffect, SubclassFeature } from './types'
 
 /** Known kinds; other lists (arcane shots, runes, disciplines) use their own string. */
@@ -92,7 +93,7 @@ export function classOptionById(id: string, edition?: '2014' | '2024'): ClassOpt
   return matches.find(o => o.edition === edition) ?? matches.find(o => !o.edition) ?? matches[0]
 }
 
-type Owner = Partial<Pick<Character, 'classOptions' | 'classes' | 'rulesEdition' | 'featureChoices'>>
+type Owner = Partial<Pick<Character, 'classOptions' | 'classes' | 'rulesEdition' | 'featureChoices' | 'customSubclasses'>>
 
 /** Homebrew fighting styles picked in a Fighting Style choice (saved in featureChoices, like the official styles). */
 const homebrewStylePicks = (c: Owner): ClassOptionPick[] =>
@@ -105,9 +106,12 @@ const homebrewStylePicks = (c: Owner): ClassOptionPick[] =>
 export function pickedClassOptions(c: Owner): { pick: ClassOptionPick; option: ClassOption; level: number }[] {
   const edition = rulesEdition(c)
   const total = (c.classes ?? []).reduce((n, cl) => n + cl.level, 0)
+  const subs = activeSubclasses(c)
   return [...(c.classOptions ?? []), ...homebrewStylePicks(c)].flatMap(pick => {
     const option = classOptionById(pick.id, edition)
     if (!option) return []
+    // A subclass's option (a maneuver, a rune) only counts while the picking class has that subclass.
+    if (option.subclassIds && !subs.some(s => (!pick.classId || s.classId === pick.classId) && option.subclassIds!.includes(s.subclass.id))) return []
     const level = pick.classId ? c.classes?.find(cl => cl.classId === pick.classId)?.level ?? 0 : total
     return [{ pick, option, level }]
   })

@@ -1,7 +1,7 @@
 // Topics for the builder's "why?" tips. The text lives in i18n/locales as why.<topic>.title / .text,
 // plus one explanation per builder option (why.<kind>.<id>, mostly in locales/explain.en.ts).
 import { en, type MessageKey } from '../i18n/locales/en'
-import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS } from '../rules'
+import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS, SKILLS, type ClassOption, type SkillId } from '../rules'
 
 export const WHY_TOPICS = [
   'step.race', 'step.class', 'step.abilities', 'step.skills', 'step.spells', 'step.equipment', 'step.details',
@@ -28,6 +28,7 @@ export type ExplainKind =
   | 'race' | 'race2024' | 'class' | 'about' | 'sub2014' | 'sub2024' | 'subclass'
   | 'feature' | 'subfeature' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool'
   | 'metamagic' | 'metamagic2024'
+  | 'pick' | 'opt'
 
 /** Message key that explains this option, or none (homebrew and other content without one). */
 export function explainKey(kind: ExplainKind, id: string): MessageKey | undefined {
@@ -45,6 +46,27 @@ export const featureKey = (name: string, subclassId?: string): MessageKey | unde
 /** A Metamagic option's explanation for the character's edition; homebrew options carry their own text instead. */
 export const metamagicKey = (o: { id: string }, edition: string): MessageKey | undefined =>
   explainKey(edition === '2024' ? 'metamagic2024' : 'metamagic', o.id)
+
+/** The skill a skill option grants (Lore bard, Knowledge domain, Samurai bonus skill). */
+const optionSkill = (o: ClassOption): SkillId | undefined =>
+  o.effects?.length === 1 && o.effects[0].kind === 'skillProficiency' ? o.effects[0].skill : undefined
+
+/** Kensei weapon options are named after the weapon item. */
+const optionItem = (o: ClassOption) => (o.kind === 'kenseiWeapon' && o.id.startsWith('kensei-') ? o.id.slice(7) : undefined)
+
+/** A class option's name in the player's language: skill and weapon options use those names. */
+export function optionName(o: ClassOption, term: (kind: string, id: string, name: string) => string): string {
+  const skill = optionSkill(o)
+  if (skill) return term('skill', skill, SKILLS[skill].name)
+  const item = optionItem(o)
+  return item ? term('item', item, o.name) : term('option', o.id, o.name)
+}
+
+/** What explains a class option: its own line, its skill's, or (Kensei weapons) the list's; none for homebrew. */
+export const optionKey = (o: ClassOption): MessageKey | undefined => {
+  const skill = optionSkill(o)
+  return explainKey('opt', o.id) ?? (skill ? explainKey('skill', skill) : undefined) ?? (optionItem(o) ? explainKey('pick', o.kind) : undefined)
+}
 
 /** Message key for why a new player might pick this race or class; none for homebrew. */
 export const pitchKey = (kind: 'race' | 'race2024' | 'class', id: string) => explainKey(kind, id)
