@@ -54,6 +54,12 @@ export const explainEn = {
   'why.kitChoice.text': 'Your class offers a few "this or that" choices. Weapons you are proficient with and armor that suits your main ability are the safe picks. If unsure, keep the first option.',
   'why.kitList.title': 'Reading your gear',
   'why.kitList.text': 'Weapons show their damage dice and type, like 1d8 slashing: you roll that die and add your modifier. Armor shows its Armor Class; a shield adds +2.',
+  'why.startingGold.title': 'Gear or gold',
+  'why.startingGold.text': 'The class kit is a ready-made set of gear that works well. Taking gold instead lets you buy exactly what you want, but you roll for how much you get (or take the average), and you also give up the background\'s items. New players: keep the kit.',
+  'why.bgGold.title': 'Background gear or gold',
+  'why.bgGold.text': 'Your background gives a small bundle of themed items plus a few coins. Option B trades all of that for 50 gp to spend as you like. Either is fine; the items save shopping time.',
+  'why.shop.title': 'Shopping',
+  'why.shop.text': 'Prices are from the rulebook. Armor, weapons and a pack of basics (rope, torches, rations) matter most; a Healer\'s Kit or a Potion of Healing helps keep you alive. Make sure you are proficient with any armor or weapon you buy, or it works poorly for you.',
   'why.homebrew': 'Homebrew content from your group: ask your DM what it does.',
 
   'why.hbBackground.title': 'Homebrew background',

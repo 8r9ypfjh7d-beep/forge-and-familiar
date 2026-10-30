@@ -176,3 +176,19 @@
 /* Language/tool pick with an optional "write your own" text box beside it. */
 .pick-or-write { display: inline-flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .pick-or-write .pick-write { inline-size: 11em; max-inline-size: 100%; }
+
+/* Equipment step: gear-or-gold switch and the shop. */
+.wealth-pick { margin-block: var(--sp-3); }
+.wealth-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.wealth-row input { inline-size: 6rem; }
+.shop { margin-block-start: var(--sp-4); display: grid; gap: var(--sp-2); max-inline-size: 520px; }
+.shop h4, .shop p { margin: 0; }
+.shop-budget { font-weight: 600; }
+.shop-budget.over { color: var(--warn); }
+.shop-filters { display: grid; gap: var(--sp-2); }
+.shop-filters input { inline-size: 100%; }
+.shop-shelves { overflow-x: auto; max-inline-size: 100%; }
+.shop-line { display: flex; align-items: center; gap: var(--sp-1); flex: none; }
+.shop-items { max-block-size: 22rem; overflow-y: auto; margin: 0; padding-inline-end: var(--sp-1); }
+.shop-items li { align-items: center; }
+.shop-dear { opacity: 0.6; }

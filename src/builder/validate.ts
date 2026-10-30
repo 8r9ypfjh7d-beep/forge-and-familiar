@@ -1,8 +1,9 @@
 import { translate, type Translate } from '../i18n/translate'
+import { coinText } from './shop'
 import {
   ABILITIES, ALL_SKILLS, CUSTOM_BACKGROUND, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
-  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, SECRET_LANGUAGES, subclassOf, subclassesFor, toolPickGroups,
+  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type ClassPick, type SkillId,
 } from '../rules'
 
@@ -247,6 +248,8 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
       const ok = suggestedMasteryWeapons(d)
       const unproficient = (d.weaponMasteries ?? []).slice(0, getWeaponMasteryCount(d)).some(id => !ok.includes(id))
       if (unproficient) out.push(t('builder.warn.masteryOffList'))
+      const { leftCp } = startingCoins(d)
+      if (leftCp < 0) out.push(t('builder.warn.overBudget', { over: coinText(-leftCp, t) }))
       break
     }
   }

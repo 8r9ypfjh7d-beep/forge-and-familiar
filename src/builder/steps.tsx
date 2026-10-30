@@ -8,12 +8,14 @@ import {
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type Background, type CharacterDraft, type RulesEdition, type SkillId, type TraitChoice,
+  averageWealth, BACKGROUND_GOLD_2024, takesBackgroundGold, takesClassGold, wealthDice,
 } from '../rules'
 import type { OriginSwaps } from '../model/character'
 import { RandomName } from '../random/RandomBar'
 import { useDice } from '../dice/ui'
 import type { RollResult } from '../dice'
 import { ClassSkillPicks, WeaponMasteryPicks } from './ClassPicks'
+import { Shop } from './Shop'
 import { CustomSubclassForm } from './CustomSubclassForm'
 import { MetamagicPicker } from './MetamagicPicker'
 import { MulticlassPicker } from './MulticlassPicker'
@@ -40,7 +42,7 @@ function switchEdition(draft: CharacterDraft, edition: RulesEdition): Partial<Ch
     // Spells follow the rules edition again.
     spellEdition: undefined,
     raceId: '', subraceId: undefined, freeAbilityBonuses: [], originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {},
-    backgroundId: 'acolyte', originFeatId: undefined, featureChoices: {}, classPicks: {}, weaponMasteries: [], improvements: [], equipmentPicks: [],
+    backgroundId: 'acolyte', originFeatId: undefined, featureChoices: {}, classPicks: {}, weaponMasteries: [], improvements: [], equipmentPicks: [], startingWealth: undefined, purchases: [],
     classes: draft.classes.map(cl => ({ classId: cl.classId, level: cl.level })),
   }
 }
@@ -277,7 +279,7 @@ function ClassStep({ draft, update }: StepProps) {
           <button
             key={c.id}
             className={`choice ${current?.classId === c.id ? 'selected' : ''}`}
-            onClick={() => update({ classes: [{ classId: c.id, level }, ...extras.filter(x => x.classId !== c.id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [] })}
+            onClick={() => update({ classes: [{ classId: c.id, level }, ...extras.filter(x => x.classId !== c.id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], startingWealth: undefined, improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [] })}
           >
             <strong>{className(c.id)}</strong>
             <span className="muted small">{t('builder.class.hitDie', { die: c.hitDie, primary: c.primary.map(abilityShort).join('/') })}</span>
@@ -1031,16 +1033,88 @@ function EquipmentChoices({ draft, update }: StepProps) {
   )
 }
 
+/** 2014: the class and background gear, or the class's gold to buy gear with. */
+function WealthChoice({ draft, update }: StepProps) {
+  const { t, className } = useI18n()
+  const tray = useDice()
+  const cls = classById(draft.classes[0]?.classId ?? '', '2014')
+  const dice = cls && wealthDice(cls)
+  if (!cls || !dice) return null
+  const gold = takesClassGold(draft)
+  const diceText = dice.multiplier > 1 ? `${dice.notation} × ${dice.multiplier}` : dice.notation
+  const average = averageWealth(cls)
+  const set = (classGold: number | undefined, rolls?: number[]) =>
+    update({ startingWealth: classGold === undefined ? undefined : { classGold, ...(rolls ? { rolls } : {}) } })
+  const rollGold = () => {
+    const r = tray.roll(dice.notation, { label: t('builder.wealth.rollLabel') })
+    set(r.total * dice.multiplier, r.terms.flatMap(x => (x.kind === 'dice' ? x.rolls.map(d => d.value) : [])))
+  }
+  const rolls = draft.startingWealth?.rolls
+  return (
+    <div className="field wealth-pick">
+      <label>{t('builder.wealth.label')} <Why id="startingGold" /></label>
+      <div className="glass-segmented" role="radiogroup" aria-label={t('builder.wealth.label')}>
+        <button role="radio" aria-checked={!gold} onClick={() => gold && set(undefined)}>{t('builder.wealth.kit')}</button>
+        <button role="radio" aria-checked={gold} onClick={() => !gold && set(average)}>{t('builder.wealth.gold', { dice: diceText })}</button>
+      </div>
+      {gold && (
+        <>
+          <p className="muted small">{t('builder.wealth.goldHint', { class: className(cls.id) })}</p>
+          <div className="wealth-row">
+            <button type="button" className="glass-btn small" onClick={rollGold}>🎲 {t('builder.wealth.roll', { dice: diceText })}</button>
+            <button type="button" className="glass-btn small" onClick={() => set(average)}>{t('builder.wealth.average', { gp: average })}</button>
+            <label className="small">
+              {t('builder.wealth.amount')}{' '}
+              <input type="number" inputMode="numeric" min={0} value={draft.startingWealth?.classGold ?? 0}
+                onChange={e => set(Math.max(0, Math.round(Number(e.target.value) || 0)))} />
+            </label>
+          </div>
+          {rolls?.length ? (
+            <p className="muted small" dir="ltr">{t('builder.wealth.rolled', { rolls: rolls.join(' + '), gp: draft.startingWealth?.classGold ?? 0 })}</p>
+          ) : null}
+        </>
+      )}
+    </div>
+  )
+}
+
+/** 2024: the background's items and coins (option A) or 50 gp (option B). */
+function BackgroundGearChoice({ draft, update }: StepProps) {
+  const { t, term } = useI18n()
+  const bg = getBackground(draft)
+  if (!bg || (!bg.equipment.length && !bg.gold)) return null
+  const gold = takesBackgroundGold(draft)
+  const set = (backgroundGold: boolean) => update({ startingWealth: backgroundGold ? { backgroundGold } : undefined })
+  return (
+    <fieldset className="kit-choice">
+      <legend className="small muted">{t('builder.bgGear.label', { background: term('background', bg.id, bg.name) })} <Why id="bgGold" /></legend>
+      <label className="kit-option">
+        <input type="radio" name="bg-gear" checked={!gold} onChange={() => set(false)} />
+        <span>{t('builder.bgGear.items', { gp: bg.gold ?? 0 })}</span>
+      </label>
+      <label className="kit-option">
+        <input type="radio" name="bg-gear" checked={gold} onChange={() => set(true)} />
+        <span>{t('builder.goldOnly', { gp: BACKGROUND_GOLD_2024 })}</span>
+      </label>
+    </fieldset>
+  )
+}
+
 function EquipmentStep({ draft, update }: StepProps) {
   const counts = new Map<string, number>()
   for (const id of startingItemIds(draft)) counts.set(id, (counts.get(id) ?? 0) + 1)
   const { t, term } = useI18n()
+  const edition = rulesEdition(draft)
+  const classGold = takesClassGold(draft)
   return (
     <>
       <p className="small">{t('builder.kitIntro')} <Why id="kit" /></p>
-      <EquipmentChoices draft={draft} update={update} />
+      {edition === '2014' && <WealthChoice draft={draft} update={update} />}
+      {!classGold && <EquipmentChoices draft={draft} update={update} />}
+      {edition === '2024' && <BackgroundGearChoice draft={draft} update={update} />}
       <WeaponMasteryPicks draft={draft} update={update} />
       <h4 className="small">{t('builder.kitTotal')} <Why id="kitList" /></h4>
+      {counts.size === 0 && <p className="muted small">{t('builder.wealth.noKit')}</p>}
       <ul className="kit">
         {[...counts].map(([id, n]) => {
           const item = itemById(id)
@@ -1054,7 +1128,10 @@ function EquipmentStep({ draft, update }: StepProps) {
           )
         })}
       </ul>
-      <p className="muted small">{rulesEdition(draft) === '2024' ? t('builder.gold2024', { gp: startingGold(draft) }) : t('builder.plusGold', { gp: startingGold(draft) })}</p>
+      <p className="muted small">
+        {edition === '2024' ? t('builder.gold2024', { gp: startingGold(draft) }) : classGold ? t('builder.wealth.plus', { gp: startingGold(draft) }) : t('builder.plusGold', { gp: startingGold(draft) })}
+      </p>
+      <Shop draft={draft} update={update} />
     </>
   )
 }
@@ -1128,6 +1205,6 @@ export const STEPS: { id: StepId; title: string; blurb: string; Component: Compo
   { id: 'class', title: 'Class', blurb: 'Your class sets hit points, proficiencies and features.', Component: ClassStep },
   { id: 'abilities', title: 'Abilities', blurb: 'Set your six ability scores. Racial bonuses are added for you.', Component: AbilitiesStep },
   { id: 'skills', title: 'Background & skills', blurb: 'Pick a background and your skill proficiencies.', Component: SkillsStep },
-  { id: 'equipment', title: 'Equipment', blurb: 'Review your starting gear.', Component: EquipmentStep },
+  { id: 'equipment', title: 'Equipment', blurb: 'Pick your starting gear or gold, then shop.', Component: EquipmentStep },
   { id: 'details', title: 'Details', blurb: 'Name your character and add art.', Component: DetailsStep },
 ]

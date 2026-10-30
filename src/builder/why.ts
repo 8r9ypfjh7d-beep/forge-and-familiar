@@ -13,7 +13,7 @@ export const WHY_TOPICS = [
   'method.standard', 'method.pointBuy', 'method.rolled', 'method.manual', 'reroll', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',
   'background', 'customBackground', 'skills', 'tools',
   'hbBackground', 'hbBgEditions', 'hbBgFeature', 'hbBgAbilities', 'hbBgFeat', 'hbBgProfs', 'hbBgGear', 'hbBgEffects',
-  'kit', 'kitChoice', 'kitList',
+  'kit', 'kitChoice', 'kitList', 'startingGold', 'bgGold', 'shop',
   'alignment',
 ] as const
 

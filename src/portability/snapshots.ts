@@ -18,7 +18,7 @@ export interface Snapshot {
 export const BUILD_FIELDS = [
   'raceId', 'subraceId', 'backgroundId', 'classes', 'customSubclasses', 'xp', 'abilityMethod', 'rolledScores',
   'baseAbilities', 'freeAbilityBonuses', 'racialBonusTargets', 'originSwaps', 'chosenSkills', 'customBackground', 'chosenLanguages', 'chosenTools',
-  'traitChoices', 'improvements', 'equipmentPicks',
+  'traitChoices', 'improvements', 'equipmentPicks', 'startingWealth', 'purchases',
 ] as const satisfies readonly (keyof Character)[]
 
 export const totalLevel = (c: Pick<Character, 'classes'>) => c.classes.reduce((n, cl) => n + cl.level, 0)
