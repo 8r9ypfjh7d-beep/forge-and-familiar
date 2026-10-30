@@ -38,9 +38,15 @@ describe('combat page helpers', () => {
     expect(spellAttackRows(c, derive(c), []).map(r => r.name)).toEqual(['Charm Monster'])
   })
 
-  it('offers Hex as an effect when known, and Rage/Sneak Attack only to those classes', () => {
+  it('offers Hex as an effect when known, and Rage/Sneak Attack only to those classes', async () => {
+    const spells = await loadKind('spells', { sources: ['srd-5.2'] })
     const c = warlock()
-    expect(effectToggles(c, derive(c), { hex: 'Hex' })).toEqual([{ id: 'hex', name: 'Hex', damage: '1d6', damageType: 'necrotic' }])
+    const hex = effectToggles(c, derive(c), spells)
+    expect(hex).toHaveLength(1)
+    expect(hex[0]).toMatchObject({ id: 'spell:hex', name: 'Hex', damage: '1d6', damageType: 'necrotic', start: { concentration: true, level: 1 } })
+    // Once running, the switch reads the saved effect.
+    const on = { ...c, state: { ...c.state, effects: [{ ...hex[0].start!, on: true }] } }
+    expect(effectToggles(on, derive(on), spells)[0].live?.on).toBe(true)
     const rogue = makeCharacter({ classes: [{ classId: 'rogue', level: 5 }], inventory: [{ uid: 'd', itemId: 'dagger', qty: 1, equipped: true }] })
     expect(effectToggles(rogue, derive(rogue)).map(e => e.id)).toEqual(['sneakAttack'])
   })

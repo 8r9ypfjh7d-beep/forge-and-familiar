@@ -3,6 +3,7 @@
 // Rules follow the SRD 5.1 sections on Hit Points, Death Saving Throws and Resting.
 import type { Character, CharacterState, HitDie } from '../model/character'
 import type { RestType } from '../rules/types'
+import { dropSpentTempHp, effectsAfterRest } from './effects'
 import { abilityMod, getAbilityScores, getHitDice, getMaxHp, getResources, getSpellSlots, migrateSubclassIds } from '../rules'
 
 
@@ -55,6 +56,11 @@ export function normalize(saved: Character): Character {
 // ---- Hit points ----
 
 export function takeDamage(c: Character, amount: number, opts: { critical?: boolean } = {}): Character {
+  // Armor of Agathys and the like end with the temporary hit points they gave.
+  return dropSpentTempHp(damaged(c, amount, opts))
+}
+
+function damaged(c: Character, amount: number, opts: { critical?: boolean }): Character {
   if (amount <= 0 || vitals(c) === 'dead') return c
   const { currentHp, tempHp, deathSaves } = c.state
   const absorbed = Math.min(tempHp, amount)
@@ -205,7 +211,9 @@ function resetRecharging(c: Character, rest: RestType): CharacterState {
   const resources = { ...c.state.resources }
   for (const r of getResources(c)) if (refreshes(r.recharge, rest)) resources[r.id] = { used: 0 }
   const counters = (c.state.counters ?? []).map(k => (refreshes(k.recharge, rest) ? { ...k, used: 0 } : k))
-  return { ...c.state, resources, counters, pactSlotsUsed: 0 }
+  // Spells and features that don't outlast the rest end with it.
+  const effects = c.state.effects ? { effects: effectsAfterRest(c, rest) } : {}
+  return { ...c.state, resources, counters, pactSlotsUsed: 0, ...effects }
 }
 
 /** Trackers that come back at dawn and still have charges spent. */

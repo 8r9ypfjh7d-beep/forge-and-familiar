@@ -80,6 +80,8 @@ export function rollD20(bonus: number, opts: RollOptions = {}, type: RollType = 
       ? { kind: 'dice', sign: 1, count: 1, sides: 20 }
       : { kind: 'dice', sign: 1, count: 2, sides: 20, keep: { type: mode === 'advantage' ? 'kh' : 'kl', n: 1 } }
   const terms: Term[] = bonus ? [d20, { kind: 'const', sign: bonus < 0 ? -1 : 1, value: Math.abs(bonus) }] : [d20]
+  // Dice from running spells (Bless's 1d4) come after the bonus.
+  for (const extra of opts.bonusDice ?? []) terms.push(...parseNotation(extra))
   const result = build(terms, type, opts)
   const first = result.terms[0]
   const natural = first.kind === 'dice' ? first.subtotal : 0

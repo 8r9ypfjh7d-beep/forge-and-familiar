@@ -51,6 +51,8 @@ export interface RollOptions {
    * conditions (rules getRollMode) to `mode`.
    */
   character?: Pick<Character, 'id' | 'name' | 'state'>
+  /** Extra dice added to a d20 roll (Bless's 1d4), filled from the character's running spells on character rolls. */
+  bonusDice?: string[]
   /** Skip the character's conditions, for when the table rules otherwise. */
   ignoreConditions?: boolean
   label?: string

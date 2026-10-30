@@ -15,6 +15,8 @@ export type SheetSection =
   | 'summary' | 'skills' | 'spellCard'
   // Combat page (src/sheet/combat): tabbed panel and its fight and features views.
   | 'tabs' | 'fight' | 'features'
+  // Story mode's Effects card: running spells and switches (combat shows them in its Combat tab).
+  | 'effects'
   // Tamir's Super Saiyan strip (src/powerup), only on his characters.
   | 'powerUp'
 
@@ -58,7 +60,7 @@ export function sheetLayout(mode: SheetMode, { dying, powerUp }: { dying: boolea
   const top = dying ? ['death' as const, ...shared] : shared
   const vitals: SheetSection[] = ['hp', 'rests']
   if (mode === 'combat') return { top, columns: [SHARED_SIDE, ['tabs']], vitals, tabs: COMBAT_TABS }
-  return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'attacks', 'inventory']], vitals }
+  return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'effects', 'attacks', 'inventory']], vitals }
 }
 
 export const DEFAULT_MODE: SheetMode = 'story'

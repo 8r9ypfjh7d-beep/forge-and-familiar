@@ -85,3 +85,17 @@
 :root[data-contrast="high"] .spellbook .glass-btn.sb-add { border: 2px solid var(--accent); }
 :root[data-contrast="high"] .sb-summary .over { border-color: var(--bad); }
 :root[data-contrast="high"] .spellbook .glass-chip.on { box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* Cast: one tap spends the slot and starts the effect; ▾ opens the higher slots as a small glass popover. */
+.sb-cast { position: relative; display: inline-flex; align-items: center; gap: 2px; }
+.sb-cast-levels {
+  position: absolute; inset-block-start: calc(100% + var(--sp-1)); inset-inline-end: 0; z-index: 5;
+  display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-2); min-inline-size: 9rem;
+  background: var(--glass-regular); border: 1px solid var(--glass-hairline); border-radius: var(--r-md);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: 0 8px 24px rgb(0 0 0 / .18);
+}
+.sb-cast-levels .glass-chip { justify-content: flex-start; white-space: nowrap; }
+.sb-running { color: var(--s-good, var(--accent)); }
+.sb-cast-out { display: grid; gap: var(--sp-1); margin-block: var(--sp-2); }
+.sb-cast-out > .glass-btn { justify-self: start; }
+:root[data-contrast="high"] .sb-cast-levels { border: 2px solid var(--ink); }

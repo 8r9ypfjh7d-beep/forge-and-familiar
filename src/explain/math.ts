@@ -5,7 +5,7 @@ import type { Character } from '../model/character'
 import {
   applyItemAbilities, auraOfProtection, effectsOf, entryItem, itemBonuses,
   ABILITY_NAMES, SKILLS, abilityMod, backgroundBonuses, getBackground, classById, derive, featBonus, featEffects, fixedRacialBonuses, getAbilityMods, getAbilityScores,
-  getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, naturalArmorAc, raceProfile, rulesEdition, totalLevel, flexibleBonuses,
+  getArmorClass, getEquippedArmor, getMaxHp, liveEffects, getSkillProficiencies, proficiencyBonus, naturalArmorAc, raceProfile, rulesEdition, totalLevel, flexibleBonuses,
   type Ability, type ClassDef, type SkillId,
 } from '../rules'
 
@@ -156,6 +156,10 @@ function armorClass(c: Character): StatMath {
   const magic = c.inventory.filter(e => e.equipped && e.magicBonus && entryItem(e)?.kind === 'armor').reduce((n, e) => n + (e.magicBonus ?? 0), 0)
   if (magic) lines.push({ label: 'Magic armor and shield', value: magic })
   lines.push(...itemLines(c, 'ac', !armor && !shield, undefined, !!armor))
+  // Mage Armor and Barkskin replace the base or set a floor: one line with what they add.
+  const shaping = liveEffects(c).find(e => e.acBase || e.acMin)
+  const gap = getArmorClass(c).value - lines.reduce((n, l) => n + l.value, 0)
+  if (shaping && gap) lines.push({ label: shaping.name, value: gap })
   return make('Armor class', lines, { notes })
 }
 
