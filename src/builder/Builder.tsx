@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import { addSnapshots, takeSnapshot } from '../portability'
-import { BackstoryHook, RandomCharacter, randomDraft, randomHookKey } from '../random'
+import { BackstoryHook, RandomCharacter, hasPicks, randomCharacterDraft, randomHookKey } from '../random'
 import { createCharacter, rulesEdition, type CharacterDraft } from '../rules'
 import { followPlan } from '../planner/plan'
 import { getCharacter, saveCharacter } from '../storage'
@@ -88,11 +88,20 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
     ? applyEdit(editing, draft, { replaceGear: gearChanged && replaceGear })
     : { ...createCharacter(draft), notes: hookKey ? t(hookKey as MessageKey) : '' })
   // Fills every step at random, keeps the player's name and edition, and jumps to Details to review.
-  const rollRandom = () => {
-    if (dirty && !confirm(t('random.replace'))) return
-    setDraft({ ...randomDraft(ownerId, rulesEdition(draft)), playerName: draft.playerName })
-    setHookKey(randomHookKey())
-    setStep(STEPS.length - 1)
+  // Spells come from the content library, so rolling waits for it. Rolling again over an untouched roll doesn't ask.
+  const [rolling, setRolling] = useState(false)
+  const [rolled, setRolled] = useState<CharacterDraft>()
+  const rollRandom = async () => {
+    setRolling(true)
+    try {
+      const next = { ...await randomCharacterDraft(ownerId, rulesEdition(draft)), playerName: draft.playerName }
+      setDraft(next)
+      setRolled(next)
+      setHookKey(randomHookKey())
+      setStep(STEPS.length - 1)
+    } finally {
+      setRolling(false)
+    }
   }
   const preview = useMemo(
     () => (editing && firstBlocked === -1 ? applyEdit(editing, draft, { replaceGear: gearChanged && replaceGear }) : undefined),
@@ -116,7 +125,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
           <button className="glass-btn small" onClick={startOver}>{t('builder.draft.startOver')}</button>
         </p>
       )}
-      {!editing && <RandomCharacter onRoll={rollRandom} />}
+      {!editing && <RandomCharacter onRoll={rollRandom} ask={hasPicks(draft) && draft !== rolled} busy={rolling} />}
       <nav className="steps" ref={stepsRef} aria-label={t('builder.steps')}>
         {STEPS.map((s, i) => {
           // Every step is open in any order; only creating or saving needs them all done.
