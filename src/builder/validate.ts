@@ -1,8 +1,8 @@
 import { translate, type Translate } from '../i18n/translate'
 import {
-  ABILITIES, CUSTOM_BACKGROUND, activeImprovements, POINT_BUY_BUDGET, STANDARD_ARRAY, classById, classChoices, featById, featSkillPicks,
+  ABILITIES, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, activeImprovements, POINT_BUY_BUDGET, STANDARD_ARRAY, classById, classChoices, featById, featSkillPicks,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
-  raceById, racialBonuses, rulesEdition, subclassesFor, toolPickGroups,
+  raceById, racialBonuses, rulesEdition, subclassOf, subclassesFor, toolPickGroups,
   type CharacterDraft, type SkillId,
 } from '../rules'
 
@@ -51,7 +51,9 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
     case 'class':
       if (!classById(d.classes[0]?.classId ?? '', edition)) out.push(t('builder.issue.class'))
       for (const cl of subclassSlots(d)) {
-        if (!subclassesFor(cl.classId, edition).some(s => s.id === cl.subclassId)) {
+        if (cl.subclassId === CUSTOM_SUBCLASS) {
+          if (!subclassOf(d, cl)?.name.trim()) out.push(t('builder.issue.customSubclass', { title: classById(cl.classId, edition)!.subclassTitle }))
+        } else if (!subclassesFor(cl.classId, edition).some(s => s.id === cl.subclassId)) {
           out.push(t('builder.issue.subclass', { className: className(cl.classId), title: classById(cl.classId, edition)!.subclassTitle }))
         }
       }

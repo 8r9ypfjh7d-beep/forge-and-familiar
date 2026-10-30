@@ -6,11 +6,12 @@ import { classById } from './data/classes'
 import { entryItem } from './data/items'
 import { NON_STACKING_RESOURCES } from './data/multiclass'
 import { raceById } from './data/races'
-import { subclassById, type SubclassDef } from './data/subclasses'
+import type { SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { rulesEdition, uses2024Spells } from './edition'
 import { effectsOf, itemBonus } from './itemEffects'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
+import { slug, subclassFeatures, subclassOf } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type ClassDef, type ConditionId, type InventoryEntry, type Item, type MoveMode, type Recharge,
   type Sense, type SkillId,
@@ -19,12 +20,12 @@ import {
 type Weapon = Extract<Item, { kind: 'weapon' }>
 type Armor = Extract<Item, { kind: 'armor' }>
 
-const classesOf = (c: Pick<Character, 'classes' | 'rulesEdition'>) =>
+const classesOf = (c: Pick<Character, 'classes' | 'rulesEdition' | 'customSubclasses'>) =>
   c.classes.flatMap(cl => {
     const def = classById(cl.classId, rulesEdition(c))
     if (!def) return []
-    const sub = cl.subclassId ? subclassById(cl.subclassId, rulesEdition(c)) : undefined
-    const subclass: SubclassDef | undefined = sub?.classId === cl.classId && cl.level >= def.subclassLevel ? sub : undefined
+    const sub = subclassOf(c, cl)
+    const subclass: SubclassDef | undefined = sub && cl.level >= def.subclassLevel ? sub : undefined
     return [{ def, level: cl.level, subclass }]
   })
 
@@ -129,6 +130,15 @@ export function getResources(c: Character): ResourceInfo[] {
       if (existing) existing.max = NON_STACKING_RESOURCES.includes(r.id) ? Math.max(existing.max, max) : existing.max + max
       else out.push({ id: r.id, label: r.name, max, recharge, shortRestFromLevel: r.shortRestFromLevel })
     }
+  }
+  // Subclass features with uses (Hexblade's Curse, Healing Light): counted from the class level, PB or a modifier.
+  const prof = proficiencyBonus(totalLevel(c))
+  for (const { level, subclass, feature } of subclassFeatures(c)) {
+    const u = feature.uses
+    if (!u) continue
+    const base = typeof u.count === 'number' ? u.count : u.count === 'pb' ? prof : u.count === 'level' ? level : mods[u.count]
+    const max = Math.max(u.min ?? 1, base + (u.add ?? 0))
+    if (max > 0) out.push({ id: `sub:${subclass.id}:${slug(feature.name)}`, label: feature.name, max, recharge: u.recharge })
   }
   return [...out, ...getItemCharges(c)]
 }
@@ -268,6 +278,7 @@ export function getAttacks(c: Character): Attack[] {
   const martialArts = monk && !armor && !shield
   const edition = rulesEdition(c)
   const rangedBonus = featBonus(c, 'rangedAttack')
+  const castingWeapon = classesOf(c).some(x => x.subclass?.castingWeapon)
   const out: Attack[] = []
   const seen = new Set<string>()
 
@@ -281,8 +292,8 @@ export function getAttacks(c: Character): Attack[] {
     if (item.properties.includes('finesse')) ability = mods.dex > mods.str ? 'dex' : 'str'
     const monkWeapon = martialArts && isMonkWeapon(item, edition)
     if (monkWeapon && mods.dex > mods[ability]) ability = 'dex'
-    // Pact of the Blade: proficient with the pact weapon; the 2024 rules let it use Charisma.
-    if (entry.pact && uses2024Spells(c) && mods.cha > mods[ability]) ability = 'cha'
+    // Pact of the Blade: proficient with the pact weapon; the 2024 rules (and Hex Warrior) let it use Charisma.
+    if (entry.pact && (uses2024Spells(c) || castingWeapon) && mods.cha > mods[ability]) ability = 'cha'
     const proficient = entry.pact || isWeaponProficient(c, item)
     const magic = entry.magicBonus ?? 0
     const reach = ranged ? 'ranged' : 'melee'
@@ -363,7 +374,8 @@ export interface DerivedStats {
   attacks: Attack[]
   carryingCapacity: number
   carriedWeight: number
-  features: { level: number; name: string; className: string }[]
+  /** `text` describes features the SRD library has no entry for (other books, custom subclasses). */
+  features: { level: number; name: string; className: string; text?: string }[]
   traits: string[]
   languages: string[]
   tools: string[]

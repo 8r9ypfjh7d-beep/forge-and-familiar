@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { en } from '../i18n/locales/en'
 import {
-  ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
+  ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
   SUBCLASSES, SUBCLASSES_2024, TOOLS,
 } from '../rules'
 import { STEPS } from './steps'
@@ -22,7 +22,7 @@ describe('why? tooltips', () => {
   // Every option the builder offers, in both editions, has a plain-language line (Hebrew is checked in i18n.test.ts).
   it('explains every class, subclass, feature and class choice', () => {
     const classes = [...CLASSES, ...CLASSES_2024]
-    const subclasses = [...SUBCLASSES, ...SUBCLASSES_2024]
+    const subclasses = [...SUBCLASSES, ...SUBCLASSES_2024, ...BOOK_SUBCLASSES, ...BOOK_SUBCLASSES_2024]
     expect(missing('about', classes.map(c => c.id))).toEqual([])
     expect(missing('subclass', subclasses.map(s => s.id))).toEqual([])
     expect(missing('feature', [...classes, ...subclasses].flatMap(c => c.features.map(f => f.name)))).toEqual([])

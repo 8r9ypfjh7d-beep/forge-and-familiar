@@ -1,17 +1,14 @@
-import type { Ability, ArmorCategory, RulesEdition, Subclass } from '../types'
+import type { RulesEdition, SubclassData } from '../types'
+import { BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024 } from './books/subclasses'
 import { SUBCLASSES_2024 } from './srd52/subclasses'
 
-/** Subclass with the few mechanics the engine applies. */
-export interface SubclassDef extends Subclass {
-  /** Armor proficiencies the subclass adds (Life Domain: heavy). */
-  armor?: ArmorCategory[]
-  /** Extra max HP per level in this class (Draconic Resilience). */
-  hpPerLevel?: number
-  /** Unarmored AC base before DEX (Draconic Resilience: 13). */
-  unarmoredBase?: number
-  /** Unarmored AC is 10 + DEX + this ability (2024 Draconic Resilience: CHA). */
-  unarmoredAbility?: Ability
+/** Subclass with the mechanics the engine applies (see SubclassData). */
+export interface SubclassDef extends SubclassData {
+  id: string
 }
+
+/** Id of the subclass a player builds themselves; its data is saved in Character.customSubclasses. */
+export const CUSTOM_SUBCLASS = 'custom'
 
 // SRD 5.1 includes one subclass per class.
 export const SUBCLASSES: SubclassDef[] = [
@@ -25,7 +22,11 @@ export const SUBCLASSES: SubclassDef[] = [
   { id: 'hunter', classId: 'ranger', name: 'Hunter', features: [{ level: 3, name: "Hunter's Prey" }, { level: 7, name: 'Defensive Tactics' }, { level: 11, name: 'Multiattack' }, { level: 15, name: "Superior Hunter's Defense" }] },
   { id: 'thief', classId: 'rogue', name: 'Thief', features: [{ level: 3, name: 'Fast Hands' }, { level: 3, name: 'Second-Story Work' }, { level: 9, name: 'Supreme Sneak' }, { level: 13, name: 'Use Magic Device' }, { level: 17, name: "Thief's Reflexes" }] },
   { id: 'draconic', classId: 'sorcerer', name: 'Draconic Bloodline', hpPerLevel: 1, unarmoredBase: 13, features: [{ level: 1, name: 'Dragon Ancestor' }, { level: 1, name: 'Draconic Resilience' }, { level: 6, name: 'Elemental Affinity' }, { level: 14, name: 'Dragon Wings' }, { level: 18, name: 'Draconic Presence' }] },
-  { id: 'fiend', classId: 'warlock', name: 'The Fiend', features: [{ level: 1, name: "Dark One's Blessing" }, { level: 6, name: "Dark One's Own Luck" }, { level: 10, name: 'Fiendish Resilience' }, { level: 14, name: 'Hurl Through Hell' }] },
+  {
+    id: 'fiend', classId: 'warlock', name: 'The Fiend',
+    features: [{ level: 1, name: "Dark One's Blessing" }, { level: 6, name: "Dark One's Own Luck", uses: { count: 1, recharge: 'short' } }, { level: 10, name: 'Fiendish Resilience' }, { level: 14, name: 'Hurl Through Hell', uses: { count: 1, recharge: 'long' } }],
+    spells: [[1, 'Burning Hands', 'Command'], [3, 'Blindness/Deafness', 'Scorching Ray'], [5, 'Fireball', 'Stinking Cloud'], [7, 'Fire Shield', 'Wall of Fire'], [9, 'Flame Strike', 'Hallow']].map(([level, ...names]) => ({ level: level as number, names: names as string[] })),
+  },
   { id: 'evocation', classId: 'wizard', name: 'School of Evocation', features: [{ level: 2, name: 'Evocation Savant' }, { level: 2, name: 'Sculpt Spells' }, { level: 6, name: 'Potent Cantrip' }, { level: 10, name: 'Empowered Evocation' }, { level: 14, name: 'Overchannel' }] },
 ]
 
@@ -34,13 +35,13 @@ let homebrew: SubclassDef[] = []
 
 /** Replace the registered homebrew subclasses. SRD ids always win. */
 export function registerHomebrewSubclasses(list: SubclassDef[]): void {
-  const srd = new Set([...SUBCLASSES, ...SUBCLASSES_2024].map(s => s.id))
+  const srd = new Set([...SUBCLASSES, ...SUBCLASSES_2024, ...BOOK_SUBCLASSES, ...BOOK_SUBCLASSES_2024, { id: CUSTOM_SUBCLASS }].map(s => s.id))
   homebrew = list.filter(s => !srd.has(s.id))
 }
 
-const srdFor = (edition: RulesEdition) => (edition === '2024' ? SUBCLASSES_2024 : SUBCLASSES)
+const srdFor = (edition: RulesEdition) => (edition === '2024' ? [...SUBCLASSES_2024, ...BOOK_SUBCLASSES_2024] : [...SUBCLASSES, ...BOOK_SUBCLASSES])
 
-/** SRD subclasses of the edition, then homebrew ones (offered in both editions). */
+/** SRD subclasses of the edition, then the ones from the other official books, then homebrew ones (offered in both editions). */
 export const subclassesFor = (classId: string, edition: RulesEdition = '2014'): SubclassDef[] =>
   [...srdFor(edition), ...homebrew].filter(s => s.classId === classId)
 

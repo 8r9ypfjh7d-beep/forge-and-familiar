@@ -3,13 +3,14 @@ import { useI18n } from '../i18n'
 import type { AbilityMethod } from '../model/character'
 import type { CustomBackground, Improvement } from '../model/character'
 import {
-  ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
+  ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
   STANDARD_ARRAY, abilityMod, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, fixedLanguages, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
-  languagePickCount, pointBuyCost, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, subclassesFor, toolPickGroups,
+  languagePickCount, pointBuyCost, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type RulesEdition, type SkillId,
 } from '../rules'
 import { RandomName } from '../random/RandomBar'
+import { CustomSubclassForm } from './CustomSubclassForm'
 import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
@@ -264,7 +265,13 @@ function SubclassPicker({ draft, update }: StepProps) {
       )}
       {slots.map(cl => {
         const def = classById(cl.classId, edition)!
-        const picked = subclassesFor(cl.classId, edition).find(s => s.id === cl.subclassId)
+        const custom = cl.subclassId === CUSTOM_SUBCLASS
+        const picked = custom ? subclassOf(draft, cl) : subclassesFor(cl.classId, edition).find(s => s.id === cl.subclassId)
+        const pickCustom = () => update({
+          classes: draft.classes.map(x => (x.classId === cl.classId ? { ...x, subclassId: CUSTOM_SUBCLASS } : x)),
+          customSubclasses: draft.customSubclasses?.some(s => s.classId === cl.classId) ? draft.customSubclasses : [...(draft.customSubclasses ?? []), blankSubclass(cl.classId)],
+        })
+        const spells = (picked?.spells ?? []).filter(s => s.level <= cl.level && s.names.length)
         return (
           <div className="field" key={cl.classId}>
             <label>{t('builder.subclass', { title: term('feature', def.subclassTitle, def.subclassTitle), className: className(def.id) })} <Why id="subclassChoice" /></label>
@@ -274,9 +281,19 @@ function SubclassPicker({ draft, update }: StepProps) {
                   {term('subclass', sc.id, sc.name)}
                 </button>
               ))}
+              <button className={`glass-chip ${custom ? 'on' : ''}`} onClick={pickCustom}>
+                {t('builder.customSubclass', { title: term('feature', def.subclassTitle, def.subclassTitle) })}
+              </button>
             </div>
-            {picked && <Explain kind="subclass" id={picked.id} />}
-            {picked && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: explainKey('feature', f.name) }))} />}
+            {picked && !custom && <Explain kind="subclass" id={picked.id} />}
+            {picked?.source && <p className="muted small">{t('builder.subSource', { source: picked.source })}</p>}
+            {picked && !custom && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: explainKey('feature', f.name), text: f.text }))} />}
+            {!custom && spells.length > 0 && (
+              <p className="small">
+                <strong>{t('builder.subSpells')}</strong> {spells.map(s => `${t('builder.level', { level: s.level })}: ${s.names.map(n => term('spell', n, n)).join(', ')}`).join(' · ')}
+              </p>
+            )}
+            {custom && <CustomSubclassForm draft={draft} classId={cl.classId} update={update} />}
           </div>
         )
       })}

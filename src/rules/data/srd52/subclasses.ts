@@ -12,6 +12,13 @@ export const SUBCLASSES_2024: SubclassDef[] = [
   { id: 'hunter', classId: 'ranger', name: 'Hunter', features: [{ level: 3, name: "Hunter's Lore" }, { level: 3, name: "Hunter's Prey" }, { level: 7, name: 'Defensive Tactics' }, { level: 11, name: "Superior Hunter's Prey" }, { level: 15, name: "Superior Hunter's Defense" }] },
   { id: 'thief', classId: 'rogue', name: 'Thief', features: [{ level: 3, name: 'Fast Hands' }, { level: 3, name: 'Second-Story Work' }, { level: 9, name: 'Supreme Sneak' }, { level: 13, name: 'Use Magic Device' }, { level: 17, name: "Thief's Reflexes" }] },
   { id: 'draconic-sorcery', classId: 'sorcerer', name: 'Draconic Sorcery', hpPerLevel: 1, unarmoredAbility: 'cha', features: [{ level: 3, name: 'Draconic Resilience' }, { level: 3, name: 'Draconic Spells' }, { level: 6, name: 'Elemental Affinity' }, { level: 14, name: 'Dragon Wings' }, { level: 18, name: 'Dragon Companion' }] },
-  { id: 'fiend-patron', classId: 'warlock', name: 'Fiend Patron', features: [{ level: 3, name: "Dark One's Blessing" }, { level: 3, name: 'Fiend Spells' }, { level: 6, name: "Dark One's Own Luck" }, { level: 10, name: 'Fiendish Resilience' }, { level: 14, name: 'Hurl Through Hell' }] },
+  {
+    id: 'fiend-patron', classId: 'warlock', name: 'Fiend Patron',
+    features: [{ level: 3, name: "Dark One's Blessing" }, { level: 3, name: 'Fiend Spells' }, { level: 6, name: "Dark One's Own Luck", uses: { count: 'cha', recharge: 'long' } }, { level: 10, name: 'Fiendish Resilience' }, { level: 14, name: 'Hurl Through Hell', uses: { count: 1, recharge: 'long' } }],
+    spells: [
+      { level: 3, names: ['Burning Hands', 'Command', 'Scorching Ray', 'Suggestion'] }, { level: 5, names: ['Fireball', 'Stinking Cloud'] },
+      { level: 7, names: ['Fire Shield', 'Wall of Fire'] }, { level: 9, names: ['Geas', 'Insect Plague'] },
+    ],
+  },
   { id: 'evoker', classId: 'wizard', name: 'Evoker', features: [{ level: 3, name: 'Evocation Savant' }, { level: 3, name: 'Potent Cantrip' }, { level: 6, name: 'Sculpt Spells' }, { level: 10, name: 'Empowered Evocation' }, { level: 14, name: 'Overchannel' }] },
 ]

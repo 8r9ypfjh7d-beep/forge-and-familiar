@@ -21,9 +21,9 @@ const make = (over: Partial<CharacterDraft> = {}, edit?: (c: Character) => void)
 }
 
 describe('SRD content coverage', () => {
-  it('has one subclass per class, chosen at the right level', () => {
+  it('has the SRD subclass first for every class, chosen at the right level', () => {
     for (const c of CLASSES) {
-      expect(subclassesFor(c.id), c.id).toHaveLength(1)
+      expect(subclassesFor(c.id)[0], c.id).toBe(SUBCLASSES.find(s => s.classId === c.id))
       expect([1, 2, 3]).toContain(c.subclassLevel)
     }
     expect(SUBCLASSES).toHaveLength(12)

@@ -2,6 +2,7 @@
 // Pure: reads the class tables from the content library, so 2014 and 2024 rules each use their own numbers.
 import type { CharacterClass, Edition, Spell, Subclass } from '../content'
 import type { Character } from '../model/character'
+import { subclassSpellNames } from '../rules/subclass'
 import type { Abilities, Ability } from '../rules/types'
 
 export interface SpellAccess {
@@ -32,18 +33,23 @@ const ARCANUM: [number, number][] = [[17, 9], [15, 8], [13, 7], [11, 6]]
 
 const mod = (score: number) => Math.floor((score - 10) / 2)
 
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+
 /**
  * Spell access for each spellcasting class the character has. Classes the library has no table for
  * (homebrew) are left out. `scores` are final ability scores; `halfCasters` the class ids that halve
- * their level for 2014 prepared counts (Paladin).
+ * their level for 2014 prepared counts (Paladin). `spells` resolves the spells the rules engine's
+ * subclasses list by name (patrons from other books, custom subclasses); names the library lacks are skipped.
  */
 export function spellAccess(
-  c: Pick<Character, 'classes'>,
+  c: Pick<Character, 'classes'> & Partial<Pick<Character, 'rulesEdition' | 'customSubclasses'>>,
   classes: CharacterClass[],
   subclasses: Subclass[],
   scores: Abilities,
   halfCasters: string[] = ['paladin', 'ranger'],
+  spells: Pick<Spell, 'id' | 'name'>[] = [],
 ): SpellAccess[] {
+  const byName = new Map(spells.map(s => [norm(s.name), s.id]))
   const out: SpellAccess[] = []
   for (const cl of c.classes) {
     const def = classes.find(k => k.id === cl.classId)
@@ -67,7 +73,10 @@ export function spellAccess(
       cantrips: sc.cantripsKnown ?? 0,
       kind,
       limit,
-      alwaysPrepared: (sub?.spells ?? []).filter(s => s.level <= cl.level).map(s => s.spell.id),
+      alwaysPrepared: [...new Set([
+        ...(sub?.spells ?? []).filter(s => s.level <= cl.level).map(s => s.spell.id),
+        ...subclassSpellNames(c, cl.classId).flatMap(n => byName.get(norm(n)) ?? []),
+      ])],
     })
   }
   return out

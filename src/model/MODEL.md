@@ -35,4 +35,5 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
   - `freeAbilityBonuses`: 2014 racial +1 picks, or in 2024 the background's three +1s (an ability twice is +2).
   - `improvements`: one per Ability Score Improvement the class levels grant: ability bonuses or a `featId` (SRD or homebrew), plus `featAbility` for feats with a +1 choice.
   - `equipmentPicks`: per class equipment choice, the option taken and the items picked for its "any weapon" slots.
-  - `classes[].subclassId`: SRD or homebrew subclass.
+  - `classes[].subclassId`: SRD, book or homebrew subclass id, or `'custom'` for the player's own one.
+  - `customSubclasses` (optional): `SubclassData[]`, at most one per class, read when that class's `subclassId` is `'custom'`. Kept by Before-edit snapshots.

@@ -1,7 +1,7 @@
 // Saved character shape, shared by the builder (creates it) and the live sheet (plays it).
 // Everything not stored here (max HP, AC, modifiers, slots, resource maxima) is derived by src/rules.
 import type { QuickCastEntry } from '../quickcast/types'
-import type { Abilities, Ability, ConditionId, InventoryEntry, ItemEffect, SkillId } from '../rules/types'
+import type { Abilities, Ability, ConditionId, InventoryEntry, ItemEffect, SkillId, SubclassData } from '../rules/types'
 
 export type AbilityMethod = 'standard' | 'pointBuy' | 'manual'
 export type HitDie = 'd6' | 'd8' | 'd10' | 'd12'
@@ -133,6 +133,8 @@ export interface Character {
   customBackground?: CustomBackground
   /** The builder creates one entry; the array leaves room for multiclassing. */
   classes: ClassLevel[]
+  /** Subclasses the player built (subclassId 'custom'), one per class: features, spells, uses and effects. */
+  customSubclasses?: SubclassData[]
   xp: number
   abilityMethod: AbilityMethod
   /** Scores before racial bonuses. Use getAbilityScores() for final scores. */

@@ -16,7 +16,9 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `choices.ts` | ASI slots and feats, languages, tools, starting-gear choices (`classKit`) |
 | `edition.ts` | `rulesEdition(c)` ('2014' or '2024') and `uses2024Spells(c)` |
 | `multiclass.ts` | Prerequisites, multiclass proficiencies, caster level breakdown, per-class spell DCs, multiclass warnings |
-| `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one per class), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (languages, tools), items |
+| `subclass.ts` | `subclassOf(c, cl)` (official, homebrew or the character's custom subclass), `activeSubclasses`, `subclassFeatures`, `subclassEffects`, `subclassSpellNames` |
+| `data/books/subclasses.ts` | Subclasses from official books outside the SRD (`BOOK_SUBCLASSES`, `BOOK_SUBCLASSES_2024`): names, levels and mechanics only; feature text is our own summary in `explain.books.*.ts` |
+| `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one SRD per class, listed first), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (languages, tools), items |
 | `data/srd52/*.ts` | SRD 5.2 (2024) content: `SPECIES`, `CLASSES_2024`, `SUBCLASSES_2024`, `BACKGROUNDS_2024`, `FEATS_2024` |
 | `rules.test.ts`, `multiclass.test.ts`, `choices.test.ts`, `srd52.test.ts` | Engine tests |
 
@@ -55,7 +57,11 @@ Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missi
 - Resources: per-class maxima by level; `recharge` resolved for level (e.g. Bardic Inspiration short rest from 5).
 - Speed: heavy armor STR requirement, Monk/Barbarian movement.
 - Saving throw proficiencies come from the first class only.
-- Subclasses: features join `features` from `subclassLevel`; Life Domain adds heavy armor; Draconic Bloodline adds 1 HP per sorcerer level and 13 + DEX unarmored AC.
+- Subclasses (`SubclassData`): features join `features` from `subclassLevel`; Life Domain adds heavy armor; Draconic Bloodline adds 1 HP per sorcerer level and 13 + DEX unarmored AC.
+  - A feature's `uses` (number, `'pb'`, `'level'` or an ability modifier, + `add`, min 1) becomes a resource `sub:<subclassId>:<slug>`; its `effects` (any `ItemEffect`) apply from its level through `activeItemEffects`, labelled with the feature name.
+  - `armor`/`weapons` add proficiencies, `spells` (names by class level) are always prepared (the spellbook resolves names in the library and skips missing ones), `castingWeapon` lets pact weapons use CHA under 2014 rules (Hex Warrior).
+  - Lists: SRD subclass first, then the books' subclasses, then homebrew. 2014-only books' subclasses are offered in 2024 with level 1–2 features moved to the subclass level (`legacy`).
+  - `subclassId: 'custom'` (`CUSTOM_SUBCLASS`) reads `Character.customSubclasses` for that class; always resolve with `subclassOf`, not `subclassById`.
 - ASIs and feats (`improvements`) add to ability scores (cap 20). Feat effects apply: ability, skill, HP per level, speed, initiative, AC. `DerivedStats.feats`, `.tools`, `.languages` list them.
 - Backgrounds go through `getBackground(c)`, which also builds the PHB custom background.
 - Homebrew: `registerHomebrewRaces` (subraces attach to their parent), `registerHomebrewSubclasses`, `registerHomebrewFeats`, like `registerHomebrewItems`. SRD ids always win. Use `allRaces()` for lists; `RACES` is SRD only.

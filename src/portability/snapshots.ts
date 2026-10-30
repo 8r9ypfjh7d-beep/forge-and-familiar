@@ -16,7 +16,7 @@ export interface Snapshot {
 
 /** What a rollback brings back. Everything else (name, notes, portrait, gear, coins) stays as it is now. */
 export const BUILD_FIELDS = [
-  'raceId', 'subraceId', 'backgroundId', 'classes', 'xp', 'abilityMethod',
+  'raceId', 'subraceId', 'backgroundId', 'classes', 'customSubclasses', 'xp', 'abilityMethod',
   'baseAbilities', 'freeAbilityBonuses', 'chosenSkills', 'customBackground', 'chosenLanguages', 'chosenTools',
   'traitChoices', 'improvements', 'equipmentPicks',
 ] as const satisfies readonly (keyof Character)[]
