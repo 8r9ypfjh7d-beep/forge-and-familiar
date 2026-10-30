@@ -303,6 +303,8 @@ export const explainClassesHe: Messages = {
   'why.feature.Arcane Charge': 'משתגרים כשמשתמשים בפרץ פעולה.',
   'why.feature.Improved War Magic': 'מטילים לחש ותוקפים באותו תור.',
   'why.feature.Psionic Power': 'קוביות פסיוניות לתרגילים מיוחדים; חלק חוזרות במנוחה קצרה.',
+  'why.subfeature.psi-warrior.Psionic Power': 'קוביות פסיוניות מפעילות מגן שמקטין נזק לבן ברית, נזק כוח נוסף בפגיעה ותזוזה טלקינטית; אחת חוזרת במנוחה קצרה.',
+  'why.subfeature.soulknife.Psionic Power': 'קוביות פסיוניות מתווספות לבדיקות מיומנות שנכשלו ומאפשרות לדבר מנפש לנפש עם בני ברית קרובים; אחת חוזרת במנוחה קצרה.',
   'why.feature.Telekinetic Adept': 'הודפים אויבים במכות וקופצים באוויר במחשבה.',
   'why.feature.Guarded Mind': 'עמידות לנזק נפשי, ומתנערים מקסם או פחד.',
   'why.feature.Bulwark of Force': 'נותנים לחברים חצי מחסה במגן כוח.',

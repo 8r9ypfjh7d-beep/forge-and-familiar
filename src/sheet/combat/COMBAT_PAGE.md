@@ -21,4 +21,5 @@ The sheet's combat mode, laid out like Roll20's character page. Only the layout 
 - A roll result lists the switched-on effects that went into it (`effectsUsed`): dice riders that were rolled and only the stat changes that touch that roll (weapon: attack, damage, the attack's ability; spell: spell attack or DC; action: its ability).
 - Effects are toggles kept in component state, not saved. Spell effects ride on weapon and spell attacks; Rage and Sneak Attack on the weapons they apply to.
 - Feature, trait, feat and spell text comes from the content library for the character's edition. The Features tab shows the source's CC-BY attribution: keep it.
+- Class and subclass feature text goes through `featureDescription` in `combat.ts`. A subclass feature only uses the SRD entry of that same subclass, then its own `why.subfeature.<subclassId>.<name>` summary, because subclasses share names with different rules ("Bonus Proficiencies"). `combat.test.ts` fails if two subclasses show the same text for a shared name, unless `SAME_RULES` lists them.
 - "Level Up" opens the edit flow (`onEdit`).
