@@ -192,7 +192,7 @@ function Row({ entry: e, apply, onEdit, onDrink }: { entry: InventoryEntry; appl
             </button>
           )}
           <div className="inv-stepper">
-            <button type="button" aria-label={t('inv.less', { name })} onClick={() => apply(t(e.qty > 1 ? 'inv.log.less' : 'inv.log.remove', { name }), c => setQty(c, e.uid, e.qty - 1))}>−</button>
+            <button type="button" aria-label={t('inv.less', { name })} onClick={() => (e.qty > 1 || confirm(t('sheet.confirmRemove', { name }))) && apply(t(e.qty > 1 ? 'inv.log.less' : 'inv.log.remove', { name }), c => setQty(c, e.uid, e.qty - 1))}>−</button>
             <button type="button" aria-label={t('inv.more', { name })} onClick={() => apply(t('inv.log.more', { name }), c => setQty(c, e.uid, e.qty + 1))}>+</button>
           </div>
           <button type="button" className="btn ghost small inv-edit" aria-label={t('inv.editName', { name })} onClick={onEdit}>✎</button>
@@ -258,6 +258,7 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
     onDone()
   }
   const remove = () => {
+    if (!confirm(t('sheet.confirmRemove', { name: item.name }))) return
     apply(t('inv.log.remove', { name: item.name }), c => removeEntry(c, e.uid))
     onDone()
   }

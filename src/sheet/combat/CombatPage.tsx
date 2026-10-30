@@ -650,7 +650,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
                         )}
                         <button type="button" className="btn ghost small" aria-label={t('cs.editAction', { name: a.name })} onClick={() => setEditing(a.id)}>✎</button>
                         <button type="button" className="btn ghost small" aria-label={t('cs.removeAction', { name: a.name })}
-                          onClick={() => apply(t('cs.log.actionRemoved', { name: a.name }), c => removeAction(c, a.id))}>×</button>
+                          onClick={() => confirm(t('sheet.confirmRemove', { name: a.name })) && apply(t('cs.log.actionRemoved', { name: a.name }), c => removeAction(c, a.id))}>×</button>
                       </span>
                     </div>
                   </li>

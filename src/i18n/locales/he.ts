@@ -651,6 +651,7 @@ const messages: Messages = {
   'sheet.log.used': 'נוצל: {label}',
   'sheet.log.regained': 'הוחזר: {label}',
   'sheet.removeWhat': 'הסרת {label}',
+  'sheet.confirmRemove': 'להסיר את {name} מהגיליון?',
   'sheet.log.removedTracker': 'הוסר המונה {label}',
   'sheet.log.addedTracker': 'נוסף המונה {label}',
   'sheet.regains': ', מתמלא {dice}',

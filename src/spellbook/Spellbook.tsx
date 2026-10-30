@@ -295,7 +295,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
                   </button>
                   {editing && !always && (
                     <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.removeName', { name: s.name })}
-                      onClick={() => apply(t('spells.log.remove', { name: s.name }), c => removeSpell(c, access.classId, s.id))}>
+                      onClick={() => confirm(t('sheet.confirmRemove', { name: s.name })) && apply(t('spells.log.remove', { name: s.name }), c => removeSpell(c, access.classId, s.id))}>
                       ✕
                     </button>
                   )}
