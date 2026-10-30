@@ -2,7 +2,7 @@
 import type { Messages } from '../translate'
 
 export const itemsHe: Messages = {
-  'spells.fromItems': 'מהחפצים שלכם',
+  'spells.fromItems': 'מהגזע, מההישגים ומהחפצים שלכם',
   'cs.perks': 'מחפצים ומהשפעות',
   'cs.advBadge': 'יתרון',
   'inv.why.name.title': 'שם',

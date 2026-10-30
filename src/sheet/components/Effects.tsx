@@ -1,6 +1,7 @@
 // The Effects switches: Rage and Sneak Attack, every known spell whose running effect changes numbers
 // (Hex, Bless, Shield of Faith), whatever is running now (Armor of Agathys after casting it) and the
 // player's own actions. Combat's Combat tab lists them all; story mode gets them as their own card.
+// Switching on a spell that isn't running casts it, exactly like Cast; switching it off ends it.
 import { useEffect, useState } from 'react'
 import { loadKind, type Spell } from '../../content'
 import { effectText } from '../../inventory'
@@ -9,20 +10,26 @@ import type { Character } from '../../model/character'
 import { derive } from '../../rules'
 import { editionOf, spellSourcesFor } from '../../spellbook/access'
 import { effectToggles, setActionActive, type EffectToggle } from '../combat/combat'
+import type { SlotChoice } from '../../quickcast'
 import { spendSlot } from '../../quickcast/quickcast'
+import { CastResult, ConfirmCast, SlotPicker, useCast, useCastWarning } from '../../spellbook/Cast'
 import { endEffect, setEffectOn, startEffect } from '../effects'
 import type { Apply } from '../types'
 
 type T = ReturnType<typeof useI18n>['t']
 
+/** Casts a spell from its switch, at the picked slot or the lowest free one. */
+export type CastFn = (spell: Spell, slot?: SlotChoice) => unknown
+
 /**
- * Flips one switch. Custom actions and running spells are saved; a known spell that isn't running
- * starts without spending a slot (it was cast before, or off the sheet). Rage and Sneak Attack use `local`.
+ * Flips one switch. On, a known spell that isn't running is cast (slot, temporary HP, rolls); off, a running
+ * spell, feature or item effect ends. Custom actions are saved on the action. Rage and Sneak Attack use `local`.
  */
-export function toggleEffect(e: EffectToggle, value: boolean, apply: Apply, t: T, local: () => void) {
+export function toggleEffect(e: EffectToggle, value: boolean, apply: Apply, t: T, local: () => void, cast: CastFn, slot?: SlotChoice) {
   const log = t(value ? 'cs.log.effectOn' : 'cs.log.effectOff', { name: e.name })
   if (e.id.startsWith('act:')) return apply(log, c => setActionActive(c, e.id.slice(4), value))
-  if (e.live) return apply(log, c => setEffectOn(c, e.id, value))
+  if (e.live) return value ? apply(log, c => setEffectOn(c, e.id, true)) : apply(t('fx.log.end', { name: e.name }), c => endEffect(c, e.id))
+  if (e.spell && value) return void cast(e.spell, slot ?? e.slot)
   if (e.start && value) return apply(log, c => startEffect(e.slot ? spendSlot(c, e.slot) : c, e.start!).character)
   local()
 }
@@ -47,32 +54,50 @@ function useDescribe() {
   }
 }
 
-export function EffectRows({ effects, isOn, onToggle, apply }: {
-  effects: EffectToggle[]; isOn: (e: EffectToggle) => boolean; onToggle: (e: EffectToggle, value: boolean) => void; apply: Apply
+export function EffectRows({ character, effects, isOn, onToggle, apply }: {
+  character: Character; effects: EffectToggle[]; isOn: (e: EffectToggle) => boolean; onToggle: (e: EffectToggle, value: boolean, slot?: SlotChoice) => void; apply: Apply
 }) {
   const { t, term } = useI18n()
   const describe = useDescribe()
+  const warning = useCastWarning(character)
+  // A cast that warns (no slot left, or it ends another concentration spell) waits here for Cast anyway.
+  const [pending, setPending] = useState<{ id: string; slot?: SlotChoice; text: string } | null>(null)
+  const flip = (e: EffectToggle, value: boolean, slot?: SlotChoice) => {
+    setPending(null)
+    const text = value && e.spell && !e.live ? warning(e.spell, slot) : ''
+    if (text) return setPending({ id: e.id, slot, text })
+    onToggle(e, value, slot)
+  }
   return (
     <ul className="cs-rows cs-effects">
       {effects.map(e => {
         const live = e.live
+        // A spell that isn't running shows the slot its cast will take, or that none is left.
+        const level = live?.level ?? (e.spell ? e.slot?.level : undefined)
+        const noSlot = !live && e.spell && e.spell.level > 0 && !e.slot
         return (
           <li key={e.id} className={live ? 'running' : undefined}>
             <label className="cs-switch">
-              <input type="checkbox" role="switch" checked={isOn(e)} onChange={ev => onToggle(e, ev.target.checked)} />
+              <input type="checkbox" role="switch" checked={live ? true : isOn(e)} onChange={ev => flip(e, ev.target.checked)} />
               <span>{e.feature ? term('feature', e.name, e.name) : <bdi>{e.name}</bdi>}</span>
             </label>
             {e.damage && <span className="dmg" dir="ltr">{e.damage}</span>}
             <span className="hint">{describe(e)}</span>
-            {live && (
-              <span className="fx-live">
-                {live.concentration && <abbr className="sb-tag" title={t('spells.concentration')}>C</abbr>}
-                {live.level ? <span className="sb-badge">{t(`sheet.slot.${live.level}` as MessageKey)}</span> : null}
-                {live.duration && <small lang="en" dir="ltr">{live.duration}</small>}
-                {!live.on && <small>{t('fx.notOnMe')}</small>}
-                <button type="button" className="glass-btn small icon" aria-label={t('fx.endName', { name: e.name })} title={t('fx.end')}
-                  onClick={() => apply(t('fx.log.end', { name: e.name }), c => endEffect(c, e.id))}>✕</button>
-              </span>
+            <span className="fx-live">
+              {live?.concentration && <abbr className="sb-tag" title={t('spells.concentration')}>C</abbr>}
+              {level ? <span className="sb-badge">{t(`sheet.slot.${level}` as MessageKey)}{!live && e.slot?.source === 'pact' ? ` ${t('cast.pact')}` : ''}</span> : null}
+              {noSlot && <small>{t('cast.warn.noSlot')}</small>}
+              {!live && e.spell && <SlotPicker character={character} spell={e.spell} onPick={s => flip(e, true, s)} />}
+              {live?.duration && <small lang="en" dir="ltr">{live.duration}</small>}
+              {live && (
+                <button type="button" className={`glass-chip small${live.on ? ' on' : ''}`} aria-pressed={live.on} aria-label={t('fx.onMeName', { name: e.name })}
+                  onClick={() => apply(t(live.on ? 'cs.log.effectOff' : 'cs.log.effectOn', { name: e.name }), c => setEffectOn(c, e.id, !live.on))}>
+                  {t(live.on ? 'fx.onMe' : 'fx.notOnMe')}
+                </button>
+              )}
+            </span>
+            {pending?.id === e.id && (
+              <ConfirmCast text={pending.text} onYes={() => { setPending(null); onToggle(e, true, pending.slot) }} onNo={() => setPending(null)} />
             )}
           </li>
         )
@@ -97,13 +122,15 @@ export function useSpells(character: Character): Spell[] {
 export function EffectsCard({ character, apply }: { character: Character; apply: Apply }) {
   const { t } = useI18n()
   const spells = useSpells(character)
+  const casting = useCast(character, apply)
   const effects = effectToggles(character, derive(character), spells).filter(e => !e.feature)
   if (!effects.length) return null
   const isOn = (e: EffectToggle) => (e.id.startsWith('act:') ? !!character.customActions?.find(a => `act:${a.id}` === e.id)?.active : !!e.live?.on)
   return (
     <section className="card cs-fight fx-card" aria-labelledby="fx-title">
       <div className="card-head"><h2 id="fx-title">{t('cs.effects')}</h2></div>
-      <EffectRows effects={effects} isOn={isOn} apply={apply} onToggle={(e, v) => toggleEffect(e, v, apply, t, () => {})} />
+      <CastResult out={casting.out} outKey={casting.outKey} onDone={casting.clear} character={character} apply={apply} />
+      <EffectRows character={character} effects={effects} isOn={isOn} apply={apply} onToggle={(e, v, slot) => toggleEffect(e, v, apply, t, () => {}, casting.cast, slot)} />
     </section>
   )
 }

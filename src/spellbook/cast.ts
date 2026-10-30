@@ -2,11 +2,11 @@
 // running effect (concentration, duration, AC, extra damage...). Pure; the plan comes from rules/usables.ts.
 import type { Spell } from '../content'
 import type { Character } from '../model/character'
-import { planCast, type CastContext, type CastPlan, type DerivedStats } from '../rules'
+import { planCast, spellEffectId, type CastContext, type CastPlan, type DerivedStats } from '../rules'
 import type { SlotChoice } from '../quickcast'
 import { slotChoices, spendSlot } from '../quickcast/quickcast'
 import { grantTempHp, heal, setResourceUsed } from '../sheet/engine'
-import { startEffect } from '../sheet/effects'
+import { concentration, startEffect } from '../sheet/effects'
 import { editionOf } from './access'
 
 export function castContext(c: Character, d: DerivedStats): CastContext {
@@ -36,4 +36,14 @@ export function castSpell(c: Character, plan: CastPlan, opts: { slot?: SlotChoic
   if (opts.tempHp) next = grantTempHp(next, opts.tempHp)
   if (opts.heal) next = heal(next, opts.heal)
   return { character: next, ended }
+}
+
+/**
+ * What a player should hear before a cast: no slot left to spend (it still casts: warn, don't block),
+ * or the concentration spell this one would end. `slot` is the one picked, if any.
+ */
+export function castWarnings(c: Character, spell: Pick<Spell, 'id' | 'level' | 'concentration'>, slot?: SlotChoice, free?: boolean): { noSlot: boolean; ends?: string } {
+  const running = concentration(c)
+  const ends = spell.concentration && running && running.id !== spellEffectId(spell.id) ? running.name : undefined
+  return { noSlot: !free && !slot && spell.level > 0 && !defaultSlot(c, spell), ...(ends ? { ends } : {}) }
 }

@@ -4,7 +4,8 @@ import { derive } from '../rules'
 import { longRest, shortRest, takeDamage } from '../sheet/engine'
 import { endEffect, setEffectOn, spendOnceEffects, startEffect } from '../sheet/effects'
 import { makeCharacter } from '../sheet/fixtures'
-import { castPlan, castSpell, defaultSlot } from './cast'
+import { castPlan, castSpell, castWarnings, defaultSlot } from './cast'
+import { effectToggles } from '../sheet/combat/combat'
 
 const warlock = () => makeCharacter({
   classes: [{ classId: 'warlock', level: 3 }],
@@ -29,6 +30,28 @@ describe('casting from the sheet', () => {
     // It ends once the temporary hit points are gone.
     expect(takeDamage(character, 4).state.effects).toHaveLength(1)
     expect(takeDamage(character, 12).state.effects).toEqual([])
+  })
+
+  it('the Effects switch for Armor of Agathys reads the pact slot level before it is cast', async () => {
+    const c = makeCharacter({ ...warlock(), classes: [{ classId: 'warlock', level: 5 }] })
+    const aoa = await byId('armor-of-agathys')
+    const sw = effectToggles(c, derive(c), [aoa]).find(e => e.id === 'spell:armor-of-agathys')!
+    expect(sw).toMatchObject({ spell: { id: 'armor-of-agathys' }, slot: { source: 'pact', level: 3 }, start: { level: 3, reflect: { damage: '15' } } })
+    expect(castPlan(c, derive(c), aoa, sw.slot).tempHp).toBe('15')
+  })
+
+  it('warns before a cast with no slot left or one that ends concentration', async () => {
+    const c = warlock()
+    const hex = await byId('hex')
+    expect(castWarnings(c, hex)).toEqual({ noSlot: false })
+    const spent = { ...c, state: { ...c.state, pactSlotsUsed: 2 } }
+    expect(castWarnings(spent, hex)).toEqual({ noSlot: true })
+    expect(castWarnings(spent, hex, undefined, true)).toEqual({ noSlot: false })
+    const holding = startEffect(c, castPlan(c, derive(c), await byId('bless')).effect!).character
+    expect(castWarnings(holding, hex)).toEqual({ noSlot: false, ends: 'Bless' })
+    // Recasting the same spell isn't a second concentration.
+    const hexed = startEffect(c, castPlan(c, derive(c), hex).effect!).character
+    expect(castWarnings(hexed, hex).ends).toBeUndefined()
   })
 
   it('a new concentration spell ends the old one', async () => {

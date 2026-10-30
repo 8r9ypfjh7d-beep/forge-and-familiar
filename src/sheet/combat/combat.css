@@ -354,5 +354,5 @@
 
 /* Running effects: concentration, slot level, duration and End beside the switch. */
 .cs-effects > li.running { background: var(--glass-tint); border-radius: var(--r-sm); }
-.fx-live { display: inline-flex; align-items: center; gap: var(--sp-2); margin-inline-start: auto; }
+.fx-live { position: relative; display: inline-flex; align-items: center; gap: var(--sp-2); margin-inline-start: auto; }
 .fx-live small { color: var(--muted); }

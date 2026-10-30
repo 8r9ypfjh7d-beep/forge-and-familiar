@@ -194,8 +194,10 @@ export interface EffectToggle {
   live?: LiveEffect
   /** What switching it on starts, for a known spell that isn't running yet (Hex before the fight). */
   start?: Omit<LiveEffect, 'on'>
-  /** Switching it on spends this slot (2014 Divine Smite). */
+  /** Switching it on spends this slot (2014 Divine Smite); for a spell, the slot a cast takes unless another is picked. */
   slot?: SlotChoice
+  /** A known spell that isn't running: switching it on casts it (slot, temporary HP, rolls), like Cast. */
+  spell?: Spell
 }
 
 /**
@@ -225,9 +227,11 @@ export function effectToggles(c: Character, stats: DerivedStats, spells: Spell[]
   for (const s of spells) {
     if (!ids.has(s.id) || !hasRunningNumbers(s, ctx)) continue
     const live = running.find(e => e.id === spellEffectId(s.id))
-    const start = planCast(s, s.level, ctx).effect
+    // Shown at the slot a cast would take (a level 5 warlock's Armor of Agathys is 3rd level).
+    const slot = s.level > 0 ? slotChoices(c, s.level)[0] : undefined
+    const start = planCast(s, slot?.level ?? s.level, ctx).effect
     if (!start || out.some(e => e.id === start.id)) continue
-    out.push({ id: start.id, name: s.name, ...fromLive(live ?? start), ...(live ? { live } : { start }) })
+    out.push({ id: start.id, name: s.name, ...fromLive(live ?? start), ...(live ? { live } : { start, spell: s, ...(slot ? { slot } : {}) }) })
   }
   // 2014 Divine Smite: a feature that spends a slot for radiant damage on the next hit, so its switch spends the lowest free slot.
   const paladin = c.classes.find(cl => cl.classId === 'paladin')
