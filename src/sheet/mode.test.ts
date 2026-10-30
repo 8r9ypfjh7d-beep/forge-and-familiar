@@ -28,7 +28,13 @@ describe('sheet modes', () => {
     expect(Object.keys(l.tabs ?? {})).toEqual(['combat', 'spells', 'inventory', 'features', 'notes'])
     expect(l.tabs?.combat[0]).toBe('fight')
     expect(l.tabs?.spells).toEqual(['spells', 'metamagic'])
-    for (const s of ['spellCard', 'resources'] as const) expect(all('combat')).not.toContain(s)
+    expect(all('combat')).not.toContain('spellCard')
+  })
+
+  it('combat mode tracks feature uses once, in the Features & Traits tab', () => {
+    const tabs = sheetLayout('combat', { dying: false }).tabs
+    expect(tabs?.features).toEqual(['resources', 'features'])
+    expect(all('combat').filter(s => s === 'resources')).toHaveLength(1)
   })
 
   it('death saves show only at 0 HP, first in both modes', () => {

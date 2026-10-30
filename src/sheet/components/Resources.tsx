@@ -7,6 +7,7 @@ import { DAWN_ITEMS } from '../../rules/data/dawnItems'
 import { dawn, dawnCounters, removeCounter, setResourceUsed, upsertCounter, type Counter } from '../engine'
 import { useSheetRolls } from '../dice'
 import type { Apply } from '../types'
+import { SORCERY_POINTS } from './Metamagic'
 import { Pips, Stepper } from './Pips'
 
 const RECHARGE = { short: 'rest.short', long: 'rest.long', dawn: 'rest.dawn', none: 'rest.none' } as const
@@ -14,7 +15,8 @@ const RECHARGE = { short: 'rest.short', long: 'rest.long', dawn: 'rest.dawn', no
 const PIP_LIMIT = 10
 
 export function Resources({ character, apply }: { character: Character; apply: Apply }) {
-  const resources = getResources(character)
+  // Sorcery points have their own pips on the Metamagic card, so they are not shown twice.
+  const resources = getResources(character).filter(r => r.id !== SORCERY_POINTS)
   const counters = character.state.counters ?? []
   const { t, term } = useI18n()
   const rolls = useSheetRolls(character)
