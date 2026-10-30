@@ -53,11 +53,26 @@ export interface PickItem {
   search?: string[]
 }
 
+// Book folds follow this order (core books first); other books keep their data order after these, homebrew last.
+const BOOK_ORDER = [
+  "Player's Handbook (2024)", "Player's Handbook", "Xanathar's Guide to Everything", "Tasha's Cauldron of Everything",
+  "Dungeon Master's Guide", "Sword Coast Adventurer's Guide",
+]
+
+/** Sort key for a group: no group (SRD) first, then `BOOK_ORDER` (a "Player's Handbook · Legacy" label counts as its book), then the rest, homebrew last. */
+export function bookRank(group: string, homebrew = false): number {
+  if (homebrew) return 1000
+  if (!group) return 0
+  const i = BOOK_ORDER.findIndex(b => group === b || group.startsWith(`${b} `))
+  return i < 0 ? 500 : i + 1
+}
+
 /**
  * One pick from many. `variant` 'card' shows tiles (race, class), 'chip' shows capsules (subclass).
- * `extra` adds a last tile/chip outside the groups (Custom subclass). `after` renders under the chosen tile.
+ * `extra` adds a last tile/chip outside the groups (Custom subclass). `after` renders under the chosen tile
+ * and is hidden while browsing, so the old pick's details don't stretch the open list.
  */
-export function ChoicePicker({ items, value, onPick, variant = 'card', firstGroup, label, extra, extraOn, searchAt = 14 }: {
+export function ChoicePicker({ items, value, onPick, variant = 'card', firstGroup, label, extra, extraOn, after, searchAt = 14 }: {
   items: PickItem[]
   value?: string
   onPick: (id: string) => void
@@ -68,6 +83,8 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
   extra?: { name: string; onPick: () => void }
   /** The extra option is the current pick. */
   extraOn?: boolean
+  /** Details of the current pick (explanation, its own picks); shown only while not browsing. */
+  after?: ReactNode
   /** Show the search field from this many items. */
   searchAt?: number
 }) {
@@ -88,12 +105,15 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
 
   if ((picked || extraOn) && !browsing) {
     return (
-      <div className={`picked-row ${variant}`}>
-        {picked ? tile(picked, true, () => setBrowsing(true)) : <span className="glass-chip on">{extra?.name}</span>}
-        <button type="button" className="glass-btn small" aria-label={t('builder.compact.changeLabel', { name: label })} onClick={() => setBrowsing(true)}>
-          {t('builder.compact.change')}
-        </button>
-      </div>
+      <>
+        <div className={`picked-row ${variant}`}>
+          {picked ? tile(picked, true, () => setBrowsing(true)) : <span className="glass-chip on">{extra?.name}</span>}
+          <button type="button" className="glass-btn small" aria-label={t('builder.compact.changeLabel', { name: label })} onClick={() => setBrowsing(true)}>
+            {t('builder.compact.change')}
+          </button>
+        </div>
+        {after}
+      </>
     )
   }
 
@@ -102,6 +122,7 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
     const g = it.group ?? ''
     groups.set(g, [...(groups.get(g) ?? []), it])
   }
+  const rank = ([g, its]: [string, PickItem[]]) => bookRank(g, its.every(it => it.id.startsWith('hb:')))
   const list = (its: PickItem[]) => (
     <div className={variant === 'card' ? 'card-grid compact-grid' : 'row'}>
       {its.map(it => tile(it, it.id === value, () => pick(it.id)))}
@@ -125,7 +146,7 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
           </div>
         ) : <p className="muted small">{t('builder.compact.noMatch')}</p>
       ) : groups.size <= 1 ? list(items) : (() => {
-        const all = [...groups]
+        const all = [...groups].sort((a, b) => rank(a) - rank(b))
         const fold = ([g, its]: [string, PickItem[]], open: boolean) => (
           <Fold key={g || '-'} className="picker-group" title={g || firstGroup || t('builder.compact.srd')} status={its.length}
             defaultOpen={open || its.some(it => it.id === value)}>

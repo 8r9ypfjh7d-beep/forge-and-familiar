@@ -4,7 +4,7 @@ import type { ClassLevel } from '../model/character'
 import { en } from '../i18n/locales/en'
 import { he } from '../i18n/locales/he'
 import {
-  SUBCLASS_OPTIONS, SUBCLASS_PICK_LISTS, createCharacter, derive, getResources, subclassById, subclassPickLists, togglePick,
+  SUBCLASS_OPTIONS, SUBCLASS_PICK_LISTS, createCharacter, derive, getResources, setSubclass, subclassById, subclassPickLists, togglePick,
   type CharacterDraft,
 } from './index'
 
@@ -103,5 +103,35 @@ describe('subclass pick lists', () => {
     const at = names.indexOf('Blessings of Knowledge')
     expect(names.slice(at + 1, at + 3)).toEqual(['Arcana', 'History'])
     expect(d.features[at + 1].optionId).toBe('know-arcana')
+  })
+})
+
+describe('setSubclass', () => {
+  const bm = hero({ classId: 'fighter', level: 3, subclassId: 'battle-master' }, picks('fighter', 'maneuver', 'mv-maneuvering-attack'))
+
+  it('drops the old subclass picks when switching to Custom, and starts a blank custom subclass', () => {
+    const next = setSubclass(bm, 'fighter', 'custom')
+    expect(next.classes?.[0].subclassId).toBe('custom')
+    expect(next.classOptions).toEqual([])
+    expect(next.customSubclasses).toEqual([{ classId: 'fighter', name: '', features: [] }])
+  })
+
+  it('keeps an existing custom subclass and picks the new subclass still offers', () => {
+    const own = { classId: 'fighter', name: 'Mine', features: [] }
+    expect(setSubclass({ ...bm, customSubclasses: [own] }, 'fighter', 'custom').customSubclasses).toBeUndefined()
+    expect(setSubclass(bm, 'fighter', 'battle-master').classOptions).toBeUndefined()
+  })
+})
+
+describe('sheet features after a subclass pick', () => {
+  const names = (cl: ClassLevel, over: Partial<CharacterDraft> = {}) => derive(hero(cl, over)).features.map(f => f.name)
+
+  it('replaces the subclass placeholder row with the subclass features', () => {
+    expect(names({ classId: 'fighter', level: 3 })).toContain('Martial Archetype')
+    const bm = names({ classId: 'fighter', level: 3, subclassId: 'battle-master' })
+    expect(bm).not.toContain('Martial Archetype')
+    expect(bm).toContain('Combat Superiority')
+    expect(names({ classId: 'warlock', level: 1, subclassId: 'fiend' })).not.toContain('Otherworldly Patron')
+    expect(names({ classId: 'artificer', level: 3, subclassId: 'alchemist' }, { rulesEdition: '2024' })).not.toContain('Artificer Subclass')
   })
 })

@@ -60,6 +60,8 @@ describe('combat page helpers', () => {
     expect(masteryLimit({ classes: [{ classId: 'warlock', level: 7 }], spellEdition: '2024' })).toBe(0)
     expect(masteryLimit({ classes: [{ classId: 'fighter', level: 4 }], spellEdition: '2024' })).toBe(4)
     expect(masteryLimit({ classes: [{ classId: 'fighter', level: 4 }] })).toBe(0)
+    // A 2014 Fighter has no Weapon Mastery, so the Combat tab shows no mastery box.
+    expect(masteryLimit({ classes: [{ classId: 'fighter', level: 3 }], spellEdition: '2014' })).toBe(0)
   })
 
   it('lists the masteries the player picked, falling back to attack weapons on older saves', () => {

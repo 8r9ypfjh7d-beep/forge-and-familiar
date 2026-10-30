@@ -445,10 +445,13 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         </FadingResult>
       )}
 
-      <h3 className="cs-sub">{t('cs.mastery')} <span className="cs-count" dir="ltr">{mastered.length}/{masteries}</span></h3>
-      {mastered.length
-        ? <ul className="cs-rows">{mastered.map(m => <li key={m.weapon}><span>{term('mastery', m.mastery, cap(m.mastery))}</span><span className="hint">{m.weapon}</span></li>)}</ul>
-        : <p className="hint">{t('cs.noMastery')}</p>}
+      {/* Weapon Mastery is a 2024 rule: characters without it (every 2014 one) get no box. */}
+      {masteries > 0 && <>
+        <h3 className="cs-sub">{t('cs.mastery')} <span className="cs-count" dir="ltr">{mastered.length}/{masteries}</span></h3>
+        {mastered.length
+          ? <ul className="cs-rows">{mastered.map(m => <li key={m.weapon}><span>{term('mastery', m.mastery, cap(m.mastery))}</span><span className="hint">{m.weapon}</span></li>)}</ul>
+          : <p className="hint">{t('cs.noMastery')}</p>}
+      </>}
 
       <CunningStrike character={character} d={d} />
 
