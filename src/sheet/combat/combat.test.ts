@@ -5,7 +5,9 @@ import { loadKind } from '../../content'
 import { BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, CLASSES, CLASSES_2024, SUBCLASSES, SUBCLASSES_2024, derive, xpForNextLevel } from '../../rules'
 import { en } from '../../i18n/locales/en'
 import { makeCharacter } from '../fixtures'
-import { actionRoll, actionsOf, addAction, effectToggles, effectsUsed, featureDescription, masteredWeapons, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
+import { longRest, shortRest } from '../engine'
+import { getResources } from '../../rules'
+import { actionRoll, actionUses, actionsOf, isUsable, spendAction, addAction, effectToggles, effectsUsed, featureDescription, masteredWeapons, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
 
 const warlock = (over = {}) => makeCharacter({
   classes: [{ classId: 'warlock', level: 7 }],
@@ -167,6 +169,42 @@ const SAME_RULES: Record<string, string[]> = {
 }
 // Versions of one subclass (genie-dao, armorer-guardian) share their features.
 const family = (id: string) => id.replace(/-(dao|djinni|efreeti|marid|dreadnaught|guardian|infiltrator)$/, '')
+
+describe('custom action uses', () => {
+  const overdrive = { id: 'od', kind: 'bonus' as const, name: 'Overdrive', stats: [{ kind: 'speed' as const, value: 10 }], uses: { count: 1, recharge: 'long' as const } }
+
+  it('tracks uses as a resource that a long rest refills', () => {
+    const c = addAction(warlock(), overdrive)
+    expect(getResources(c).find(r => r.id === 'act:od')).toMatchObject({ label: 'Overdrive', max: 1, recharge: 'long' })
+    expect(actionUses(c, c.customActions![0])).toEqual({ left: 1, max: 1 })
+    const used = spendAction(c, 'od')
+    expect(actionUses(used, used.customActions![0])).toEqual({ left: 0, max: 1 })
+    // Use also switches its effect on.
+    expect(used.customActions![0].active).toBe(true)
+    expect(actionUses(shortRest(used), used.customActions![0])?.left).toBe(0)
+    expect(actionUses(longRest(used), used.customActions![0])?.left).toBe(1)
+  })
+
+  it('counts uses from PB or a modifier, at least 1', () => {
+    const c = addAction(warlock(), { ...overdrive, uses: { count: 'pb', recharge: 'short' } })
+    expect(actionUses(c, c.customActions![0])?.max).toBe(3)
+    const cha = addAction(warlock(), { ...overdrive, uses: { count: 'cha', recharge: 'long' } })
+    expect(actionUses(cha, cha.customActions![0])?.max).toBe(derive(cha).mods.cha)
+    const weak = addAction(warlock(), { ...overdrive, uses: { count: 'int', recharge: 'long' } })
+    expect(actionUses(weak, weak.customActions![0])?.max).toBe(1)
+  })
+
+  it('out of uses still works and stays at none left', () => {
+    const c = spendAction(addAction(warlock(), overdrive), 'od')
+    expect(actionUses(spendAction(c, 'od'), c.customActions![0])?.left).toBe(0)
+  })
+
+  it('gives Use to actions with uses or an effect, the roll button to the rest', () => {
+    expect(isUsable(overdrive)).toBe(true)
+    expect(isUsable({ id: 'x', kind: 'action', name: 'Shove', roll: { dice: '1d4' } })).toBe(false)
+    expect(isUsable({ id: 'x', kind: 'action', name: 'Curse', effect: { damage: '1d6' } })).toBe(true)
+  })
+})
 
 describe('feature text on the sheet', () => {
   const editions = [

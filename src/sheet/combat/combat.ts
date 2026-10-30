@@ -1,7 +1,7 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction, LiveEffect } from '../../model/character'
-import { cantripDamageBonus, classChoices, featureEffectId, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
+import { actionUseId, cantripDamageBonus, classChoices, featureEffectId, getDamageRiders, getResources, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
@@ -10,6 +10,7 @@ import type { SpellEntry } from '../../quickcast/types'
 import { editionOf } from '../../spellbook/access'
 import { toQuickCast } from '../../spellbook/spellbook'
 import { explainKey, featureKey } from '../../builder/why'
+import { setResourceUsed } from '../engine'
 import type { MessageKey } from '../../i18n/locales/en'
 
 export type { ActionKind, CustomAction } from '../../model/character'
@@ -35,6 +36,29 @@ export function updateAction(c: Character, id: string, patch: Partial<Omit<Custo
 /** Switches an action's effect on or off. Saved, so its stat changes stay until switched off. */
 export function setActionActive(c: Character, id: string, on: boolean): Character {
   return updateAction(c, id, { active: on || undefined })
+}
+
+/** A limited action's uses: how many are left of the most. Undefined when it has no `uses`. */
+export function actionUses(c: Character, a: CustomAction): { left: number; max: number } | undefined {
+  if (!a.uses) return undefined
+  const r = getResources(c).find(x => x.id === actionUseId(a.id))
+  if (!r) return undefined
+  return { left: Math.max(0, r.max - (c.state.resources[r.id]?.used ?? 0)), max: r.max }
+}
+
+/** Whether Use (spend a use, switch its effect on) means anything for this action; otherwise its roll button is enough. */
+export const isUsable = (a: CustomAction) => !!a.uses || hasActionEffect(a)
+
+export const hasActionEffect = (a: CustomAction) => !!a.effect || !!a.stats?.length
+
+/** One tap of Use: spends a use (none left still spends nothing more) and switches its effect on. */
+export function spendAction(c: Character, id: string): Character {
+  const a = c.customActions?.find(x => x.id === id)
+  if (!a) return c
+  let next = c
+  if (a.uses) next = setResourceUsed(next, actionUseId(id), (next.state.resources[actionUseId(id)]?.used ?? 0) + 1)
+  if (hasActionEffect(a)) next = setActionActive(next, id, true)
+  return next
 }
 
 export function removeAction(c: Character, id: string): Character {

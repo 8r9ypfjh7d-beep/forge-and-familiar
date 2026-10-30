@@ -20,8 +20,8 @@ const RECHARGE = { short: 'rest.short', long: 'rest.long', dawn: 'rest.dawn', no
 const PIP_LIMIT = 10
 
 export function Resources({ character, apply }: { character: Character; apply: Apply }) {
-  // Sorcery points have their own pips on the Metamagic card, so they are not shown twice.
-  const resources = getResources(character).filter(r => r.id !== SORCERY_POINTS)
+  // Sorcery points have their own pips on the Metamagic card, and custom actions' uses sit on the action's row, so neither shows twice.
+  const resources = getResources(character).filter(r => r.id !== SORCERY_POINTS && !r.id.startsWith('act:'))
   const counters = character.state.counters ?? []
   const { t, term } = useI18n()
   const rolls = useSheetRolls(character)

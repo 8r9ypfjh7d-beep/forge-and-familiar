@@ -20,6 +20,17 @@ describe('turn action lists', () => {
     expect(featureActionKind('Fireball', '2014')).toBeUndefined()
   })
 
+  it('hides a filled-in row the player wrote as their own action, and action uses', () => {
+    const c = makeCharacter({
+      classes: [{ classId: 'fighter', level: 3 }], spells: [],
+      customActions: [{ id: 'sw', kind: 'bonus', name: 'Second Wind' }, { id: 'od', kind: 'bonus', name: 'Overdrive', uses: { count: 1, recharge: 'long' } }],
+    })
+    const turn = turnActions(c, derive(c), { spells: [] })
+    const all = Object.values(turn).flat().map(r => names([r])[0])
+    expect(all).not.toContain('Second Wind')
+    expect(all).not.toContain('Overdrive')
+  })
+
   it('fills a fighter rogue turn with Second Wind, Action Surge and Cunning Action', () => {
     const c = makeCharacter({ classes: [{ classId: 'fighter', level: 3 }, { classId: 'rogue', level: 5 }], spells: [] })
     const turn = turnActions(c, derive(c), { spells: [] })

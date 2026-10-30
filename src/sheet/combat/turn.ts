@@ -30,8 +30,10 @@ export function turnActions(c: Character, d: DerivedStats, { spells, alwaysPrepa
   const out = Object.fromEntries(ACTION_KINDS.map(k => [k, [] as TurnRow[]])) as Record<ActionKind, TurnRow[]>
   const byId = new Map(spells.map(s => [s.id, s]))
   const byName = new Map(spells.map(s => [s.name.toLowerCase(), s]))
-  const resources = d.resources.filter(r => !POOLS.includes(r.id) && !r.id.startsWith('spell:') && !r.id.startsWith('item:'))
-  const labels = new Set(d.resources.map(r => r.label.toLowerCase()))
+  // The player's own actions (and their uses, `act:`) show on their own rows; one of the same name hides the filled-in row.
+  const custom = new Set((c.customActions ?? []).map(a => a.name.trim().toLowerCase()))
+  const resources = d.resources.filter(r => !POOLS.includes(r.id) && !/^(spell|item|act):/.test(r.id) && !custom.has(r.label.toLowerCase()))
+  const labels = new Set([...d.resources.filter(r => !r.id.startsWith('act:')).map(r => r.label.toLowerCase()), ...custom])
 
   // Features and resources first: they are what a class does each turn.
   for (const r of resources) {
@@ -77,6 +79,7 @@ export function turnActions(c: Character, d: DerivedStats, { spells, alwaysPrepa
     const kind = castingKind(r.spell.castingTime)
     // Action spells that attack or force a save are cast from the attacks table.
     if (kind === 'action' && !r.free && inTable.has(r.spell.name.toLowerCase())) continue
+    if (custom.has(r.spell.name.toLowerCase())) continue
     out[kind].push(r)
   }
   return out

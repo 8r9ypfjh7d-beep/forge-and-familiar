@@ -2,7 +2,7 @@
 // Everything not stored here (max HP, AC, modifiers, slots, resource maxima) is derived by src/rules.
 import type { QuickCastEntry } from '../quickcast/types'
 import type { ClassOptionPick } from '../rules/classOptions'
-import type { Abilities, Ability, ConditionId, Feat, InventoryEntry, ItemEffect, Size, SkillId, SubclassData } from '../rules/types'
+import type { Abilities, Ability, ConditionId, Feat, InventoryEntry, ItemEffect, Recharge, Size, SkillId, SubclassData } from '../rules/types'
 
 export type AbilityMethod = 'standard' | 'pointBuy' | 'rolled' | 'manual'
 export type HitDie = 'd6' | 'd8' | 'd10' | 'd12'
@@ -159,6 +159,8 @@ export interface CustomAction {
   stats?: ItemEffect[]
   /** Switched on under Effects. Saved, so stat changes last until the player switches it off. */
   active?: boolean
+  /** Limited uses (Overdrive once per long rest): a number, the proficiency bonus or an ability modifier. Tracked as resource `act:<id>`. */
+  uses?: { count: number | 'pb' | Ability; recharge: Recharge }
 }
 
 /** One shop line from the builder: the item (engine id, or the library item embedded), how many and the total price. */

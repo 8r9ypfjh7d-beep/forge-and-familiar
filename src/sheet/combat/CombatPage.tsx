@@ -8,7 +8,7 @@ import { featExplainKey, optionKey, optionName } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
-import type { Ability, ItemEffect } from '../../rules/types'
+import type { Ability, ItemEffect, Recharge } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
 import type { SlotChoice } from '../../quickcast'
 import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
@@ -33,7 +33,7 @@ import { effectiveMaxHp } from '../engine'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
-  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteredWeapons, masteryLimit, featureDescription, newActionId, removeAction, resolveDice, spellAttackRows, updateAction,
+  ACTION_KINDS, actionRoll, actionUses, actionsOf, hasActionEffect, isUsable, setActionActive, spendAction, addAction, isHealing, effectToggles, masteredWeapons, masteryLimit, featureDescription, newActionId, removeAction, resolveDice, spellAttackRows, updateAction,
   effectsUsed, type ActionKind, type CustomAction, type EffectToggle, type UsedEffect, type SpellAttackRow,
 } from './combat'
 import './combat.css'
@@ -364,6 +364,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const toggle = (e: EffectToggle, value: boolean, slot?: SlotChoice) =>
     toggleEffect(e, value, apply, t, () => setOn(o => ({ ...o, [e.id]: value })), (spell, s) => show(casting.cast(spell, s)), slot)
   const active = effects.filter(isOn)
+  const listed = effects.filter(e => !e.id.startsWith('act:'))
   const damaging = active.filter((e): e is EffectToggle & { damage: string } => !!e.damage)
 
   const weapon = (a: DerivedStats['attacks'][number]) => {
@@ -424,8 +425,8 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     })
   }
 
-  /** A custom action: attack roll (with toggled effects on a hit) or save DC, then its dice. */
-  const runAction = (a: CustomAction) => {
+  /** A custom action: attack roll (with toggled effects on a hit) or save DC, then its dice. `extra` notes what Use did. */
+  const runAction = (a: CustomAction, extra: string[] = []) => {
     const r = actionRoll(a, d)
     const healing = isHealing(a.roll?.type)
     const used = r.attackBonus !== undefined && !healing ? damaging.filter(e => !e.weaponOnly && e.id !== `act:${a.id}`) : []
@@ -438,10 +439,22 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         ...('attack' in res && res.attack ? [{ roll: res.attack, what: t('cs.roll.toHit') }] : []),
         ...(res.damage ? [{ roll: res.damage, what: healing ? t('cs.roll.healing') : r.attackBonus !== undefined || r.dc !== undefined ? t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) : t('cs.roll.result') }] : []),
       ],
-      note: r.dc !== undefined ? t('cs.saveNote', { dc: r.dc, ability: r.save ? abilityShort(r.save) : '' }) : undefined,
+      note: [...extra, r.dc !== undefined ? t('cs.saveNote', { dc: r.dc, ability: r.save ? abilityShort(r.save) : '' }) : ''].filter(Boolean).join(' · ') || undefined,
       effects: effectsUsed(active.filter(e => e.id !== `act:${a.id}`), res.damage ? used.map(e => e.id) : [], f =>
         (f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === a.roll?.ability),
     })
+  }
+
+  /** Use: spends a use, switches its effect on and rolls whatever it rolls, all in one tap. Out of uses still works, with a note. */
+  const spendUse = (a: CustomAction) => {
+    const uses = actionUses(character, a)
+    const notes = [
+      uses ? (uses.left <= 0 ? t('use.noneLeft') : t('use.left', { n: uses.left - 1, max: uses.max })) : '',
+      hasActionEffect(a) && !a.active ? t('cs.actionOn', { name: a.name }) : '',
+    ].filter(Boolean)
+    apply(t('use.log', { label: a.name }), c => spendAction(c, a.id))
+    if (actionRoll(a, d).dice || a.roll?.check) runAction(a, notes)
+    else show({ name: a.name, rolls: [], note: notes.join(' · ') || undefined })
   }
 
   const ft = (n: number) => t('cs.feet', { n })
@@ -540,11 +553,12 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
       <CunningStrike character={character} d={d} />
 
       <h3 className="cs-sub">{t('cs.effects')}</h3>
-      {effects.length
-        ? <EffectRows character={character} effects={effects} isOn={isOn} onToggle={toggle} apply={apply} />
+      {/* The player's own actions keep their switch on their row below, so each shows once. */}
+      {listed.length
+        ? <EffectRows character={character} effects={listed} isOn={isOn} onToggle={toggle} apply={apply} />
         : <p className="hint">{t('cs.noEffects')}</p>}
 
-      <CustomActions character={character} apply={apply} onRoll={runAction}
+      <CustomActions character={character} apply={apply} onRoll={a => runAction(a)} onUse={spendUse}
         auto={k => <TurnRows rows={turn[k]} character={character} apply={apply} features={lib.features} onOut={show} />} hasAuto={k => turn[k].length > 0} />
     </section>
   )
@@ -557,8 +571,8 @@ const KIND_TITLE: Record<ActionKind, MessageKey> = {
 }
 
 /** The player's own actions, bonus actions, reactions, free actions and other abilities, grouped like Roll20. */
-function CustomActions({ character, apply, onRoll, auto, hasAuto }: {
-  character: Character; apply: Apply; onRoll: (a: CustomAction) => void
+function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
+  character: Character; apply: Apply; onRoll: (a: CustomAction) => void; onUse: (a: CustomAction) => void
   /** The rows filled in from the character's spells and features, above the player's own. */
   auto: (k: ActionKind) => ReactNode; hasAuto: (k: ActionKind) => boolean
 }) {
@@ -599,11 +613,12 @@ function CustomActions({ character, apply, onRoll, auto, hasAuto }: {
                   return (
                     <li key={a.id} className="cs-action">
                       <ActionForm kind={a.kind} stats={d} initial={a} onCancel={() => setEditing(null)}
-                        onSave={p => { apply(t('cs.log.actionEdited', { name: p.name }), c => updateAction(c, a.id, { roll: undefined, effect: undefined, stats: undefined, description: undefined, ...p })); setEditing(null) }} />
+                        onSave={p => { apply(t('cs.log.actionEdited', { name: p.name }), c => updateAction(c, a.id, { roll: undefined, effect: undefined, stats: undefined, description: undefined, uses: undefined, ...p })); setEditing(null) }} />
                     </li>
                   )
                 }
                 const sum = summary(a)
+                const uses = actionUses(character, a)
                 return (
                   <li key={a.id} className="cs-action">
                     <div className="cs-action-row">
@@ -611,12 +626,26 @@ function CustomActions({ character, apply, onRoll, auto, hasAuto }: {
                         ? <details><summary><span>{a.name}</span></summary><p className="cs-desc-text">{a.description}</p></details>
                         : <span className="cs-action-name">{a.name}</span>}
                       <span className="cs-action-tools">
-                        {sum && (
-                          <button type="button" className="btn small cs-action-roll" onClick={() => onRoll(a)} aria-label={t('cs.rollAction', { name: a.name, what: sum })}>
-                            <span aria-hidden="true">🎲</span> <span dir="ltr">{sum}</span>
-                          </button>
+                        {uses && <span className={`cs-uses${uses.left ? '' : ' empty'}`} title={t('use.left', { n: uses.left, max: uses.max })} dir="ltr">{uses.left}/{uses.max}</span>}
+                        {isUsable(a)
+                          ? (
+                            <button type="button" className="glass-btn small prominent cs-action-use" onClick={() => onUse(a)}
+                              aria-label={sum ? t('cs.useAction', { name: a.name, what: sum }) : t('use.useName', { label: a.name })}>
+                              {t('use.use')}{sum && <> · <span dir="ltr">{sum}</span></>}
+                            </button>
+                          )
+                          : sum && (
+                            <button type="button" className="btn small cs-action-roll" onClick={() => onRoll(a)} aria-label={t('cs.rollAction', { name: a.name, what: sum })}>
+                              <span aria-hidden="true">🎲</span> <span dir="ltr">{sum}</span>
+                            </button>
+                          )}
+                        {hasActionEffect(a) && (
+                          <label className="cs-switch cs-action-switch" title={t('cs.effectTagHint')}>
+                            <input type="checkbox" role="switch" checked={!!a.active} aria-label={t('cs.actionSwitch', { name: a.name })}
+                              onChange={e => apply(t(e.target.checked ? 'cs.log.effectOn' : 'cs.log.effectOff', { name: a.name }), c => setActionActive(c, a.id, e.target.checked))} />
+                            <span>{t('cs.effectTag')}</span>
+                          </label>
                         )}
-                        {(a.effect || a.stats?.length) && <span className={`cs-effect-tag${a.active ? ' on' : ''}`} title={t('cs.effectTagHint')}>{t('cs.effectTag')}</span>}
                         <button type="button" className="btn ghost small" aria-label={t('cs.editAction', { name: a.name })} onClick={() => setEditing(a.id)}>✎</button>
                         <button type="button" className="btn ghost small" aria-label={t('cs.removeAction', { name: a.name })}
                           onClick={() => apply(t('cs.log.actionRemoved', { name: a.name }), c => removeAction(c, a.id))}>×</button>
@@ -802,6 +831,8 @@ function PactRow({ character, apply }: { character: Character; apply: Apply }) {
 }
 
 type Check = 'none' | 'attack' | 'save'
+/** How many uses: unlimited, a typed number, the proficiency bonus or an ability modifier. */
+type UsesCount = 'none' | 'number' | 'pb' | Ability
 
 function ActionForm({ kind, stats, initial, onSave, onCancel }: {
   kind: ActionKind
@@ -823,9 +854,14 @@ function ActionForm({ kind, stats, initial, onSave, onCancel }: {
   const [fx, setFx] = useState(initial?.effect?.damage ?? '')
   const [fxType, setFxType] = useState(initial?.effect?.type ?? '')
   const [statFx, setStatFx] = useState<ItemEffect[]>(initial?.stats ?? [])
+  const initialCount = initial?.uses?.count
+  const [usesKind, setUsesKind] = useState<UsesCount>(initialCount === undefined ? 'none' : typeof initialCount === 'number' ? 'number' : initialCount)
+  const [usesN, setUsesN] = useState(typeof initialCount === 'number' ? String(initialCount) : '1')
+  const [recharge, setRecharge] = useState<Recharge>(initial?.uses?.recharge ?? 'long')
+  const usesBad = usesKind === 'number' && !(Number(usesN) >= 1)
   const diceBad = !!dice.trim() && !resolveDice(dice, stats)
   const fxBad = hasEffect && !resolveDice(fx, stats)
-  const ok = !!name.trim() && !diceBad && !fxBad
+  const ok = !!name.trim() && !diceBad && !fxBad && !usesBad
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -842,6 +878,7 @@ function ActionForm({ kind, stats, initial, onSave, onCancel }: {
       ...(Object.keys(roll).length ? { roll } : {}),
       ...(hasEffect ? { effect: { damage: fx.trim(), ...(fxType.trim() ? { type: fxType.trim() } : {}) } } : {}),
       ...(statFx.length ? { stats: statFx } : {}),
+      ...(usesKind !== 'none' ? { uses: { count: usesKind === 'number' ? Math.floor(Number(usesN)) : usesKind, recharge } } : {}),
     })
   }
   const abilitySelect = (value: Ability, set: (a: Ability) => void, label: string) => (
@@ -880,6 +917,29 @@ function ActionForm({ kind, stats, initial, onSave, onCancel }: {
           <input value={type} onChange={e => setType(e.target.value)} placeholder={t('cs.form.typePlaceholder')} />
         </label>
         <p className="hint wide">{diceBad ? t('cs.form.diceBad') : t('cs.form.diceHint')}</p>
+      </fieldset>
+
+      <fieldset className="wide cs-fieldset">
+        <legend>{t('cs.form.uses')}</legend>
+        <label>{t('cs.form.usesCount')}
+          <select value={usesKind} onChange={e => setUsesKind(e.target.value as UsesCount)}>
+            <option value="none">{t('cs.form.usesNone')}</option>
+            <option value="number">{t('cs.form.usesNumber')}</option>
+            <option value="pb">{t('cs.form.usesPb')}</option>
+            {ABILITIES.map(a => <option key={a} value={a}>{t('cs.form.usesMod', { ability: abilityShort(a) })}</option>)}
+          </select>
+        </label>
+        {usesKind === 'number' && (
+          <label>{t('cs.form.usesN')}<input type="number" min={1} inputMode="numeric" value={usesN} onChange={e => setUsesN(e.target.value)} aria-invalid={usesBad} /></label>
+        )}
+        {usesKind !== 'none' && (
+          <label>{t('cs.form.recharge')}
+            <select value={recharge} onChange={e => setRecharge(e.target.value as Recharge)}>
+              {(['short', 'long', 'dawn', 'none'] as const).map(r => <option key={r} value={r}>{t(`rest.${r}`)}</option>)}
+            </select>
+          </label>
+        )}
+        <p className="hint wide">{t('cs.form.usesHint')}</p>
       </fieldset>
 
       <fieldset className="wide cs-fieldset">
