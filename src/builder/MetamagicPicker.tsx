@@ -1,6 +1,7 @@
 import { useI18n } from '../i18n'
 import { METAMAGIC_COUNT, getMetamagic, metamagicCount, metamagicIds, metamagicOptions, rulesEdition, toggleMetamagic, type ClassOption } from '../rules'
 import type { StepProps } from './steps'
+import { Fold } from './Compact'
 import { ExplainList, Why } from './Why'
 import { metamagicKey } from './why'
 
@@ -18,8 +19,9 @@ export function MetamagicPicker({ draft, update }: StepProps) {
   const cost = (o: ClassOption) => (o.costPerSpellLevel ? t('mm.perLevel') : t('mm.cost', { count: o.cost ?? 0 }))
   const name = (o: ClassOption) => term('metamagic', o.id, o.name)
   return (
-    <div className="field">
-      <label>{t('builder.metamagic', { picked: ids.length, count })} <Why id="choice.metamagic" /></label>
+    <Fold defaultOpen={ids.length < count} title={term('feature', 'Metamagic', 'Metamagic')}
+      status={<span className={ids.length < count ? 'todo' : ''}>{t('builder.picks.count', { picked: ids.length, max: count })}</span>}
+      why={<Why id="choice.metamagic" />}>
       <div className="row">
         {metamagicOptions(draft).map(o => (
           <button key={o.id} type="button" className={`glass-chip ${ids.includes(o.id) ? 'on' : ''}`} aria-pressed={ids.includes(o.id)} title={cost(o)}
@@ -30,6 +32,6 @@ export function MetamagicPicker({ draft, update }: StepProps) {
       </div>
       {ids.length > count && <p className="small bad">{t('builder.metamagicOver', { count })}</p>}
       <ExplainList items={getMetamagic(draft).map(o => ({ name: name(o), note: cost(o), key: metamagicKey(o, edition), text: o.text }))} />
-    </div>
+    </Fold>
   )
 }

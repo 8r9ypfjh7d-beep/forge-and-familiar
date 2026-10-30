@@ -6,6 +6,7 @@ import { itemById, purchasesCp, rulesEdition, startingGold } from '../rules'
 import { sourceFor } from '../spellbook/access'
 import type { StepProps } from './steps'
 import { bundleOf, changePurchase, coinText, costCp, shopItem } from './shop'
+import { Fold } from './Compact'
 import { Why } from './Why'
 
 const SHELVES = ['all', 'weapon', 'armor', 'gear', 'tool', 'mount'] as const
@@ -39,8 +40,9 @@ export function Shop({ draft, update }: StepProps) {
   const title = BUNDLED.find(m => m.source.id === source)?.source.title
 
   return (
-    <section className="shop" aria-labelledby="shop-title">
-      <h4 id="shop-title" className="small">{t('builder.shop.title')} <Why id="shop" /></h4>
+    <Fold className="shop-fold" defaultOpen={purchases.length > 0} title={t('builder.shop.title')} why={<Why id="shop" />}
+      status={t('builder.compact.shopLeft', { left: coinText(Math.max(0, budget - spent), t) })}>
+    <section className="shop" aria-label={t('builder.shop.title')}>
       <p className="muted small">{t('builder.shop.intro')}</p>
       <p className={`small shop-budget${spent > budget ? ' over' : ''}`} aria-live="polite">
         {t('builder.shop.budget', { budget: coinText(budget, t), spent: coinText(spent, t), left: coinText(Math.max(0, budget - spent), t) })}
@@ -99,5 +101,6 @@ export function Shop({ draft, update }: StepProps) {
       )}
       {title && <p className="muted small">{t('inv.source', { title })}</p>}
     </section>
+    </Fold>
   )
 }

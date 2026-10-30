@@ -89,7 +89,10 @@ export interface ExplainItem {
   text?: string
 }
 
-/** Names with a one-line plain-language explanation each, e.g. a class's features or a race's traits. */
+/**
+ * Names with a plain-language explanation each, e.g. a class's features or a race's traits.
+ * Each row is one line (name, note, the start of the text); a tap opens the whole text.
+ */
 export function ExplainList({ items }: { items: ExplainItem[] }) {
   const { t } = useI18n()
   if (items.length === 0) return null
@@ -97,9 +100,13 @@ export function ExplainList({ items }: { items: ExplainItem[] }) {
     <ul className="why-list">
       {items.map((it, i) => (
         <li key={`${it.name}-${i}`}>
-          <strong>{it.name}</strong>
-          {it.note && <span className="muted"> · {it.note}</span>}
-          <span className="why-list-text">{it.text || (it.key ? t(it.key) : t('why.homebrew'))}</span>
+          <details>
+            <summary>
+              <strong>{it.name}</strong>
+              {it.note && <span className="muted"> · {it.note}</span>}
+              <span className="why-list-text" dir="auto"> {it.text || (it.key ? t(it.key) : t('why.homebrew'))}</span>
+            </summary>
+          </details>
         </li>
       ))}
     </ul>

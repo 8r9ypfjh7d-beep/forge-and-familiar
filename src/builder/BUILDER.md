@@ -15,6 +15,8 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 | `validate.ts` | `stepIssues()` per step (missing picks; they block Create/Save only) and `stepWarnings()` (off-book choices, shown as ⚠ notes, never block) |
 | `ProficiencyPick.tsx` | `PickOrWrite` select with grouped options plus "✎ Write your own…" (opens a text box); `useLanguageGroups()` / `useToolGroups()` build the language and tool groups |
 | `Summary.tsx` | Live preview panel using `derive()` |
+| `Compact.tsx` | Compact layout shared by every step: `Fold` (section with a status on its title line), `ChoicePicker` (one pick from many: picked tile + Change, search, one fold per book), `useFilter` (search for long chip lists), `matches()` |
+| `compact.test.ts` | Picker search (case, accents, every word) |
 | `ClassOptionPicker.tsx` | Eldritch Invocations and 2014 Pact Boon on the Class step: count by level, ⚠ on unmet prerequisites (pickable anyway), why? line per pick, Origin feat or cantrip for 2024 repeatables, "Take again" |
 | `MulticlassPicker.tsx` | Optional extra classes on the Class step: prerequisites, proficiencies gained, caster-level math |
 | `InfusionPicker.tsx` | Picks from the option lists a class learns many of by level (`ClassDef.optionPicks`: Artificer Infusions, 2024 plans), grouped by unlock level; over or under the count only warns |
@@ -35,6 +37,7 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 
 ## Notes
 
+- Compact layout (decided 2026-10-30, Ziv: "keep all the info but not so big"): nothing is removed, long things start small. One pick from many (race, class, subclass) uses `ChoicePicker`: once picked it is one tile with Change; while choosing it has a search field (14+ items) and one fold per book, the core (SRD) group open and the rest under "More books" when there are 5+ groups. Multi-pick lists (invocations, pact boon, metamagic, subclass picks, infusions, extra spells) are a `Fold` with "N of M picked" on the title line, open while picks are missing, with a search field from 16 options and a scrolling chip box. Explanation lists (`ExplainList`) are one line per entry that opens on tap. Reference info (class saves/armor/features, starting gear list, the shop) sits in closed folds with a count. New content threads should reuse these instead of adding full-text blocks or long grids.
 - Look: the step card and summary are `.glass`; tiles inside (race/class choices, stats, kit choices) are thin glass with the lens for the selected one. Buttons are `.glass-btn` (one `.prominent` per surface), picks are `.glass-chip`, the rules switch is `.glass-segmented`. On phones the step bar is one swipeable row that keeps the current step in view. The "why?" bubble is a `.glass-sheet`.
 
 - Rules: the Race step starts with a 2014 / 2024 switch (`rulesEdition`). Switching clears race, background, skills, languages, tools, ASIs, gear picks and class choices; classes keep their levels and drop their subclass. New characters default to 2014.

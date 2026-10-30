@@ -26,8 +26,27 @@
 /* Option explanations: the picked option's line, and name + line lists (features, traits, languages). */
 .why-explain { margin-block: var(--sp-1); color: var(--ink); }
 .why-list { list-style: none; margin-block: var(--sp-2); padding: 0; display: grid; gap: var(--sp-2); font-size: 0.875rem; line-height: 1.45; }
-.why-list li { padding-block: var(--sp-2); padding-inline: var(--sp-3); border-radius: var(--r-sm); background: var(--glass-thin); }
-.why-list .why-list-text { display: block; }
+.why-list { gap: var(--sp-1); grid-template-columns: minmax(0, 1fr); }
+.why-list li { min-inline-size: 0; }
+.why-list li { border-radius: var(--r-sm); background: var(--glass-thin); }
+/* One line per entry (name, note, start of the text); a tap opens the whole text (Compact.tsx pattern). */
+.why-list summary {
+  display: block; list-style: none; cursor: pointer; padding-block: var(--sp-2); padding-inline: var(--sp-3) calc(var(--sp-3) + 18px);
+  position: relative; border-radius: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.why-list summary::-webkit-details-marker { display: none; }
+.why-list summary::after {
+  content: '›'; position: absolute; inset-inline-end: var(--sp-3); inset-block-start: var(--sp-2);
+  color: var(--muted); font-weight: 600; transition: rotate var(--dur-fast);
+}
+.why-list summary:hover { background: var(--glass-regular); }
+.why-list details[open] summary { white-space: normal; }
+.why-list details[open] summary::after { rotate: 90deg; }
+.why-list .why-list-text { color: var(--muted); }
+.why-list details[open] .why-list-text { display: block; color: var(--ink); margin-block-start: 2px; }
+.why-list summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .why-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); }
 .why-legend .why { margin-inline-start: 0; }
 :root[data-contrast="high"] .why-list li { border: 2px solid var(--line); }
+.why-list summary:dir(rtl)::after { content: '‹'; }
+.why-list details[open] summary:dir(rtl)::after { rotate: -90deg; }

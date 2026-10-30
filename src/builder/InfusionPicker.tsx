@@ -1,7 +1,8 @@
 import { useI18n } from '../i18n'
 import { optionPickSlots, optionsFor, toggleClassOption, type ClassOption } from '../rules'
 import type { StepProps } from './steps'
-import { Why } from './Why'
+import { Fold } from './Compact'
+import { ExplainList, Why } from './Why'
 import { optionKey, optionName, type WhyId } from './why'
 
 /**
@@ -22,11 +23,10 @@ export function InfusionPicker({ draft, update }: StepProps) {
         const name = (o: ClassOption) => optionName(o, term)
         const about = (o: ClassOption) => { const key = optionKey(o); return o.text || (key ? t(key) : t('why.homebrew')) }
         return (
-          <div className="field" key={`${slot.classId}.${slot.kind}`}>
-            <label>
-              {t('builder.options.title', { feature: term('feature', slot.name, slot.name), className: className(slot.classId), picked: ids.size, count: slot.count })}
-              {' '}<Why id={`options.${slot.kind}` as WhyId} />
-            </label>
+          <Fold key={`${slot.classId}.${slot.kind}`} defaultOpen={ids.size < slot.count}
+            title={<>{term('feature', slot.name, slot.name)} ({className(slot.classId)})</>}
+            status={<span className={ids.size < slot.count ? 'todo' : ''}>{t('builder.picks.count', { picked: ids.size, max: slot.count })}</span>}
+            why={<Why id={`options.${slot.kind}` as WhyId} />}>
             {levels.map(level => (
               <div key={level}>
                 {level > 0 && <p className="muted small">{t('builder.options.fromLevel', { level })}</p>}
@@ -40,17 +40,11 @@ export function InfusionPicker({ draft, update }: StepProps) {
                 </div>
               </div>
             ))}
-            {slot.picked.length > 0 && (
-              <ul className="why-list">
-                {slot.picked.map(({ option: o }) => (
-                  <li key={o.id}><strong>{name(o)}</strong>{o.source && <span className="muted"> · {o.source}</span>}<span className="why-list-text">{about(o)}</span></li>
-                ))}
-              </ul>
-            )}
+            <ExplainList items={slot.picked.map(({ option: o }) => ({ name: name(o), note: o.source, text: about(o) }))} />
             {ids.size !== slot.count && (
               <p className="muted small">⚠ {t(ids.size < slot.count ? 'builder.options.under' : 'builder.options.over', { count: slot.count })}</p>
             )}
-          </div>
+          </Fold>
         )
       })}
     </>

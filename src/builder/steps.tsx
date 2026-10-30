@@ -26,6 +26,7 @@ import { MulticlassPicker } from './MulticlassPicker'
 import { SpellsStep } from './SpellsStep'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
+import { ChoicePicker, Fold, useFilter } from './Compact'
 import { choiceOptionKey, choiceTopic, explainKey, featExplainKey, featureKey, optionKey, optionName, pitchKey } from './why'
 import { groupKitItems } from './kit'
 import { effectText } from '../inventory/Inventory'
@@ -111,24 +112,27 @@ function RaceStep({ draft, update }: StepProps) {
         <Why id="size" label={t('builder.legend.size')} />
         <Why id="speed" label={t('builder.legend.speed')} />
       </p>
-      <div className="card-grid">
-        {allRaces(edition).map(r => (
-          <button
-            key={r.id}
-            className={`choice ${draft.raceId === r.id ? 'selected' : ''}`}
-            onClick={() => update({ raceId: r.id, subraceId: r.subraceOptional ? undefined : r.subraces?.[0]?.id, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined, sizeChoice: undefined })}
-          >
-            <strong>{term('race', r.id, r.name)}</strong>
-            <span className="muted small">
-              {edition === '2024' ? t('builder.race.noBonus') : r.flexibleAbilityBonuses ? t('builder.race.flexBonus') : bonusText(r.abilityBonuses, abilityShort)}
-              {r.freeAbilityBonuses ? (r.freeAbilityBonuses.value === 2 ? t('builder.race.plusTwo') : t('builder.race.freeBonus', { count: r.freeAbilityBonuses.count })) : ''}
-            </span>
-            <span className="muted small">{t('builder.race.sizeSpeed', { size: (r.sizeOptions ?? [r.size]).map(x => term('size', x, x)).join(' / '), speed: r.speed })}</span>
-            {r.source && <span className="muted small">{r.source}</span>}
-            {r.legacy && <span className="muted small">{t('builder.race.legacy')}</span>}
-          </button>
-        ))}
-      </div>
+      <ChoicePicker
+        label={t('builder.step.race')}
+        firstGroup={t('builder.compact.srd')}
+        value={draft.raceId}
+        onPick={id => update({ raceId: id, subraceId: (() => { const r = raceById(id, edition); return r?.subraceOptional ? undefined : r?.subraces?.[0]?.id })(), freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined, sizeChoice: undefined })}
+        items={allRaces(edition).map(r => ({
+          id: r.id,
+          name: term('race', r.id, r.name),
+          group: r.id.startsWith('hb:') ? t('builder.compact.homebrew') : r.legacy ? `${r.source ?? t('builder.compact.srd')} · ${t('builder.race.legacy')}` : r.source,
+          search: [r.name],
+          meta: (
+            <>
+              <span className="muted small">
+                {edition === '2024' ? t('builder.race.noBonus') : r.flexibleAbilityBonuses ? t('builder.race.flexBonus') : bonusText(r.abilityBonuses, abilityShort)}
+                {r.freeAbilityBonuses ? (r.freeAbilityBonuses.value === 2 ? t('builder.race.plusTwo') : t('builder.race.freeBonus', { count: r.freeAbilityBonuses.count })) : ''}
+              </span>
+              <span className="muted small">{t('builder.race.sizeSpeed', { size: (r.sizeOptions ?? [r.size]).map(x => term('size', x, x)).join(' / '), speed: r.speed })}</span>
+            </>
+          ),
+        }))}
+      />
       {race?.subraces && (
         <div className="field">
           <label>{t(edition === '2024' ? 'builder.lineage' : 'builder.subrace')} <Why id="subrace" /></label>
@@ -298,19 +302,23 @@ function ClassStep({ draft, update }: StepProps) {
         <Why id="primary" label={t('builder.legend.primary')} />
         <Why id="casting" label={t('builder.legend.casting')} />
       </p>
-      <div className="card-grid">
-        {classesFor(edition).map(c => (
-          <button
-            key={c.id}
-            className={`choice ${current?.classId === c.id ? 'selected' : ''}`}
-            onClick={() => update({ classes: [{ classId: c.id, level }, ...extras.filter(x => x.classId !== c.id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], startingWealth: undefined, improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [], classOptions: (draft.classOptions ?? []).filter(p => p.classId !== current?.classId || p.classId === c.id) })}
-          >
-            <strong>{className(c.id)}</strong>
-            <span className="muted small">{t('builder.class.hitDie', { die: c.hitDie, primary: c.primary.map(abilityShort).join('/') || '—' })}</span>
-            <span className="muted small">{t(c.caster === 'none' ? 'builder.class.noCasting' : c.caster === 'pact' ? 'builder.class.pact' : c.caster === 'full' ? 'builder.class.full' : c.caster === 'third' ? 'builder.class.third' : 'builder.class.half')}</span>
-          </button>
-        ))}
-      </div>
+      <ChoicePicker
+        label={t('builder.step.class')}
+        value={current?.classId}
+        onPick={id => update({ classes: [{ classId: id, level }, ...extras.filter(x => x.classId !== id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], startingWealth: undefined, improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [], classOptions: (draft.classOptions ?? []).filter(p => p.classId !== current?.classId || p.classId === id) })}
+        items={classesFor(edition).map(c => ({
+          id: c.id,
+          name: className(c.id),
+          group: c.id.startsWith('hb:') ? t('builder.compact.homebrew') : undefined,
+          meta: (
+            <>
+              <span className="muted small">{t('builder.class.hitDie', { die: c.hitDie, primary: c.primary.map(abilityShort).join('/') || '—' })}</span>
+              <span className="muted small">{t(c.caster === 'none' ? 'builder.class.noCasting' : c.caster === 'pact' ? 'builder.class.pact' : c.caster === 'full' ? 'builder.class.full' : c.caster === 'third' ? 'builder.class.third' : 'builder.class.half')}</span>
+            </>
+          ),
+        }))}
+        firstGroup={t('builder.compact.official')}
+      />
       <p className="muted small">{t('builder.class.homebrewHint')}</p>
       <div className="field">
         <label htmlFor="level">{t('builder.startLevel')} <Why id="level" /></label>
@@ -323,20 +331,22 @@ function ClassStep({ draft, update }: StepProps) {
           {Array.from({ length: Math.max(1, 20 - extraLevels) }, (_, i) => i + 1).map(l => <option key={l} value={l}>{t('builder.level', { level: l })}</option>)}
         </select>
       </div>
+      {cls && classPitch && <p className="small"><strong>{t('why.pick', { name: className(cls.id) })}</strong> {t(classPitch)}</p>}
       {cls && (
-        <p className="small">
-          {classPitch && <><strong>{t('why.pick', { name: className(cls.id) })}</strong> {t(classPitch)}<br /></>}
-          {classAbout && <>{t(classAbout)}<br /></>}
-          {cls.description && <>{cls.description}<br /></>}
-          <strong>{t('builder.savingThrows')}</strong><Why id="savingThrows" /> {cls.savingThrows.map(ability).join(', ')}
-          <br />
-          <strong>{t('builder.armor')}</strong><Why id="proficiencies" /> {cls.armor.length ? cls.armor.map(a => term('armor', a, a)).join(', ') : t('common.noneLower')} · <strong>{t('builder.weapons')}</strong>{' '}
-          {[...cls.weapons.map(w => term('weapons', w, w)), ...(cls.weaponIds ?? []).map(id => item(id, itemById(id)?.name ?? id))].join(', ') || t('common.noneLower')}
-          <br />
-          <strong>{t('builder.featuresTo', { level })}</strong><Why id="features" />
-        </p>
+        <Fold title={t('builder.compact.classDetails', { name: className(cls.id) })} status={t('builder.compact.features', { count: cls.features.filter(f => f.level <= level).length })}>
+          <p className="small">
+            {classAbout && <>{t(classAbout)}<br /></>}
+            {cls.description && <>{cls.description}<br /></>}
+            <strong>{t('builder.savingThrows')}</strong><Why id="savingThrows" /> {cls.savingThrows.map(ability).join(', ')}
+            <br />
+            <strong>{t('builder.armor')}</strong><Why id="proficiencies" /> {cls.armor.length ? cls.armor.map(a => term('armor', a, a)).join(', ') : t('common.noneLower')} · <strong>{t('builder.weapons')}</strong>{' '}
+            {[...cls.weapons.map(w => term('weapons', w, w)), ...(cls.weaponIds ?? []).map(id => item(id, itemById(id)?.name ?? id))].join(', ') || t('common.noneLower')}
+            <br />
+            <strong>{t('builder.featuresTo', { level })}</strong><Why id="features" />
+          </p>
+          <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }) + detailOf(featureDetail(f, level)), key: explainKey('feature', f.name), text: f.text }))} />
+        </Fold>
       )}
-      {cls && <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }) + detailOf(featureDetail(f, level)), key: explainKey('feature', f.name), text: f.text }))} />}
       {cls && <SubclassPicker draft={draft} update={update} />}
       {cls && <ClassChoices draft={draft} update={update} />}
       {cls && <MetamagicPicker draft={draft} update={update} />}
@@ -401,11 +411,10 @@ function ClassChoices({ draft, update }: StepProps) {
     <>
       {required.map(row)}
       {optional.length > 0 && (
-        <details className="field">
-          <summary>{t('builder.tashasTitle', { count: taken })} <Why id="choice.tashas" /></summary>
+        <Fold title={t('builder.tashasTitle', { count: taken })} why={<Why id="choice.tashas" />}>
           <p className="muted small">{t('builder.tashasHint')}</p>
           {optional.map(row)}
-        </details>
+        </Fold>
       )}
     </>
   )
@@ -413,39 +422,45 @@ function ClassChoices({ draft, update }: StepProps) {
 
 /** Inner picks of the subclass's features: maneuvers, runes, totem animals, Hunter options, bonus skills... */
 function SubclassPicks({ draft, update, classId }: StepProps & { classId: string }) {
-  const { t, term } = useI18n()
   return (
     <>
-      {subclassPickLists(draft).filter(l => l.classId === classId).map(at => {
-        const ids = new Set(at.picked.map(p => p.id))
-        const chosen = at.options.filter(o => ids.has(o.id))
-        const feature = term('feature', at.list.feature, at.list.feature)
-        const listKey = explainKey('pick', at.list.kind)
-        return (
-          <div className="field sub-picks" key={at.list.kind}>
-            <label>
-              {feature} <span className="muted small">{t('builder.picks.count', { picked: ids.size, max: at.max })}</span>
-              {listKey && <> <Why title={feature} text={t(listKey)} /></>}
-            </label>
-            <div className="row">
-              {at.options.map(o => {
-                const later = o.minLevel && o.minLevel > at.level ? o.minLevel : 0
-                return (
-                  <button key={o.id} className={`glass-chip ${ids.has(o.id) ? 'on' : ''}`} aria-pressed={ids.has(o.id)}
-                    onClick={() => update({ classOptions: togglePick(draft, at, o.id) })}>
-                    {optionName(o, term)}{later ? ` · ${t('builder.level', { level: later })}` : ''}
-                  </button>
-                )
-              })}
-            </div>
-            {at.list.swap && <p className="muted small">{t(at.list.swap === 'rest' ? 'builder.picks.swapRest' : 'builder.picks.swapLevel')}</p>}
-            {at.list.kind !== 'kenseiWeapon' && (
-              <ExplainList items={chosen.map(o => ({ name: optionName(o, term), key: optionKey(o), text: o.text, ...(o.minLevel ? { note: t('builder.level', { level: o.minLevel }) } : {}) }))} />
-            )}
-          </div>
-        )
-      })}
+      {subclassPickLists(draft).filter(l => l.classId === classId).map(at => (
+        <SubclassPickList key={at.list.kind} draft={draft} update={update} at={at} />
+      ))}
     </>
+  )
+}
+
+/** One pick list, folded with its count; open while picks are missing. Long lists get a search field. */
+function SubclassPickList({ draft, update, at }: StepProps & { at: ReturnType<typeof subclassPickLists>[number] }) {
+  const { t, term } = useI18n()
+  const ids = new Set(at.picked.map(p => p.id))
+  const chosen = at.options.filter(o => ids.has(o.id))
+  const feature = term('feature', at.list.feature, at.list.feature)
+  const listKey = explainKey('pick', at.list.kind)
+  const filter = useFilter(at.options.length, feature)
+  return (
+    <Fold className="sub-picks" defaultOpen={ids.size < at.max}
+      title={feature}
+      status={<span className={ids.size < at.max ? 'todo' : ''}>{t('builder.picks.count', { picked: ids.size, max: at.max })}</span>}
+      why={listKey && <Why title={feature} text={t(listKey)} />}>
+      {filter.field}
+      <div className="row chip-scroll">
+        {at.options.filter(o => ids.has(o.id) || filter.keep([optionName(o, term), o.name])).map(o => {
+          const later = o.minLevel && o.minLevel > at.level ? o.minLevel : 0
+          return (
+            <button key={o.id} className={`glass-chip ${ids.has(o.id) ? 'on' : ''}`} aria-pressed={ids.has(o.id)}
+              onClick={() => update({ classOptions: togglePick(draft, at, o.id) })}>
+              {optionName(o, term)}{later ? ` · ${t('builder.level', { level: later })}` : ''}
+            </button>
+          )
+        })}
+      </div>
+      {at.list.swap && <p className="muted small">{t(at.list.swap === 'rest' ? 'builder.picks.swapRest' : 'builder.picks.swapLevel')}</p>}
+      {at.list.kind !== 'kenseiWeapon' && (
+        <ExplainList items={chosen.map(o => ({ name: optionName(o, term), key: optionKey(o), text: o.text, ...(o.minLevel ? { note: t('builder.level', { level: o.minLevel }) } : {}) }))} />
+      )}
+    </Fold>
   )
 }
 
@@ -478,16 +493,18 @@ function SubclassPicker({ draft, update }: StepProps) {
         return (
           <div className="field" key={cl.classId}>
             <label>{t('builder.subclass', { title: term('feature', def.subclassTitle, def.subclassTitle), className: className(def.id) })} <Why id="subclassChoice" /></label>
-            <div className="row">
-              {subclassesFor(cl.classId, edition).map(sc => (
-                <button key={sc.id} className={`glass-chip ${cl.subclassId === sc.id ? 'on' : ''}`} onClick={() => setSub(cl.classId, sc.id)}>
-                  {term('subclass', sc.id, sc.name)}
-                </button>
-              ))}
-              <button className={`glass-chip ${custom ? 'on' : ''}`} onClick={pickCustom}>
-                {t('builder.customSubclass', { title: term('feature', def.subclassTitle, def.subclassTitle) })}
-              </button>
-            </div>
+            <ChoicePicker
+              variant="chip"
+              label={term('feature', def.subclassTitle, def.subclassTitle)}
+              value={custom ? undefined : cl.subclassId}
+              onPick={id => setSub(cl.classId, id)}
+              items={subclassesFor(cl.classId, edition).map(sc => ({
+                id: sc.id, name: term('subclass', sc.id, sc.name), search: [sc.name],
+                group: sc.id.startsWith('hb:') ? t('builder.compact.homebrew') : sc.source,
+              }))}
+              extra={{ name: t('builder.customSubclass', { title: term('feature', def.subclassTitle, def.subclassTitle) }), onPick: pickCustom }}
+              extraOn={custom}
+            />
             {picked && !custom && <Explain kind="subclass" id={picked.id} />}
             {picked?.source && <p className="muted small">{t('builder.subSource', { source: picked.source })}</p>}
             {picked && !custom && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: featureKey(f.name, picked.id), text: f.text }))} />}
@@ -1238,7 +1255,7 @@ function EquipmentStep({ draft, update }: StepProps) {
       {!classGold && <EquipmentChoices draft={draft} update={update} />}
       {edition === '2024' && <BackgroundGearChoice draft={draft} update={update} />}
       <WeaponMasteryPicks draft={draft} update={update} />
-      <h4 className="small">{t('builder.kitTotal')} <Why id="kitList" /></h4>
+      <Fold title={t('builder.kitTotal')} why={<Why id="kitList" />} status={t('builder.compact.gear', { count: [...counts.values()].reduce((a, b) => a + b, 0) })}>
       {counts.size === 0 && <p className="muted small">{t('builder.wealth.noKit')}</p>}
       <ul className="kit">
         {[...counts].map(([id, n]) => {
@@ -1253,6 +1270,7 @@ function EquipmentStep({ draft, update }: StepProps) {
           )
         })}
       </ul>
+      </Fold>
       <p className="muted small">
         {edition === '2024' ? t('builder.gold2024', { gp: startingGold(draft) }) : classGold ? t('builder.wealth.plus', { gp: startingGold(draft) }) : t('builder.plusGold', { gp: startingGold(draft) })}
       </p>
