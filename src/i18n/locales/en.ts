@@ -2508,6 +2508,23 @@ export const en = {
   'plan.topSlot': 'Top slot',
   'plan.feats': 'Feats: {feats}',
   'plan.levelUpHint': 'To level up, open Edit on the character and raise {class} by one, following the plan.',
+  'builder.compact.moreBooks': 'More books ({count})',
+  'builder.compact.change': 'Change',
+  'builder.compact.changeLabel': 'Change {name}',
+  'builder.compact.keep': 'Keep my pick',
+  'builder.compact.search': 'Search: {name}',
+  'builder.compact.noMatch': 'Nothing matches. Try another word.',
+  'builder.compact.srd': 'Core rules (SRD)',
+  'builder.compact.official': 'Official',
+  'builder.compact.homebrew': 'Homebrew',
+  'builder.compact.classDetails': '{name}: saves, armor and features',
+  'builder.compact.features_one': '{count} feature',
+  'builder.compact.features': '{count} features',
+  'builder.compact.gear_one': '{count} item',
+  'builder.compact.gear': '{count} items',
+  'builder.compact.shopLeft': '{left} left',
+  'builder.compact.choices_one': '{count} choice',
+  'builder.compact.choices': '{count} choices',
 } as const
 
 export type MessageKey = keyof typeof en

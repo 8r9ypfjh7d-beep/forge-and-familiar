@@ -53,7 +53,7 @@
 }
 
 /* Fields inside the builder read like .glass-field without touching the shared inputs. */
-.builder :is(input:not([type='checkbox'], [type='radio'], [type='file']), select, textarea) {
+.builder :is(input:not([type='checkbox'], [type='radio'], [type='file'], .search-input), select, textarea) {
   min-height: 40px; padding-inline: var(--sp-3); border-radius: var(--r-sm);
   border-color: var(--glass-hairline); background: color-mix(in srgb, var(--panel) 70%, transparent);
 }
@@ -223,3 +223,54 @@
 .opt-count.warn { color: var(--warn); }
 /* Options whose prerequisites aren't met yet stay pickable, just quieter. */
 .glass-chip.opt-off { opacity: 0.6; }
+
+/* Compact layout (Compact.tsx): folds with a status on the title line, a picked tile with Change,
+   search plus one fold per book while choosing. */
+.fold { margin-block: var(--sp-2); border-radius: var(--r-md); background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); }
+.fold > summary {
+  display: flex; align-items: center; gap: var(--sp-2); min-height: 44px; cursor: pointer; list-style: none;
+  padding-block: var(--sp-2); padding-inline: var(--sp-3); border-radius: inherit; font-weight: 600; font-size: 0.92rem;
+}
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::before { content: '›'; color: var(--muted); inline-size: 0.8em; transition: rotate var(--dur-fast); }
+.fold > summary:dir(rtl)::before { content: '‹'; }
+.fold[open] > summary::before { rotate: 90deg; }
+.fold[open] > summary:dir(rtl)::before { rotate: -90deg; }
+.fold > summary:hover { background: var(--glass-regular); }
+.fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fold-title { flex: 0 1 auto; min-inline-size: 0; }
+.fold-status, .fold > summary::before { flex: none; }
+.fold-status {
+  font-size: 0.75rem; font-weight: 600; padding-block: 2px; padding-inline: var(--sp-2); border-radius: var(--r-pill);
+  background: var(--glass-tint); color: var(--accent); font-variant-numeric: tabular-nums;
+}
+.fold-status.todo { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--ink); }
+.fold > summary .why { margin-inline-start: 0; }
+.fold-body { padding-block: 0 var(--sp-3); padding-inline: var(--sp-3); }
+.fold-body > .field:first-child { margin-block-start: 0; }
+:root[data-contrast="high"] .fold { box-shadow: inset 0 0 0 2px var(--line); }
+
+.choice-picker { display: grid; gap: var(--sp-2); }
+.picker-bar { display: flex; gap: var(--sp-2); align-items: center; }
+.picker-group { margin-block: 0; }
+.picker-groups { display: grid; gap: var(--sp-1); }
+.picker-groups .fold { background: transparent; }
+.picker-extra { margin-block-start: var(--sp-1); }
+.compact-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); }
+.compact-grid .choice { padding-block: var(--sp-2); padding-inline: var(--sp-3); }
+.compact-grid .choice > strong { font-size: 0.98rem; }
+.picked-row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.picked-row.card > .choice { flex: 0 1 280px; min-inline-size: 0; }
+@media (max-width: 640px) {
+  .compact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .picked-row.card > .choice { flex: 1 1 0; }
+}
+/* Long chip and item lists scroll inside their box instead of stretching the page. */
+.builder .chip-scroll { max-block-size: 14rem; overflow-y: auto; overscroll-behavior: contain; padding-block: 2px; }
+.builder-spells .sb-list { max-block-size: 26rem; overflow-y: auto; overscroll-behavior: contain; }
+/* Phones: the ability table fits the card instead of pushing the page sideways. */
+.builder-body > * { min-inline-size: 0; }
+@media (max-width: 640px) {
+  .ability-table th, .ability-table td { padding-inline: 3px; }
+  .ability-table input[type='number'] { inline-size: 56px; }
+}

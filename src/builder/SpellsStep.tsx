@@ -12,6 +12,7 @@ import {
 } from '../spellbook'
 import '../spellbook/spellbook.css'
 import type { StepProps } from './steps'
+import { Fold } from './Compact'
 import { Why } from './Why'
 import type { WhyId } from './why'
 
@@ -261,8 +262,9 @@ function ExtraSpells({ source, spells, saved, list, setList, toggle, className, 
   const chosen = useMemo(() => new Set(saved.filter(k => k.classId === key).map(k => k.id)), [saved, key])
   const mine = [...chosen].map(id => byId.get(id)).filter((s): s is Spell => !!s)
   return (
-    <section className="bs-section">
-      <h3 className="small">{t('builder.spells.fromSource', { name: title })} <Why id="extraSpells" /></h3>
+    <Fold className="bs-section" defaultOpen={mine.length < source.cantrips + source.spells}
+      title={t('builder.spells.fromSource', { name: title })} why={<Why id="extraSpells" />}
+      status={source.cantrips + source.spells > 0 && t('builder.picks.count', { picked: mine.length, max: source.cantrips + source.spells })}>
       {!source.fixedList && source.lists.length > 1 && (
         <div className="sb-classes" role="group" aria-label={t('builder.spells.list')}>
           {source.lists.map(l => (
@@ -282,6 +284,6 @@ function ExtraSpells({ source, spells, saved, list, setList, toggle, className, 
           <SpellPicker pool={pool} chosen={chosen} onToggle={s => toggle(key, s.id)} label={t('builder.spells.pickFor', { name: title })} />
         </>
       )}
-    </section>
+    </Fold>
   )
 }
