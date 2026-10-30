@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadKind, type Edition } from '../content'
 import type { Character } from '../model/character'
-import { spellAccess, sourceFor, wizardSpellbook } from './access'
+import { canTake, isSecret, spellAccess, sourceFor, wizardSpellbook } from './access'
 import { canPickExtra, extraKey, extraList, extraSources, grantedSpells, keepValidSpells } from './extra'
 
 const spellsOf = (edition: Edition) => loadKind('spells', { sources: [sourceFor(edition)] })
@@ -74,5 +74,34 @@ describe('wizard spellbook', () => {
     const scores = { str: 8, dex: 14, con: 14, int: 16, wis: 12, cha: 10 }
     const [a] = spellAccess({ classes: [{ classId: 'wizard', level: 3 }] } as Pick<Character, 'classes'>, classes, subclasses, scores)
     expect(a).toMatchObject({ spellbook: 10, limit: 6, kind: 'prepared' })
+  })
+})
+
+describe('Magical Secrets', () => {
+  const load = async (edition: Edition) => {
+    const sources = [sourceFor(edition)]
+    const [spells, classes, subclasses] = await Promise.all([loadKind('spells', { sources }), loadKind('classes', { sources }), loadKind('subclasses', { sources })])
+    return { spells, classes, subclasses }
+  }
+  const scores = { str: 8, dex: 14, con: 12, int: 10, wis: 12, cha: 18 }
+
+  it('lets a 2014 bard 10 take two spells from any list', async () => {
+    const l = await load('2014')
+    const [a] = spellAccess({ classes: [{ classId: 'bard', level: 10 }] }, l.classes, l.subclasses, scores)
+    expect(a.secrets).toEqual({ count: 2 })
+    const fireball = l.spells.find(s => s.id === 'fireball')!
+    expect(canTake(fireball, a)).toBe(true)
+    expect(isSecret(fireball, a)).toBe(true)
+    const [low] = spellAccess({ classes: [{ classId: 'bard', level: 9 }] }, l.classes, l.subclasses, scores)
+    expect(canTake(fireball, low)).toBe(false)
+    const [lore] = spellAccess({ classes: [{ classId: 'bard', level: 6, subclassId: 'lore' }] }, l.classes, l.subclasses, scores)
+    expect(lore.secrets).toEqual({ count: 2 })
+  })
+
+  it('adds the cleric, druid and wizard lists for a 2024 bard 10', async () => {
+    const l = await load('2024')
+    const [a] = spellAccess({ classes: [{ classId: 'bard', level: 10 }], rulesEdition: '2024' }, l.classes, l.subclasses, scores)
+    expect(a.secrets).toEqual({ lists: ['cleric', 'druid', 'wizard'] })
+    expect(canTake(l.spells.find(s => s.id === 'fireball')!, a)).toBe(true)
   })
 })

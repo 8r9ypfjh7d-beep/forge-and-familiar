@@ -20,6 +20,7 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 - Warlocks also reach 6th–9th level at 11, 13, 15, 17 (Mystic Arcanum).
 - A spell is available when it is on the class list or the subclass list, and of a level the class can cast. Subclass spells the class level has unlocked (Life Domain, Oath of Devotion, the Fiend, Circle of the Land) show as always prepared and don't count against the limit.
 - Wizards also get `spellbook` (6 at 1st level, +2 per level); the summary counts their spells against it and shows the prepared number beside it.
+- Bard Magical Secrets (`secrets`): 2014 bards may take 2 spells from any list at 10, 14 and 18 (College of Lore 2 more at 6), counted as spells known; 2024 bards add the cleric, druid and wizard lists at 10.
 - Race spells and spells picked through feats or the High Elf trait show in story mode's pin picker.
 - Limits are shown, not enforced: going over turns the counter red.
 - Multiclass characters get a chip per spellcasting class, each with its own list.

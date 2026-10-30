@@ -7,7 +7,7 @@ import type { KnownSpell } from '../model/character'
 import { classById, featById, getAbilityScores, raceById } from '../rules'
 import { SearchField } from '../rulesqa/SearchField'
 import {
-  SpellRow, availableSpells, canPickExtra, editionOf, extraKey, extraList, extraSources, grantedSpells, keepValidSpells, spellAccess,
+  SpellRow, availableSpells, canPickExtra, isSecret, editionOf, extraKey, extraList, extraSources, grantedSpells, keepValidSpells, spellAccess,
   type ExtraSource, type SpellAccess,
 } from '../spellbook'
 import '../spellbook/spellbook.css'
@@ -219,6 +219,7 @@ function ClassSpells({ access: a, spells, saved, toggle, name }: {
         {hasLeveled && (a.spellbook != null
           ? <Count label={t('spells.spellbook')} picked={leveled} target={a.spellbook} why="spellbook" />
           : <Count label={t(a.kind === 'known' ? 'spells.known' : 'spells.prepared')} picked={leveled} target={a.limit} why={a.kind === 'known' ? 'spellsKnown' : 'spellsPrepared'} />)}
+        {a.secrets?.count != null && <Count label={t('builder.spells.secrets')} picked={mine.filter(s => s.level > 0 && isSecret(s, a)).length} target={a.secrets.count} why="magicalSecrets" />}
       </dl>
       <p className="hint small">
         {!hasLeveled ? t('builder.spells.noSlotsYet')
@@ -226,6 +227,11 @@ function ClassSpells({ access: a, spells, saved, toggle, name }: {
           : a.kind === 'known' ? t('builder.spells.hintKnown', { count: a.limit })
           : t('builder.spells.hintPrepared', { count: a.limit })}
       </p>
+      {a.secrets && (
+        <p className="small">
+          {a.secrets.lists ? t('builder.spells.secretsLists') : t('builder.spells.secretsAny', { count: a.secrets.count ?? 0 })} <Why id="magicalSecrets" />
+        </p>
+      )}
       {always.length > 0 && (
         <p className="small bs-always">
           {t('builder.spells.always')} <Why id="alwaysPrepared" />{' '}

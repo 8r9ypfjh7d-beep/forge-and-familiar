@@ -21,6 +21,11 @@ export interface SpellAccess {
   limit: number
   /** Wizards: spells in the spellbook (6 at 1st level, +2 each level). They prepare `limit` of them each day. */
   spellbook?: number
+  /**
+   * Bard Magical Secrets. 2014: this many spells may come from any class's list (2 at 10, 14 and 18, and 2 more for
+   * College of Lore at 6); they count as bard spells known. 2024: the cleric, druid and wizard lists join the bard's at 10.
+   */
+  secrets?: { count?: number; lists?: string[] }
   /** Subclass spells that are always prepared and don't count against the limit. */
   alwaysPrepared: string[]
 }
@@ -35,6 +40,17 @@ const ARCANUM: [number, number][] = [[17, 9], [15, 8], [13, 7], [11, 6]]
 
 /** Spells in a wizard's spellbook from leveling alone: six at 1st level and two more each level (both editions). */
 export const wizardSpellbook = (level: number) => 6 + 2 * (Math.min(level, 20) - 1)
+
+/** Bard Magical Secrets for this class entry, if any. */
+function magicalSecrets(cl: Character['classes'][number], edition: Edition): Pick<SpellAccess, 'secrets'> {
+  if (cl.classId !== 'bard') return {}
+  if (edition === '2024') return cl.level >= 10 ? { secrets: { lists: ['cleric', 'druid', 'wizard'] } } : {}
+  const count = 2 * [10, 14, 18].filter(l => cl.level >= l).length + (cl.subclassId === 'lore' && cl.level >= 6 ? 2 : 0)
+  return count ? { secrets: { count } } : {}
+}
+
+/** 2014 Magical Secrets picks: bard spells that aren't on the bard's own list. */
+export const isSecret = (spell: Pick<Spell, 'classes'>, a: SpellAccess) => !!a.secrets?.count && !spell.classes.includes(a.classId)
 
 const mod = (score: number) => Math.floor((score - 10) / 2)
 
@@ -79,6 +95,7 @@ export function spellAccess(
       kind,
       limit,
       ...(cl.classId === 'wizard' ? { spellbook: wizardSpellbook(cl.level) } : {}),
+      ...magicalSecrets(cl, def.edition),
       alwaysPrepared: [...new Set([
         ...(sub?.spells ?? []).filter(s => s.level <= cl.level).map(s => s.spell.id),
         ...subclassSpellNames(c, cl.classId).flatMap(n => byName.get(norm(n)) ?? []),
@@ -91,6 +108,7 @@ export function spellAccess(
 /** Whether a class can take this spell now: on its list (or its subclass's), and of a level it can cast. */
 export function canTake(spell: Spell, a: SpellAccess): boolean {
   const onList = spell.classes.includes(a.classId) || (!!a.subclassId && spell.subclasses.includes(a.subclassId)) || a.alwaysPrepared.includes(spell.id)
+    || !!a.secrets?.lists?.some(l => spell.classes.includes(l)) || (!!a.secrets?.count && spell.classes.length > 0)
   if (!onList) return false
   return spell.level === 0 ? a.cantrips > 0 : spell.level <= a.maxLevel
 }
