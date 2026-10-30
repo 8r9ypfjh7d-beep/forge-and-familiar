@@ -1,22 +1,9 @@
-import type { SubclassData, SubclassFeature, UsesCount } from '../../types'
+import { CASTERS, CASTERS_2024, CASTERS_REWRITTEN } from './casters'
+import { MARTIAL, MARTIAL_2024, MARTIAL_REWRITTEN } from './martial'
+import { PHB, PHB24, SCAG, TCE, VRGR, XGE, f, fullSpells as pactSpells, legacy, long, short, spells, type Def } from './helpers'
 
 // Subclasses from the official books outside the SRD. Only names, levels and mechanics live here: what each
-// feature does is a short original summary in src/i18n/locales/explain.*.ts (never rulebook text).
-type Def = SubclassData & { id: string }
-
-const PHB = "Player's Handbook"
-const PHB24 = "Player's Handbook (2024)"
-const XGE = "Xanathar's Guide to Everything"
-const TCE = "Tasha's Cauldron of Everything"
-const SCAG = "Sword Coast Adventurer's Guide"
-const VRGR = "Van Richten's Guide to Ravenloft"
-
-const f = (level: number, name: string, extra: Omit<SubclassFeature, 'level' | 'name'> = {}): SubclassFeature => ({ level, name, ...extra })
-const short = (count: UsesCount = 1) => ({ uses: { count, recharge: 'short' as const } })
-const long = (count: UsesCount = 1) => ({ uses: { count, recharge: 'long' as const } })
-const spells = (...rows: [number, ...string[]][]) => rows.map(([level, ...names]) => ({ level, names }))
-/** Warlock expanded spells by spell level 1–5, learned at warlock levels 1, 3, 5, 7, 9. */
-const pactSpells = (...lists: string[][]) => lists.map((names, i) => ({ level: i * 2 + 1, names }))
+// feature does is a short original summary in src/i18n/locales/explain.books.*.ts (never rulebook text).
 
 // ---------- Warlock patrons, 2014 rules (chosen at level 1) ----------
 
@@ -125,15 +112,16 @@ const PATRONS_2024: Def[] = [
   },
 ]
 
-/** A 2014 subclass played with 2024 rules: what came at level 1 or 2 comes when the subclass is chosen. */
-export const legacy = (d: Def, from: number): Def => ({
-  ...d,
-  features: d.features.map(x => ({ ...x, level: Math.max(from, x.level) })),
-  ...(d.spells ? { spells: d.spells.map(s => ({ ...s, level: Math.max(from, s.level) })) } : {}),
-})
-
 /** 2014 patrons with no 2024 rewrite: offered in 2024 too, as the 2024 book allows. */
 const LEGACY_PATRONS = PATRONS.filter(p => !['archfey', 'great-old-one', 'celestial'].includes(p.id)).map(p => legacy(p, 3))
 
-export const BOOK_SUBCLASSES: Def[] = [...PATRONS]
-export const BOOK_SUBCLASSES_2024: Def[] = [...PATRONS_2024, ...LEGACY_PATRONS]
+const REWRITTEN = new Set([...MARTIAL_REWRITTEN, ...CASTERS_REWRITTEN])
+const OTHERS = [...MARTIAL, ...CASTERS]
+const byClass = (a: Def, b: Def) => a.classId.localeCompare(b.classId)
+
+/** Every book subclass for 2014 rules, grouped by class. */
+export const BOOK_SUBCLASSES: Def[] = [...OTHERS, ...PATRONS].sort(byClass)
+/** 2024 rules: the 2024 book's subclasses, then 2014 ones it didn't rewrite (features move to level 3). */
+export const BOOK_SUBCLASSES_2024: Def[] = [
+  ...MARTIAL_2024, ...CASTERS_2024, ...OTHERS.filter(d => !REWRITTEN.has(d.id)).map(d => legacy(d)), ...PATRONS_2024, ...LEGACY_PATRONS,
+].sort(byClass)

@@ -5,7 +5,7 @@ import {
   SUBCLASSES, SUBCLASSES_2024, TOOLS,
 } from '../rules'
 import { STEPS } from './steps'
-import { WHY_TOPICS, explainKey, pitchKey, type ExplainKind } from './why'
+import { WHY_TOPICS, explainKey, featureKey, pitchKey, type ExplainKind } from './why'
 
 const missing = (kind: ExplainKind, ids: string[]) => [...new Set(ids)].filter(id => !explainKey(kind, id))
 
@@ -25,7 +25,8 @@ describe('why? tooltips', () => {
     const subclasses = [...SUBCLASSES, ...SUBCLASSES_2024, ...BOOK_SUBCLASSES, ...BOOK_SUBCLASSES_2024]
     expect(missing('about', classes.map(c => c.id))).toEqual([])
     expect(missing('subclass', subclasses.map(s => s.id))).toEqual([])
-    expect(missing('feature', [...classes, ...subclasses].flatMap(c => c.features.map(f => f.name)))).toEqual([])
+    expect(missing('feature', classes.flatMap(c => c.features.map(f => f.name)))).toEqual([])
+    expect(subclasses.flatMap(s => s.features.filter(f => !featureKey(f.name, s.id)).map(f => `${s.id}: ${f.name}`))).toEqual([])
     for (const ch of classes.flatMap(c => c.choices ?? [])) expect(WHY_TOPICS).toContain(`choice.${ch.id}`)
   })
 

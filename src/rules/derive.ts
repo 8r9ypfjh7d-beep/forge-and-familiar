@@ -136,8 +136,9 @@ export function getResources(c: Character): ResourceInfo[] {
   for (const { level, subclass, feature } of subclassFeatures(c)) {
     const u = feature.uses
     if (!u) continue
-    const base = typeof u.count === 'number' ? u.count : u.count === 'pb' ? prof : u.count === 'level' ? level : mods[u.count]
-    const max = Math.max(u.min ?? 1, base + (u.add ?? 0))
+    const count = u.steps ? u.steps.reduce((n, [from, v]) => (level >= from ? v : n), 0) : u.count
+    const base = typeof count === 'number' ? count : count === 'pb' ? prof : count === 'level' ? level : mods[count]
+    const max = Math.max(u.min ?? 1, base * (u.mult ?? 1) + (u.add ?? 0))
     if (max > 0) out.push({ id: `sub:${subclass.id}:${slug(feature.name)}`, label: feature.name, max, recharge: u.recharge })
   }
   return [...out, ...getItemCharges(c)]
@@ -375,7 +376,7 @@ export interface DerivedStats {
   carryingCapacity: number
   carriedWeight: number
   /** `text` describes features the SRD library has no entry for (other books, custom subclasses). */
-  features: { level: number; name: string; className: string; text?: string }[]
+  features: { level: number; name: string; className: string; text?: string; subclassId?: string }[]
   traits: string[]
   languages: string[]
   tools: string[]
@@ -506,7 +507,7 @@ export function derive(c: Character): DerivedStats {
     carryingCapacity,
     carriedWeight: Math.round(carriedWeight * 100) / 100,
     features: classes.flatMap(({ def, level: l, subclass }) =>
-      [...def.features, ...(subclass?.features ?? [])].filter(f => f.level <= l).sort((a, b) => a.level - b.level).map(f => {
+      [...def.features, ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).map(f => {
         // A class choice shows its pick: "Divine Order (Protector)".
         const picked = choices.find(x => x.classId === def.id && x.choice.name === f.name)?.picked
         return { ...f, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name }

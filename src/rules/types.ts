@@ -160,7 +160,13 @@ export interface SubclassFeature {
   /** What it does, for features the SRD library can't describe (other books, custom subclasses). */
   text?: string
   /** Uses tracked on the sheet's Resources: count + add, at least `min` (default 1). */
-  uses?: { count: UsesCount; recharge: RestType; add?: number; min?: number }
+  uses?: {
+    count: UsesCount; recharge: RestType; add?: number; min?: number
+    /** Multiplies the count (Psionic Power: twice the proficiency bonus). */
+    mult?: number
+    /** [class level, uses] steps that replace a numeric count (Superiority Dice: 4, then 5 at 7, 6 at 15). */
+    steps?: [number, number][]
+  }
   /** Changes to the sheet from this level on: resistances, speeds, senses, proficiencies, advantage, AC... */
   effects?: ItemEffect[]
 }

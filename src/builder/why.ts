@@ -23,13 +23,20 @@ export type WhyId = (typeof WHY_TOPICS)[number]
  */
 export type ExplainKind =
   | 'race' | 'race2024' | 'class' | 'about' | 'sub2014' | 'sub2024' | 'subclass'
-  | 'feature' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool'
+  | 'feature' | 'subfeature' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool'
 
 /** Message key that explains this option, or none (homebrew and other content without one). */
 export function explainKey(kind: ExplainKind, id: string): MessageKey | undefined {
   const key = `why.${kind}.${kind === 'tool' ? toolGroup(id) : id}`
   return key in en ? (key as MessageKey) : undefined
 }
+
+/**
+ * A feature's explanation. Subclass features whose name other subclasses share with a different meaning
+ * ("Bonus Proficiencies") have their own key why.subfeature.<subclassId>.<name>.
+ */
+export const featureKey = (name: string, subclassId?: string): MessageKey | undefined =>
+  (subclassId ? explainKey('subfeature', `${subclassId}.${name}`) : undefined) ?? explainKey('feature', name)
 
 /** Message key for why a new player might pick this race or class; none for homebrew. */
 export const pitchKey = (kind: 'race' | 'race2024' | 'class', id: string) => explainKey(kind, id)

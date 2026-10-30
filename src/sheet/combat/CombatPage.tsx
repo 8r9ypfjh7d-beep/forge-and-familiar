@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BUNDLED, loadKind, type Equipment, type Feat, type Feature, type Spell, type Trait } from '../../content'
 import type { RollMode, RollResult } from '../../dice'
-import { explainKey } from '../../builder/why'
+import { featureKey } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
@@ -678,7 +678,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
   const featText = (name: string) => lib.feats.find(x => x.name.toLowerCase() === name.toLowerCase())?.description
   // Custom subclass text, then the SRD library, then our own summary (subclasses from other books).
   const featureText = (f: DerivedStats['features'][number]) => {
-    const key = explainKey('feature', f.name)
+    const key = featureKey(f.name, f.subclassId)
     return f.text || matchFeature(lib.features, f.name, f.className)?.description || (key ? t(key) : undefined)
   }
   const list = (kind: string, xs: string[]) => xs.map(x => term(kind, x, x)).join(', ') || t('common.none')

@@ -156,7 +156,9 @@ describe('homebrew races and subclasses', () => {
 
   it('offers homebrew subclasses for their class', () => {
     registerHomebrewSubclasses([{ id: 'hb:p:battle-master', classId: 'fighter', name: 'Battle Master', features: [{ level: 3, name: 'Combat Superiority' }] }])
-    expect(subclassesFor('fighter').map(s => s.name)).toEqual(['Champion', 'Battle Master'])
+    const ids = subclassesFor('fighter').map(s => s.id)
+    expect(ids[0]).toBe('champion')
+    expect(ids.at(-1)).toBe('hb:p:battle-master')
     const d = derive(make({ classes: [{ classId: 'fighter', level: 3, subclassId: 'hb:p:battle-master' }] }))
     expect(d.features.map(f => f.name)).toContain('Combat Superiority')
     registerHomebrewSubclasses([])
