@@ -1,0 +1,40 @@
+/* Stat block (src/monsters/StatBlock.tsx), on the Liquid Glass standard (src/design/DESIGN.md). Logical properties only. */
+.ff-sheet .mon-statblock { background: var(--glass-thick); }
+.ff-sheet .mon-statblock h3 { margin: 0; font-size: 1.4rem; font-weight: 700; color: var(--accent); font-family: var(--font-lore); letter-spacing: 0; }
+.mon-sb-core { display: grid; gap: var(--sp-1); margin: var(--sp-2) 0; padding-block: var(--sp-2); border-block: 1px solid var(--glass-hairline); }
+.mon-sb-core div { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.mon-sb-core dt { font-weight: 700; }
+.mon-sb-core dd { margin: 0; }
+.mon-sb-abilities { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-block: var(--sp-2); }
+.mon-sb-abilities button {
+  display: grid; justify-items: center; gap: 2px; padding: 6px 2px; min-width: 0; min-block-size: 44px; cursor: pointer; font: inherit;
+  border: 1px solid var(--glass-stroke); border-radius: var(--r-sm); background: var(--glass-thin); color: var(--ink);
+  box-shadow: var(--glass-highlight); transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast);
+}
+.mon-sb-abilities button:hover { background: var(--glass-tint); }
+.mon-sb-abilities button:active { transform: scale(0.96); }
+.mon-sb-abilities span { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+.mon-sb-abilities b { font-family: var(--font-display); font-size: 1.1rem; }
+.mon-sb-abilities small { font-weight: 700; color: var(--accent); }
+.mon-sb-lines p, .mon-spellcasting { margin: var(--sp-1) 0; font-size: 0.9rem; }
+.chip-roll {
+  font: inherit; font-size: 0.8rem; min-block-size: 28px; padding: 0 var(--sp-3); margin: 2px; border-radius: var(--r-pill); cursor: pointer;
+  border: 1px solid var(--glass-stroke); background: var(--glass-thin); color: var(--ink); text-transform: capitalize;
+}
+.chip-roll:hover { background: var(--glass-tint); color: var(--accent); }
+.mon-roll { margin-block: var(--sp-2); }
+.mon-statblock .sub-title small { font-weight: 400; }
+.mon-actions li { padding-block: var(--sp-2); border-block-end: 1px solid var(--glass-hairline); }
+.mon-actions li:last-child { border-block-end: 0; }
+.mon-actions p, .mon-spells li { margin: 0; font-size: 0.9rem; white-space: pre-line; }
+.mon-spells li { padding-block: 2px; }
+.mon-action-rolls { display: flex; flex-wrap: wrap; gap: 6px; margin-block-start: 6px; }
+.mon-pips { display: flex; gap: 6px; margin-block-start: 6px; }
+.mon-pip {
+  inline-size: 18px; block-size: 18px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 2px solid var(--accent); background: var(--accent); box-shadow: var(--glass-highlight);
+}
+.mon-pip.used { background: transparent; }
+@media (max-width: 520px) {
+  .mon-sb-abilities { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

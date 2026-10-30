@@ -1,10 +1,11 @@
-// RemoteStore over the Supabase tables in supabase/migrations (characters, snapshots, rolls, homebrew_packs).
+// RemoteStore over the Supabase tables in supabase/migrations (characters, snapshots, rolls, homebrew_packs, npc_sheets).
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CharacterRow } from '../cloud'
 import type { Character } from '../model/character'
 import type { Snapshot } from '../portability/snapshots'
 import type { RollResult } from '../dice/types'
 import type { HomebrewPack } from '../homebrew/types'
+import type { NpcSheet } from '../npc/types'
 import { MissingTableError, type RemoteRow, type RemoteStore } from './types'
 
 /**
@@ -15,6 +16,7 @@ const OVERLAP_MS = 10_000
 
 interface SnapshotRow { id: string; owner_id: string; character_id: string; data: Snapshot; deleted: boolean; updated_at: string }
 interface PackRow { id: string; owner_id: string; data: HomebrewPack; deleted: boolean; updated_at: string }
+interface NpcRow { id: string; owner_id: string; data: NpcSheet; rev: number; deleted: boolean; updated_at: string }
 
 const fail = (error: { message: string } | null) => { if (error) throw new Error(error.message) }
 /** Same, but a table the live database doesn't have yet (PostgREST PGRST205, Postgres 42P01) is a MissingTableError. */
@@ -102,6 +104,20 @@ export function supabaseRemote(db: SupabaseClient): RemoteStore {
       failTable(error)
     },
 
+    async pullNpcs(ownerId, since) {
+      let q = db.from('npc_sheets').select('*').eq('owner_id', ownerId)
+      if (since) q = q.gt('updated_at', back(since))
+      const { data, error } = await q.order('updated_at').returns<NpcRow[]>()
+      failTable(error)
+      return (data ?? []).map(r => ({ id: r.id, ownerId: r.owner_id, data: r.data, rev: r.rev ?? 0, deleted: r.deleted, updatedAt: r.updated_at }))
+    },
+
+    async putNpc(row) {
+      const { error } = await db.from('npc_sheets')
+        .upsert({ id: row.id, owner_id: row.ownerId, data: row.data, deleted: row.deleted }, { onConflict: 'owner_id,id' })
+      failTable(error)
+    },
+
     async recentRolls(ownerId, limit) {
       const { data, error } = await db.from('rolls').select('data').eq('owner_id', ownerId)
         .order('rolled_at', { ascending: false }).limit(limit).returns<{ data: RollResult }[]>()
@@ -118,7 +134,11 @@ export function supabaseRemote(db: SupabaseClient): RemoteStore {
       const packs = db.channel(`sync-packs-${ownerId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'homebrew_packs' }, onChange)
         .subscribe()
-      return () => { void db.removeChannel(channel); void db.removeChannel(packs) }
+      // The DM's NPC sheets, also on their own channel for the same reason.
+      const npcs = db.channel(`sync-npcs-${ownerId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'npc_sheets', filter: `owner_id=eq.${ownerId}` }, onChange)
+        .subscribe()
+      return () => { void db.removeChannel(channel); void db.removeChannel(packs); void db.removeChannel(npcs) }
     },
   }
 }

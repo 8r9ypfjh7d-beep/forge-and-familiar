@@ -53,15 +53,9 @@ export function difficulty(xp: number, b: Budget): Difficulty {
   return 'beyond'
 }
 
-/** 0.125 → "1/8". */
-export function crLabel(cr: number): string {
-  if (cr === 0.125) return '1/8'
-  if (cr === 0.25) return '1/4'
-  if (cr === 0.5) return '1/2'
-  return String(cr)
-}
-
-export const abilityMod = (score: number) => Math.floor((score - 10) / 2)
+export { crLabel } from '../monsters/format'
+import { monsterMod as abilityMod } from '../monsters/block'
+export { abilityMod }
 
 // ---------- Plans ----------
 
