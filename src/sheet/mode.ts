@@ -8,6 +8,8 @@ export type SheetSection =
   | 'notes' | 'abilities'
   | 'hp' | 'death' | 'rests' | 'attacks'
   | 'spells' | 'inventory' | 'resources' | 'supplies' | 'history'
+  // Sorcery points and Metamagic options (sorcerers), in combat's Spells tab.
+  | 'metamagic'
   // Shared by both modes: the character card (who, AC and speed, HP and Rest) and the skills rail.
   // Story mode's side also has the Spells card (spell slots and pinned spells).
   | 'summary' | 'skills' | 'spellCard'
@@ -31,7 +33,7 @@ export interface SheetLayout {
 
 export const COMBAT_TABS: Record<CombatTab, SheetSection[]> = {
   combat: ['fight'],
-  spells: ['spells'],
+  spells: ['spells', 'metamagic'],
   inventory: ['inventory', 'supplies'],
   features: ['features'],
   notes: ['notes', 'history'],
