@@ -17,9 +17,11 @@ import { CastButton, useCast } from '../../spellbook/Cast'
 import { SpellRow } from '../../spellbook/Spellbook'
 import { spellAccess } from '../../spellbook/access'
 import { isMeleeWeapon, summonPactWeapon } from '../../inventory'
+import { updateEntry } from '../../inventory/inventory'
 import { heal } from '../engine'
 import { applyUse, spendResource } from '../uses'
 import { PoolForm, useResourceUse } from '../components/Resources'
+import { FormPicker } from '../components/WildShape'
 import { turnActions, type TurnRow } from './turn'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
@@ -369,7 +371,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
 
   const weapon = (a: DerivedStats['attacks'][number]) => {
     const own = getDamageRiders(character, a).map(r => r.id as string)
-    const used = damaging.filter(e => !e.feature || own.includes(e.id))
+    const used = damaging.filter(e => (!e.feature || own.includes(e.id)) && (!e.pactOnly || a.pact))
     const riders = used.map(e => ({ name: e.name, damage: e.damage }))
     const extra = a.extraDamage ? /^(\S+)\s*(.*)$/.exec(a.extraDamage) : null
     const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1] }] : riders
@@ -487,7 +489,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
             <li key={a.name}>
               <button type="button" className="cs-attack" onClick={() => weapon(a)}
                 aria-label={t('sheet.attacks.rollLabel', { name, bonus: formatMod(a.bonus), damage })}>
-                <span className="name">{name}<small>{t(a.reach ? 'cs.melee' : 'cs.ranged')}</small></span>
+                <span className="name">{name}<small>{t(a.reach ? 'cs.melee' : 'cs.ranged')}{a.attacks ? ` · ${t('cs.attacksN', { n: a.attacks })}` : ''}</small></span>
                 <span className="range" dir="ltr">{range}</span>
                 <span className="hit" dir="ltr">{formatMod(a.bonus)}</span>
                 <span className="dmg"><span dir="ltr">{damage}{a.extraDamage ? ` + ${a.extraDamage}` : ''}</span> {term('damage', a.damageType, a.damageType)}</span>
@@ -730,6 +732,7 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
                   {uses.pool === res.id && l && (
                     <PoolForm left={l.n} missing={Math.max(0, d.maxHp - character.state.currentHp)} label={label} onSpend={(n, self) => uses.spendPool(res, label, n, self)} />
                   )}
+                  {uses.picking?.id === res.id && <FormPicker character={character} limit={uses.picking.limit} label={label} onPick={f => uses.pickForm(res, label, f)} />}
                 </li>
               )
             }
@@ -788,9 +791,12 @@ function FeatureName({ name, text }: { name: string; text?: string }) {
 }
 
 /** Pact of the Blade: which weapon is the pact weapon now, and Summon to make one of yours it or conjure a new one. */
+/** 2024 Pact of the Blade: the pact weapon can deal necrotic, psychic or radiant damage instead of its own. */
+const PACT_TYPES = ['necrotic', 'psychic', 'radiant']
+
 function PactRow({ character, apply }: { character: Character; apply: Apply }) {
   const i18n = useI18n()
-  const { t } = i18n
+  const { t, term } = i18n
   const [open, setOpen] = useState(false)
   const nameOf = (e: Character['inventory'][number]) => e.name ?? i18n.item(e.itemId, entryItem(e)?.name ?? e.itemId)
   const current = character.inventory.find(e => e.pact)
@@ -805,6 +811,13 @@ function PactRow({ character, apply }: { character: Character; apply: Apply }) {
       <div className="cs-action-row">
         <span className="cs-action-name">{t('turn.pact')}<small className="hint"> · {current ? nameOf(current) : t('turn.pactNone')}</small></span>
         <span className="cs-action-tools">
+          {current && (
+            <select className="cs-pact-type" value={current.damageType ?? ''} aria-label={t('turn.pactType')}
+              onChange={e => { const v = e.target.value; apply(t('turn.log.pactType', { type: v ? term('damage', v, v) : t('turn.pactTypeOwn') }), c => updateEntry(c, current.uid, { damageType: v || undefined })) }}>
+              <option value="">{t('turn.pactTypeOwn')}</option>
+              {PACT_TYPES.map(d => <option key={d} value={d}>{term('damage', d, d)}</option>)}
+            </select>
+          )}
           <button type="button" className="glass-btn small prominent" aria-expanded={open} aria-label={t('turn.pactSummonName')} onClick={() => setOpen(o => !o)}>{t('turn.pactSummon')}</button>
         </span>
       </div>

@@ -80,6 +80,18 @@ export interface LiveEffect {
   whileTempHp?: boolean
   /** Only on the caster (range Self: Armor of Agathys, Shield), so it is never "not on me". */
   self?: boolean
+  /** Wild Shape: the beast the druid turned into, shown under Effects while it runs. */
+  form?: BeastForm
+}
+
+/** A beast's stat block, trimmed to what the sheet shows during Wild Shape. */
+export interface BeastForm {
+  name: string
+  ac: number
+  hp: number
+  /** "40 ft., climb 30 ft." */
+  speed: string
+  attacks: { name: string; bonus?: number; damage?: string; type?: string }[]
 }
 
 /** The PHB "Customizing a Background" rule: used when backgroundId is 'custom'. */

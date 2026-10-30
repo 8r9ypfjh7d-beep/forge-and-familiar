@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { isValidNotation } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
-import { getMaxHp, getResources, planUse, resourceClassLevel, rulesEdition, type ResourceInfo } from '../../rules'
+import { featureUseContext, getMaxHp, getResources, planUse, type ResourceInfo, type UsePlan } from '../../rules'
 import { LastRoll, type Shown } from '../combat/LastRoll'
-import { spendResource } from '../uses'
+import { spendResource, withForm } from '../uses'
+import type { BeastForm } from '../../model/character'
+import { FormPicker } from './WildShape'
 import { DAWN_ITEMS } from '../../rules/data/dawnItems'
 import { dawn, dawnCounters, removeCounter, setResourceUsed, upsertCounter, type Counter } from '../engine'
 import { useSheetRolls } from '../dice'
@@ -30,7 +32,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
   const dawnItems = resources.filter(r => r.recharge === 'dawn').map(r => ({ ...r, used: character.state.resources[r.id]?.used ?? 0 }))
 
   const [out, setOut] = useState<{ key: number; name: string; rolls: Shown[]; note?: string } | null>(null)
-  const { use: spendUse, pool, setPool, spendPool } = useResourceUse(character, apply, o => setOut(p => ({ key: (p?.key ?? 0) + 1, ...o })))
+  const { use: spendUse, pool, setPool, spendPool, picking, pickForm } = useResourceUse(character, apply, o => setOut(p => ({ key: (p?.key ?? 0) + 1, ...o })))
   // A race's or feat's once-per-rest spell (Hellish Rebuke) is cast by Use, the same as its Cast under Spells.
   const spells = useSpells(character)
   const casting = useCast(character, apply)
@@ -79,6 +81,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
               {r.max <= PIP_LIMIT && <span className="track-count">{r.max - used}/{r.max}</span>}
               <button type="button" className="glass-btn small prominent track-use" aria-label={t('use.useName', { label })} aria-expanded={pool === r.id || undefined} onClick={() => (pool === r.id ? setPool(null) : use(r, label))}>{t('use.use')}</button>
               {pool === r.id && <PoolForm left={r.max - used} missing={Math.max(0, getMaxHp(character) - character.state.currentHp)} label={label} onSpend={(n, self) => spendPool(r, label, n, self)} />}
+              {picking?.id === r.id && <FormPicker character={character} limit={picking.limit} label={label} onPick={f => pickForm(r, label, f)} />}
             </li>
           )
         })}
@@ -110,10 +113,13 @@ export interface UseOut { name: string; rolls: Shown[]; note?: string }
  * A pool (Lay on Hands) asks how many points first: `pool` is the resource whose PoolForm is open.
  */
 export function useResourceUse(character: Character, apply: Apply, show: (o: UseOut) => void) {
-  const { t } = useI18n()
+  const { t, term, abilityShort } = useI18n()
   const rolls = useSheetRolls(character)
-  const [pool, setPool] = useState<string | null>(null)
-  const planOf = (r: ResourceInfo, label: string) => planUse(r.id, label, { edition: rulesEdition(character), classLevel: resourceClassLevel(character, r.id) })
+  // `pool`: the resource whose PoolForm is open (Lay on Hands); `picking`: the one asking for a beast (Wild Shape).
+  const [pool, setPoolId] = useState<string | null>(null)
+  const [picking, setPicking] = useState<{ id: string; limit: NonNullable<UsePlan['form']> } | null>(null)
+  const setPool = (id: string | null) => { setPoolId(id); setPicking(null) }
+  const planOf = (r: ResourceInfo, label: string) => planUse(r.id, label, featureUseContext(character, r.id))
 
   /** Spends points from a pool: on yourself they heal you, on an ally they are only spent. */
   const spendPool = (r: ResourceInfo, label: string, n: number, self: boolean) => {
@@ -123,22 +129,54 @@ export function useResourceUse(character: Character, apply: Apply, show: (o: Use
     setPool(null)
   }
 
-  const use = (r: ResourceInfo, label: string) => {
-    const plan = planOf(r, label)
-    if (plan.pool && pool !== r.id) return setPool(r.id)
+  /** Spends the use and does the rest: healing and damage rolls, temp HP, the die to give, pact slots back, the effect (with its beast form). */
+  const finish = (r: ResourceInfo, label: string, plan: UsePlan, form?: BeastForm) => {
     const shown: Shown[] = []
     let healed: number | undefined
     if (plan.heal) {
       const roll = rolls.spell(label, { damage: plan.heal, damageType: 'healing' }).damage
       if (roll) { shown.push({ roll, what: t('cs.roll.healing') }); healed = roll.total }
     }
+    if (plan.hit) {
+      const roll = rolls.spell(label, { damage: plan.hit.dice, damageType: plan.hit.type }).damage
+      const type = plan.hit.type ? term('damage', plan.hit.type, plan.hit.type) : ''
+      if (roll) shown.push({ roll, what: t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) })
+    }
+    const tempHp = plan.tempHp ? Number(plan.tempHp) || undefined : undefined
     const left = r.max - (character.state.resources[r.id]?.used ?? 0)
-    const notes = [left <= 0 ? t('use.noneLeft') : t('use.left', { n: left - 1, max: r.max }), plan.effect ? t('cast.inEffect') : '', healed ? t('cast.healed', { n: healed }) : ''].filter(Boolean)
-    apply(t('use.log', { label }), c => spendResource(c, r.id, plan, { heal: healed }))
-    show({ name: label, rolls: shown, note: notes.join(' · ') })
+    const notes = [
+      plan.save ? t('cs.saveNote', { dc: plan.save.dc, ability: abilityShort(plan.save.ability) }) : '',
+      plan.area?.cone && plan.area.line ? t('use.area.either', { cone: plan.area.cone, w: plan.area.line[0], l: plan.area.line[1] })
+        : plan.area?.cone ? t('use.area.cone', { cone: plan.area.cone }) : plan.area?.line ? t('use.area.line', { w: plan.area.line[0], l: plan.area.line[1] }) : '',
+      plan.give ? t('use.give', { die: plan.give }) : '',
+      plan.pactSlots ? t('use.pactBack', { n: plan.pactSlots }) : '',
+      form ? t('ws.became', { name: form.name, ac: form.ac, hp: form.hp }) : '',
+      tempHp ? (tempHp <= character.state.tempHp ? t('cast.keptTempHp', { n: character.state.tempHp }) : t('cast.gotTempHp', { n: tempHp })) : '',
+      left <= 0 ? t('use.noneLeft') : t('use.left', { n: left - 1, max: r.max }),
+      plan.effect ? t('cast.inEffect') : '', healed ? t('cast.healed', { n: healed }) : '',
+    ].filter(Boolean)
+    const done = form ? withForm(plan, form) : plan
+    apply(t('use.log', { label }), c => spendResource(c, r.id, done, { heal: healed, tempHp }))
+    show({ name: form ? `${label}: ${form.name}` : label, rolls: shown, note: notes.join(' · ') })
   }
 
-  return { use, pool, setPool, spendPool }
+  const use = (r: ResourceInfo, label: string) => {
+    const plan = planOf(r, label)
+    if (plan.pool && pool !== r.id) return setPool(r.id)
+    // Wild Shape asks which beast first; tapping Use again closes the picker.
+    if (plan.form) {
+      setPoolId(null)
+      return setPicking(p => (p?.id === r.id ? null : { id: r.id, limit: plan.form! }))
+    }
+    finish(r, label, plan)
+  }
+
+  const pickForm = (r: ResourceInfo, label: string, form: BeastForm) => {
+    setPicking(null)
+    finish(r, label, planOf(r, label), form)
+  }
+
+  return { use, pool, setPool, spendPool, picking, pickForm }
 }
 
 /** How many points to spend from a pool, then on me (heals) or on an ally. */

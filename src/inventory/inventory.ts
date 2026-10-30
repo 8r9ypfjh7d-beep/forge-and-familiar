@@ -62,7 +62,7 @@ export function updateEntry(c: Character, uid: string, patch: Partial<Omit<Inven
 /** Drops empty optional fields so saves stay small. */
 function clean(e: InventoryEntry): InventoryEntry {
   const out = { ...e }
-  for (const k of ['name', 'notes', 'magicBonus', 'pact', 'extraDamage', 'item', 'effects'] as const) {
+  for (const k of ['name', 'notes', 'magicBonus', 'pact', 'damageType', 'extraDamage', 'item', 'effects'] as const) {
     const v = out[k]
     if (v === undefined || v === '' || v === 0 || v === false || (Array.isArray(v) && !v.length)) delete out[k]
   }
@@ -110,7 +110,10 @@ export const isMeleeWeapon = (i: Item | undefined): i is Extract<Item, { kind: '
 
 /** Summons the pact weapon: an inventory weapon becomes it (bonded), or a new one is conjured; either way it is in hand. */
 export function summonPactWeapon(c: Character, pick: { uid: string } | { itemId: string }): Character {
-  if ('uid' in pick) return setEquipped(updateEntry(c, pick.uid, { pact: true }), pick.uid, true)
+  // The chosen damage type (2024: necrotic, psychic or radiant) moves to the new pact weapon.
+  const damageType = c.inventory.find(e => e.pact)?.damageType
+  const patch = { pact: true, damageType }
+  if ('uid' in pick) return setEquipped(updateEntry(c, pick.uid, patch), pick.uid, true)
   const added = addItem(c, { itemId: pick.itemId, pact: true })
-  return setEquipped(updateEntry(added.character, added.uid, { pact: true }), added.uid, true)
+  return setEquipped(updateEntry(added.character, added.uid, patch), added.uid, true)
 }

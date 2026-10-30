@@ -1,7 +1,7 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction, LiveEffect } from '../../model/character'
-import { actionUseId, cantripDamageBonus, classChoices, featureEffectId, getDamageRiders, getResources, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
+import { actionUseId, cantripDamageBonus, classChoices, featureEffectId, pickedClassOptions, getDamageRiders, getResources, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
@@ -235,6 +235,8 @@ export interface EffectToggle {
   feature?: boolean
   /** Weapon attacks only (Divine Favor, smites, Rage); otherwise spell attacks get it too. */
   weaponOnly?: boolean
+  /** Only the pact weapon gets it (Eldritch Smite). */
+  pactOnly?: boolean
   oncePerTurn?: boolean
   /** The running spell or feature behind the switch (saved on the character), when there is one. */
   live?: LiveEffect
@@ -288,6 +290,17 @@ export function effectToggles(c: Character, stats: DerivedStats, spells: Spell[]
       const damage = live?.damage ?? `${Math.min(5, 1 + (slot?.level ?? 1))}d8`
       const start = { id: 'feature:divine-smite', name: 'Divine Smite', from: 'feature' as const, damage, damageType: 'radiant', weaponOnly: true, once: true, ends: 'short' as const, ...(slot ? { level: slot.level } : {}) }
       out.push({ id: start.id, name: start.name, damage, damageType: 'radiant', weaponOnly: true, ...(live ? { live } : { start, slot }) })
+    }
+  }
+  // Eldritch Smite: spends a pact slot for force damage on the next pact weapon hit, 1d8 plus 1d8 per slot level.
+  const smite = pickedClassOptions(c).some(x => x.option.id === 'eldritch-smite' || x.option.id === 'eldritch-smite-2024')
+  if (smite && !out.some(e => e.id === 'feature:eldritch-smite')) {
+    const live = running.find(e => e.id === 'feature:eldritch-smite')
+    const slot = slotChoices(c, 1).find(s => s.source === 'pact')
+    if (live || slot) {
+      const damage = live?.damage ?? `${1 + (slot?.level ?? 1)}d8`
+      const start = { id: 'feature:eldritch-smite', name: 'Eldritch Smite', from: 'feature' as const, damage, damageType: 'force', weaponOnly: true, once: true, ends: 'short' as const, ...(slot ? { level: slot.level } : {}) }
+      out.push({ id: start.id, name: start.name, damage, damageType: 'force', weaponOnly: true, pactOnly: true, ...(live ? { live } : { start, slot }) })
     }
   }
   // Running effects from anything else: spells cast from an item or pinned under another name, features, items.

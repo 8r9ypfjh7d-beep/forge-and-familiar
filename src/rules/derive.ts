@@ -15,7 +15,8 @@ import type { SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { rulesEdition, uses2024Spells } from './edition'
 import { effectsOf, itemBonus } from './itemEffects'
-import { spellLimit } from './usables'
+import { breathArea, spellLimit, type UseContext } from './usables'
+import { raceById } from './data/races'
 import { racialSkills, racialWeapons } from './origin'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { naturalArmorAc, pickedOptions, raceProfile, raceUseId } from './race'
@@ -43,6 +44,26 @@ export const totalLevel = (c: Character) => c.classes.reduce((n, cl) => n + cl.l
 /** Level in the class a resource belongs to (Second Wind: fighter level); the character level when no class has it. */
 export function resourceClassLevel(c: Character, id: string): number {
   return classesOf(c).find(x => x.def.resources.some(r => r.id === id))?.level ?? totalLevel(c)
+}
+
+/** Everything a feature's use plan reads (rules/usables.ts planUse): levels, modifiers, ancestry, pact slots. */
+export function featureUseContext(c: Character, id: string): UseContext {
+  const level = Math.max(1, totalLevel(c))
+  const edition = rulesEdition(c)
+  const ctx: UseContext = {
+    edition, classLevel: resourceClassLevel(c, id), level, prof: proficiencyBonus(level), mods: getAbilityMods(getAbilityScores(c)),
+  }
+  if (id === 'magical-cunning') ctx.pactSlots = getSpellSlots(c).pact?.count
+  if (id === 'wild-shape') ctx.moon = classesOf(c).some(x => x.def.id === 'druid' && /moon/.test(x.subclass?.id ?? ''))
+  if (id.startsWith('race:breath-weapon')) {
+    const choice = raceById(c.raceId, edition)?.traitChoice
+    const detail = choice?.options.find(o => o.id === pickedOptions(c, choice.id)[0])?.detail
+    if (detail) {
+      const save = /\b(STR|DEX|CON|INT|WIS|CHA) save/.exec(detail)?.[1].toLowerCase() as Ability | undefined
+      ctx.breath = { type: /^\w+/.exec(detail)![0].toLowerCase(), save: save ?? 'dex', area: breathArea(detail) }
+    }
+  }
+  return ctx
 }
 
 export const proficiencyBonus = (level: number) => 2 + Math.floor((Math.max(1, level) - 1) / 4)
@@ -370,6 +391,25 @@ export interface Attack {
   reach?: number
   /** Normal/long range in feet for ranged and thrown weapons, e.g. "20/60". */
   range?: string
+  /** The warlock's pact weapon (Eldritch Smite rides only on it). */
+  pact?: boolean
+  /** Attacks with this weapon in one Attack action, when more than one (Extra Attack, Thirsting Blade). */
+  attacks?: number
+}
+
+/** Attacks in one Attack action: Extra Attack (any class or subclass), the fighter's two and three extra attacks. */
+export function attacksPerAction(c: Character): number {
+  let n = 1
+  for (const { def, level } of classesOf(c)) if (def.id === 'fighter') n = Math.max(n, level >= 20 ? 4 : level >= 11 ? 3 : level >= 5 ? 2 : 1)
+  if ([...classFeatures(c), ...subclassFeatures(c)].some(x => x.feature.name === 'Extra Attack')) n = Math.max(n, 2)
+  return n
+}
+
+/** Pact weapon attacks: Thirsting Blade gives two (it doesn't stack with Extra Attack), 2024 Devouring Blade three. */
+export function pactAttacks(c: Character): number {
+  const picked = new Set(pickedClassOptions(c).map(x => x.option.id))
+  const blade = picked.has('devouring-blade-2024') ? 3 : picked.has('thirsting-blade') || picked.has('thirsting-blade-2024') ? 2 : 1
+  return Math.max(blade, attacksPerAction(c))
 }
 
 const martialArtsDie = (monkLevel: number, edition: string) =>
@@ -404,6 +444,8 @@ export function getAttacks(c: Character): Attack[] {
   const magicWeaponAbility = classesOf(c).find(x => x.subclass?.magicWeaponAbility)?.subclass?.magicWeaponAbility
   const out: Attack[] = []
   const seen = new Set<string>()
+  const perAction = attacksPerAction(c)
+  const perPact = pactAttacks(c)
 
   for (const { entry, item } of equippedEntries(c)) {
     // Two of the same plain weapon make one attack line; renamed or magic copies get their own.
@@ -435,11 +477,15 @@ export function getAttacks(c: Character): Attack[] {
     // The item's own extra damage keeps the roll; the radiant die is then a note.
     const extraDamage = entry.extraDamage || (radiant && !ranged ? '1d8 radiant' : undefined)
     if (radiant && !ranged) notes.push(entry.extraDamage ? `+1d8 radiant (${radiant})` : radiant)
+    const attacks = entry.pact ? perPact : perAction
     out.push({
       name: item.name,
       bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack', true, reach) + (ranged ? rangedBonus : 0),
       damage: withMod(item.damage, dmgMod),
-      damageType: item.damageType,
+      // 2024 Pact of the Blade: the pact weapon may deal necrotic, psychic or radiant instead.
+      damageType: (entry.pact && entry.damageType) || item.damageType,
+      ...(entry.pact ? { pact: true } : {}),
+      ...(attacks > 1 ? { attacks } : {}),
       ability,
       proficient,
       notes,

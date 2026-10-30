@@ -511,6 +511,8 @@ export interface InventoryEntry {
   magicBonus?: number
   /** Warlock pact weapon: always proficient; in 2024 rules it may use Charisma for attack and damage. */
   pact?: boolean
+  /** The pact weapon's chosen damage type (2024: necrotic, psychic or radiant); missing keeps the weapon's own. */
+  damageType?: string
   /** Extra damage on every hit, e.g. "1d6 fire" (Flame Tongue). */
   extraDamage?: string
   /** What the item does to the character's numbers while equipped. */
