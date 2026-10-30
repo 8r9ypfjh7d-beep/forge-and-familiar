@@ -37,7 +37,7 @@ export const SPECIES: Race[] = [
     uses: [{ trait: 'Stonecunning', count: 'pb', recharge: 'long' }],
   },
   {
-    id: 'elf', name: 'Elf', size: 'Medium', speed: 30, abilityBonuses: {}, languages: [], freeSkillChoices: 1,
+    id: 'elf', name: 'Elf', size: 'Medium', speed: 30, abilityBonuses: {}, languages: [], freeSkillChoices: 1, freeSkillFrom: ['insight', 'perception', 'survival'], spellAbilityChoice: true,
     traits: ['Darkvision', 'Elven Lineage', 'Fey Ancestry', 'Keen Senses (Insight, Perception or Survival)', 'Trance'],
     effects: [dark(60), adv('saves', 'to avoid or end the Charmed condition')],
     subraces: [
@@ -56,7 +56,7 @@ export const SPECIES: Race[] = [
     ],
   },
   {
-    id: 'gnome', name: 'Gnome', size: 'Small', speed: 30, abilityBonuses: {}, languages: [],
+    id: 'gnome', name: 'Gnome', size: 'Small', speed: 30, abilityBonuses: {}, languages: [], spellAbilityChoice: true,
     traits: ['Darkvision', 'Gnomish Cunning', 'Gnomish Lineage'],
     effects: [dark(60), ...(['int', 'wis', 'cha'] as const).map(a => adv(`save:${a}`, 'Gnomish Cunning'))],
     subraces: [
@@ -100,7 +100,7 @@ export const SPECIES: Race[] = [
     uses: [{ trait: 'Adrenaline Rush', count: 'pb', recharge: 'short' }, { trait: 'Relentless Endurance', count: 1, recharge: 'long' }],
   },
   {
-    id: 'tiefling', name: 'Tiefling', size: 'Medium', speed: 30, abilityBonuses: {}, languages: [],
+    id: 'tiefling', name: 'Tiefling', size: 'Medium', speed: 30, abilityBonuses: {}, languages: [], spellAbilityChoice: true,
     traits: ['Darkvision', 'Fiendish Legacy', 'Otherworldly Presence (Thaumaturgy)'],
     effects: [dark(60), spell('Otherworldly Presence', 'Thaumaturgy')],
     subraces: [

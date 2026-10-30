@@ -124,14 +124,18 @@ export function getCasterLevel(c: Classes): CasterLevel {
   return { casterLevel, parts, explanation }
 }
 
+/** Whether a class level casts spells yet: 2014 Paladins and Rangers start at level 2 (2024 ones and the Artificer at 1). */
+export const castsAtLevel = (def: ClassDef, level: number, edition: string) =>
+  def.caster !== 'half' || edition === '2024' || !!def.roundsUp || level >= 2
+
 /** Save DC and attack bonus for each spellcasting class, since multiclass casters use each class's own ability. */
 export function getSpellcastingByClass(c: MulticlassInput & Pick<Character, 'classes'>) {
   const mods = getAbilityMods(getAbilityScores(c))
   const level = c.classes.reduce((n, cl) => n + cl.level, 0)
   const prof = 2 + Math.floor((Math.max(1, level) - 1) / 4)
-  return classesOf(c).flatMap(({ def }) => {
+  return classesOf(c).flatMap(({ def, level: classLevel }) => {
     const ability = def.spellAbility
-    if (!ability) return []
+    if (!ability || !castsAtLevel(def, classLevel, rulesEdition(c))) return []
     return [{
       className: def.name,
       ability,

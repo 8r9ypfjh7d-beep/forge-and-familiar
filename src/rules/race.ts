@@ -21,6 +21,8 @@ export interface RaceProfile {
   traits: string[]
   skillProficiencies: SkillId[]
   freeSkillChoices: number
+  /** The short list those picks come from; empty means any skill. */
+  freeSkillFrom: SkillId[]
   languages: string[]
   languageChoices: number
   tools: string[]
@@ -95,6 +97,7 @@ export function raceProfile(c: RaceInput): RaceProfile {
     traits: [...(race?.traits ?? []).filter(t => !removed.has(t)), ...(subrace?.traits ?? [])],
     skillProficiencies: uniq((subrace?.replacesSkills ? [subrace] : parts).flatMap(p => p.skillProficiencies ?? [])),
     freeSkillChoices: subrace?.freeSkillChoices ?? race?.freeSkillChoices ?? 0,
+    freeSkillFrom: (subrace?.freeSkillChoices !== undefined ? undefined : race?.freeSkillFrom) ?? [],
     languages: uniq(parts.flatMap(p => p.languages ?? [])),
     languageChoices: (race?.languageChoices ?? 0) + (subrace?.languageChoices ?? 0),
     tools: uniq(parts.flatMap(p => p.tools ?? [])),

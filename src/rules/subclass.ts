@@ -56,6 +56,13 @@ export const classEffects = (c: Owner & Partial<Pick<Character, 'classes'>>): { 
     .filter(f => f.level <= cl.level)
     .flatMap(f => (f.effects ?? []).map(effect => ({ source: f.name, effect }))))
 
+/** Spell names the class itself always has prepared at its level (2024 Ranger's Hunter's Mark, Paladin's Divine Smite). */
+export function classSpellNames(c: Owner & Partial<Pick<Character, 'classes'>>, classId: string): string[] {
+  const cl = (c.classes ?? []).find(x => x.classId === classId)
+  const def = cl && classById(classId, rulesEdition(c))
+  return def ? (def.alwaysPrepared ?? []).filter(s => s.level <= cl.level).flatMap(s => s.names) : []
+}
+
 /** Spell names a class's subclass adds at its level (always prepared). */
 export function subclassSpellNames(c: Owner & Partial<Pick<Character, 'classes'>>, classId: string): string[] {
   const active = activeSubclasses(c).find(x => x.classId === classId)

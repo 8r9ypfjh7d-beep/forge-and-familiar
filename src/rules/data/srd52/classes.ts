@@ -101,6 +101,7 @@ export const CLASSES_2024: ClassDef[] = [
     id: 'druid', name: 'Druid', hitDie: 8, primary: ['wis'], savingThrows: ['int', 'wis'],
     skillChoices: { count: 2, from: ['arcana', 'animalHandling', 'insight', 'medicine', 'nature', 'perception', 'religion', 'survival'] },
     armor: ['light', 'shield'], weapons: ['simple'], caster: 'full', spellAbility: 'wis',
+    alwaysPrepared: [{ level: 1, names: ['Speak with Animals'] }],
     resources: [{ id: 'wild-shape', name: 'Wild Shape', recharge: 'short', max: scale([[2, 2], [6, 3], [17, 4]]) }],
     startingEquipment: [], equipmentChoices: kit(['leather', 'shield', 'sickle', 'quarterstaff', 'explorers-pack', 'herbalism-kit'], 9, 50),
     toolProficiencies: ['Herbalism kit'],
@@ -167,6 +168,7 @@ export const CLASSES_2024: ClassDef[] = [
     id: 'paladin', name: 'Paladin', hitDie: 10, primary: ['str', 'cha'], savingThrows: ['wis', 'cha'],
     skillChoices: { count: 2, from: ['athletics', 'insight', 'intimidation', 'medicine', 'persuasion', 'religion'] },
     armor: ['light', 'medium', 'heavy', 'shield'], weapons: ['simple', 'martial'], caster: 'half', spellAbility: 'cha',
+    alwaysPrepared: [{ level: 2, names: ['Divine Smite'] }, { level: 5, names: ['Find Steed'] }],
     resources: [
       { id: 'lay-on-hands', name: 'Lay on Hands (HP pool)', recharge: 'long', max: l => 5 * l },
       { id: 'channel-divinity', name: 'Channel Divinity', recharge: 'short', max: scale([[3, 2], [11, 3]]) },
@@ -184,6 +186,7 @@ export const CLASSES_2024: ClassDef[] = [
     id: 'ranger', name: 'Ranger', hitDie: 10, primary: ['dex', 'wis'], savingThrows: ['str', 'dex'],
     skillChoices: { count: 3, from: ['animalHandling', 'athletics', 'insight', 'investigation', 'nature', 'perception', 'stealth', 'survival'] },
     armor: ['light', 'medium', 'shield'], weapons: ['simple', 'martial'], caster: 'half', spellAbility: 'wis',
+    alwaysPrepared: [{ level: 1, names: ["Hunter's Mark"] }],
     resources: [{ id: 'favored-enemy', name: "Favored Enemy (free Hunter's Mark)", recharge: 'long', max: scale([[1, 2], [5, 3], [9, 4], [13, 5], [17, 6]]) }],
     startingEquipment: [], equipmentChoices: kit(['studded-leather', 'scimitar', 'shortsword', 'longbow', 'arrows', 'quiver', 'druidic-focus', 'explorers-pack'], 7, 150),
     subclassLevel: 3, subclassTitle: 'Ranger Subclass', asiLevels: ASI, weaponMastery: [[1, 2]],
@@ -204,7 +207,8 @@ export const CLASSES_2024: ClassDef[] = [
     startingEquipment: [], equipmentChoices: kit(['leather', 'dagger', 'dagger', 'shortsword', 'shortbow', 'arrows', 'quiver', 'thieves-tools', 'burglars-pack'], 8, 100),
     toolProficiencies: ["Thieves' tools"],
     subclassLevel: 3, subclassTitle: 'Rogue Subclass', asiLevels: [4, 8, 10, 12, 16, 19], weaponMastery: [[1, 2]],
-    picks: [expertise('expertise', 1, 2), expertise('expertise6', 6, 2), { id: 'thievesCant', name: "Thieves' Cant", level: 1, kind: 'language', count: 1 }],
+    // 2024 Expertise is for skills; thieves' tools is still offered, with a warning.
+    picks: [...[expertise('expertise', 1, 2), expertise('expertise6', 6, 2)].map(p => ({ ...p, tools: ["Thieves' tools"], toolsOffList: true })), { id: 'thievesCant', name: "Thieves' Cant", level: 1, kind: 'language', count: 1 }],
     features: [
       ...f(1, 'Expertise', 'Sneak Attack', "Thieves' Cant", 'Weapon Mastery'), ...f(2, 'Cunning Action'), ...f(3, 'Steady Aim'),
       ...f(5, 'Cunning Strike', 'Uncanny Dodge'), ...f(6, 'Expertise'), ...f(7, 'Evasion', 'Reliable Talent'), ...f(11, 'Improved Cunning Strike'), ...f(14, 'Devious Strikes'),

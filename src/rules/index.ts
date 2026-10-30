@@ -52,5 +52,6 @@ export {
 export { ITEMS, entryItem, itemById, registerHomebrewItems } from './data/items'
 export { SKILLS, ALL_SKILLS } from './data/skills'
 export * from './multiclass'
+export * from './spellAbility'
 export { MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES, MULTICLASS_PROFICIENCIES_2024 } from './data/multiclass'
 export * from './usables'

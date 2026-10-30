@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
-import { ABILITY_NAMES, ITEMS, SKILLS, classById, raceById, type Ability, type RulesEdition, type SkillId } from '../rules'
+import { ABILITY_NAMES, ITEMS, SKILLS, THROWN_SUFFIX, classById, raceById, type Ability, type RulesEdition, type SkillId } from '../rules'
 import type { MessageKey } from './locales/en'
 import { getLocale, setLocale, subscribeLocale } from './store'
 import { spellMeasureHe } from './locales/spells.he'
@@ -36,10 +36,13 @@ export function useI18n() {
       spellName: (nameOrId: string, fallback = nameOrId) => tr('spell', spellTermId(nameOrId), fallback),
       /** Casting time, range or duration in the current language ("1 action" → "פעולה"). */
       spellMeasure: (text: string) => (locale === 'he' ? spellMeasureHe(text) : text),
-      /** Attacks are named after their weapon (or "Unarmed Strike"). */
-      attackName: (name: string) => {
-        const item = ITEMS.find(i => i.name === name)
-        return item ? tr('item', item.id, name) : tr('attack', name, name)
+      /** Attacks are named after their weapon (or "Unarmed Strike"); a thrown line is "<weapon> (thrown)". */
+      attackName: (name: string): string => {
+        const plain = (n: string) => {
+          const item = ITEMS.find(i => i.name === n)
+          return item ? tr('item', item.id, n) : tr('attack', n, n)
+        }
+        return name.endsWith(THROWN_SUFFIX) ? t('sheet.attacks.thrownName', { name: plain(name.slice(0, -THROWN_SUFFIX.length)) }) : plain(name)
       },
       /** "Fighter 3 / Wizard 2" */
       classLine: (classes: { classId: string; level: number }[]) =>

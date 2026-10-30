@@ -3,6 +3,8 @@ import { getAbilityMods, getAbilityScores } from './abilities'
 import { classFeatures } from './classFeatures'
 import { classChoices, featBonus, featEffects, getFeats, getLanguages, getTools } from './choices'
 import { classOptionResourceId, pickedClassOptions } from './classOptions'
+import { toolExpertise } from './classPicks'
+import { RACE_SPELL_KEY, chosenSpellAbility, raceChoosesSpellAbility } from './spellAbility'
 // Also registers the subclass pick lists' options, so saved picks resolve wherever derive() runs.
 import { subclassPickLists } from './subclassPicks'
 import { classOptionWarnings } from './invocations'
@@ -18,7 +20,7 @@ import { effectsOf, itemBonus } from './itemEffects'
 import { breathArea, spellLimit, type UseContext } from './usables'
 import { raceById } from './data/races'
 import { racialSkills, racialWeapons } from './origin'
-import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
+import { castsAtLevel, getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { naturalArmorAc, pickedOptions, raceProfile, raceUseId } from './race'
 import { optionPickSlots } from './optionPicks'
 import { slug, subclassFeatures, subclassOf, subclassResourceId } from './subclass'
@@ -174,16 +176,19 @@ function usesMax(u: NonNullable<SubclassFeature['uses']>, level: number, prof: n
   return Math.max(u.min ?? 1, base * (u.mult ?? 1) + (u.add ?? 0))
 }
 
-export interface ItemSpell { spell: string; note?: string; source: string; useId?: string; charges?: { id: string; cost: number } }
+/** `ability`: the picked spellcasting ability, for race spells that let the player choose (2024 Elven Lineage). */
+export interface ItemSpell { spell: string; note?: string; source: string; useId?: string; charges?: { id: string; cost: number }; ability?: Ability }
 
 /** Spells from items, race and feats, with what a cast costs (see DerivedStats.itemSpells). */
 export function getItemSpells(c: Character): ItemSpell[] {
   const charged = getItemCharges(c)
+  const raceSources = raceChoosesSpellAbility(c) ? new Set(raceProfile(c).spells.map(s => s.source)) : new Set<string>()
+  const raceAbility = raceSources.size ? chosenSpellAbility(c, RACE_SPELL_KEY) : undefined
   return effectsOf(c, 'spell').map(({ source, effect: f, itemUid }) => {
     const spell = f.spell.trim()
     const note = f.note?.trim()
     const limit = spellLimit(note)
-    const out: ItemSpell = { spell, ...(note ? { note } : {}), source }
+    const out: ItemSpell = { spell, ...(note ? { note } : {}), source, ...(raceAbility && !itemUid && raceSources.has(source) ? { ability: raceAbility } : {}) }
     if (limit && 'max' in limit) out.useId = `spell:${slug(spell)}:${slug(source)}`
     const pool = itemUid && charged.find(r => r.id === `item:${itemUid}`)
     if (limit && 'charges' in limit && pool) out.charges = { id: pool.id, cost: limit.charges }
@@ -427,7 +432,24 @@ function isMonkWeapon(w: Weapon, edition: string) {
   return edition === '2024' ? w.properties.includes('light') : w.id === 'shortsword'
 }
 
+/** Fighting style ids the character has: class picks (2014), style feats (2024, Fighting Initiate), College of Swords styles. */
+export function fightingStyles(c: Character): Set<string> {
+  const ids = new Set([
+    ...classChoices(c).flatMap(x => (x.choice.pool === 'fightingStyle' && x.picked ? [x.picked.id] : [])),
+    ...getFeats(c).map(f => f.id),
+    ...pickedClassOptions(c).map(x => x.option.id),
+  ])
+  if (ids.has('swords-dueling')) ids.add('dueling')
+  return ids
+}
+
+/** Dueling and Thrown Weapon Fighting both add +2 damage. */
+const STYLE_DAMAGE = 2
+
 const withMod = (dice: string, mod: number) => (mod === 0 ? dice : `${dice}${mod > 0 ? '+' : '−'}${Math.abs(mod)}`)
+
+/** Added to a weapon's name for its thrown attack line (Thrown Weapon Fighting). */
+export const THROWN_SUFFIX = ' (thrown)'
 
 export function getAttacks(c: Character): Attack[] {
   const mods = getAbilityMods(getAbilityScores(c))
@@ -449,6 +471,7 @@ export function getAttacks(c: Character): Attack[] {
   const seen = new Set<string>()
   const perAction = attacksPerAction(c)
   const perPact = pactAttacks(c)
+  const styles = fightingStyles(c)
 
   for (const { entry, item } of equippedEntries(c)) {
     // Two of the same plain weapon make one attack line; renamed or magic copies get their own.
@@ -469,7 +492,10 @@ export function getAttacks(c: Character): Attack[] {
     if (magicWeaponAbility && isMagic && mods[magicWeaponAbility] > mods[ability]) ability = magicWeaponAbility
     const reach = ranged ? 'ranged' : 'melee'
     const dmgMod = mods[ability] + magic + itemBonus(c, 'damage', true, reach)
+    // Dueling: +2 with a one-handed melee weapon; a versatile weapon's two-handed damage doesn't get it.
+    const dueling = styles.has('dueling') && !ranged && !item.properties.includes('two-handed') ? STYLE_DAMAGE : 0
     const notes: string[] = []
+    if (dueling) notes.push(`Dueling +${dueling} (one hand, no other weapon)`)
     if (entry.pact) notes.push('pact weapon')
     if (magic || entry.pact) notes.push('magical')
     if (entry.extraDamage) notes.push(`+${entry.extraDamage}`)
@@ -484,7 +510,7 @@ export function getAttacks(c: Character): Attack[] {
     out.push({
       name: item.name,
       bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack', true, reach) + (ranged ? rangedBonus : 0),
-      damage: withMod(item.damage, dmgMod),
+      damage: withMod(item.damage, dmgMod + dueling),
       // 2024 Pact of the Blade: the pact weapon may deal necrotic, psychic or radiant instead.
       damageType: (entry.pact && entry.damageType) || item.damageType,
       ...(entry.pact ? { pact: true } : {}),
@@ -499,6 +525,24 @@ export function getAttacks(c: Character): Attack[] {
       ...(ranged ? {} : { reach: item.properties.includes('reach') ? 10 : 5 }),
       ...(item.range ? { range: item.range } : {}),
     })
+    // Thrown Weapon Fighting: a melee weapon with the thrown property gets its own thrown line with +2 damage.
+    if (!ranged && item.properties.includes('thrown') && styles.has('thrown-weapon-fighting')) {
+      out.push({
+        name: `${item.name}${THROWN_SUFFIX}`,
+        bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack', true, 'ranged'),
+        damage: withMod(item.damage, mods[ability] + magic + itemBonus(c, 'damage', true, 'ranged') + STYLE_DAMAGE),
+        damageType: (entry.pact && entry.damageType) || item.damageType,
+        ...(entry.pact ? { pact: true } : {}),
+        ...(attacks > 1 ? { attacks } : {}),
+        ability,
+        proficient,
+        notes: [`Thrown Weapon Fighting +${STYLE_DAMAGE}`, ...(item.range ? [`range ${item.range}`] : []), ...(proficient ? [] : ['not proficient'])],
+        properties: item.properties,
+        ...(entry.extraDamage ? { extraDamage: entry.extraDamage } : {}),
+        itemId: item.id,
+        ...(item.range ? { range: item.range } : {}),
+      })
+    }
   }
 
   const unarmedAbility: Ability = martialArts && mods.dex > mods.str ? 'dex' : 'str'
@@ -583,6 +627,8 @@ export interface DerivedStats {
   traits: string[]
   languages: string[]
   tools: string[]
+  /** Tools with double proficiency (Rogue Expertise in thieves' tools). */
+  toolExpertise: string[]
   /** Names of feats taken instead of an Ability Score Improvement. */
   feats: string[]
   warnings: string[]
@@ -685,7 +731,7 @@ export function derive(c: Character): DerivedStats {
     if (a && !isArmorProficient(c, a)) warnings.push(`Not proficient with ${a.name}: disadvantage on STR/DEX rolls, no spellcasting.`)
   }
 
-  const caster = classes.find(x => x.def.spellAbility)
+  const caster = classes.find(x => x.def.spellAbility && castsAtLevel(x.def, x.level, rulesEdition(c)))
   const spellAbility = caster?.def.spellAbility
   const carriedWeight = c.inventory.reduce((w, e) => w + (entryItem(e)?.weight ?? 0) * e.qty, 0)
   const carryingCapacity = abilities.str * 15
@@ -769,6 +815,7 @@ export function derive(c: Character): DerivedStats {
     }),
     languages: getLanguages(c),
     tools: getTools(c),
+    toolExpertise: toolExpertise(c),
     feats: getFeats(c).map(f => f.name),
     warnings,
   }
