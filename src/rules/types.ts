@@ -83,6 +83,16 @@ export interface ResourceDef {
   shortRestFromLevel?: number
 }
 
+/** A class feature from its level on. */
+export interface ClassFeature {
+  level: number
+  name: string
+  /** Changes to the sheet from this level on (Diamond Soul's save proficiencies, Feral Instinct's initiative advantage). */
+  effects?: ItemEffect[]
+  /** [class level, text] steps for what grows with the level ("d8", "CR 1", "3 attacks"); the sheet shows the latest. */
+  detail?: [number, string][]
+}
+
 /** A pick a class makes at a level that changes the sheet: Fighting Style, Divine Order, Primal Order. */
 export interface ClassChoice {
   id: string
@@ -129,7 +139,7 @@ export interface ClassDef {
   subclassTitle: string
   /** Class levels with an Ability Score Improvement (or a feat). */
   asiLevels: number[]
-  features: { level: number; name: string }[]
+  features: ClassFeature[]
   /** Level-gated picks (2024: Fighting Style, Divine Order, Primal Order). Saved in Character.featureChoices. */
   choices?: ClassChoice[]
   /** Weapon Mastery (2024): [class level, weapons] steps. */

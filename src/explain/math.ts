@@ -3,7 +3,7 @@
 // total), and explain.test.ts checks each total against derive() so the two never drift.
 import type { Character } from '../model/character'
 import {
-  applyItemAbilities, effectsOf, entryItem, itemBonuses,
+  applyItemAbilities, auraOfProtection, effectsOf, entryItem, itemBonuses,
   ABILITY_NAMES, SKILLS, abilityMod, backgroundBonuses, getBackground, classById, derive, featBonus, featEffects, fixedRacialBonuses, getAbilityMods, getAbilityScores,
   getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, rulesEdition, totalLevel,
   type Ability, type ClassDef, type SkillId,
@@ -87,6 +87,8 @@ function save(c: Character, a: Ability): StatMath {
   else if (fromItem) lines.push({ ...profLine(c), label: `Proficiency (${fromItem.source})` })
   lines.push(...itemLines(c, 'saves'))
   for (const x of effectsOf(c, 'save')) if (x.effect.ability === a) lines.push({ label: x.source, value: x.effect.value })
+  const aura = auraOfProtection(c)
+  if (aura) lines.push({ label: 'Aura of Protection (CHA, min +1)', value: aura })
   const notes = classesOf(c).length > 1 ? ['Saving throw proficiencies come from your first class only.'] : []
   return make(`${ABILITY_NAMES[a]} save`, lines, { signed: true, notes })
 }

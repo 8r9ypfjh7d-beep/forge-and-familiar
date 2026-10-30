@@ -35,6 +35,12 @@ export const subclassFeatures = (c: Owner & Partial<Pick<Character, 'classes'>>)
 export const subclassEffects = (c: Owner & Partial<Pick<Character, 'classes'>>): { source: string; effect: ItemEffect }[] =>
   subclassFeatures(c).flatMap(({ feature }) => (feature.effects ?? []).map(effect => ({ source: feature.name, effect })))
 
+/** Sheet changes from class features (Diamond Soul, Feral Instinct, Primal Champion), labelled with the feature name. */
+export const classEffects = (c: Owner & Partial<Pick<Character, 'classes'>>): { source: string; effect: ItemEffect }[] =>
+  (c.classes ?? []).flatMap(cl => (classById(cl.classId, rulesEdition(c))?.features ?? [])
+    .filter(f => f.level <= cl.level)
+    .flatMap(f => (f.effects ?? []).map(effect => ({ source: f.name, effect }))))
+
 /** Spell names a class's subclass adds at its level (always prepared). */
 export function subclassSpellNames(c: Owner & Partial<Pick<Character, 'classes'>>, classId: string): string[] {
   const active = activeSubclasses(c).find(x => x.classId === classId)

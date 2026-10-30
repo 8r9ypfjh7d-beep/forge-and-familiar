@@ -2,6 +2,7 @@ import type { Character, HitDie } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
 import { classChoices, featBonus, featEffects, getFeats, getLanguages, getTools } from './choices'
 import { getBackground } from './data/backgrounds'
+import { AURA_OF_PROTECTION_LEVEL, RADIANT_STRIKE_LEVEL } from './data/classFeatures2014'
 import { classById } from './data/classes'
 import { entryItem } from './data/items'
 import { NON_STACKING_RESOURCES } from './data/multiclass'
@@ -280,6 +281,12 @@ export function getAttacks(c: Character): Attack[] {
   const edition = rulesEdition(c)
   const rangedBonus = featBonus(c, 'rangedAttack')
   const castingWeapon = classesOf(c).some(x => x.subclass?.castingWeapon)
+  const levelOf = (id: string) => classesOf(c).find(x => x.def.id === id)?.level ?? 0
+  // Improved Divine Smite (2014) / Radiant Strikes (2024): 1d8 radiant on every melee weapon hit.
+  const radiant = levelOf('paladin') >= RADIANT_STRIKE_LEVEL ? (edition === '2024' ? 'Radiant Strikes' : 'Improved Divine Smite') : undefined
+  // Brutal Critical (2014): extra weapon dice on a melee critical hit.
+  const barbarian = edition === '2024' ? 0 : levelOf('barbarian')
+  const brutal = barbarian >= 17 ? 3 : barbarian >= 13 ? 2 : barbarian >= 9 ? 1 : 0
   const out: Attack[] = []
   const seen = new Set<string>()
 
@@ -306,6 +313,10 @@ export function getAttacks(c: Character): Attack[] {
     if (item.range) notes.push(`range ${item.range}`)
     if (item.versatile) notes.push(`two-handed ${withMod(item.versatile, dmgMod)}`)
     if (!proficient) notes.push('not proficient')
+    if (brutal && !ranged) notes.push(`crit +${brutal} ${brutal > 1 ? 'dice' : 'die'} (Brutal Critical)`)
+    // The item's own extra damage keeps the roll; the radiant die is then a note.
+    const extraDamage = entry.extraDamage || (radiant && !ranged ? '1d8 radiant' : undefined)
+    if (radiant && !ranged) notes.push(entry.extraDamage ? `+1d8 radiant (${radiant})` : radiant)
     out.push({
       name: item.name,
       bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack', true, reach) + (ranged ? rangedBonus : 0),
@@ -316,7 +327,7 @@ export function getAttacks(c: Character): Attack[] {
       notes,
       versatile: item.versatile ? withMod(item.versatile, dmgMod) : undefined,
       properties: item.properties,
-      ...(entry.extraDamage ? { extraDamage: entry.extraDamage } : {}),
+      ...(extraDamage ? { extraDamage } : {}),
       itemId: item.id,
       ...(ranged ? {} : { reach: item.properties.includes('reach') ? 10 : 5 }),
       ...(item.range ? { range: item.range } : {}),
@@ -333,7 +344,8 @@ export function getAttacks(c: Character): Attack[] {
     damageType: 'bludgeoning',
     ability: unarmedAbility,
     proficient: true,
-    notes: [],
+    // Ki-Empowered Strikes (2014 monk 6): unarmed strikes count as magical.
+    notes: martialArts && edition !== '2024' && monk.level >= 6 ? ['magical'] : [],
     properties: [],
     reach: 5,
   })
@@ -376,7 +388,8 @@ export interface DerivedStats {
   carryingCapacity: number
   carriedWeight: number
   /** `text` describes features the SRD library has no entry for (other books, custom subclasses). */
-  features: { level: number; name: string; className: string; text?: string; subclassId?: string }[]
+  /** `detail`: what the feature has grown to at this level ("d8", "CR 1", "3 attacks"). */
+  features: { level: number; name: string; className: string; text?: string; subclassId?: string; detail?: string }[]
   traits: string[]
   languages: string[]
   tools: string[]
@@ -391,6 +404,16 @@ export function getSkillProficiencies(c: Character): Set<SkillId> {
   const bg = getBackground(c)
   const fromFeats = getFeats(c).flatMap(f => f.effects.flatMap(e => (e.kind === 'skill' ? [e.skill] : [])))
   return new Set([...c.chosenSkills, ...(race?.skillProficiencies ?? []), ...(bg?.skillProficiencies ?? []), ...fromFeats])
+}
+
+/** What a class feature has grown to at a class level ("d8", "CR 1"), from its `detail` steps. */
+export const featureDetail = (f: { detail?: [number, string][] }, level: number): string | undefined =>
+  f.detail?.reduce<string | undefined>((d, [from, text]) => (level >= from ? text : d), undefined)
+
+/** Aura of Protection (paladin 6, both editions): the Charisma modifier, at least +1, added to every saving throw. */
+export function auraOfProtection(c: Character): number {
+  const paladin = classesOf(c).find(x => x.def.id === 'paladin')
+  return paladin && paladin.level >= AURA_OF_PROTECTION_LEVEL ? Math.max(1, getAbilityMods(getAbilityScores(c)).cha) : 0
 }
 
 const MONK_MOVEMENT: [number, number][] = [[18, 30], [14, 25], [10, 20], [6, 15], [2, 10]]
@@ -415,12 +438,13 @@ export function derive(c: Character): DerivedStats {
   const hasAdv = (...on: AdvantageOn[]) => advantages.some(x => !x.when && on.includes(x.on)) || undefined
   const saveProfs = new Set(effectsOf(c, 'saveProficiency').map(x => x.effect.ability))
   const saves = {} as DerivedStats['saves']
+  const aura = auraOfProtection(c)
   for (const a of ABILITIES) {
     // Saving throw proficiencies come from the first class only (and items).
     const proficient = !!firstClass?.savingThrows.includes(a) || saveProfs.has(a)
     const extra = effectsOf(c, 'save').reduce((n, x) => n + (x.effect.ability === a ? x.effect.value : 0), 0)
     const advantage = hasAdv('saves', `save:${a}`)
-    saves[a] = { bonus: mods[a] + (proficient ? prof : 0) + itemSaves + extra, proficient, ...(advantage ? { advantage } : {}) }
+    saves[a] = { bonus: mods[a] + (proficient ? prof : 0) + itemSaves + extra + aura, proficient, ...(advantage ? { advantage } : {}) }
   }
 
   const profSkills = getSkillProficiencies(c)
@@ -510,7 +534,9 @@ export function derive(c: Character): DerivedStats {
       [...def.features, ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).map(f => {
         // A class choice shows its pick: "Divine Order (Protector)".
         const picked = choices.find(x => x.classId === def.id && x.choice.name === f.name)?.picked
-        return { ...f, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name }
+        const { detail: steps, ...rest } = f as typeof f & { detail?: [number, string][] }
+        const detail = featureDetail({ detail: steps }, l)
+        return { ...rest, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name, ...(detail ? { detail } : {}) }
       }),
     ),
     traits: [...(race?.traits ?? []), ...(subrace?.traits ?? [])].map(t => {

@@ -5,7 +5,7 @@ import type { CustomBackground, Improvement } from '../model/character'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
   STANDARD_ARRAY, abilityMod, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
-  featById, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
+  featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   languagePickCount, pointBuyCost, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type RulesEdition, type SkillId,
 } from '../rules'
@@ -172,6 +172,7 @@ function ClassStep({ draft, update }: StepProps) {
   const { t, term, ability, abilityShort, className, item } = useI18n()
   const classPitch = cls && pitchKey('class', cls.id)
   const classAbout = cls && explainKey('about', cls.id)
+  const detailOf = (d?: string) => (d ? ` · ${term('detail', d, d)}` : '')
   return (
     <>
       <p className="muted small why-legend">
@@ -216,7 +217,7 @@ function ClassStep({ draft, update }: StepProps) {
           <strong>{t('builder.featuresTo', { level })}</strong><Why id="features" />
         </p>
       )}
-      {cls && <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: explainKey('feature', f.name) }))} />}
+      {cls && <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }) + detailOf(featureDetail(f, level)), key: explainKey('feature', f.name) }))} />}
       {cls && <SubclassPicker draft={draft} update={update} />}
       {cls && <ClassChoices draft={draft} update={update} />}
       <MulticlassPicker draft={draft} update={update} />
