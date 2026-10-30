@@ -1,5 +1,5 @@
 // One sync pass for one account: push local changes, pull other devices' changes, resolve
-// conflicts. The first pass on a device uploads everything already saved here.
+// conflicts (homebrew packs in packs.ts). The first pass on a device uploads everything already saved here.
 import type { Character } from '../model/character'
 import { applyRemoteCharacter, getCharacter, listCharacters, removeRemoteCharacter } from '../storage'
 import { addSnapshots, applyRemoteSnapshots, snapshotsFor } from '../portability/store'
@@ -7,6 +7,7 @@ import { BUILD_FIELDS, takeSnapshot, type Snapshot } from '../portability/snapsh
 import { localHistoryStorage } from '../dice/history'
 import type { RollResult } from '../dice/types'
 import { readMeta, updateMeta } from './outbox'
+import { syncPacks } from './packs'
 import type { RemoteRow, RemoteStore } from './types'
 
 export const ROLLS_SYNCED = 'ff:rolls-synced'
@@ -171,5 +172,6 @@ export async function syncOnce(remote: RemoteStore, ownerId: string): Promise<vo
   await pullCharacters(remote, ownerId)
   await syncSnapshots(remote, ownerId)
   await syncRolls(remote, ownerId)
+  await syncPacks(remote, ownerId)
   updateMeta(m => { m.owners[ownerId] = { ...m.owners[ownerId], initialized: true } })
 }

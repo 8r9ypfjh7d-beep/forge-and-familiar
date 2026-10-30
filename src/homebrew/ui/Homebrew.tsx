@@ -7,7 +7,7 @@ import { OPTION_KIND_CLASSES, featById, itemById, raceById } from '../../rules'
 import { effectText } from '../../inventory'
 import { listCharacters, saveCharacter } from '../../storage'
 import { allEntries, blankClass, decodePack, describeEffect, encodeShareCode, entryId, newPack, PackError, sanitizeEntry, slug } from '../pack'
-import { deletePack, importPack, listPacks, onPacksChanged, savePack } from '../store'
+import { deletePack, importPack, listPacks, listPartyPacks, onPacksChanged, savePack } from '../store'
 import type { Ability } from '../../rules'
 import type {
   ContentKind, HomebrewBackground, HomebrewClass, HomebrewClassOption, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewLanguage, HomebrewPack, HomebrewRace,
@@ -27,9 +27,10 @@ const packCounts = (t: Translate, p: HomebrewPack) =>
 
 export function Homebrew({ profile }: { profile: UserProfile }) {
   const [packs, setPacks] = useState<HomebrewPack[] | null>(null)
+  const [party, setParty] = useState<HomebrewPack[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
   const { t } = useI18n()
-  const refresh = useCallback(() => { listPacks().then(setPacks) }, [])
+  const refresh = useCallback(() => { listPacks().then(setPacks); listPartyPacks().then(setParty) }, [])
   useEffect(() => {
     refresh()
     return onPacksChanged(refresh)
@@ -42,6 +43,7 @@ export function Homebrew({ profile }: { profile: UserProfile }) {
   return (
     <Library
       packs={packs}
+      party={party}
       profile={profile}
       onOpen={setOpenId}
       onCreate={async () => {
@@ -52,14 +54,18 @@ export function Homebrew({ profile }: { profile: UserProfile }) {
   )
 }
 
-function Library({ packs, profile, onOpen, onCreate }: {
+function Library({ packs, party, profile, onOpen, onCreate }: {
   packs: HomebrewPack[]
+  /** Party members' packs from the cloud; those already in the library are left out. */
+  party: HomebrewPack[]
   profile: UserProfile
   onOpen: (id: string) => void
   onCreate: () => void
 }) {
   const { t } = useI18n()
   const sorted = [...packs].sort((a, b) => Number(b.authorId === profile.id) - Number(a.authorId === profile.id) || a.name.localeCompare(b.name))
+  const fromParty = [...new Map(party.filter(p => !packs.some(x => x.id === p.id)).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt)).map(p => [p.id, p])).values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
   return (
     <section className="hb">
       <div className="row spread hb-hero">
@@ -83,6 +89,22 @@ function Library({ packs, profile, onOpen, onCreate }: {
             </button>
           ))}
         </div>
+      )}
+      {fromParty.length > 0 && (
+        <>
+          <h3>{t('hb.party.title')}</h3>
+          <p className="muted small">{t('hb.party.lead')}</p>
+          <div className="hb-packs">
+            {fromParty.map(p => (
+              <div key={p.id} className="glass hb-pack">
+                <strong>{p.name}</strong>
+                <span className="muted small">{t('hb.from', { name: p.authorName })} · {packCounts(t, p)}</span>
+                {p.description && <span className="small hb-clamp">{p.description}</span>}
+                <button className="glass-btn" onClick={async () => { await importPack(p); onOpen(p.id) }}>{t('hb.party.add')}</button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
       <ImportBox onImported={onOpen} />
     </section>

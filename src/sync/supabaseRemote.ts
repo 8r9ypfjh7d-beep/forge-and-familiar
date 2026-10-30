@@ -1,10 +1,11 @@
-// RemoteStore over the Supabase tables in supabase/migrations (characters, snapshots, rolls).
+// RemoteStore over the Supabase tables in supabase/migrations (characters, snapshots, rolls, homebrew_packs).
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CharacterRow } from '../cloud'
 import type { Character } from '../model/character'
 import type { Snapshot } from '../portability/snapshots'
 import type { RollResult } from '../dice/types'
-import type { RemoteRow, RemoteStore } from './types'
+import type { HomebrewPack } from '../homebrew/types'
+import { MissingTableError, type RemoteRow, type RemoteStore } from './types'
 
 /**
  * Pulls re-read this much before the cursor: updated_at is the transaction's start time, so a
@@ -13,8 +14,14 @@ import type { RemoteRow, RemoteStore } from './types'
 const OVERLAP_MS = 10_000
 
 interface SnapshotRow { id: string; owner_id: string; character_id: string; data: Snapshot; deleted: boolean; updated_at: string }
+interface PackRow { id: string; owner_id: string; data: HomebrewPack; deleted: boolean; updated_at: string }
 
 const fail = (error: { message: string } | null) => { if (error) throw new Error(error.message) }
+/** Same, but a table the live database doesn't have yet (PostgREST PGRST205, Postgres 42P01) is a MissingTableError. */
+const failTable = (error: { message: string; code?: string } | null) => {
+  if (error && (error.code === 'PGRST205' || error.code === '42P01')) throw new MissingTableError(error.message)
+  fail(error)
+}
 const back = (since: string) => new Date(Date.parse(since) - OVERLAP_MS).toISOString()
 
 const toRow = (r: CharacterRow): RemoteRow<Character> =>
@@ -81,6 +88,20 @@ export function supabaseRemote(db: SupabaseClient): RemoteStore {
       fail(error)
     },
 
+    async pullPacks(since) {
+      let q = db.from('homebrew_packs').select('*')
+      if (since) q = q.gt('updated_at', back(since))
+      const { data, error } = await q.order('updated_at').returns<PackRow[]>()
+      failTable(error)
+      return (data ?? []).map(r => ({ id: r.id, ownerId: r.owner_id, data: r.data, rev: 0, deleted: r.deleted, updatedAt: r.updated_at }))
+    },
+
+    async putPack(row) {
+      const { error } = await db.from('homebrew_packs')
+        .upsert({ id: row.id, owner_id: row.ownerId, data: row.data, deleted: row.deleted }, { onConflict: 'owner_id,id' })
+      failTable(error)
+    },
+
     async recentRolls(ownerId, limit) {
       const { data, error } = await db.from('rolls').select('data').eq('owner_id', ownerId)
         .order('rolled_at', { ascending: false }).limit(limit).returns<{ data: RollResult }[]>()
@@ -92,7 +113,12 @@ export function supabaseRemote(db: SupabaseClient): RemoteStore {
       const channel = db.channel(`sync-${ownerId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'characters', filter: `owner_id=eq.${ownerId}` }, onChange)
         .subscribe()
-      return () => { void db.removeChannel(channel) }
+      // Own and party members' packs (the server only sends rows this account may read). Its own
+      // channel, so a database without the table yet doesn't break character updates.
+      const packs = db.channel(`sync-packs-${ownerId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'homebrew_packs' }, onChange)
+        .subscribe()
+      return () => { void db.removeChannel(channel); void db.removeChannel(packs) }
     },
   }
 }

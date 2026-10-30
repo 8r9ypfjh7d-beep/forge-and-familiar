@@ -1,5 +1,6 @@
 // Sync bookkeeping in localStorage (ff.sync.v1): the server revision each character was last
-// synced at, local changes waiting to be pushed, and pull cursors per account.
+// synced at, local changes waiting to be pushed (characters, snapshots, homebrew packs), and pull
+// cursors per account.
 // No imports from the stores, so they can call it without a cycle.
 
 const KEY = 'ff.sync.v1'
@@ -19,6 +20,14 @@ export interface SnapMeta {
   deleted?: true
 }
 
+/** A homebrew pack in this device's library. Packs belong to the device, not one account. */
+export interface PackMeta {
+  /** The pack's updatedAt when it was last on the server. */
+  synced?: string
+  dirty?: true
+  deleted?: true
+}
+
 export interface OwnerMeta {
   /** Set after the first full sync: everything made before it has been uploaded. */
   initialized?: true
@@ -26,11 +35,15 @@ export interface OwnerMeta {
   snapCursor?: string
   /** Rolls newer than this still need pushing. */
   rollsPushedAt?: string
+  /** Set after this device's packs were first queued for this account. */
+  packsInitialized?: true
+  packCursor?: string
 }
 
 interface Meta {
   chars: Record<string, CharMeta>
   snaps: Record<string, SnapMeta>
+  packs: Record<string, PackMeta>
   owners: Record<string, OwnerMeta>
 }
 
@@ -38,9 +51,9 @@ export function readMeta(): Meta {
   try {
     const raw = localStorage.getItem(KEY)
     const m = raw ? (JSON.parse(raw) as Partial<Meta>) : {}
-    return { chars: m.chars ?? {}, snaps: m.snaps ?? {}, owners: m.owners ?? {} }
+    return { chars: m.chars ?? {}, snaps: m.snaps ?? {}, packs: m.packs ?? {}, owners: m.owners ?? {} }
   } catch {
-    return { chars: {}, snaps: {}, owners: {} }
+    return { chars: {}, snaps: {}, packs: {}, owners: {} }
   }
 }
 
@@ -81,10 +94,18 @@ export function markSnapshotDirty(id: string, ownerId: string, deleted = false) 
   }, true)
 }
 
+/** Called by the homebrew store when a pack is saved, imported or deleted on this device. */
+export function markPackDirty(id: string, deleted = false) {
+  updateMeta(m => {
+    const synced = m.packs[id]?.synced
+    m.packs[id] = deleted ? { synced, dirty: true, deleted: true } : { synced, dirty: true }
+  }, true)
+}
+
 /** Local changes not yet pushed for this account. */
 export function pendingCount(ownerId: string): number {
   const m = readMeta()
   const count = (r: Record<string, { ownerId: string; dirty?: true }>) =>
     Object.values(r).filter(x => x.ownerId === ownerId && x.dirty).length
-  return count(m.chars) + count(m.snaps)
+  return count(m.chars) + count(m.snaps) + Object.values(m.packs).filter(p => p.dirty).length
 }

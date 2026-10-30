@@ -28,6 +28,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261027130000_guard_grants.sql
 \ir ../migrations/20261028090000_party_shared.sql
 \ir ../migrations/20261028100000_party_dm.sql
+\ir ../migrations/20261030120000_homebrew_packs.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -382,6 +383,41 @@ set test.uid = '00000000-0000-0000-0000-00000000000d';
 select pg_temp.check((select count(*) from session_polls) = 1, 'admin sees polls');
 set test.uid = '00000000-0000-0000-0000-00000000000a';
 
+-- Homebrew packs: own library, read by party members, private otherwise.
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+insert into homebrew_packs (owner_id, id, data) values ('acct-roy', 'abcdefabcdef', '{"name":"Roy brew"}');
+update homebrew_packs set data = '{"name":"Thorn brew"}' where owner_id = 'acct-roy' and id = 'abcdefabcdef';
+do $$ begin
+  insert into homebrew_packs (owner_id, id, data) values ('acct-tamir', 'abcdefabcdef', '{}');
+  raise exception 'FAILED: wrote a pack as someone else';
+exception when insufficient_privilege then raise notice 'ok: cannot write a pack as someone else';
+end $$;
+do $$ begin
+  insert into homebrew_packs (owner_id, id, data) values ('acct-roy', 'bad id!', '{}');
+  raise exception 'FAILED: bad pack id accepted';
+exception when check_violation then raise notice 'ok: pack ids are checked';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select data->>'name' from homebrew_packs where owner_id = 'acct-roy') = 'Thorn brew', 'a party member reads the pack');
+update homebrew_packs set data = '{"name":"Hijack"}' where owner_id = 'acct-roy';
+do $$ begin
+  delete from homebrew_packs where owner_id = 'acct-roy';
+  raise exception 'FAILED: deleted a pack row';
+exception when insufficient_privilege then raise notice 'ok: pack rows are never deleted (tombstones sync deletes)';
+end $$;
+reset role;
+select pg_temp.check((select data->>'name' from homebrew_packs where owner_id = 'acct-roy') = 'Thorn brew', 'a party member cannot change or delete it');
+insert into homebrew_packs (owner_id, id, data) values ('acct-maayan', 'f00df00df00d', '{"name":"Secret"}');
+delete from party_members where party_id = 'party-garden-gang' and user_id = 'acct-maayan';
+set role authenticated;
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select count(*) from homebrew_packs where owner_id = 'acct-maayan') = 0, 'packs of someone outside your parties stay private');
+set test.uid = '00000000-0000-0000-0000-00000000000d';
+select pg_temp.check((select count(*) from homebrew_packs) = 2, 'admin reads every pack');
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+select pg_temp.check((select count(*) from homebrew_packs) = 0, 'unlinked device reads no packs');
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+
 -- Signed out: nothing.
 reset role;
 set role anon;
@@ -405,6 +441,11 @@ do $$ begin
   perform * from dm_requests;
   raise exception 'FAILED: anon read requests';
 exception when insufficient_privilege then raise notice 'ok: anon cannot read requests';
+end $$;
+do $$ begin
+  perform * from homebrew_packs;
+  raise exception 'FAILED: anon read packs';
+exception when insufficient_privilege then raise notice 'ok: anon cannot read packs';
 end $$;
 reset role;
 select pg_temp.check(true, 'all RLS checks passed');
