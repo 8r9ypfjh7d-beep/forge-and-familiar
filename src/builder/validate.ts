@@ -67,12 +67,13 @@ const english: Translate = (key, vars) => translate('en', key, vars)
 type Term = (kind: string, id: string, name: string) => string
 
 /** Problems that block leaving a step. Empty means the step is complete. */
-export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = english): string[] {
+export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = english, term: Term = (_kind, _id, name) => name): string[] {
   const out: string[] = []
   const edition = rulesEdition(d)
   const profile = raceProfile(d)
   const race = profile.race
-  const className = (id: string) => classById(id, edition)?.name ?? id
+  const className = (id: string) => term('class', id, classById(id, edition)?.name ?? id)
+  const subclassTitle = (id: string) => { const title = classById(id, edition)!.subclassTitle; return term('feature', title, title) }
   switch (step) {
     case 'race':
       if (!race) out.push(t('builder.issue.race'))
@@ -93,14 +94,14 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       if (!classById(d.classes[0]?.classId ?? '', edition)) out.push(t('builder.issue.class'))
       for (const cl of subclassSlots(d)) {
         if (cl.subclassId === CUSTOM_SUBCLASS) {
-          if (!subclassOf(d, cl)?.name.trim()) out.push(t('builder.issue.customSubclass', { title: classById(cl.classId, edition)!.subclassTitle }))
+          if (!subclassOf(d, cl)?.name.trim()) out.push(t('builder.issue.customSubclass', { title: subclassTitle(cl.classId) }))
         } else if (!subclassesFor(cl.classId, edition).some(s => s.id === cl.subclassId)) {
-          out.push(t('builder.issue.subclass', { className: className(cl.classId), title: classById(cl.classId, edition)!.subclassTitle }))
+          out.push(t('builder.issue.subclass', { className: className(cl.classId), title: subclassTitle(cl.classId) }))
         }
       }
       for (const x of classChoices(d)) {
         // Optional rules (Tasha's) left unpicked keep the base rules.
-        if (!x.picked && !x.choice.optional) out.push(t('builder.issue.classChoice', { className: className(x.classId), choice: x.choice.name }))
+        if (!x.picked && !x.choice.optional) out.push(t('builder.issue.classChoice', { className: className(x.classId), choice: term('feature', x.choice.name, x.choice.name) }))
       }
       break
     case 'abilities': {
@@ -174,7 +175,7 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       }) && tools.length === at && new Set(tools).size === tools.length
       if (!toolsOk) out.push(t('builder.issue.tools'))
       for (const { classId, pick, picked } of classPickSlots(d)) {
-        if (pick.kind !== 'language' && picked.length !== pick.count) out.push(t('builder.issue.classPick', { className: className(classId), pick: pick.name, count: pick.count }))
+        if (pick.kind !== 'language' && picked.length !== pick.count) out.push(t('builder.issue.classPick', { className: className(classId), pick: term('feature', pick.name, pick.name), count: pick.count }))
       }
       break
     }

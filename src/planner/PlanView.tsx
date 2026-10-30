@@ -144,7 +144,7 @@ function StepRow({ character, step, library, onChange }: {
 
       {step.subclassDue && def && (
         <label className="plan-pick small">
-          <span>{def.subclassTitle}</span>
+          <span>{term('feature', def.subclassTitle, def.subclassTitle)}</span>
           <select className="glass-field" value={step.entry.subclassId ?? step.subclassId ?? ''} onChange={e => set({ subclassId: e.target.value || undefined })}>
             <option value="">{t('plan.pickSubclass')}</option>
             {subclassesFor(step.entry.classId, edition).map(s => <option key={s.id} value={s.id}>{term('subclass', s.id, s.name)}</option>)}

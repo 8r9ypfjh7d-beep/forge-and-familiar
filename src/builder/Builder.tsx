@@ -56,7 +56,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
     setFurthest(f => Math.max(f, step))
   }, [step])
 
-  const issues = useMemo(() => STEPS.map(s => stepIssues(s.id, draft, t)), [draft, t])
+  const issues = useMemo(() => STEPS.map(s => stepIssues(s.id, draft, t, term)), [draft, t, term])
   const firstBlocked = issues.findIndex(i => i.length > 0)
   const warnings = useMemo(() => stepWarnings(STEPS[step].id, draft, t, term), [step, draft, t, term])
   const Current = STEPS[step].Component

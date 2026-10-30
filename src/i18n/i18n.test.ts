@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { stepIssues } from '../builder/validate'
 import { emptyDraft } from '../builder/Builder'
-import { ALIGNMENTS, BACKGROUNDS, BOOK_RACES, BOOK_SPECIES_2024, BOOK_SUBRACES, CLASSES, LANGUAGES, RACES, SKILLS, TOOLS, backgroundsFor } from '../rules'
+import { ALIGNMENTS, BACKGROUNDS, BOOK_RACES, BOOK_SPECIES_2024, BOOK_SUBRACES, CLASSES, LANGUAGES, RACES, SKILLS, TOOLS, backgroundsFor, classesFor, subclassesFor } from '../rules'
 import { en } from './locales/en'
 import { he } from './locales/he'
 import { LOCALES, term, translate } from './translate'
@@ -36,6 +36,14 @@ describe('translate', () => {
     expect(stepIssues('race', d)).toEqual(['Choose a race.'])
     expect(stepIssues('race', d, (k, v) => translate('he', k, v))).toEqual(['בחרו גזע.'])
   })
+
+  it('names the subclass title and class in Hebrew issues', () => {
+    const d = { ...emptyDraft('u1'), classes: [{ classId: 'cleric', level: 1 }] }
+    const he = (k: Parameters<typeof translate>[1], v?: Parameters<typeof translate>[2]) => translate('he', k, v)
+    const issues = stepIssues('class', d, he, (kind, id, name) => term('he', kind, id, name)).join(' ')
+    expect(issues).toContain('תחום אלוהי')
+    expect(issues).not.toMatch(/Divine Domain|Cleric/)
+  })
 })
 
 describe('Hebrew coverage', () => {
@@ -61,6 +69,17 @@ describe('Hebrew coverage', () => {
   it('names every language and tool', () => {
     const ids = [...LANGUAGES.map(l => `language.${l}`), ...TOOLS.map(x => `tool.${x}`)]
     expect(ids.filter(k => !(k in he.terms))).toEqual([])
+  })
+
+  // Every official subclass feature and subclass title, in both editions, has a Hebrew name.
+  it('names every subclass feature and subclass title', () => {
+    const editions = ['2014', '2024'] as const
+    const classes = editions.flatMap(ed => classesFor(ed).map(c => ({ c, ed })))
+    const ids = [
+      ...classes.map(({ c }) => `feature.${c.subclassTitle}`),
+      ...classes.flatMap(({ c, ed }) => subclassesFor(c.id, ed).flatMap(s => s.features.map(f => `feature.${f.name}`))),
+    ]
+    expect([...new Set(ids)].filter(k => !(k in he.terms))).toEqual([])
   })
 
   it('names every 2024 background', () => {
