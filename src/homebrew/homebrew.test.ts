@@ -46,6 +46,22 @@ describe('editor validation', () => {
     expect(itemIssues({ ...blade, properties: ['thrown'] })).toHaveLength(1)
     expect(featIssues({ id: '', name: '', description: '', effects: [] })).toHaveLength(2)
   })
+
+  it('keeps every feat mechanic through a share, and drops junk', () => {
+    const feat = {
+      id: 'hb:abcd1234:moon', name: 'Moon', description: 'Glows.',
+      effects: [{ kind: 'abilityChoice', from: ['wis', 'nope'], max: 20, save: true }, { kind: 'skillPicks', count: 2 }, { kind: 'initiativeProficiency' }],
+      stats: [{ kind: 'resistance', damage: 'radiant' }, { kind: 'bogus' }],
+      uses: { count: 'pb', recharge: 'short', label: 'Beams' },
+      armor: ['heavy', 'cardboard'], weapons: ['martial'],
+    }
+    const out = sanitizePack({ ...pack(), feats: [feat] }).feats[0]
+    expect(out.effects).toEqual([{ kind: 'abilityChoice', from: ['wis'], max: 20, save: true }, { kind: 'skillPicks', count: 2 }, { kind: 'initiativeProficiency' }])
+    expect(out.stats).toEqual([{ kind: 'resistance', damage: 'radiant' }])
+    expect(out.uses).toEqual({ count: 'pb', recharge: 'short', label: 'Beams' })
+    expect(out.armor).toEqual(['heavy'])
+    expect(out.weapons).toEqual(['martial'])
+  })
 })
 
 describe('share codes', () => {

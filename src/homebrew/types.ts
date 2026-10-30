@@ -1,6 +1,6 @@
 // Homebrew content: spells, items, feats, races, subclasses, backgrounds class options and classes a group writes themselves, grouped into shareable packs.
 import type { ClassOption, HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
-import type { Abilities, Ability, ArmorCategory, CasterType, ClassFeature, ClassSpellcasting, FeatEffect, Item, Size, SkillId, WeaponCategory } from '../rules/types'
+import type { Abilities, Ability, ArmorCategory, CasterType, ClassFeature, ClassSpellcasting, Feat, FeatEffect, Item, ItemEffect, Size, SkillId, WeaponCategory } from '../rules/types'
 
 export type { FeatEffect }
 
@@ -34,12 +34,17 @@ export interface HomebrewSpell {
   save?: Ability
 }
 
+/** A homebrew feat: the same mechanics as an official one (abilities, uses, training, sheet effects). */
 export interface HomebrewFeat {
   id: string
   name: string
   prerequisite?: string
   description: string
   effects: FeatEffect[]
+  stats?: ItemEffect[]
+  uses?: Feat['uses']
+  armor?: ArmorCategory[]
+  weapons?: WeaponCategory[]
 }
 
 /** A race, or a subrace when parentRaceId is set (then size, speed and languages come from the parent). */

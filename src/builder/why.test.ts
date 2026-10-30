@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { en } from '../i18n/locales/en'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_BACKGROUNDS_2024, BOOK_SPECIES_2024, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
-  SUBCLASSES, SUBCLASSES_2024, TOOLS,
+  SUBCLASSES, SUBCLASSES_2024, TOOLS, allFeats,
 } from '../rules'
 import { STEPS } from './steps'
-import { WHY_TOPICS, explainKey, featureKey, pitchKey, type ExplainKind } from './why'
+import { WHY_TOPICS, explainKey, featExplainKey, featureKey, pitchKey, type ExplainKind } from './why'
 
 // SRD 5.2 species and the 2024 species from other books.
 const SPECIES_ALL = [...SPECIES, ...BOOK_SPECIES_2024]
@@ -47,6 +47,13 @@ describe('why? tooltips', () => {
     expect(missing('align', ALIGNMENTS)).toEqual([])
     expect(missing('language', LANGUAGES)).toEqual([])
     expect(missing('tool', TOOLS)).toEqual([])
+  })
+
+  it('explains every official feat in both editions', () => {
+    expect(allFeats('2014').filter(f => !featExplainKey(f.id, '2014')).map(f => f.id)).toEqual([])
+    expect(allFeats('2024').filter(f => !featExplainKey(f.id, '2024')).map(f => f.id)).toEqual([])
+    expect(featExplainKey('alert', '2024')).toBe('why.feat2024.alert')
+    expect(featExplainKey('gunner', '2024')).toBe('why.feat.gunner')
   })
 
   it('has no explanation for homebrew, so the builder says to ask the DM', () => {

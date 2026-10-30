@@ -1,8 +1,9 @@
-// Item effects: which equipped items, which custom actions the player switched on, and which class and subclass features and racial traits change the character's numbers.
+// Item effects: which equipped items, which custom actions the player switched on, and which class and subclass features, racial traits and feats change the character's numbers.
 // derive() and src/explain both read these, so the sheet and "show the math" agree.
 import type { Character } from '../model/character'
 import { entryItem } from './data/items'
 import { ALL_SKILLS } from './data/skills'
+import { featStats, type FeatInput } from './choices'
 import { classOptionEffects } from './classOptions'
 import { classPickEffects } from './classPicks'
 import { raceEffects } from './race'
@@ -14,7 +15,7 @@ import {
 
 type EffectOf<K extends ItemEffect['kind']> = ItemEffect & { kind: K }
 
-type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions' | 'raceId' | 'subraceId' | 'traitChoices' | 'classPicks' | 'featureChoices'>>
+type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions' | 'raceId' | 'subraceId' | 'traitChoices' | 'classPicks' | 'featureChoices'>> & Omit<FeatInput, 'classes'>
 
 /** An entry's effects work while it is equipped. */
 export const effectsActive = (e: InventoryEntry) => e.equipped
@@ -31,8 +32,9 @@ export function activeItemEffects(c: Owner): ActiveEffect[] {
   const actions = (c.customActions ?? []).flatMap(a => (a.active ? (a.stats ?? []).map(effect => ({ source: a.name, effect })) : []))
   // Class and subclass features that change the sheet (Diamond Soul, Thought Shield's psychic resistance, Gift of the Sea's swim speed),
   // picked class options (invocations, fighting styles, infusions...), then racial traits (Warforged poison
-  // resistance, innate spells, picked Simic Hybrid enhancements), and class skill picks (Expertise, Primal Knowledge).
-  return [...items, ...actions, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c), ...classPickEffects(c)]
+  // resistance, innate spells, picked Simic Hybrid enhancements), class skill picks (Expertise, Primal Knowledge),
+  // and feats' own sheet changes (Fey Touched's Misty Step, Infernal Constitution's resistances, Resilient's save).
+  return [...items, ...actions, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c), ...classPickEffects(c), ...featStats({ ...c, classes: c.classes ?? [] })]
 }
 
 /**

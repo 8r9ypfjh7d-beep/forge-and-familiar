@@ -34,12 +34,12 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
   - `featureChoices`: 2024 class picks keyed `<classId>.<choiceId>`, e.g. `{ 'fighter.fightingStyle': 'archery' }`.
   - `classPicks`: class multi-picks keyed `<classId>.<pickId>` → skill ids, e.g. `{ 'rogue.expertise': ['stealth', 'insight'] }`.
   - `weaponMasteries`: 2024 Weapon Mastery weapon item ids, e.g. `['greatsword', 'longbow']`. Missing on older saves: the combat page falls back to equipped weapons.
-  - `originFeatId`: a 2024 Human's Origin feat, or the feat of a 2014 subrace with `featChoice` (Variant Human).
+  - `originFeatId`: a 2024 Human's Origin feat, or the feat of a 2014 subrace with `featChoice` (Variant Human); `'custom'` reads `customOriginFeat` (a full `Feat` the player built).
   - `abilityMethod` is `standard`, `pointBuy`, `rolled` or `manual`. `rolledScores` (optional) keeps the six 4d6-drop-lowest totals the builder rolled, so going back or editing never rerolls them; `baseAbilities` must use each once.
   - `freeAbilityBonuses`: 2014 racial +1 picks (for `flexibleAbilityBonuses` races three +1s), or in 2024 the background's three +1s (an ability twice is +2). Any ability is allowed; the builder warns when a pick is off the book.
   - `racialBonusTargets`: 2014 only, the player moved their race and subrace bonuses (a common table rule). Entry i is where the i-th fixed bonus goes, in `fixedRacialBonuses()` order; missing entries stay where the book puts them.
   - `originSwaps`: 2014 only, Tasha's Customizing Your Origin. `skills`, `languages` and `weapons` (item ids) map each race proficiency to its replacement of the same kind; read through `racialSkills`/`racialLanguages`/`racialWeapons` (`rules/origin.ts`). Kept by Before-edit snapshots.
-  - `improvements`: one per Ability Score Improvement the class levels grant: ability bonuses or a `featId` (SRD or homebrew), plus `featAbility` for feats with a +1 choice.
+  - `improvements`: one per Ability Score Improvement the class levels grant: ability bonuses or a `featId` (SRD, book or homebrew), plus `featAbility` for feats with a +1 choice. `featId: 'custom'` reads the improvement's own `customFeat` (`Feat`: effects, sheet stats, uses, armor and weapons).
   - `equipmentPicks`: per class equipment choice, the option taken and the items picked for its "any weapon" slots.
   - `startingWealth`: gold taken instead of gear. 2014 `classGold` (with the d4 `rolls` when rolled) replaces the class and background gear; 2024 `backgroundGold` takes the background's 50 gp instead of its items.
   - `purchases`: gear bought in the builder shop (`Purchase`: `itemId`, optional embedded library `item`, `qty`, total `costCp`). `createCharacter` adds them to the inventory and takes the price from the starting coins.

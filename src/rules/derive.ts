@@ -169,6 +169,10 @@ export function getResources(c: Character): ResourceInfo[] {
     const max = usesMax(u, charLevel, prof, mods)
     if (max > 0) out.push({ id: raceUseId(u.trait), label: u.trait, max, recharge: u.recharge })
   }
+  // Feats with uses (Lucky, Chef's treats, giant feats): counted from the character level, PB or a modifier.
+  for (const f of getFeats(c)) {
+    if (f.uses) out.push({ id: `feat:${f.id}`, label: f.uses.label ?? f.name, max: usesMax(f.uses, charLevel, prof, mods), recharge: f.uses.recharge })
+  }
   return [...out, ...getItemCharges(c)]
 }
 

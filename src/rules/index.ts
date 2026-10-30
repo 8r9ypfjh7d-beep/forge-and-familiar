@@ -33,7 +33,9 @@ export { INVOCATIONS, INVOCATIONS_2024, PACT_BOONS } from './data/books/invocati
 export { activeSubclasses, blankSubclass, subclassFeatures, subclassOf, subclassSpellNames } from './subclass'
 export { pickCount, stalePicks, subclassPickLists, togglePick, type ActivePickList } from './subclassPicks'
 export { SUBCLASS_OPTIONS, SUBCLASS_PICK_LISTS } from './data/books/subclassPicks'
-export { FEATS, allFeats, featById, registerHomebrewFeats } from './data/feats'
+export { CUSTOM_FEAT, FEATS, allFeats, featById, registerHomebrewFeats } from './data/feats'
+export { BOOK_FEATS, BOOK_FEATS_2024 } from './data/books/feats'
+export * from './featPrereqs'
 export { FEATS_2024 } from './data/srd52/feats'
 export { SUBCLASSES_2024 } from './data/srd52/subclasses'
 export {

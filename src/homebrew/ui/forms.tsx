@@ -1,5 +1,6 @@
 // Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds and class options (classes are in ClassForm.tsx). Each edits a copy and hands it back on save.
 import { useState, type ReactNode } from 'react'
+import { FeatMechanics } from '../../builder/FeatEditor'
 import { Why } from '../../builder/Why'
 import { useI18n } from '../../i18n'
 import { EffectsEditor } from '../../inventory'
@@ -294,7 +295,11 @@ export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat;
       <Field label={t('hb.f.name')} wide><input value={f.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
       <Field label={t('hb.f.prereq')} wide><input value={f.prerequisite ?? ''} onChange={e => set({ prerequisite: opt(e.target.value) })} placeholder={t('hb.f.prereqPlaceholder')} /></Field>
       <Field label={t('hb.f.description')} wide><textarea rows={5} value={f.description} onChange={e => set({ description: e.target.value })} /></Field>
-      <EffectsField effects={f.effects} onChange={effects => set({ effects })} hint={t('hb.f.effectsHint')} />
+      <div className="hb-field wide">
+        <span>{t('hb.f.effects')}</span>
+        <p className="muted small">{t('hb.f.effectsHint')}</p>
+        <FeatMechanics value={f} onChange={set} idPrefix={`hb-feat-${f.id || 'new'}`} />
+      </div>
     </FormShell>
   )
 }

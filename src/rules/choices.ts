@@ -1,24 +1,24 @@
 // Builder choices beyond race, class and scores: languages, tools, Ability Score Improvements,
 // feats and starting-gear picks. Pure helpers shared by the builder and derive().
-import type { Character } from '../model/character'
+import type { Character, Improvement } from '../model/character'
 import { homebrewClassOptions } from './classOptions'
 import { classOptionFeats } from './invocations'
 import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { classLanguagePicks } from './classPicks'
-import { featById } from './data/feats'
+import { CUSTOM_FEAT, featById } from './data/feats'
 import { ITEMS } from './data/items'
 import { rulesEdition } from './edition'
 import { racialLanguages } from './origin'
 import { raceProfile } from './race'
-import { ABILITIES, type Abilities, type Ability, type ClassChoice, type ClassDef, type Feat, type FeatEffect, type Item } from './types'
+import { ABILITIES, type Abilities, type Ability, type ArmorCategory, type ClassChoice, type ClassDef, type Feat, type FeatEffect, type Item, type ItemEffect, type WeaponCategory } from './types'
 
 type Edition = Partial<Pick<Character, 'rulesEdition'>>
 type Classes = Pick<Character, 'classes'> & Edition
 type RaceBg = Pick<Character, 'raceId' | 'subraceId' | 'backgroundId' | 'customBackground'> & Partial<Pick<Character, 'originSwaps'>> & Edition
 
 /** What feat lookups read: ASI picks, and in 2024 the background's Origin feat, a Human's Origin feat and Fighting Styles. */
-export type FeatInput = Classes & Partial<Pick<Character, 'improvements' | 'backgroundId' | 'customBackground' | 'originFeatId' | 'featureChoices' | 'classOptions'>>
+export type FeatInput = Classes & Partial<Pick<Character, 'improvements' | 'backgroundId' | 'customBackground' | 'originFeatId' | 'customOriginFeat' | 'featureChoices' | 'classOptions'>>
 
 // ---------- Ability Score Improvements and feats ----------
 
@@ -52,6 +52,16 @@ export function activeImprovements(c: Classes & Pick<Character, 'improvements'>)
   return (c.improvements ?? []).filter(i => slots.some(s => s.classId === i.classId && s.level === i.level))
 }
 
+/** A player-made feat with a stable id and a name to show. */
+const ownFeat = (f: Feat | undefined, id: string): Feat =>
+  ({ ...(f ?? { description: '', effects: [] }), id, name: f?.name?.trim() || 'Custom feat', effects: f?.effects ?? [] })
+
+/** The feat an improvement took: a listed one, or its own custom feat. */
+export function improvementFeat(c: Edition, i: Improvement): Feat | undefined {
+  if (!i.featId) return undefined
+  return i.featId === CUSTOM_FEAT ? ownFeat(i.customFeat, `${CUSTOM_FEAT}:${i.classId}:${i.level}`) : featById(i.featId, rulesEdition(c))
+}
+
 /**
  * Every feat the character has: ones taken in place of an ASI, the background's feat and, in 2024,
  * a Human's Origin feat and Fighting Style feats. Unknown ids (a homebrew pack not on this device) are skipped.
@@ -59,7 +69,7 @@ export function activeImprovements(c: Classes & Pick<Character, 'improvements'>)
 export function getFeats(c: FeatInput): Feat[] {
   const edition = rulesEdition(c)
   const byId = (id: string | undefined, note?: string): Feat[] => {
-    const f = id ? featById(id, edition) : undefined
+    const f = id === CUSTOM_FEAT ? ownFeat(c.customOriginFeat, `${CUSTOM_FEAT}:origin`) : id ? featById(id, edition) : undefined
     return f ? [note ? { ...f, name: `${f.name} (${note})` } : f] : []
   }
   const background = c.backgroundId ? getBackground({ backgroundId: c.backgroundId, customBackground: c.customBackground, rulesEdition: c.rulesEdition }) : undefined
@@ -67,11 +77,12 @@ export function getFeats(c: FeatInput): Feat[] {
   const fromBackground: Feat[] = background?.effects?.length
     ? [{ id: `bg:${background.id}`, name: `${background.name} (${background.feature})`, description: background.feature, effects: background.effects }]
     : []
-  const fromAsi = [...fromBackground, ...activeImprovements(c).flatMap(i => byId(i.featId)), ...classOptionFeats(c)]
+  const asiFeats = [...activeImprovements(c).flatMap(i => improvementFeat(c, i) ?? []), ...classOptionFeats(c)]
+  const fromAsi = [...fromBackground, ...asiFeats]
   const bg = background?.feat
   // 2014: a book background's feat (Strixhaven students, Wildspacer) and a race's feat pick (Variant Human,
   // Custom Lineage); the builder only sets originFeatId for those.
-  if (edition !== '2024') return [...fromBackground, ...byId(bg?.id, bg?.note), ...byId(c.originFeatId), ...activeImprovements(c).flatMap(i => byId(i.featId)), ...classOptionFeats(c)]
+  if (edition !== '2024') return [...fromBackground, ...byId(bg?.id, bg?.note), ...byId(c.originFeatId), ...asiFeats]
   return [
     ...byId(bg?.id, bg?.note),
     ...byId(c.originFeatId),
@@ -85,16 +96,33 @@ export function featEffects<K extends FeatEffect['kind']>(c: FeatInput, kind: K)
   return getFeats(c).flatMap(f => f.effects.filter((e): e is Extract<FeatEffect, { kind: K }> => e.kind === kind))
 }
 
-/** Feat +1 picks (2024 Grappler, Epic Boons): the ability chosen on the improvement and its cap. */
-export function featAbilityChoices(c: Classes & Pick<Character, 'improvements'>): { ability: Ability; max: number }[] {
+/** Feat +1 picks (Resilient, 2024 general feats, Epic Boons): the ability chosen on the improvement, its cap, and whether its save comes too. */
+export function featAbilityChoices(c: Classes & Pick<Character, 'improvements'>): { ability: Ability; max: number; save?: boolean }[] {
   return activeImprovements(c).flatMap(i => {
-    const choice = (i.featId ? featById(i.featId, rulesEdition(c)) : undefined)?.effects.find(e => e.kind === 'abilityChoice')
-    return choice?.kind === 'abilityChoice' && i.featAbility && choice.from.includes(i.featAbility) ? [{ ability: i.featAbility, max: choice.max }] : []
+    const choice = improvementFeat(c, i)?.effects.find(e => e.kind === 'abilityChoice')
+    return choice?.kind === 'abilityChoice' && i.featAbility && choice.from.includes(i.featAbility) ? [{ ability: i.featAbility, max: choice.max, save: choice.save }] : []
   })
 }
 
 /** Extra skills of any kind the player picks from feats (2024 Skilled). */
 export const featSkillPicks = (c: FeatInput) => featEffects(c, 'skillPicks').reduce((n, e) => n + e.count, 0)
+
+/** Sheet changes from feats (resistances, senses, spells, advantage...) and Resilient's save proficiency, labelled with the feat. */
+export function featStats(c: FeatInput): { source: string; effect: ItemEffect }[] {
+  const stats = getFeats(c).flatMap(f => (f.stats ?? []).map(effect => ({ source: f.name, effect })))
+  const saves = activeImprovements(c).flatMap(i => {
+    const f = improvementFeat(c, i)
+    const choice = f?.effects.find(e => e.kind === 'abilityChoice')
+    return f && choice?.kind === 'abilityChoice' && choice.save && i.featAbility ? [{ source: f.name, effect: { kind: 'saveProficiency', ability: i.featAbility } as ItemEffect }] : []
+  })
+  return [...stats, ...saves]
+}
+
+/** Armor and weapon training from feats (Heavily Armored, Martial Weapon Training). */
+export function featProficiencies(c: FeatInput): { armor: ArmorCategory[]; weapons: WeaponCategory[] } {
+  const feats = getFeats(c)
+  return { armor: feats.flatMap(f => f.armor ?? []), weapons: feats.flatMap(f => f.weapons ?? []) }
+}
 
 /** Ability bonuses from ASIs and feat ability effects. */
 export function improvementBonuses(c: FeatInput): Abilities {

@@ -4,14 +4,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BUNDLED, loadKind, type Equipment, type Feat, type Feature, type Spell, type Trait } from '../../content'
 import type { RollMode, RollResult } from '../../dice'
-import { featureKey, optionKey, optionName } from '../../builder/why'
+import { featExplainKey, featureKey, optionKey, optionName } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
 import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
-import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getCritRange, getDamageRiders, itemById, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
@@ -701,7 +701,12 @@ export function FeaturesTraits({ character }: { character: Character }) {
     const base = name.replace(/\s*\(.*$/, '').toLowerCase()
     return lib.traits.find(x => x.name.toLowerCase() === base)?.description
   }
-  const featText = (name: string) => lib.feats.find(x => x.name.toLowerCase() === name.toLowerCase())?.description
+  // Our own summary (every official feat has one), then the player's text, then the SRD library.
+  const feats = getFeats(character)
+  const featText = (f: (typeof feats)[number]) => {
+    const key = featExplainKey(f.id, rulesEdition(character))
+    return (key ? t(key) : undefined) || f.description || lib.feats.find(x => x.name.toLowerCase() === f.name.toLowerCase())?.description
+  }
   // Custom subclass text, then the SRD library, then our own summary (subclasses from other books).
   const option = (f: DerivedStats['features'][number]) => (f.optionId ? classOptionById(f.optionId, rulesEdition(character)) : undefined)
   const featureName = (f: DerivedStats['features'][number]) => {
@@ -732,9 +737,9 @@ export function FeaturesTraits({ character }: { character: Character }) {
       {d.traits.length
         ? <ul className="cs-rows">{d.traits.map(x => <Described key={x} name={term('trait', x, x)} text={traitText(x)} />)}</ul>
         : <p className="hint">{t('common.none')}</p>}
-      {d.feats.length > 0 && <>
+      {feats.length > 0 && <>
         <h3 className="cs-sub">{t('cs.feats')}</h3>
-        <ul className="cs-rows">{d.feats.map(x => <Described key={x} name={term('feat', x, x)} text={featText(x)} />)}</ul>
+        <ul className="cs-rows">{feats.map((f, i) => <Described key={`${f.id}-${i}`} name={term('feat', f.id, f.name)} text={featText(f)} />)}</ul>
       </>}
       {bg?.feature && <>
         <h3 className="cs-sub">{t('sheet.story.bgFeature')}</h3>

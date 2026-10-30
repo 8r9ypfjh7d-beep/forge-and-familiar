@@ -2,7 +2,7 @@
 // Everything not stored here (max HP, AC, modifiers, slots, resource maxima) is derived by src/rules.
 import type { QuickCastEntry } from '../quickcast/types'
 import type { ClassOptionPick } from '../rules/classOptions'
-import type { Abilities, Ability, ConditionId, InventoryEntry, ItemEffect, Size, SkillId, SubclassData } from '../rules/types'
+import type { Abilities, Ability, ConditionId, Feat, InventoryEntry, ItemEffect, Size, SkillId, SubclassData } from '../rules/types'
 
 export type AbilityMethod = 'standard' | 'pointBuy' | 'rolled' | 'manual'
 export type HitDie = 'd6' | 'd8' | 'd10' | 'd12'
@@ -67,6 +67,8 @@ export interface Improvement {
   featId?: string
   /** The ability a feat with a +1 choice raises (2024 Grappler, Epic Boons). */
   featAbility?: Ability
+  /** The player's own feat when featId is 'custom'. */
+  customFeat?: Feat
 }
 
 /** A spell the character knows or has prepared, from the content library (src/content). */
@@ -186,6 +188,8 @@ export interface Character {
   weaponMasteries?: string[]
   /** 2024 Human (Versatile): the Origin feat picked. */
   originFeatId?: string
+  /** The player's own Origin feat when originFeatId is 'custom'. */
+  customOriginFeat?: Feat
   /** Ability Score Improvements or feats, one per slot the class levels grant. */
   improvements?: Improvement[]
   /** Starting gear: per class equipmentChoices entry, the option index and the items picked for its "any" slots. */
