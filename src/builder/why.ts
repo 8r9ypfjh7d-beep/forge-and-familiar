@@ -6,7 +6,7 @@ import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS } from '../rules'
 export const WHY_TOPICS = [
   'step.race', 'step.class', 'step.abilities', 'step.skills', 'step.equipment', 'step.details',
   'edition', 'originFeat', 'bgBonus',
-  'subrace', 'traits', 'languages', 'size', 'speed', 'ancestry',
+  'subrace', 'traits', 'languages', 'size', 'speed', 'ancestry', 'originSwap',
   'level', 'savingThrows', 'proficiencies', 'features', 'hitDie', 'primary', 'casting', 'subclassChoice', 'multiclass',
   'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder',
   'method.standard', 'method.pointBuy', 'method.rolled', 'method.manual', 'reroll', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',

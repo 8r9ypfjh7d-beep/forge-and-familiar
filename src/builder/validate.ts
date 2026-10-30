@@ -2,7 +2,7 @@ import { translate, type Translate } from '../i18n/translate'
 import {
   ABILITIES, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
-  raceById, racialBonuses, rulesEdition, subclassOf, subclassesFor, toolPickGroups,
+  raceById, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type SkillId,
 } from '../rules'
 
@@ -11,7 +11,7 @@ export type StepId = 'race' | 'class' | 'abilities' | 'skills' | 'equipment' | '
 /** Skills granted automatically by race and background (not choosable). */
 export function grantedSkills(d: CharacterDraft): Set<SkillId> {
   return new Set([
-    ...(raceById(d.raceId, d.rulesEdition)?.skillProficiencies ?? []),
+    ...racialSkills(d),
     ...(getBackground(d)?.skillProficiencies ?? []),
   ])
 }
@@ -149,6 +149,13 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
   const edition = rulesEdition(d)
   const race = raceById(d.raceId, edition)
   switch (step) {
+    case 'race': {
+      const book = bookOrigin(d)
+      if (edition === '2014' && (racialSkills(d).join() !== book.skills.join() || racialLanguages(d).join() !== book.languages.join() || racialWeapons(d).join() !== book.weapons.join())) {
+        out.push(t('builder.warn.originSwapped'))
+      }
+      break
+    }
     case 'abilities': {
       if (edition === '2024') {
         const bg = getBackground(d)

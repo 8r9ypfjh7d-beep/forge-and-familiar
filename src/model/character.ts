@@ -40,6 +40,14 @@ export interface CharacterState {
 }
 
 /** The PHB "Customizing a Background" rule: used when backgroundId is 'custom'. */
+/** Each map is book proficiency → its replacement of the same kind. Missing or empty keeps the book's. */
+export interface OriginSwaps {
+  skills?: Partial<Record<SkillId, SkillId>>
+  languages?: Record<string, string>
+  /** Weapon item ids. */
+  weapons?: Record<string, string>
+}
+
 export interface CustomBackground {
   name: string
   feature: string
@@ -149,6 +157,8 @@ export interface Character {
   freeAbilityBonuses: Ability[]
   /** 2014: where the player moved each fixed race/subrace bonus, in fixedRacialBonuses() order. Missing keeps the book's. */
   racialBonusTargets?: Ability[]
+  /** 2014 Tasha's Customizing Your Origin: race skill, language and weapon proficiencies swapped, book id → new id. */
+  originSwaps?: OriginSwaps
   /** Skills picked from class and free race choices. Race and background skills are added by the engine. */
   chosenSkills: SkillId[]
   /** Languages picked from race and background choices. Fixed ones are added by the engine. */

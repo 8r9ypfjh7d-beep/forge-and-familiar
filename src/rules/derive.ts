@@ -11,6 +11,7 @@ import type { SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { rulesEdition, uses2024Spells } from './edition'
 import { effectsOf, itemBonus } from './itemEffects'
+import { racialSkills, racialWeapons } from './origin'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { slug, subclassFeatures, subclassOf } from './subclass'
 import {
@@ -165,15 +166,8 @@ export function getWeaponMasteryCount(c: Pick<Character, 'classes' | 'rulesEditi
 
 // ---------- Equipment ----------
 
-// SRD 5.1 race and subrace weapon training. 2024 species have none.
-const RACIAL_WEAPONS: Record<string, string[]> = {
-  dwarf: ['battleaxe', 'handaxe', 'warhammer'],
-  'high-elf': ['longsword', 'shortsword', 'shortbow', 'longbow'],
-}
-
 function isWeaponProficient(c: Character, w: Weapon) {
-  const racial = rulesEdition(c) === '2024' ? [] : [...(RACIAL_WEAPONS[c.raceId] ?? []), ...(RACIAL_WEAPONS[c.subraceId ?? ''] ?? [])]
-  if (racial.includes(w.id)) return true
+  if (racialWeapons(c).includes(w.id)) return true
   const { weapons, weaponIds } = getProficiencies(c)
   return weapons.has(w.category) || weaponIds.has(w.id)
 }
@@ -400,10 +394,9 @@ export interface DerivedStats {
 
 /** All proficient skills: chosen + race + background + feats. */
 export function getSkillProficiencies(c: Character): Set<SkillId> {
-  const race = raceById(c.raceId, rulesEdition(c))
   const bg = getBackground(c)
   const fromFeats = getFeats(c).flatMap(f => f.effects.flatMap(e => (e.kind === 'skill' ? [e.skill] : [])))
-  return new Set([...c.chosenSkills, ...(race?.skillProficiencies ?? []), ...(bg?.skillProficiencies ?? []), ...fromFeats])
+  return new Set([...c.chosenSkills, ...racialSkills(c), ...(bg?.skillProficiencies ?? []), ...fromFeats])
 }
 
 const MONK_MOVEMENT: [number, number][] = [[18, 30], [14, 25], [10, 20], [6, 15], [2, 10]]

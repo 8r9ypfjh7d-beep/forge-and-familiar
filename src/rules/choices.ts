@@ -7,11 +7,12 @@ import { featById } from './data/feats'
 import { ITEMS } from './data/items'
 import { raceById } from './data/races'
 import { rulesEdition } from './edition'
+import { racialLanguages } from './origin'
 import { ABILITIES, type Abilities, type Ability, type ClassChoice, type ClassDef, type Feat, type FeatEffect, type Item } from './types'
 
 type Edition = Partial<Pick<Character, 'rulesEdition'>>
 type Classes = Pick<Character, 'classes'> & Edition
-type RaceBg = Pick<Character, 'raceId' | 'subraceId' | 'backgroundId' | 'customBackground'> & Edition
+type RaceBg = Pick<Character, 'raceId' | 'subraceId' | 'backgroundId' | 'customBackground'> & Partial<Pick<Character, 'originSwaps'>> & Edition
 
 /** What feat lookups read: ASI picks, and in 2024 the background's Origin feat, a Human's Origin feat and Fighting Styles. */
 export type FeatInput = Classes & Partial<Pick<Character, 'improvements' | 'backgroundId' | 'customBackground' | 'originFeatId' | 'featureChoices'>>
@@ -102,9 +103,8 @@ const CLASS_LANGUAGES: Record<string, string> = { druid: 'Druidic', rogue: "Thie
 
 /** Languages known without choosing: race, background and class. */
 export function fixedLanguages(c: RaceBg & Classes): string[] {
-  const race = raceById(c.raceId, rulesEdition(c))
   return [...new Set([
-    ...(race?.languages ?? []),
+    ...racialLanguages(c),
     ...(getBackground(c)?.languages ?? []),
     ...c.classes.flatMap(cl => (CLASS_LANGUAGES[cl.classId] ? [CLASS_LANGUAGES[cl.classId]] : [])),
   ])]
