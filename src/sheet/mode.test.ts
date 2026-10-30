@@ -27,7 +27,7 @@ describe('sheet modes', () => {
     expect(l.columns).toEqual([['skills'], ['tabs']])
     expect(Object.keys(l.tabs ?? {})).toEqual(['combat', 'spells', 'inventory', 'features', 'notes'])
     expect(l.tabs?.combat[0]).toBe('fight')
-    expect(l.tabs?.spells).toEqual(['spells'])
+    expect(l.tabs?.spells).toEqual(['spells', 'metamagic'])
     for (const s of ['spellCard', 'resources'] as const) expect(all('combat')).not.toContain(s)
   })
 

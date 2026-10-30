@@ -4,6 +4,7 @@ import type { Character } from '../model/character'
 import { Attacks } from './components/Attacks'
 import { DeathSaves } from './components/DeathSaves'
 import { HitPoints } from './components/HitPoints'
+import { Metamagic } from './components/Metamagic'
 import { Resources } from './components/Resources'
 import { Rests } from './components/Rests'
 import { Spellbook, SpellsCard } from '../spellbook'
@@ -59,6 +60,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'spells': return <Spellbook key={s} {...p} />
       case 'inventory': return <Inventory key={s} {...p} />
       case 'resources': return <Resources key={s} {...p} />
+      case 'metamagic': return <Metamagic key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
       case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
       case 'summary': return <CharacterCard key={s} character={character} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />

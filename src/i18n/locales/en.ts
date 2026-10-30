@@ -4,6 +4,7 @@ import { explainBooksEn } from './explain.books.en'
 import { explainClassesEn } from './explain.classes.en'
 import { explainEn } from './explain.en'
 import { explainProficienciesEn } from './explain.proficiencies.en'
+import { explainMetamagicEn } from './explain.metamagic.en'
 import { itemsEn } from './items.en'
 
 export const en = {
@@ -11,6 +12,7 @@ export const en = {
   ...explainBooksEn,
   ...explainClassesEn,
   ...explainProficienciesEn,
+  ...explainMetamagicEn,
   ...itemsEn,
   // Shared
   'common.back': 'Back',

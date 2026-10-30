@@ -8,7 +8,7 @@ export const WHY_TOPICS = [
   'edition', 'originFeat', 'bgBonus',
   'subrace', 'traits', 'languages', 'size', 'speed', 'ancestry', 'originSwap',
   'level', 'savingThrows', 'proficiencies', 'features', 'hitDie', 'primary', 'casting', 'subclassChoice', 'multiclass',
-  'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder',
+  'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder', 'choice.metamagic',
   'method.standard', 'method.pointBuy', 'method.rolled', 'method.manual', 'reroll', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',
   'background', 'customBackground', 'skills', 'tools',
   'hbBackground', 'hbBgEditions', 'hbBgFeature', 'hbBgAbilities', 'hbBgFeat', 'hbBgProfs', 'hbBgGear', 'hbBgEffects',
@@ -25,6 +25,7 @@ export type WhyId = (typeof WHY_TOPICS)[number]
 export type ExplainKind =
   | 'race' | 'race2024' | 'class' | 'about' | 'sub2014' | 'sub2024' | 'subclass'
   | 'feature' | 'subfeature' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool'
+  | 'metamagic' | 'metamagic2024'
 
 /** Message key that explains this option, or none (homebrew and other content without one). */
 export function explainKey(kind: ExplainKind, id: string): MessageKey | undefined {
@@ -38,6 +39,10 @@ export function explainKey(kind: ExplainKind, id: string): MessageKey | undefine
  */
 export const featureKey = (name: string, subclassId?: string): MessageKey | undefined =>
   (subclassId ? explainKey('subfeature', `${subclassId}.${name}`) : undefined) ?? explainKey('feature', name)
+
+/** A Metamagic option's explanation for the character's edition; homebrew options carry their own text instead. */
+export const metamagicKey = (o: { id: string }, edition: string): MessageKey | undefined =>
+  explainKey(edition === '2024' ? 'metamagic2024' : 'metamagic', o.id)
 
 /** Message key for why a new player might pick this race or class; none for homebrew. */
 export const pitchKey = (kind: 'race' | 'race2024' | 'class', id: string) => explainKey(kind, id)

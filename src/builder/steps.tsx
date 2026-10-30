@@ -14,6 +14,7 @@ import { RandomName } from '../random/RandomBar'
 import { useDice } from '../dice/ui'
 import type { RollResult } from '../dice'
 import { CustomSubclassForm } from './CustomSubclassForm'
+import { MetamagicPicker } from './MetamagicPicker'
 import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
@@ -309,6 +310,7 @@ function ClassStep({ draft, update }: StepProps) {
       {cls && <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }) + detailOf(featureDetail(f, level)), key: explainKey('feature', f.name) }))} />}
       {cls && <SubclassPicker draft={draft} update={update} />}
       {cls && <ClassChoices draft={draft} update={update} />}
+      {cls && <MetamagicPicker draft={draft} update={update} />}
       <MulticlassPicker draft={draft} update={update} />
     </>
   )

@@ -5,6 +5,7 @@ import { explainBooksHe } from './explain.books.he'
 import { explainClassesHe } from './explain.classes.he'
 import { explainHe } from './explain.he'
 import { explainProficienciesHe, proficiencyTermsHe } from './explain.proficiencies.he'
+import { explainMetamagicHe, metamagicTermsHe } from './explain.metamagic.he'
 import { itemsHe } from './items.he'
 
 const messages: Messages = {
@@ -12,6 +13,7 @@ const messages: Messages = {
   ...explainBooksHe,
   ...explainClassesHe,
   ...explainProficienciesHe,
+  ...explainMetamagicHe,
   ...itemsHe,
   'common.back': 'חזרה',
   'common.backArrow': '→',
@@ -2097,6 +2099,7 @@ const messages: Messages = {
 
 const terms: Terms = {
   ...proficiencyTermsHe,
+  ...metamagicTermsHe,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',
