@@ -341,13 +341,15 @@ export interface Background {
   /** 2024: the three abilities the background raises (+2/+1 or +1/+1/+1). */
   abilityScores?: Ability[]
   /** 2024: the Origin feat the background grants, with a note such as "Cleric" for Magic Initiate. */
-  feat?: { id: string; note?: string }
+  feat?: { id: string; note?: string; /** Shown until the feat itself is defined, or for a pick such as "A Dark Gift feat". */ name?: string }
   /** Gold that comes with the background's gear (2024). */
   gold?: number
   /** Homebrew: rule effects the background grants in either edition, applied like a feat's. */
   effects?: FeatEffect[]
   /** Homebrew: the author's own text, shown in the builder in place of an SRD explanation. */
   description?: string
+  /** Book the background comes from; unset for the SRD. */
+  source?: string
 }
 
 export type Item =
