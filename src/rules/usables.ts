@@ -149,8 +149,10 @@ export function planCast(spell: SpellInfo, castLevel: number, ctx: CastContext):
   const level = Math.max(spell.level, castLevel)
   const tpl = SPELL_TEMPLATES[spell.id]?.(level, ctx) ?? {}
   const { tempHp: knownTemp, heal, hit, ...running } = tpl
-  const tempHp = knownTemp ?? (SPELL_TEMPLATES[spell.id] ? undefined : tempHpFromText(spell.description))
   const ends = endsOn(spell.duration)
+  // An instantaneous spell's temporary HP (2024 False Life) just stay; nothing keeps running.
+  if (!ends) delete running.whileTempHp
+  const tempHp = knownTemp ?? (SPELL_TEMPLATES[spell.id] ? undefined : tempHpFromText(spell.description))
   const hasNumbers = Object.keys(running).length > 0
   const plan: CastPlan = {}
   if (tempHp && tempHp !== '0') plan.tempHp = tempHp
@@ -161,6 +163,7 @@ export function planCast(spell: SpellInfo, castLevel: number, ctx: CastContext):
       id: spellEffectId(spell.id), name: spell.name, from: 'spell',
       ...(spell.level > 0 ? { level } : {}),
       ...(spell.concentration ? { concentration: true } : {}),
+      ...(/^self/i.test(spell.range ?? '') ? { self: true } : {}),
       duration: spell.duration,
       ends: ends ?? 'short',
       ...running,
@@ -208,7 +211,7 @@ export const FEATURE_TEMPLATES: Record<string, FeatureTemplate> = {
       stats: [...BPS, { kind: 'advantage', on: 'save:str' }, { kind: 'advantage', on: 'checks', when: 'with Strength' }],
     },
   }),
-  'wild-shape': ({ classLevel }) => ({ effectAs: { duration: `${Math.max(1, Math.floor(classLevel / 2))} hours`, ends: 'long' } }),
+  'wild-shape': ({ classLevel }) => ({ effectAs: { duration: hours(Math.max(1, Math.floor(classLevel / 2))), ends: 'long' } }),
   'innate-sorcery': () => ({
     effectAs: { duration: '1 minute', ends: 'short', stats: [{ kind: 'spellDc', value: 1 }, { kind: 'advantage', on: 'attacks', when: 'with spells' }] },
   }),
@@ -296,6 +299,8 @@ export function featureActionKind(name: string, edition: '2014' | '2024'): Actio
   const k = featureAction(name)?.kind
   return k === undefined ? undefined : typeof k === 'string' ? k : k[edition]
 }
+
+function hours(n: number) { return `${n} hour${n === 1 ? '' : 's'}` }
 
 export const featureEffectId = (resourceId: string) => `feature:${resourceId}`
 

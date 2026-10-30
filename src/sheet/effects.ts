@@ -48,6 +48,19 @@ export function dropSpentTempHp(c: Character): Character {
   return withEffects(c, list(c).filter(e => !e.whileTempHp))
 }
 
+/** Lasts a fight at most: rounds, or up to a minute (Shield, Bless, Rage). Old saves' instantaneous rows go too. */
+export function endsWithFight(e: Pick<LiveEffect, 'duration'>): boolean {
+  const d = (e.duration ?? '').toLowerCase()
+  if (/\bround|instantaneous/.test(d)) return true
+  const m = /(\d+)\s*minute/.exec(d)
+  return !!m && Number(m[1]) <= 1
+}
+
+/** End of fight: effects of a round or a minute are over. */
+export function endFight(c: Character): Character {
+  return list(c).some(endsWithFight) ? withEffects(c, list(c).filter(e => !endsWithFight(e))) : c
+}
+
 /** A short rest (an hour) outlasts effects of up to an hour; a long rest outlasts those of up to 8 hours. */
 export function effectsAfterRest(c: Character, rest: RestType): LiveEffect[] {
   return list(c).filter(e => (rest === 'long' ? e.ends === 'never' : e.ends !== 'short'))
