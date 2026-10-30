@@ -14,7 +14,7 @@ import { CustomSubclassForm } from './CustomSubclassForm'
 import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
-import { explainKey, pitchKey, type WhyId } from './why'
+import { explainKey, featureKey, pitchKey, type WhyId } from './why'
 import { groupKitItems } from './kit'
 
 export interface StepProps {
@@ -287,7 +287,7 @@ function SubclassPicker({ draft, update }: StepProps) {
             </div>
             {picked && !custom && <Explain kind="subclass" id={picked.id} />}
             {picked?.source && <p className="muted small">{t('builder.subSource', { source: picked.source })}</p>}
-            {picked && !custom && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: explainKey('feature', f.name), text: f.text }))} />}
+            {picked && !custom && <ExplainList items={picked.features.filter(f => f.level <= cl.level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }), key: featureKey(f.name, picked.id), text: f.text }))} />}
             {!custom && spells.length > 0 && (
               <p className="small">
                 <strong>{t('builder.subSpells')}</strong> {spells.map(s => `${t('builder.level', { level: s.level })}: ${s.names.map(n => term('spell', n, n)).join(', ')}`).join(' · ')}

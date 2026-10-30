@@ -110,3 +110,30 @@ describe('custom subclass', () => {
     expect(stepIssues('class', custom(1))).toEqual([])
   })
 })
+
+describe('book subclasses for every class', () => {
+  const hero = (classId: string, level: number, subclassId: string, over: Partial<CharacterDraft> = {}) => warlock(level, subclassId, {
+    classes: [{ classId, level, subclassId }], chosenSkills: [], ...over,
+  })
+
+  it('gives each subclass a unique id per edition and covers every class', () => {
+    for (const list of [BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024]) {
+      const ids = list.map(s => `${s.classId}:${s.id}`)
+      expect(new Set(ids).size).toBe(ids.length)
+      expect(new Set(list.map(s => s.classId)).size).toBe(12)
+    }
+  })
+
+  it('scales feature uses with level and proficiency', () => {
+    const dice = (lvl: number) => getResources(hero('fighter', lvl, 'battle-master')).find(r => r.label === 'Combat Superiority')?.max
+    expect([dice(3), dice(7), dice(15)]).toEqual([4, 5, 6])
+    expect(getResources(hero('fighter', 5, 'psi-warrior')).find(r => r.label === 'Psionic Power')?.max).toBe(6)
+  })
+
+  it('applies senses, proficiencies and resistances from other classes\' subclasses', () => {
+    expect(derive(hero('cleric', 1, 'twilight')).senses.darkvision).toBe(300)
+    expect([...getProficiencies(hero('bard', 3, 'valor')).armor]).toEqual(expect.arrayContaining(['medium', 'shield']))
+    expect(derive(hero('cleric', 16, 'war')).defenses.resistances).toEqual([])
+    expect(derive(hero('cleric', 17, 'war')).defenses.resistances).toEqual(expect.arrayContaining(['bludgeoning', 'piercing', 'slashing']))
+  })
+})
