@@ -44,6 +44,7 @@
 .inv-editor label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--s-muted); min-width: 0; }
 .inv-editor input, .inv-editor select, .inv-editor textarea { width: 100%; min-width: 0; font: inherit; color: var(--s-ink); }
 .inv-editor .wide { grid-column: 1 / -1; }
+.inv-editor .inv-label { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; }
 .inv-editor label.check { flex-direction: row; align-items: center; gap: 6px; font-weight: 400; color: var(--s-ink); }
 .inv-editor label.check input { width: auto; }
 .inv-props { display: flex; flex-wrap: wrap; gap: 4px 14px; border: 1px solid var(--glass-hairline); border-radius: var(--r-sm); padding: 6px 10px 8px; margin: 0; }
@@ -71,7 +72,13 @@
 .inv-effects-editor legend { font-size: .8rem; font-weight: 600; color: var(--s-muted); padding: 0 4px; }
 .inv-effects-editor > .hint { margin: 0; }
 .inv-effects-editor > .btn { align-self: flex-start; }
-.inv-effect { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.inv-effect {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 8px; border-radius: var(--r-sm); background: var(--glass-thin); border: 1px solid var(--glass-hairline);
+}
 .inv-effect select { flex: 1 1 140px; min-width: 0; width: auto; }
+.inv-effect > select:first-child { flex: 1 1 calc(100% - 48px); }
+.inv-effect > .why { margin-inline-start: 0; }
+.inv-effect input:not([type]) { flex: 1 1 160px; min-width: 0; }
 .inv-effect input[type='number'] { width: 72px; flex: 0 0 auto; }
 .inv-effect .inv-effect-remove { width: 36px; padding: 0; margin-inline-start: auto; }

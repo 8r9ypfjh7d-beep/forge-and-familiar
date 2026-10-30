@@ -8,7 +8,7 @@ import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
 import type { Ability, ItemEffect } from '../../rules/types'
-import { EffectsEditor, effectText } from '../../inventory'
+import { EffectsEditor, advantageName, effectText } from '../../inventory'
 import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
 import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCritRange, getDamageRiders, subclassById, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
@@ -130,6 +130,7 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
           <div><dt>{t('stat.prof')}</dt><dd>{m('proficiency', formatMod(d.proficiencyBonus))}</dd></div>
           <div><dt>{t('stat.passivePerception')}</dt><dd>{m('passivePerception', d.passivePerception)}</dd></div>
         </dl>
+        <Perks d={d} />
         <div className="cs-hero-actions">
           {onEdit && <button type="button" className="btn cs-levelup" onClick={onEdit}>{t('cs.levelUp')}</button>}
           <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
@@ -141,6 +142,26 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
       </div>
       <div className="cs-vitals">{vitals}</div>
     </section>
+  )
+}
+
+/** Fly speed, darkvision, resistances, advantages: what items and switched-on actions add beyond the numbers. */
+function Perks({ d }: { d: DerivedStats }) {
+  const i18n = useI18n()
+  const { t, term } = i18n
+  const chips = [
+    ...Object.entries(d.speeds).map(([mode, n]) => t('inv.fx.text.moveSpeed', { mode: t(`inv.move.${mode as 'fly'}`), n })),
+    ...Object.entries(d.senses).map(([sense, n]) => t('inv.fx.text.sense', { sense: t(`inv.sense.${sense as 'darkvision'}`), n })),
+    ...d.defenses.resistances.map(x => t('inv.fx.text.resistance', { damage: term('damage', x, x) })),
+    ...d.defenses.immunities.map(x => t('inv.fx.text.immunity', { damage: term('damage', x, x) })),
+    ...d.defenses.conditionImmunities.map(x => t('inv.fx.text.conditionImmunity', { condition: term('condition', x, x) })),
+    ...d.advantages.map(a => t(a.when ? 'inv.fx.text.advantageWhen' : 'inv.fx.text.advantage', { on: advantageName(i18n, a.on), when: a.when ?? '' })),
+  ]
+  if (!chips.length) return null
+  return (
+    <ul className="cs-perks" aria-label={t('cs.perks')}>
+      {[...new Set(chips)].map(c => <li key={c}><bdi>{c}</bdi></li>)}
+    </ul>
   )
 }
 
@@ -169,6 +190,7 @@ export function AbilitiesPanel({ character }: { character: Character }) {
               <button type="button" className={`cs-roll save${d.saves[a].proficient ? ' prof' : ''}`} onClick={() => setLast({ roll: rolls.save(d, a), what: t('cs.roll.save', { ability: abilityShort(a) }) })}
                 aria-label={t(d.saves[a].proficient ? 'cs.rollSaveProf' : 'cs.rollSave', { ability: abilityShort(a), bonus: formatMod(d.saves[a].bonus) })}>
                 <span dir="ltr">{formatMod(d.saves[a].bonus)}</span><i className="dot" aria-hidden="true" /><small>{t('cs.save')}</small>
+                {d.saves[a].advantage && <small className="cs-adv">{t('cs.advBadge')}</small>}
               </button>
             </div>
           </li>
@@ -194,7 +216,7 @@ export function SkillsPanel({ character }: { character: Character }) {
           <li key={s}>
             <button type="button" className={d.skills[s].proficient ? 'prof' : ''} onClick={() => setLast({ roll: rolls.skill(d, s), what: skill(s) })}
               aria-label={t(d.skills[s].proficient ? 'cs.rollSkillProf' : 'cs.rollSkill', { skill: skill(s), bonus: formatMod(d.skills[s].bonus) })}>
-              <span className="name">{skill(s)}</span>
+              <span className="name">{skill(s)}{d.skills[s].advantage && <small className="cs-adv">{t('cs.advBadge')}</small>}</span>
               <span className="abbr">{abilityShort(SKILLS[s].ability)}</span>
               <span className="bonus" dir="ltr">{formatMod(d.skills[s].bonus)}</span>
               <i className="dot" aria-hidden="true" />

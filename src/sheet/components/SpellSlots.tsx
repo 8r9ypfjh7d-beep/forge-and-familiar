@@ -1,6 +1,6 @@
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
-import { getSpellSlots } from '../../rules'
+import { derive, getSpellSlots } from '../../rules'
 import { setPactUsed, setSlotUsed } from '../engine'
 import type { Apply } from '../types'
 import { Pips } from './Pips'
@@ -11,15 +11,20 @@ export function hasSlots(character: Character): boolean {
   return !!pact || slots.some(n => n > 0)
 }
 
-/** Spell slot pips by level, plus warlock pact slots. Lives inside the Spells card in both sheet modes. */
+/** Spells the character's equipped items let them cast (an item effect). */
+export const itemSpellsOf = (character: Character) => derive(character).itemSpells
+
+/** Spell slot pips by level, plus warlock pact slots and spells from items. Lives inside the Spells card in both sheet modes. */
 export function SpellSlots({ character, apply }: { character: Character; apply: Apply }) {
   const { slots, pact } = getSpellSlots(character)
   const { spellSlotsUsed, pactSlotsUsed } = character.state
   const { t } = useI18n()
   const ordinal = (level: number) => t(`sheet.slot.${level}` as MessageKey)
-  if (!hasSlots(character)) return null
+  const fromItems = itemSpellsOf(character)
+  if (!hasSlots(character)) return fromItems.length ? <ItemSpells spells={fromItems} /> : null
 
   return (
+    <>
     <div className="spell-slots" role="group" aria-labelledby="slots-title">
       <h3 id="slots-title" className="sub-title">{t('sheet.slots')}</h3>
       <ul className="track-list">
@@ -41,6 +46,24 @@ export function SpellSlots({ character, apply }: { character: Character; apply: 
         )}
       </ul>
       {pact && <p className="hint">{t('sheet.pactHint')}</p>}
+    </div>
+    {fromItems.length > 0 && <ItemSpells spells={fromItems} />}
+    </>
+  )
+}
+
+function ItemSpells({ spells }: { spells: ReturnType<typeof itemSpellsOf> }) {
+  const { t } = useI18n()
+  return (
+    <div className="spell-slots item-spells" role="group" aria-labelledby="item-spells-title">
+      <h3 id="item-spells-title" className="sub-title">{t('spells.fromItems')}</h3>
+      <ul className="track-list">
+        {spells.map((s, i) => (
+          <li key={i}>
+            <span className="track-label"><bdi>{s.spell}</bdi><small><bdi>{s.source}</bdi>{s.note ? <> · <bdi>{s.note}</bdi></> : null}</small></span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

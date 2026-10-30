@@ -106,7 +106,7 @@ describe('request links', () => {
   it('rejects junk and cleans bad fields', () => {
     expect(decodeShared('not-a-code')).toBeNull()
     expect(codeFrom('hello')).toBeNull()
-    const bad = btoa(JSON.stringify({ v: 1, t: 'q', r: { id: 'x', fromId: 'y', title: 'T', kind: 'nuke', status: 'granted', stats: [{ kind: 'hp', value: 5 }, { kind: 'ac', value: 1e9 }] } }))
+    const bad = btoa(JSON.stringify({ v: 1, t: 'q', r: { id: 'x', fromId: 'y', title: 'T', kind: 'nuke', status: 'granted', stats: [{ kind: 'nuke', value: 5 }, { kind: 'ac', value: 1e9 }] } }))
     const s = decodeShared(bad)!
     expect(s.request.kind).toBe('other')
     expect(s.request.status).toBe('pending')

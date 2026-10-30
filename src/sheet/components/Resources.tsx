@@ -19,10 +19,13 @@ export function Resources({ character, apply }: { character: Character; apply: A
   const { t, term } = useI18n()
   const rolls = useSheetRolls(character)
   const atDawn = dawnCounters(character)
+  // Item charges (from an item's effects) that come back at dawn, with what is spent.
+  const dawnItems = resources.filter(r => r.recharge === 'dawn').map(r => ({ ...r, used: character.state.resources[r.id]?.used ?? 0 }))
 
   const onDawn = () => {
     const rolled: Record<string, number> = {}
     for (const k of atDawn) if (k.used > 0 && k.regain?.trim()) rolled[k.id] = rolls.total(k.regain, t('sheet.atDawn', { label: k.label }))
+    for (const r of dawnItems) if (r.used > 0 && r.regain) rolled[r.id] = rolls.total(r.regain, t('sheet.atDawn', { label: r.label }))
     apply(t('sheet.log.dawn'), c => dawn(c, rolled))
   }
 
@@ -37,7 +40,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
           const set = (u: number) => apply(t(u > used ? 'sheet.log.used' : 'sheet.log.regained', { label }), c => setResourceUsed(c, r.id, u))
           return (
             <li key={r.id}>
-              <span className="track-label">{label}<small>{t(RECHARGE[r.recharge])}</small></span>
+              <span className="track-label">{label}<small>{t(RECHARGE[r.recharge])}{r.regain ? t('sheet.regains', { dice: r.regain }) : ''}</small></span>
               {r.max <= PIP_LIMIT
                 ? <Pips total={r.max} used={used} label={label} onChange={set} />
                 : <Stepper value={r.max - used} max={r.max} label={label} onChange={v => set(r.max - v)} />}
@@ -55,8 +58,8 @@ export function Resources({ character, apply }: { character: Character; apply: A
           </li>
         ))}
       </ul>
-      {atDawn.length > 0 && (
-        <button type="button" className="btn small dawn" disabled={atDawn.every(k => k.used === 0)} onClick={onDawn}>
+      {atDawn.length + dawnItems.length > 0 && (
+        <button type="button" className="btn small dawn" disabled={[...atDawn, ...dawnItems].every(k => k.used === 0)} onClick={onDawn}>
           {t('sheet.dawnButton')}
         </button>
       )}

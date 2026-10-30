@@ -3,7 +3,7 @@
 // total), and explain.test.ts checks each total against derive() so the two never drift.
 import type { Character } from '../model/character'
 import {
-  applyItemAbilities, entryItem, itemBonuses,
+  applyItemAbilities, effectsOf, entryItem, itemBonuses,
   ABILITY_NAMES, SKILLS, abilityMod, backgroundBonuses, getBackground, classById, derive, featBonus, featEffects, getAbilityMods, getAbilityScores,
   getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, rulesEdition, totalLevel,
   type Ability, type ClassDef, type SkillId,
@@ -82,8 +82,11 @@ function save(c: Character, a: Ability): StatMath {
   const first = classesOf(c)[0]?.def
   const proficient = !!first?.savingThrows.includes(a)
   const lines = [{ label: `${ABBR(a)} modifier`, value: getAbilityMods(getAbilityScores(c))[a] }]
+  const fromItem = effectsOf(c, 'saveProficiency').find(x => x.effect.ability === a)
   if (proficient) lines.push({ ...profLine(c), label: `Proficiency (${first.name})` })
+  else if (fromItem) lines.push({ ...profLine(c), label: `Proficiency (${fromItem.source})` })
   lines.push(...itemLines(c, 'saves'))
+  for (const x of effectsOf(c, 'save')) if (x.effect.ability === a) lines.push({ label: x.source, value: x.effect.value })
   const notes = classesOf(c).length > 1 ? ['Saving throw proficiencies come from your first class only.'] : []
   return make(`${ABILITY_NAMES[a]} save`, lines, { signed: true, notes })
 }
@@ -101,9 +104,13 @@ function skillSources(c: Character, s: SkillId): string[] {
 function skill(c: Character, s: SkillId): StatMath {
   const ability = SKILLS[s].ability
   const lines = [{ label: `${ABBR(ability)} modifier`, value: getAbilityMods(getAbilityScores(c))[ability] }]
-  if (getSkillProficiencies(c).has(s)) lines.push({ ...profLine(c), label: `Proficiency (${skillSources(c, s).join(', ')})` })
+  const fromItems = effectsOf(c, 'skillProficiency').filter(x => x.effect.skill === s)
+  const expertise = fromItems.find(x => x.effect.expertise)
+  if (expertise) lines.push({ ...profLine(c), label: `Proficiency (${skillSources(c, s).concat(fromItems.map(x => x.source)).join(', ')})` }, { ...profLine(c), label: `Expertise (${expertise.source})` })
+  else if (getSkillProficiencies(c).has(s) || fromItems.length) lines.push({ ...profLine(c), label: `Proficiency (${skillSources(c, s).concat(fromItems.map(x => x.source)).join(', ')})` })
   else if (jackOfAllTrades(c)) lines.push({ label: 'Jack of All Trades (half proficiency)', value: jackOfAllTrades(c) })
   lines.push(...itemLines(c, 'checks'))
+  for (const x of effectsOf(c, 'skill')) if (x.effect.skill === s) lines.push({ label: x.source, value: x.effect.value })
   return make(SKILLS[s].name, lines, { signed: true })
 }
 
@@ -198,6 +205,7 @@ function maxHp(c: Character): StatMath {
   lines.push({ label: `CON modifier × ${level} level${level === 1 ? '' : 's'}`, value: con * level })
   if (perLevel) lines.push({ label: `${sub?.hpPerLevel ? sub.name : race!.name} × ${level} level${level === 1 ? '' : 's'}`, value: perLevel * level })
   if (floor) lines.push({ label: 'Each level gives at least 1 HP', value: floor })
+  lines.push(...itemLines(c, 'hp'))
   const base = getMaxHp(c)
   const sum = lines.reduce((t, l) => t + l.value, 0)
   if (base > sum) lines.push({ label: 'Minimum 1 HP', value: base - sum })
@@ -207,7 +215,7 @@ function maxHp(c: Character): StatMath {
 
 function passivePerception(c: Character): StatMath {
   const perception = skill(c, 'perception')
-  return make('Passive Perception', [{ label: 'Base', value: 10 }, ...perception.lines])
+  return make('Passive Perception', [{ label: 'Base', value: 10 }, ...perception.lines, ...itemLines(c, 'passivePerception')])
 }
 
 function spellcasting(c: Character, kind: 'spellDc' | 'spellAttack'): StatMath | null {
@@ -228,7 +236,7 @@ function attack(c: Character, index: number): StatMath | null {
   if (!atk) return null
   const lines = [{ label: `${ABBR(atk.ability)} modifier`, value: getAbilityMods(getAbilityScores(c))[atk.ability] }]
   if (atk.proficient) lines.push(profLine(c))
-  lines.push(...itemLines(c, 'attack'))
+  lines.push(...itemLines(c, 'attack', true, atk.reach === undefined ? 'ranged' : 'melee'))
   const magic = atk.bonus - lines.reduce((t, l) => t + l.value, 0)
   if (magic) lines.push({ label: 'Magic weapon', value: magic })
   const notes = [`Damage ${atk.damage} ${atk.damageType}: weapon die + ${ABBR(atk.ability)} modifier.`]

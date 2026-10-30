@@ -1,9 +1,11 @@
 // English UI text: the source of truth for message keys. Other locales may leave keys out.
 // Plural keys end in _one / _two / _other; pass the base key and a numeric `count`.
 import { explainEn } from './explain.en'
+import { itemsEn } from './items.en'
 
 export const en = {
   ...explainEn,
+  ...itemsEn,
   // Shared
   'common.back': 'Back',
   'common.backArrow': '←',

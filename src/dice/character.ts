@@ -12,30 +12,32 @@ import type { RollMode, RollOptions, RollResult } from './types'
 const SHORT: Record<Ability, string> = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' }
 
 /** Fills the default label and merges the character's condition mode with the situational one. */
-function prepare(opts: RollOptions, label: string, kind: ConditionRollKind, ability?: Ability): RollOptions {
+function prepare(opts: RollOptions, label: string, kind: ConditionRollKind, ability?: Ability, itemAdvantage?: boolean): RollOptions {
   const modes: RollMode[] = opts.mode === undefined ? [] : Array.isArray(opts.mode) ? opts.mode : [opts.mode]
   if (opts.character && !opts.ignoreConditions) modes.push(getRollMode(opts.character, kind, ability))
+  // Items that always give advantage (Boots of Elvenkind on Stealth); a disadvantage still cancels it out.
+  if (itemAdvantage) modes.push('advantage')
   return { ...opts, label: opts.label ?? label, mode: modes }
 }
 
 export function rollCheck(stats: DerivedStats, ability: Ability, opts: RollOptions = {}): RollResult {
-  return rollD20(stats.mods[ability], prepare(opts, `${ABILITY_NAMES[ability]} check`, 'check', ability), 'check')
+  return rollD20(stats.mods[ability], prepare(opts, `${ABILITY_NAMES[ability]} check`, 'check', ability, stats.checkAdvantage?.[ability]), 'check')
 }
 
 export function rollSave(stats: DerivedStats, ability: Ability, opts: RollOptions = {}): RollResult {
-  const r = rollD20(stats.saves[ability].bonus, prepare(opts, `${SHORT[ability]} save`, 'save', ability), 'save')
+  const r = rollD20(stats.saves[ability].bonus, prepare(opts, `${SHORT[ability]} save`, 'save', ability, stats.saves[ability].advantage), 'save')
   if (opts.character && !opts.ignoreConditions && autoFailsSave(opts.character, ability)) r.autoFail = true
   return r
 }
 
 export function rollSkill(stats: DerivedStats, skill: SkillId, opts: RollOptions = {}): RollResult {
   const { ability } = stats.skills[skill]
-  return rollD20(stats.skills[skill].bonus, prepare(opts, SKILLS[skill].name, 'check', ability), 'skill')
+  return rollD20(stats.skills[skill].bonus, prepare(opts, SKILLS[skill].name, 'check', ability, stats.skills[skill].advantage), 'skill')
 }
 
 /** Initiative is a DEX check, so check penalties apply. */
 export function rollInitiative(stats: DerivedStats, opts: RollOptions = {}): RollResult {
-  return rollD20(stats.initiative, prepare(opts, 'Initiative', 'check', 'dex'), 'initiative')
+  return rollD20(stats.initiative, prepare(opts, 'Initiative', 'check', 'dex', stats.initiativeAdvantage), 'initiative')
 }
 
 /** critRange: lowest natural roll that crits (rules getCritRange, 19 for a Champion). */
