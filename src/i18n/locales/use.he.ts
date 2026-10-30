@@ -46,6 +46,8 @@ export const useHe: Messages = {
   'fx.log.end': '{name} הסתיים',
   'fx.log.spent': '{name} נוצל בפגיעה',
   'fx.notOnMe': 'לא עליי',
+  'fx.endFight': 'סוף הקרב',
+  'fx.log.endFight': 'הקרב נגמר: הסתיימו {names}',
   'fx.once': 'רק בפגיעה הבאה',
   'fx.dice.attack': '+{dice} לגלגולי התקפה',
   'fx.dice.save': '+{dice} לגלגולי הצלה',

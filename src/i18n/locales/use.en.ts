@@ -46,6 +46,8 @@ export const useEn = {
   'fx.log.end': 'Ended {name}',
   'fx.log.spent': 'Used up {name} on a hit',
   'fx.notOnMe': 'Not on me',
+  'fx.endFight': 'End of fight',
+  'fx.log.endFight': 'Fight over: ended {names}',
   'fx.once': 'Next hit only',
   'fx.dice.attack': '+{dice} to attack rolls',
   'fx.dice.save': '+{dice} to saving throws',

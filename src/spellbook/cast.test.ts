@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadKind, type Spell } from '../content'
 import { derive } from '../rules'
 import { longRest, shortRest, takeDamage } from '../sheet/engine'
-import { endEffect, setEffectOn, spendOnceEffects, startEffect } from '../sheet/effects'
+import { endEffect, endFight, endsWithFight, setEffectOn, spendOnceEffects, startEffect } from '../sheet/effects'
 import { makeCharacter } from '../sheet/fixtures'
 import { castPlan, castSpell, castWarnings, defaultSlot } from './cast'
 import { effectToggles } from '../sheet/combat/combat'
@@ -90,5 +90,26 @@ describe('casting from the sheet', () => {
     const { character } = castSpell(hurt, castPlan(hurt, derive(hurt), aid, slot), { slot, heal: 5 })
     expect(derive(character).maxHp).toBe(max + 5)
     expect(character.state.currentHp).toBe(10)
+  })
+})
+
+describe('how long effects last', () => {
+  it('instantaneous spells leave nothing running, Self spells are always on me', async () => {
+    const c = warlock()
+    expect(castPlan(c, derive(c), await byId('false-life')).effect).toBeUndefined()
+    expect(castPlan(c, derive(c), await byId('false-life')).tempHp).toBeDefined()
+    expect(castPlan(c, derive(c), await byId('false-life', '2014')).effect).toMatchObject({ whileTempHp: true, self: true })
+    expect(castPlan(c, derive(c), await byId('armor-of-agathys')).effect?.self).toBe(true)
+    expect(castPlan(c, derive(c), await byId('hex')).effect?.self).toBeUndefined()
+  })
+
+  it('End of fight ends round and minute effects, and keeps the hour-long ones', async () => {
+    let c = warlock()
+    for (const id of ['shield', 'armor-of-agathys']) c = startEffect(c, castPlan(c, derive(c), await byId(id)).effect!).character
+    c = startEffect(c, castPlan(c, derive(c), await byId('bless')).effect!).character
+    const stale = { ...c, state: { ...c.state, effects: [...c.state.effects!, { id: 'spell:old', name: 'Old', from: 'spell' as const, on: true, duration: 'Instantaneous' }] } }
+    expect(endFight(stale).state.effects?.map(e => e.id)).toEqual(['spell:armor-of-agathys'])
+    expect(endsWithFight({ duration: 'Up to 10 minutes' })).toBe(false)
+    expect(endFight(endFight(stale))).toEqual(endFight(stale))
   })
 })

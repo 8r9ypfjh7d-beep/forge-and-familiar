@@ -13,7 +13,7 @@ import { effectToggles, setActionActive, type EffectToggle } from '../combat/com
 import type { SlotChoice } from '../../quickcast'
 import { spendSlot } from '../../quickcast/quickcast'
 import { CastResult, ConfirmCast, SlotPicker, useCast, useCastWarning } from '../../spellbook/Cast'
-import { endEffect, setEffectOn, startEffect } from '../effects'
+import { endEffect, endFight, endsWithFight, setEffectOn, startEffect } from '../effects'
 import type { Apply } from '../types'
 
 type T = ReturnType<typeof useI18n>['t']
@@ -89,7 +89,7 @@ export function EffectRows({ character, effects, isOn, onToggle, apply }: {
               {noSlot && <small>{t('cast.warn.noSlot')}</small>}
               {!live && e.spell && <SlotPicker character={character} spell={e.spell} onPick={s => flip(e, true, s)} />}
               {live?.duration && <small lang="en" dir="ltr">{live.duration}</small>}
-              {live && (
+              {live && !(live.self && live.on) && (
                 <button type="button" className={`glass-chip small${live.on ? ' on' : ''}`} aria-pressed={live.on} aria-label={t('fx.onMeName', { name: e.name })}
                   onClick={() => apply(t(live.on ? 'cs.log.effectOff' : 'cs.log.effectOn', { name: e.name }), c => setEffectOn(c, e.id, !live.on))}>
                   {t(live.on ? 'fx.onMe' : 'fx.notOnMe')}
@@ -102,6 +102,14 @@ export function EffectRows({ character, effects, isOn, onToggle, apply }: {
           </li>
         )
       })}
+      {effects.some(e => e.live && endsWithFight(e.live)) && (
+        <li className="fx-end-fight">
+          <button type="button" className="glass-btn small" onClick={() => apply(
+            t('fx.log.endFight', { names: effects.filter(e => e.live && endsWithFight(e.live)).map(e => e.name).join(', ') }), endFight)}>
+            {t('fx.endFight')}
+          </button>
+        </li>
+      )}
     </ul>
   )
 }

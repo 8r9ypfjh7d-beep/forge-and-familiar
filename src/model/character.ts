@@ -78,6 +78,8 @@ export interface LiveEffect {
   reflect?: { damage: string; type?: string }
   /** Ends when the temporary hit points it gave run out. */
   whileTempHp?: boolean
+  /** Only on the caster (range Self: Armor of Agathys, Shield), so it is never "not on me". */
+  self?: boolean
 }
 
 /** The PHB "Customizing a Background" rule: used when backgroundId is 'custom'. */
