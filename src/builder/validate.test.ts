@@ -78,7 +78,7 @@ describe('builder validation', () => {
     const d = { ...base(), raceId: 'dwarf', subraceId: 'hill-dwarf', classes: [{ classId: 'fighter', level: 1 }], chosenLanguages: ['Elvish', 'Giant'], chosenTools: ["Mason's tools"] }
     const offList = { ...d, chosenSkills: ['athletics', 'arcana'] as ('athletics' | 'arcana')[] }
     expect(stepIssues('skills', offList)).toEqual([])
-    expect(stepWarnings('skills', offList)).toEqual(['Some skills are not on your class list. Fine if your DM agrees.'])
+    expect(stepWarnings('skills', offList)).toEqual(['Some skills are not on your class or background list. Fine if your DM agrees.'])
     expect(stepWarnings('skills', { ...d, chosenSkills: ['athletics', 'perception'] })).toEqual([])
     expect(stepIssues('skills', { ...d, chosenSkills: ['athletics'] })).toHaveLength(1)
   })
