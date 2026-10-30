@@ -219,7 +219,7 @@ export function getResources(c: Character): ResourceInfo[] {
   }
   // Limited spells from race, items and feats (Hellish Rebuke once per long rest), so rests bring them back.
   for (const s of getItemSpells(c)) {
-    const limit = spellLimit(s.note)
+    const limit = spellLimit(s.note, prof)
     if (s.useId && limit && 'max' in limit && !out.some(o => o.id === s.useId)) out.push({ id: s.useId, label: `${s.spell} (${s.source})`, max: limit.max, recharge: limit.recharge })
   }
   return [...out, ...getItemCharges(c)]

@@ -1,7 +1,7 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction, LiveEffect } from '../../model/character'
-import { cantripDamageBonus, classChoices, featureEffectId, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
+import { cantripDamageBonus, classChoices, featureEffectId, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
@@ -101,7 +101,9 @@ export interface SpellAttackRow {
  * pinned by hand that aren't in the library (homebrew, other books).
  */
 export function spellAttackRows(c: Character, stats: DerivedStats, library: Spell[]): SpellAttackRow[] {
-  const sc = stats.spellcasting
+  const innate = innateCantrips(stats, library)
+  // A character without a casting class still attacks with a race's cantrip: its own ability, else the best of INT, WIS and CHA.
+  const sc = stats.spellcasting ?? (innate.length ? innateCasting(stats, innate[0].ability) : undefined)
   if (!sc) return []
   const byId = new Map(library.map(s => [s.id, s]))
   const known = (c.spells ?? []).flatMap(k => { const s = byId.get(k.id); return s ? [{ s, classId: k.classId }] : [] })
@@ -109,17 +111,17 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
   const seen = new Set<string>()
   // 2024 Potent Spellcasting (Cleric Blessed Strikes, Druid Elemental Fury): WIS on that class's cantrip damage.
   const potent = new Set(c.rulesEdition === '2024' ? classChoices(c).filter(x => x.picked?.id === 'potent-spellcasting').map(x => x.classId) : [])
-  const push = (entry: Omit<SpellEntry, 'id' | 'kind'>, range: string, classId?: string) => {
+  const push = (entry: Omit<SpellEntry, 'id' | 'kind'>, range: string, classId?: string, own = sc) => {
     const key = entry.name.toLowerCase()
     if (seen.has(key) || entry.roll === 'none') return
     seen.add(key)
     const beams = spellBeams(entry, entry.level, stats.level)
-    let damage = spellDamage({ ...entry, id: '', kind: 'spell' }, entry.level, stats.level, stats.mods[sc.ability], cantripDamageBonus(c, entry.name, stats.mods.cha))
+    let damage = spellDamage({ ...entry, id: '', kind: 'spell' }, entry.level, stats.level, stats.mods[own.ability], cantripDamageBonus(c, entry.name, stats.mods.cha))
     const wis = stats.mods.wis
     if (damage && entry.level === 0 && classId && potent.has(classId) && wis) damage = formatNotation(parseNotation(`${damage}${wis > 0 ? '+' : ''}${wis}`))
     out.push({
       name: entry.name, level: entry.level, range, kind: entry.roll,
-      value: entry.roll === 'attack' ? sc.attackBonus : sc.saveDc,
+      value: entry.roll === 'attack' ? own.attackBonus : own.saveDc,
       ...(entry.save ? { save: entry.save } : {}),
       ...(damage ? { damage } : {}),
       ...(beams > 1 ? { beams } : {}),
@@ -129,10 +131,30 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
   }
   for (const { s, classId } of known) push(toQuickCast(withRollFromText(s)), s.range, classId)
   for (const q of c.quickCast ?? []) if (q.kind === 'spell') push(q, byName(library, q.name)?.range ?? '')
+  // Cantrips from the race, a feat or an item (a Tiefling's Fire Bolt): at will, so they sit with the attacks.
+  for (const { spell, ability } of innate) push(toQuickCast(withRollFromText(spell)), spell.range, undefined, ability ? innateCasting(stats, ability) : sc)
   return out.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
 }
 
 const ABILITY_WORDS: Record<string, Ability> = { strength: 'str', dexterity: 'dex', constitution: 'con', intelligence: 'int', wisdom: 'wis', charisma: 'cha' }
+
+const NOTE_ABILITIES: [RegExp, Ability][] = [[/\bintelligence\b/i, 'int'], [/\bwisdom\b/i, 'wis'], [/\bcharisma\b/i, 'cha']]
+
+/** Library cantrips the character casts from its race, feats or items, with the ability their note names, if any. */
+function innateCantrips(stats: DerivedStats, library: Spell[]): { spell: Spell; ability?: Ability }[] {
+  return stats.itemSpells.flatMap(s => {
+    const spell = byName(library, itemSpellCast(s.spell).name)
+    if (spell?.level !== 0) return []
+    const ability = NOTE_ABILITIES.find(([re]) => re.test(s.note ?? ''))?.[1]
+    return [{ spell, ...(ability ? { ability } : {}) }]
+  })
+}
+
+/** Attack bonus and save DC for innate spells cast with `ability` (default: the best of INT, WIS and CHA). */
+function innateCasting(stats: DerivedStats, ability?: Ability): NonNullable<DerivedStats['spellcasting']> {
+  const a = ability ?? (['int', 'wis', 'cha'] as const).reduce((best, x) => (stats.mods[x] > stats.mods[best] ? x : best), 'cha' as Ability)
+  return { ability: a, attackBonus: stats.proficiencyBonus + stats.mods[a], saveDc: 8 + stats.proficiencyBonus + stats.mods[a] }
+}
 
 /** Some library spells (2024 Charm Person) have no structured attack or save: read it from the text. */
 export function withRollFromText(s: Spell): Spell {
