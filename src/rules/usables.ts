@@ -4,6 +4,7 @@
 // (AC, advantage, resistance, extra damage on hits, dice on d20 rolls) with its concentration and duration.
 // Spells without known numbers still get a plan: cast, spend the slot, and track it while it lasts.
 import type { ActionKind, LiveEffect } from '../model/character'
+import { STRENGTH_MELEE } from './rollMode'
 import type { Ability, ItemEffect } from './types'
 import { DAMAGE_TYPES } from './damage'
 
@@ -202,7 +203,18 @@ export interface UseContext {
   moon?: boolean
   /** 2014 Totem Warrior with the Bear spirit: raging resists every damage type but psychic. */
   bear?: boolean
+  /** Channel Divinity: the options the character has, each with its class's level, spell save DC and casting modifier. */
+  channel?: ChannelSource[]
 }
+
+/** One Channel Divinity option the character has (Turn Undead, Sacred Weapon), with the numbers of the class that gives it. */
+export interface ChannelSource { name: string; classLevel: number; dc: number; mod: number }
+
+/** A line of text a use shows in its result, as an i18n key under `use.note.` with its numbers. */
+export interface UseNote { key: string; vars?: Record<string, string | number> }
+
+/** One choice a use asks for first (Channel Divinity: Turn Undead or Sacred Weapon), with what that choice does. */
+export interface UseOption { id: string; name: string; plan: UsePlan }
 
 /** What using a feature does besides spending one use. */
 export interface UsePlan {
@@ -221,6 +233,14 @@ export interface UsePlan {
   pactSlots?: number
   /** A beast form is picked first (Wild Shape), within these limits. */
   form?: WildShapeLimit
+  /** Spent spell slots picked back (Arcane Recovery): combined levels up to `budget`, none above `maxLevel`. */
+  recover?: { budget: number; maxLevel: number }
+  /** One of these is picked first (Channel Divinity); the use then does what the picked one does. */
+  options?: UseOption[]
+  /** A resource refilled in full (Uncanny Metabolism: all Focus Points). */
+  refill?: string
+  /** What the use does that the sheet can't do for you (Guided Strike: +10 to the roll). */
+  note?: UseNote
 }
 
 /** A breath's area: a cone's length, a line's width and length, or a choice of both (2024). */
@@ -288,8 +308,101 @@ export const FEATURE_TEMPLATES: Record<string, FeatureTemplate> = {
   'innate-sorcery': () => ({
     effectAs: { duration: '1 minute', ends: 'short', stats: [{ kind: 'spellDc', value: 1 }, { kind: 'advantage', on: 'attacks', when: 'with spells' }] },
   }),
+  // Arcane Recovery and Natural Recovery: slots of combined level up to half the class level (rounded up), none 6th or higher.
+  'arcane-recovery': ({ classLevel }) => ({ recover: { budget: Math.ceil(classLevel / 2), maxLevel: 5 } }),
+  'sub:land:natural-recovery': ({ classLevel }) => ({ recover: { budget: Math.ceil(classLevel / 2), maxLevel: 5 } }),
+  'sub:circle-of-the-land:natural-recovery': ({ classLevel }) => ({ recover: { budget: Math.ceil(classLevel / 2), maxLevel: 5 } }),
+  'channel-divinity': ctx => ({ options: (ctx.channel ?? []).map(o => channelOption(o, ctx)) }),
+  // 2024 Uncanny Metabolism: all Focus Points back and a Martial Arts die plus the monk level in healing.
+  'class:monk:uncanny-metabolism': ({ classLevel, edition }) => ({ heal: `${martialArtsDie(classLevel, edition)}+${classLevel}`, refill: 'focus' }),
   // Features without uses, by feature id: used when they trigger.
   'dark-ones-blessing': ({ classLevel, mods }) => ({ tempHp: String(Math.max(1, (mods?.cha ?? 0) + classLevel)) }),
+}
+
+/** The Martial Arts die by monk level: 2014 d4 → d10, 2024 d6 → d12. */
+export function martialArtsDie(monkLevel: number, edition: '2014' | '2024'): string {
+  const step = [1, 5, 11, 17].filter(x => monkLevel >= x).length - 1
+  return `1d${(edition === '2024' ? 6 : 4) + 2 * Math.max(0, step)}`
+}
+
+/** Reckless Attack: advantage on Strength melee attacks this turn (and attacks against you have advantage). */
+export const RECKLESS_ID = 'feature:reckless-attack'
+export const recklessEffect = (): Omit<LiveEffect, 'on'> => ({
+  id: RECKLESS_ID, name: 'Reckless Attack', from: 'feature', duration: '1 round', ends: 'short',
+  stats: [{ kind: 'advantage', on: 'attacks', when: STRENGTH_MELEE }],
+})
+
+// ---- Channel Divinity ----
+
+type ChannelPlan = (o: ChannelSource, ctx: UseContext) => UsePlan & { effectAs?: Omit<LiveEffect, 'on' | 'id' | 'name' | 'from'> }
+
+const saveOf = (ability: Ability): ChannelPlan => o => ({ save: { dc: o.dc, ability } })
+const noted = (key: string, vars?: (o: ChannelSource, ctx: UseContext) => UseNote['vars']): ChannelPlan => (o, ctx) => ({ note: { key, ...(vars ? { vars: vars(o, ctx) } : {}) } })
+const both = (...plans: ChannelPlan[]): ChannelPlan => (o, ctx) => Object.assign({}, ...plans.map(p => p(o, ctx)))
+const lasting = (duration: string | ((ctx: UseContext) => string), stats: ItemEffect[] | ((o: ChannelSource) => ItemEffect[]) = []): ChannelPlan => (o, ctx) => {
+  const list = typeof stats === 'function' ? stats(o) : stats
+  return { effectAs: { duration: typeof duration === 'string' ? duration : duration(ctx), ends: 'short', ...(list.length ? { stats: list } : {}) } }
+}
+/** 2024 Divine Spark: 1d8 at cleric 2, 2d8 at 7, 3d8 at 13, 4d8 at 18, plus WIS. */
+const sparkDice = (level: number) => [2, 7, 13, 18].filter(x => level >= x).length
+
+/**
+ * Channel Divinity options by name (class options, oath and domain options from every book), and what each does.
+ * 2014 subclass features are named "Channel Divinity: X"; the name here is X. Options not listed still spend a use.
+ */
+export const CHANNEL_OPTIONS: Record<string, ChannelPlan> = {
+  // Class options
+  'Turn Undead': both(saveOf('wis'), noted('turnUndead')),
+  'Divine Spark': both(o => ({ hit: { dice: plus(`${Math.max(1, sparkDice(o.classLevel))}d8`, o.mod) }, save: { dc: o.dc, ability: 'con' } }), noted('divineSpark')),
+  'Divine Sense': both(lasting('10 minutes'), noted('divineSense')),
+  // Cleric domains
+  'Preserve Life': noted('preserveLife', o => ({ n: 5 * o.classLevel })),
+  'Radiance of the Dawn': both(o => ({ hit: { dice: `2d10+${o.classLevel}`, type: 'radiant' }, save: { dc: o.dc, ability: 'con' } }), noted('radianceOfTheDawn')),
+  'Guided Strike': noted('guidedStrike'),
+  "War God's Blessing": noted('warGodsBlessing'),
+  'Destructive Wrath': noted('destructiveWrath'),
+  'Invoke Duplicity': both(lasting('1 minute'), noted('invokeDuplicity')),
+  'Touch of Death': noted('touchOfDeath', o => ({ n: 5 + 2 * o.classLevel })),
+  'Twilight Sanctuary': both(lasting('1 minute'), noted('twilightSanctuary')),
+  'Knowledge of the Ages': both(lasting('10 minutes'), noted('knowledgeOfTheAges')),
+  'Arcane Abjuration': saveOf('wis'),
+  'Charm Animals and Plants': saveOf('wis'),
+  "Order's Demand": saveOf('wis'),
+  'Read Thoughts': saveOf('wis'),
+  // Paladin oaths
+  'Sacred Weapon': both(lasting(ctx => (ctx.edition === '2024' ? '10 minutes' : '1 minute'), o => [{ kind: 'attack', value: Math.max(1, o.mod) }]), noted('sacredWeapon')),
+  'Turn the Unholy': saveOf('wis'),
+  "Nature's Wrath": (o, ctx) => ({ save: { dc: o.dc, ability: ctx.edition === '2024' ? 'str' : 'dex' } }),
+  'Turn the Faithless': saveOf('wis'),
+  'Abjure Enemy': saveOf('wis'),
+  'Vow of Enmity': both(lasting('1 minute', [{ kind: 'advantage', on: 'attacks', when: 'against the vowed creature' }]), noted('vowOfEnmity')),
+  'Conquering Presence': saveOf('wis'),
+  'Champion Challenge': saveOf('wis'),
+  'Turn the Tide': noted('turnTheTide', (_o, ctx) => ({ dice: plus('1d6', Math.max(1, ctx.mods?.cha ?? 0)) })),
+  'Inspiring Smite': noted('inspiringSmite', o => ({ dice: `2d8+${o.classLevel}` })),
+  'Peerless Athlete': lasting(ctx => (ctx.edition === '2024' ? '1 hour' : '10 minutes'), [
+    { kind: 'advantage', on: 'skill:athletics' }, { kind: 'advantage', on: 'skill:acrobatics' },
+  ]),
+  'Control Undead': saveOf('wis'),
+  'Dreadful Aspect': saveOf('wis'),
+  'Emissary of Peace': lasting('10 minutes', [{ kind: 'skill', skill: 'persuasion', value: 5 }]),
+  'Rebuke the Violent': saveOf('wis'),
+  "Watcher's Will": noted('watchersWill'),
+  'Abjure the Extraplanar': saveOf('wis'),
+}
+
+/** "Channel Divinity: Sacred Weapon" → "Sacred Weapon"; undefined when the feature isn't a Channel Divinity option. */
+export function channelOptionName(featureName: string): string | undefined {
+  const m = /^Channel Divinity:\s*(.+)$/.exec(featureName.trim())
+  if (m) return m[1]
+  return CHANNEL_OPTIONS[featureName.trim()] ? featureName.trim() : undefined
+}
+
+function channelOption(o: ChannelSource, ctx: UseContext): UseOption {
+  const tpl = CHANNEL_OPTIONS[o.name]?.(o, ctx) ?? {}
+  const { effectAs, ...plan } = tpl
+  const id = `channel-divinity:${o.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`
+  return { id, name: o.name, plan: effectAs ? { ...plan, effect: { id: featureEffectId(id), name: o.name, from: 'feature', ...effectAs } } : plan }
 }
 
 // ---- What a turn costs ----
@@ -306,7 +419,15 @@ export function castingKind(castingTime = ''): Exclude<ActionKind, 'free'> {
 type Kind = ActionKind | { '2014': ActionKind; '2024': ActionKind }
 
 /** How a feature is used in a turn, by its name (resources go by their label too). `spend`: points it costs from a pool. */
-export interface FeatureAction { kind: Kind; spend?: { pools: string[]; n: number }; use?: string }
+export interface FeatureAction {
+  kind: Kind
+  spend?: { pools: string[]; n: number }
+  use?: string
+  /** A save it forces, and the ability its DC is figured from (Stunning Strike: CON save, DC 8 + WIS + proficiency). */
+  save?: { ability: Ability; dc: Ability }
+  /** Costs nothing; spending `boost` points from the pool does more (2024 Patient Defense). */
+  boost?: { pools: string[]; n: number }
+}
 
 const KI = { pools: ['ki', 'focus'], n: 1 }
 
@@ -327,6 +448,7 @@ export const FEATURE_ACTIONS: Record<string, FeatureAction> = {
   'Stroke of Luck': { kind: 'free' },
   'Innate Sorcery': { kind: 'bonus' },
   'Arcane Recovery': { kind: 'other' },
+  'Natural Recovery': { kind: 'other' },
   'Magical Cunning': { kind: 'other' },
   // Subclass features with uses
   "Hexblade's Curse": { kind: 'bonus' },
@@ -342,10 +464,12 @@ export const FEATURE_ACTIONS: Record<string, FeatureAction> = {
   'Cunning Action': { kind: 'bonus' },
   'Uncanny Dodge': { kind: 'reaction' },
   'Reckless Attack': { kind: 'free' },
+  'Martial Arts': { kind: 'bonus' },
   'Flurry of Blows': { kind: 'bonus', spend: KI },
   'Patient Defense': { kind: 'bonus', spend: KI },
   'Step of the Wind': { kind: 'bonus', spend: KI },
-  'Stunning Strike': { kind: 'free', spend: KI },
+  'Stunning Strike': { kind: 'free', spend: KI, save: { ability: 'con', dc: 'wis' } },
+  'Uncanny Metabolism': { kind: 'free' },
   'Deflect Missiles': { kind: 'reaction' },
   'Deflect Attacks': { kind: 'reaction' },
   "Dark One's Blessing": { kind: 'free', use: 'dark-ones-blessing' },

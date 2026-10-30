@@ -17,7 +17,7 @@ import type { SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { rulesEdition, uses2024Spells } from './edition'
 import { effectsOf, itemBonus } from './itemEffects'
-import { breathArea, spellLimit, type UseContext } from './usables'
+import { breathArea, channelOptionName, spellLimit, type ChannelSource, type UseContext } from './usables'
 import { raceById } from './data/races'
 import { racialSkills, racialWeapons } from './origin'
 import { castsAtLevel, getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
@@ -45,7 +45,34 @@ export const totalLevel = (c: Character) => c.classes.reduce((n, cl) => n + cl.l
 
 /** Level in the class a resource belongs to (Second Wind: fighter level); the character level when no class has it. */
 export function resourceClassLevel(c: Character, id: string): number {
-  return classesOf(c).find(x => x.def.resources.some(r => r.id === id))?.level ?? totalLevel(c)
+  // Subclass and class feature uses carry their subclass or class in the id (sub:land:natural-recovery, class:monk:uncanny-metabolism).
+  const [kind, owner, ...rest] = id.split(':')
+  const of = classesOf(c).find(x =>
+    x.def.resources.some(r => r.id === id) ||
+    (kind === 'class' && x.def.id === owner) ||
+    (kind === 'sub' && (owner === 'custom' ? x.def.id === rest[0] && !!x.subclass : x.subclass?.id === owner)))
+  return of?.level ?? totalLevel(c)
+}
+
+/** Channel Divinity options the character has: the class's own, then their subclass's, each with that class's DC. */
+export function channelOptions(c: Character): ChannelSource[] {
+  const edition = rulesEdition(c)
+  const mods = getAbilityMods(getAbilityScores(c))
+  const prof = proficiencyBonus(totalLevel(c))
+  const out: ChannelSource[] = []
+  for (const { def, level, subclass } of classesOf(c)) {
+    if (def.id !== 'cleric' && def.id !== 'paladin') continue
+    const mod = mods[def.spellAbility ?? (def.id === 'cleric' ? 'wis' : 'cha')]
+    const add = (name: string) => { if (!out.some(o => o.name === name)) out.push({ name, classLevel: level, dc: 8 + prof + mod, mod }) }
+    if (!def.resources.some(r => r.id === 'channel-divinity' && r.max(level, mods) > 0)) continue
+    if (def.id === 'cleric') { add('Turn Undead'); if (edition === '2024') add('Divine Spark') }
+    if (def.id === 'paladin' && edition === '2024') add('Divine Sense')
+    for (const f of subclass?.features ?? []) {
+      const name = f.level <= level ? channelOptionName(f.name) : undefined
+      if (name) add(name)
+    }
+  }
+  return out
 }
 
 /** Everything a feature's use plan reads (rules/usables.ts planUse): levels, modifiers, ancestry, pact slots. */
@@ -57,6 +84,7 @@ export function featureUseContext(c: Character, id: string): UseContext {
   }
   if (id === 'magical-cunning') ctx.pactSlots = getSpellSlots(c).pact?.count
   if (id === 'rage') ctx.bear = subclassPickLists(c).some(l => l.list.kind === 'totemSpirit' && l.picked.some(p => p.id === 'totem-bear'))
+  if (id === 'channel-divinity') ctx.channel = channelOptions(c)
   if (id === 'wild-shape') ctx.moon = classesOf(c).some(x => x.def.id === 'druid' && /moon/.test(x.subclass?.id ?? ''))
   if (id.startsWith('race:breath-weapon')) {
     const choice = raceById(c.raceId, edition)?.traitChoice

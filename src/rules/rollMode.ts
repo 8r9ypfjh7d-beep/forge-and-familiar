@@ -1,6 +1,9 @@
 import type { Character } from '../model/character'
 import type { Ability } from './types'
 
+/** The `when` of an advantage on attacks that counts for Strength melee attacks only (Reckless Attack). */
+export const STRENGTH_MELEE = 'with Strength melee attacks'
+
 export type RollKind = 'attack' | 'check' | 'save'
 export type RollMode = 'normal' | 'advantage' | 'disadvantage'
 
@@ -25,6 +28,8 @@ export function getRollMode(c: Pick<Character, 'state'>, kind: RollKind, ability
   }
   // Running spells that always give advantage on attacks (Foresight, Greater Invisibility).
   if (kind === 'attack' && (c.state.effects ?? []).some(e => e.on && e.stats?.some(f => f.kind === 'advantage' && f.on === 'attacks' && !f.when))) adv = true
+  // Reckless Attack: melee attacks using Strength (attack rolls pass 'str' only for those).
+  if (kind === 'attack' && ability === 'str' && (c.state.effects ?? []).some(e => e.on && e.stats?.some(f => f.kind === 'advantage' && f.on === 'attacks' && f.when === STRENGTH_MELEE))) adv = true
   return adv === dis ? 'normal' : adv ? 'advantage' : 'disadvantage'
 }
 

@@ -5,7 +5,7 @@ import type { Character } from '../../model/character'
 import { DAMAGE_TYPES, concentrationDc, damageAfterDefenses, damageDefense, derive, meleeReprisals } from '../../rules'
 import { editionOf } from '../../spellbook/access'
 import { concentration } from '../effects'
-import { effectiveMaxHp, grantTempHp, heal, takeDamage, vitals } from '../engine'
+import { effectiveMaxHp, grantTempHp, heal, hpSnapshot, takeDamage, vitals } from '../engine'
 import type { Apply } from '../types'
 import { AfterDamage, type Hit } from './AfterDamage'
 import { Conditions } from './Conditions'
@@ -38,6 +38,7 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
       ? t('hurt.log.typed', { taken, type: typeName(type), n, why })
       : type ? t('hurt.log.type', { n, type: typeName(type) }) : t(critical && currentHp === 0 ? 'sheet.log.damageCrit' : 'sheet.log.damage', { n })
     apply(log, c => takeDamage(c, taken, { critical }))
+    const after = takeDamage(character, taken, { critical }).state
     const key = (hit?.key ?? 0) + 1
     const conc = concentration(character)
     setSaid(type ? { key, text: why ? t('hurt.typed', { n, type: typeName(type), taken, why }) : t('hurt.plain', { n, type: typeName(type) }) } : null)
@@ -46,6 +47,8 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
       ...(type ? { type } : {}),
       ...(conc && taken > 0 ? { conc: { id: conc.id, name: conc.name, dc: concentrationDc(taken, editionOf(character)) } } : {}),
       reprisals: meleeReprisals(character),
+      taken, critical, before: hpSnapshot(character),
+      after: { currentHp: after.currentHp, tempHp: after.tempHp, failures: after.deathSaves.failures },
     })
     setType('')
   }

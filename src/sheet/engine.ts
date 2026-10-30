@@ -4,7 +4,7 @@
 import type { Character, CharacterState, HitDie } from '../model/character'
 import type { RestType } from '../rules/types'
 import type { ConditionId } from '../rules/types'
-import { dropSpentTempHp, effectsAfterRest, loseConcentration } from './effects'
+import { dropSpentTempHp, effectsAfterRest, endEffect, loseConcentration } from './effects'
 import { abilityMod, getAbilityScores, getHitDice, getMaxHp, getResources, getSpellSlots, migrateSubclassIds } from '../rules'
 
 
@@ -59,9 +59,23 @@ export function normalize(saved: Character): Character {
 export function takeDamage(c: Character, amount: number, opts: { critical?: boolean } = {}): Character {
   // Armor of Agathys and the like end with the temporary hit points they gave.
   const hurt = dropSpentTempHp(damaged(c, amount, opts))
-  // Dropping to 0 HP knocks the character out, which ends concentration.
-  return hurt.state.currentHp === 0 ? loseConcentration(hurt) : hurt
+  // Dropping to 0 HP knocks the character out, which ends concentration and Rage.
+  return hurt.state.currentHp === 0 ? endEffect(loseConcentration(hurt), 'feature:rage') : hurt
 }
+
+/** What a hit can change, saved so a reaction (Uncanny Dodge, Relentless Endurance) can take it again differently. */
+export type HpSnapshot = Pick<CharacterState, 'currentHp' | 'tempHp' | 'deathSaves' | 'effects'>
+
+export const hpSnapshot = (c: Character): HpSnapshot =>
+  ({ currentHp: c.state.currentHp, tempHp: c.state.tempHp, deathSaves: c.state.deathSaves, effects: c.state.effects })
+
+/** The same hit taken again from before it landed, for `amount` instead (halved, reduced, or just enough to leave 1 HP). */
+export function retakeDamage(c: Character, before: HpSnapshot, amount: number, opts: { critical?: boolean } = {}): Character {
+  return takeDamage(withState(c, before), amount, opts)
+}
+
+/** Relentless Endurance: the most a hit can take while leaving 1 HP. */
+export const damageToOne = (before: HpSnapshot) => Math.max(0, before.currentHp + before.tempHp - 1)
 
 function damaged(c: Character, amount: number, opts: { critical?: boolean }): Character {
   if (amount <= 0 || vitals(c) === 'dead') return c
