@@ -1,6 +1,6 @@
 # Cloud sync
 
-Characters (with their play state, inventory and coins), level snapshots and roll history save to the server and load on any device the player signs in on with their activation code. Works offline: everything is saved on the device first and uploaded when the connection is back.
+Characters (with their play state, inventory and coins), level snapshots, roll history and homebrew packs save to the server and load on any device the player signs in on with their activation code. Works offline: everything is saved on the device first and uploaded when the connection is back.
 
 ## Files Covered
 
@@ -9,6 +9,7 @@ Characters (with their play state, inventory and coins), level snapshots and rol
 | `types.ts` | `RemoteStore` (what a backend implements), `RemoteRow`, `PushResult`, `SyncStatus` |
 | `outbox.ts` | Bookkeeping in `ff.sync.v1`: server revision per character, unsent changes, pull cursors per account |
 | `engine.ts` | `syncOnce(remote, ownerId)`: first upload, push, pull, conflicts; `resolveConflict`, `mergeRolls` |
+| `packs.ts` | `syncPacks`: the device's homebrew library to and from the account, party members' packs down read-only |
 | `runner.ts` | `startSync(remote, ownerId)` schedules passes; `getSyncStatus` / `onSyncStatus` |
 | `supabaseRemote.ts` | `RemoteStore` over the Supabase tables, with realtime on `characters` |
 | `useCloudSync.ts` | App hook: runs sync while the device is linked (`src/cloud`) and that account is the active player |
@@ -16,8 +17,10 @@ Characters (with their play state, inventory and coins), level snapshots and rol
 | `duplicates.ts` | Same character twice: `findDuplicates` (same owner + name), `mergeSameBuilds`, `keepCopy`, `keepBoth` |
 | `DuplicatePrompt.tsx` | Character list card that asks which copy to keep |
 | `SyncBadge.tsx`, `sync.css` | "Saved to cloud / Offline / N changes waiting" chip |
+| `packs.test.ts` | Packs across devices, to the party DM, privacy outside the party, deletes, conflicts, missing table |
 | `sync.test.ts` | Two-device tests: first upload, new device, offline, conflicts, deletes, same character twice |
 | `../../supabase/migrations/20261027100000_sync.sql` | `snapshots` and `rolls` tables and their access rules (checks in `supabase/tests/rls_test.sql`) |
+| `../../supabase/migrations/20261030120000_homebrew_packs.sql` | `homebrew_packs` table: owner writes, owner + party members + admin read |
 
 ## How it works
 
@@ -39,6 +42,16 @@ A push is refused when another device wrote the character since this one last sy
 
 Snapshots and rolls never conflict: snapshots are written once (deletes sync as tombstones) and rolls are merged by id, newest 100 kept. Clearing roll history only clears this device until the next pull.
 
+## Homebrew packs
+
+Packs belong to the device's library (`src/homebrew/store.ts`), not one profile, so the linked account uploads every pack on the device, friends' read-only copies included. `savePack`, `importPack` and `deletePack` mark the pack in the outbox (`markPackDirty`); sync writes back through `applyRemotePack` (own) and `applyPartyPacks` (party), which don't. The first pass for an account queues every pack once (`packsInitialized`, separate from `initialized` so devices synced before packs existed upload theirs too).
+
+- Rows are keyed by owner and pack id: a friend's pack in my library is my copy of it.
+- One pull reads my rows and those of everyone I share a party with (the server's rule, `shares_party`). Party rows go to `ff.homebrew.shared.v1`; the rules engine sees my library plus the newest party copy of any pack not in it. So the DM's device resolves a player's homebrew subclass, class, race, items and feats without importing anything. The Homebrew screen lists them under "From your party" with Add to my library.
+- Conflicts: an edit beats a delete; otherwise the pack's `updatedAt` decides. Deletes are tombstones (`deleted`), rows are never removed.
+- While the live database has no `homebrew_packs` table yet, the remote throws `MissingTableError` and the pass skips packs, leaving them queued.
+- Not handled: a member who leaves the party keeps their packs on the others' devices until they delete them.
+
 ## Same character twice
 
 Characters are matched by id, so a hero built separately on two devices before signing in on both becomes two cloud copies (Ziv's David Jones, 2026-10-28). After each sync pass, the signed-in account's characters with the same name (trimmed, any case) are a duplicate group:
@@ -50,6 +63,6 @@ Keeping a copy saves every other copy, whole (build, gear, play state), as a `ME
 
 ## Server
 
-`characters` is in the foundation migration (`src/cloud/CLOUD.md`); `snapshots` and `rolls` are in `20261027100000_sync.sql`. Owner or admin only; the DM sees none of it. `updated_at` is the server's clock and the pull cursor; pulls re-read 10 s before it, because a slow transaction can commit with an earlier time. Rolls are insert-only and keyed by roll id.
+`characters` is in the foundation migration (`src/cloud/CLOUD.md`); `snapshots` and `rolls` are in `20261027100000_sync.sql`; `homebrew_packs` in `20261030120000_homebrew_packs.sql`. Owner or admin only; the DM sees none of it. `updated_at` is the server's clock and the pull cursor; pulls re-read 10 s before it, because a slow transaction can commit with an earlier time. Rolls are insert-only and keyed by roll id.
 
 Portraits travel inside the character's `data`, so large images make every save bigger.

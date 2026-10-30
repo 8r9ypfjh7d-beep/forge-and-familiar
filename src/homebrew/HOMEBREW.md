@@ -20,6 +20,7 @@ Custom spells, items, feats, races (or subraces of any race), subclasses, backgr
 - Entry ids are `hb:<packId>:<slug>`. The pack id is stable across devices, so a character holding a homebrew item keeps working wherever the pack is imported.
 - Every pack on the device is active. `store.ts` calls `registerHomebrewItems` (rules) with all pack items on load, on every write, and on changes from other tabs. `App.tsx` calls `loadHomebrew()` once at startup.
 - Homebrew weapons and armor go through the normal engine: attacks, AC, proficiency by category, and carried weight.
+- Cloud sync (`src/sync/packs.ts`, see `SYNC.md`): a cloud-linked device uploads its library and pulls the account's packs from its other devices. Party members' packs arrive read-only in `ff.homebrew.shared.v1` (`listPartyPacks`, `applyPartyPacks`) and are registered too, so a friend's homebrew subclass or item resolves on the DM's device. `savePack`/`importPack`/`deletePack` mark the outbox; `applyRemotePack` doesn't.
 - Only the author edits a pack. Friends get a read-only copy and can "Make my own copy" (new pack id, new entry ids).
 - Importing a pack that already exists replaces it only when the incoming `updatedAt` is newer.
 - Share code: `FFHB1.` + base64url of the pack JSON. Files are the same JSON. Everything imported is rebuilt by `sanitizePack`: unknown fields dropped, numbers clamped, dice checked, ids forced into the pack's own namespace so a pack cannot shadow SRD or another pack's items.

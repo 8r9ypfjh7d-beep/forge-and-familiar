@@ -5,11 +5,14 @@ import {
   allTools, registerClassOptions, registerHomebrewBackgrounds, registerHomebrewClasses, registerHomebrewFeats, registerHomebrewItems, registerHomebrewProficiencies,
   registerHomebrewRaces, registerHomebrewSubclasses, type ClassDef, type HomebrewBackgroundDef, type Race, type Subrace, type TraitChoice,
 } from '../rules'
+import { markPackDirty } from '../sync/outbox'
 import { slug } from './pack'
 import { sanitizePack } from './pack'
 import type { HomebrewBackground, HomebrewClass, HomebrewPack, HomebrewRace } from './types'
 
 const KEY = 'ff.homebrew.v1'
+/** Party members' packs from the cloud (src/sync), by `<ownerId>:<packId>`. Read-only, never edited here. */
+const SHARED_KEY = 'ff.homebrew.shared.v1'
 const CHANGED = 'ff:homebrew-changed'
 
 function readPacks(): HomebrewPack[] {
@@ -26,6 +29,32 @@ function readPacks(): HomebrewPack[] {
   } catch {
     return []
   }
+}
+
+function readShared(): Record<string, HomebrewPack> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SHARED_KEY) ?? '{}')
+    const out: Record<string, HomebrewPack> = {}
+    for (const [k, p] of Object.entries(raw && typeof raw === 'object' ? raw : {})) {
+      try { out[k] = sanitizePack(p) } catch { /* skip a broken copy */ }
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+/** The packs the rules engine sees: this device's library, plus the newest party copy of each pack not in it. */
+function activePacks(): HomebrewPack[] {
+  const local = readPacks()
+  const byId = new Map(local.map(p => [p.id, p]))
+  const party = new Map<string, HomebrewPack>()
+  for (const p of Object.values(readShared())) {
+    if (byId.has(p.id)) continue
+    const cur = party.get(p.id)
+    if (!cur || p.updatedAt > cur.updatedAt) party.set(p.id, p)
+  }
+  return [...local, ...party.values()]
 }
 
 /** The race's named pick as a rules TraitChoice (saved in traitChoices[`<raceId>:choice`]); option ids come from their names. */
@@ -89,15 +118,17 @@ function register(packs: HomebrewPack[]) {
   registerHomebrewClasses(packs.flatMap(p => p.classes).map(toClass))
 }
 
-function writePacks(packs: HomebrewPack[]) {
+function write(key: string, value: unknown) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(packs))
+    localStorage.setItem(key, JSON.stringify(value))
   } catch {
     // Storage full or blocked; nothing else to do offline.
   }
-  register(packs)
-  window.dispatchEvent(new Event(CHANGED))
+  register(activePacks())
+  globalThis.window?.dispatchEvent(new Event(CHANGED))
 }
+
+const writePacks = (packs: HomebrewPack[]) => write(KEY, packs)
 
 export async function listPacks(): Promise<HomebrewPack[]> {
   return readPacks()
@@ -106,11 +137,13 @@ export async function listPacks(): Promise<HomebrewPack[]> {
 export async function savePack(pack: HomebrewPack): Promise<HomebrewPack> {
   const next = { ...pack, history: undefined, updatedAt: new Date().toISOString() }
   writePacks([...readPacks().filter(p => p.id !== pack.id), next])
+  markPackDirty(next.id)
   return next
 }
 
 export async function deletePack(id: string): Promise<void> {
   writePacks(readPacks().filter(p => p.id !== id))
+  markPackDirty(id, true)
 }
 
 export type ImportResult = 'added' | 'updated' | 'unchanged'
@@ -121,14 +154,41 @@ export async function importPack(pack: HomebrewPack): Promise<ImportResult> {
   const existing = packs.find(p => p.id === pack.id)
   if (existing && Date.parse(existing.updatedAt) >= Date.parse(pack.updatedAt)) return 'unchanged'
   writePacks([...packs.filter(p => p.id !== pack.id), { ...pack, history: undefined }])
+  markPackDirty(pack.id)
   return existing ? 'updated' : 'added'
+}
+
+/** This device's library without marking anything for sync: for src/sync only. */
+export const localPacks = (): HomebrewPack[] => readPacks()
+
+/** Writes another device's copy into the library (or removes it), without marking it for sync. */
+export function applyRemotePack(pack: HomebrewPack | null, id = pack?.id) {
+  const rest = readPacks().filter(p => p.id !== id)
+  writePacks(pack ? [...rest, { ...sanitizePack(pack), history: undefined }] : rest)
+}
+
+/** Party members' packs this device knows, keyed `<ownerId>:<packId>`. */
+export async function listPartyPacks(): Promise<HomebrewPack[]> {
+  return Object.values(readShared())
+}
+
+/** Applies party members' pack changes from the cloud: a pack to keep, or null when it was deleted. */
+export function applyPartyPacks(changes: { ownerId: string; id: string; pack: HomebrewPack | null }[]) {
+  if (!changes.length) return
+  const shared = readShared()
+  for (const c of changes) {
+    const key = `${c.ownerId}:${c.id}`
+    if (c.pack) shared[key] = { ...sanitizePack(c.pack), history: undefined }
+    else delete shared[key]
+  }
+  write(SHARED_KEY, shared)
 }
 
 /** Calls fn when packs change in this tab or another one. Returns an unsubscribe function. */
 export function onPacksChanged(fn: () => void): () => void {
   const other = (e: StorageEvent) => {
-    if (e.key !== KEY) return
-    register(readPacks())
+    if (e.key !== KEY && e.key !== SHARED_KEY) return
+    register(activePacks())
     fn()
   }
   window.addEventListener(CHANGED, fn)
@@ -141,5 +201,5 @@ export function onPacksChanged(fn: () => void): () => void {
 
 /** Registers stored homebrew items with the rules engine. Call once at startup. */
 export function loadHomebrew() {
-  register(readPacks())
+  register(activePacks())
 }

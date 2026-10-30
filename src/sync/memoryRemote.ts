@@ -3,12 +3,19 @@
 import type { Character } from '../model/character'
 import type { Snapshot } from '../portability/snapshots'
 import type { RollResult } from '../dice/types'
+import type { HomebrewPack } from '../homebrew/types'
 import type { RemoteRow, RemoteStore } from './types'
 
 export interface MemoryRemote extends RemoteStore {
   characters: Map<string, RemoteRow<Character>>
   snapshots: Map<string, RemoteRow<Snapshot>>
   rolls: Map<string, { ownerId: string; roll: RollResult }>
+  /** Keyed `<ownerId>:<packId>`. */
+  packs: Map<string, RemoteRow<HomebrewPack>>
+  /** Who shares a party with whom, for pack reads; set by tests. Everyone sees their own. */
+  partyOf: Map<string, string>
+  /** Viewer account for pullPacks (the server knows it from the session). */
+  viewer: string
   /** Makes every call fail, like a dropped connection. */
   offline: boolean
 }
@@ -22,6 +29,9 @@ export function memoryRemote(): MemoryRemote {
     characters: new Map(),
     snapshots: new Map(),
     rolls: new Map(),
+    packs: new Map(),
+    partyOf: new Map(),
+    viewer: '',
     offline: false,
     async pullCharacters(ownerId, since) {
       check()
@@ -50,6 +60,19 @@ export function memoryRemote(): MemoryRemote {
     async pushRolls(ownerId, rolls) {
       check()
       for (const roll of rolls) if (!r.rolls.has(roll.id)) r.rolls.set(roll.id, { ownerId, roll: copy(roll) })
+    },
+    async pullPacks(since) {
+      check()
+      const party = r.partyOf.get(r.viewer)
+      return [...r.packs.values()]
+        .filter(x => (x.ownerId === r.viewer || (party && r.partyOf.get(x.ownerId) === party)) && (!since || x.updatedAt > since))
+        .map(copy)
+    },
+    async putPack(row) {
+      check()
+      const key = `${row.ownerId}:${row.id}`
+      const cur = r.packs.get(key)
+      r.packs.set(key, { ...copy(row), data: copy(row.data) as HomebrewPack, rev: (cur?.rev ?? 0) + 1, updatedAt: clock() })
     },
     async recentRolls(ownerId, limit) {
       check()
