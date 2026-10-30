@@ -8,20 +8,21 @@ import { followPlan } from '../planner/plan'
 import { getCharacter, saveCharacter } from '../storage'
 import type { MessageKey } from '../i18n'
 import { applyEdit, draftFrom, startingGearChanged } from './edit'
+import { clearDraft, loadDraft, saveDraft } from './draftStore'
 import { STEPS } from './steps'
 import { stepIssues, stepWarnings } from './validate'
 import { Summary } from './Summary'
 import { Why } from './Why'
 import './builder.css'
 
-export function emptyDraft(ownerId: string): CharacterDraft {
+export function emptyDraft(ownerId: string, playerName = ''): CharacterDraft {
   return {
     ownerId,
     name: '',
-    playerName: '',
+    playerName,
     alignment: 'True Neutral',
     raceId: '',
-    backgroundId: 'acolyte',
+    backgroundId: '',
     classes: [],
     abilityMethod: 'standard',
     baseAbilities: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 },
@@ -30,19 +31,25 @@ export function emptyDraft(ownerId: string): CharacterDraft {
   }
 }
 
-/** Creates a character, or edits `editing` when given. onCreate gets the finished character either way. */
-export function Builder({ ownerId, editing, onCreate, onCancel }: {
+/**
+ * Creates a character, or edits `editing` when given. onCreate gets the finished character either way.
+ * A new character's unfinished draft is kept per player (draftStore) and picked up again next time.
+ */
+export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel }: {
   ownerId: string
+  /** The signed-in player's name, prefilled on new characters. */
+  playerName?: string
   editing?: Character
   onCreate: (c: Character) => void
   onCancel: () => void
 }) {
-  const [initial] = useState<CharacterDraft>(() => (editing ? draftFrom(editing) : emptyDraft(ownerId)))
-  const [draft, setDraft] = useState<CharacterDraft>(initial)
-  const [step, setStep] = useState(0)
+  const [initial] = useState<CharacterDraft>(() => (editing ? draftFrom(editing) : emptyDraft(ownerId, playerName)))
+  const [resumed, setResumed] = useState(() => (editing ? undefined : loadDraft(ownerId)))
+  const [draft, setDraft] = useState<CharacterDraft>(() => (resumed ? { ...resumed.draft, playerName: resumed.draft.playerName || playerName } : initial))
+  const [step, setStep] = useState(() => Math.min(resumed?.step ?? 0, STEPS.length - 1))
   const [furthest, setFurthest] = useState(editing ? STEPS.length - 1 : 0)
   const [replaceGear, setReplaceGear] = useState(true)
-  const [hookKey, setHookKey] = useState<string>()
+  const [hookKey, setHookKey] = useState<string | undefined>(resumed?.hookKey)
   // In Edit, levels gained take the picks saved in the build planner.
   const update = (patch: Partial<CharacterDraft>) => setDraft(d => {
     const next = { ...d, ...patch }
@@ -63,6 +70,20 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
   const isLast = step === STEPS.length - 1
   const gearChanged = !!editing && startingGearChanged(editing, draft)
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initial), [draft, initial])
+  // Keep the unfinished new character, so a reload or the phone closing the app doesn't lose it.
+  useEffect(() => {
+    if (editing) return
+    if (dirty) saveDraft({ draft, step, hookKey, savedAt: new Date().toISOString() })
+    else clearDraft(ownerId)
+  }, [editing, dirty, draft, step, hookKey, ownerId])
+  const startOver = () => {
+    if (!confirm(t('builder.draft.startOverConfirm'))) return
+    clearDraft(ownerId)
+    setResumed(undefined)
+    setDraft(initial)
+    setHookKey(undefined)
+    setStep(0)
+  }
   const result = () => (editing
     ? applyEdit(editing, draft, { replaceGear: gearChanged && replaceGear })
     : { ...createCharacter(draft), notes: hookKey ? t(hookKey as MessageKey) : '' })
@@ -88,6 +109,12 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
           <h2>{t('builder.edit.title', { name: editing.name })}</h2>
           <p className="small">{t('builder.edit.intro')}</p>
         </div>
+      )}
+      {resumed && dirty && (
+        <p className="draft-resumed small" role="status">
+          {t('builder.draft.resumed')}{' '}
+          <button className="glass-btn small" onClick={startOver}>{t('builder.draft.startOver')}</button>
+        </p>
       )}
       {!editing && <RandomCharacter onRoll={rollRandom} />}
       <nav className="steps" ref={stepsRef} aria-label={t('builder.steps')}>
@@ -152,7 +179,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
                 </button>
               )}
               {(isLast || editing) && (
-                <button className="glass-btn prominent" disabled={firstBlocked !== -1 || (!!editing && !dirty)} onClick={() => onCreate(result())}>
+                <button className="glass-btn prominent" disabled={firstBlocked !== -1 || (!!editing && !dirty)} onClick={() => { if (!editing) clearDraft(ownerId); onCreate(result()) }}>
                   {editing ? t('builder.edit.save') : t('builder.create')}
                 </button>
               )}
@@ -198,5 +225,26 @@ export function EditCharacter({ characterId, onSaved, onCancel }: {
         onSaved(saved.id)
       }}
     />
+  )
+}
+
+/** Home and character list: offers the player's unfinished new character, if there is one. */
+export function UnfinishedDraft({ ownerId, onContinue }: { ownerId: string; onContinue: () => void }) {
+  const { t } = useI18n()
+  const [saved, setSaved] = useState(() => loadDraft(ownerId))
+  if (!saved) return null
+  const discard = () => {
+    if (!confirm(t('builder.draft.discardConfirm'))) return
+    clearDraft(ownerId)
+    setSaved(undefined)
+  }
+  return (
+    <div className="glass draft-banner" role="note">
+      <span>{saved.draft.name.trim() ? t('builder.draft.unfinishedNamed', { name: saved.draft.name.trim() }) : t('builder.draft.unfinished')}</span>
+      <span className="row">
+        <button className="glass-btn small prominent" onClick={onContinue}>{t('builder.draft.continue')}</button>
+        <button className="glass-btn small" onClick={discard}>{t('builder.draft.discard')}</button>
+      </span>
+    </div>
   )
 }

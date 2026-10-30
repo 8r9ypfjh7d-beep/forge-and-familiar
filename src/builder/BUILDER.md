@@ -6,7 +6,7 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 
 | File | Purpose |
 |------|---------|
-| `Builder.tsx` | Wizard shell, step navigation, `emptyDraft()`; `EditCharacter` loads a saved character into it; in Edit, levels gained take the build plan's subclass and ASI picks (`followPlan`, src/planner) |
+| `Builder.tsx` | Wizard shell, step navigation, `emptyDraft(ownerId, playerName)` (no background, player name prefilled), `UnfinishedDraft` (Continue/Discard banner on Home and the character list); `EditCharacter` loads a saved character into it; in Edit, levels gained take the build plan's subclass and ASI picks (`followPlan`, src/planner) |
 | `edit.ts` | `draftFrom()`, `applyEdit()`, `startingGearChanged()`: editing a saved character |
 | `CustomSubclassForm.tsx` | The player's own subclass editor (Custom chip in the subclass picker); its `SubclassMechanicsEditor` (features, uses, effects, spells, proficiencies, HP, AC) is shared with Homebrew → Subclasses |
 | `steps.tsx` | Step components: Race (+ Dragonborn ancestry), Class (+ subclass), Abilities (+ ASI or feat), Background & skills (+ custom background, languages, tools), Equipment (SRD kit choices), Details |
@@ -26,6 +26,9 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 | `FeatEditor.tsx` | `FeatMechanics` (every effect a feat can have: +1 pick with optional save, fixed bonuses, skill picks, uses, armor/weapon training, all inventory `EffectsEditor` effects) and `CustomFeatForm`; Homebrew's feat editor reuses `FeatMechanics` |
 | `why.ts` | "why?" topic ids, `explainKey(kind, id)` and `pitchKey()`; topic text is in `i18n/locales/en.ts`, option explanations in `i18n/locales/explain.en.ts` / `explain.he.ts` |
 | `validate.test.ts` | Validation tests |
+| `suggest.ts` | "Suggest for my class": `suggestedArray` (standard array), `suggestedImprovements` (empty ASI slots: +2 to the main ability, split at 19, up to 20), `suggestedSkills` (open skill picks by best ability, class list first) |
+| `draftStore.ts` | The unfinished new character in localStorage per player (`ff.builderDraft.v1.<ownerId>`): draft, step and backstory hook |
+| `suggest.test.ts` | Defaults, suggestions and the kept draft |
 | `Shop.tsx` | Equipment step shop: SRD item library of the character's edition, search, item-type shelves, cart with budget |
 | `shop.ts` | Pure shop helpers: `costCp`, `shopItem` (library item → engine id or embedded item), `changePurchase`, `coinText` |
 | `shop.test.ts` | Prices, cart, engine ids, over-budget warning, editing purchases |
@@ -45,9 +48,11 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 - Metamagic (both editions, `MetamagicPicker.tsx`): a sorcerer's Class step lists every option for the edition (2014: PHB + Tasha's; 2024: PHB) plus homebrew ones, with cost and why? line. The heading shows picked of allowed (`metamagicCount`); more than allowed only warns. Picks go in `Character.classOptions`.
 
 - Random: "Random character" above the step bar (new characters only), the dice next to the name and the backstory hook on Details come from `src/random` (see `RANDOM.md`).
-- Ability methods: standard array (with "suggest for my class"; picking a value another ability holds swaps them), point buy (27), roll 4d6 (rolls 4d6-drop-lowest six times through the dice roller, so the rolls land in dice history; totals saved as `rolledScores`, assigned with selects that swap like the standard array via `assignRolled`; reroll any time, the why? tip says to ask the DM), manual entry (3–20). Unassigned standard scores are 0.
+- Ability methods: standard array (with "suggest for my class", which also fills empty ASI slots and, in 2024, the background's suggested +2/+1 when none are placed; picking a value another ability holds swaps them), point buy (27), roll 4d6 (rolls 4d6-drop-lowest six times through the dice roller, so the rolls land in dice history; totals saved as `rolledScores`, assigned with selects that swap like the standard array via `assignRolled`; reroll any time, the why? tip says to ask the DM), manual entry (3–20). Unassigned standard scores are 0.
 - Loose by design (decided 2026-10-30, Ziv: "don't limit the user"): blocks are only for picks not made yet. Steps open in any order and Next always works; Create/Save waits for every step and points at the first unfinished one. Off-book choices warn in `stepWarnings()`: 2024 background bonuses off the background's list, 2014 free +1 on the race's excluded ability (Half-Elf CHA), moved racial bonuses ("Move my racial bonuses", `racialBonusTargets`), swapped racial skills, languages or weapons on the Race step (Tasha's "Swap my racial proficiencies", `OriginSwapsPicker`, `originSwaps`), an ASI past 20 (the engine still caps), a feat before its usual level (listed as "Feat (level N+)"), skills off the class list, tools off a pick's list ("Other tools" group). Expertise in a skill you aren't proficient in (or off Scholar's list), a Primal Knowledge skill off the class list, and mastery weapons you aren't proficient with (ranged for a Barbarian) also only warn; missing class picks and masteries block.
-- Changing race or class clears chosen skills, since the allowed picks change.
+- Changing race or class clears chosen skills, since the allowed picks change. "Suggest skills" on the Background & skills step fills the open picks (class list first, then any skill, by best ability).
+- No silent defaults (UX audit 2026-10-30): a new character has no background ("Choose a background…" placeholder, the step asks for it) and the Player name is the signed-in profile's name.
+- Unfinished draft: a new character's draft, step and hook are saved to localStorage as they change (`draftStore.ts`). Opening the builder picks it up ("Start over" clears it); Home and the character list show Continue / Discard. Cancel keeps it; Create clears it. Edits aren't kept.
 - Portraits are resized to 320px JPEG data URLs before saving.
 - Starting equipment follows the SRD "(a) or (b)" choices (`ClassDef.equipmentChoices`); "any martial weapon" slots get a dropdown and a default.
 - Races, subraces, subclasses and feats list SRD content plus every homebrew pack on the device, so content from books the group owns is entered once in Homebrew.

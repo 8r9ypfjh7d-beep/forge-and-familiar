@@ -3,7 +3,7 @@ import './a11y'
 import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
 import { AccountBadge, ActivateScreen, CloudLinkNotice, activate, activateErrorKey, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
 import { AdminPage } from './admin'
-import { Builder, EditCharacter } from './builder/Builder'
+import { Builder, EditCharacter, UnfinishedDraft } from './builder/Builder'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { DmScreen } from './dm'
 import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
@@ -164,6 +164,7 @@ export default function App() {
       <main id="main" ref={mainRef} tabIndex={-1}>
         {ownProfile && view.kind !== 'campaigns' && <CloudLinkNotice />}
         {ownProfile && <DuplicatePrompt characters={characters} />}
+        {(view.kind === 'campaigns' || view.kind === 'list') && <UnfinishedDraft key={active.id} ownerId={active.id} onContinue={() => setView({ kind: 'build' })} />}
         {view.kind === 'campaigns' && (
           <CampaignsHome
             userId={active.id}
@@ -201,6 +202,7 @@ export default function App() {
         {view.kind === 'build' && (
           <Builder
             ownerId={active.id}
+            playerName={active.displayName}
             onCancel={() => setView({ kind: 'list' })}
             onCreate={async c => {
               const saved = await saveCharacter(c)

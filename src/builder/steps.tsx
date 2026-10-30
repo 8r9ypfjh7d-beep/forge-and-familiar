@@ -24,6 +24,7 @@ import { FeatDetails, FeatSelect } from './FeatPicker'
 import { InfusionPicker } from './InfusionPicker'
 import { MulticlassPicker } from './MulticlassPicker'
 import { SpellsStep } from './SpellsStep'
+import { suggestedArray, suggestedImprovements, suggestedSkills } from './suggest'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
 import { ChoicePicker, Fold, useFilter } from './Compact'
@@ -49,7 +50,7 @@ function switchEdition(draft: CharacterDraft, edition: RulesEdition): Partial<Ch
     // Spells follow the rules edition again.
     spellEdition: undefined,
     raceId: '', subraceId: undefined, freeAbilityBonuses: [], originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {},
-    backgroundId: 'acolyte', originFeatId: undefined, featureChoices: {}, classOptions: [], classPicks: {}, weaponMasteries: [], improvements: [], equipmentPicks: [], startingWealth: undefined, purchases: [],
+    backgroundId: '', originFeatId: undefined, featureChoices: {}, classOptions: [], classPicks: {}, weaponMasteries: [], improvements: [], equipmentPicks: [], startingWealth: undefined, purchases: [],
     classes: draft.classes.map(cl => ({ classId: cl.classId, level: cl.level })),
   }
 }
@@ -530,14 +531,6 @@ function SubclassPicker({ draft, update, classId }: StepProps & { classId: strin
 
 const METHODS: AbilityMethod[] = ['standard', 'pointBuy', 'rolled', 'manual']
 
-function suggestedArray(draft: CharacterDraft) {
-  const cls = classById(draft.classes[0]?.classId ?? '', draft.rulesEdition)
-  const order: Ability[] = [...(cls?.primary ?? []), 'con', 'dex', 'wis', 'str', 'cha', 'int']
-  const unique = [...new Set(order)]
-  const out = { ...draft.baseAbilities }
-  unique.forEach((a, i) => { out[a] = STANDARD_ARRAY[i] })
-  return out
-}
 
 function AbilitiesStep({ draft, update }: StepProps) {
   const edition = rulesEdition(draft)
@@ -563,6 +556,12 @@ function AbilitiesStep({ draft, update }: StepProps) {
   const raceInfo = raceProfile(draft)
   const free = edition === '2014' ? raceInfo.freeAbilityBonuses : undefined
   const flexible = edition === '2014' && raceInfo.flexibleAbilityBonuses
+  // Lays out the array and fills what has an obvious answer: empty ASIs and (2024) the background's suggested +2/+1.
+  const suggest = () => {
+    const next = { ...draft, baseAbilities: suggestedArray(draft) }
+    const bonuses = edition === '2024' && !draft.freeAbilityBonuses.length ? suggestedBonuses(next) : draft.freeAbilityBonuses
+    update({ baseAbilities: next.baseAbilities, freeAbilityBonuses: bonuses, improvements: suggestedImprovements({ ...next, freeAbilityBonuses: bonuses }) })
+  }
   const toggleFree = (a: Ability) => {
     const has = draft.freeAbilityBonuses.includes(a)
     const next = has ? draft.freeAbilityBonuses.filter(x => x !== a) : [...draft.freeAbilityBonuses, a]
@@ -577,7 +576,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
         ))}
         <Why id={`method.${draft.abilityMethod}`} />
         {draft.abilityMethod === 'standard' && (
-          <button className="glass-btn small" onClick={() => update({ baseAbilities: suggestedArray(draft) })}>{t('builder.suggest')}</button>
+          <button className="glass-btn small" onClick={suggest}>{t('builder.suggest')}</button>
         )}
         {draft.abilityMethod === 'standard' && <Why id="suggest" />}
       </div>
@@ -905,6 +904,9 @@ function SkillsStep({ draft, update }: StepProps) {
           ? t('builder.chosenMixed', { chosen: draft.chosenSkills.length, total, classCount, raceCount })
           : t('builder.chosenClass', { chosen: draft.chosenSkills.length, total })}
         <Why id="skills" />
+        {draft.chosenSkills.length < total && (
+          <> <button className="glass-btn small" onClick={() => update({ chosenSkills: suggestedSkills(draft) })}>{t('builder.suggestSkills')}</button></>
+        )}
       </p>
       {bgCount > 0 && <p className="small">{t('builder.bgSkills', { count: bgCount, skills: bgFrom.map(s => skill(s)).join(', ') })}</p>}
       <div className="skill-grid">
@@ -944,11 +946,12 @@ function BackgroundExplain({ kind, bg, id }: { kind: 'bg' | 'bg2024'; bg?: Backg
 
 /** Background options: the SRD ones first, then one group per book. */
 function BackgroundOptions({ edition }: { edition: RulesEdition }) {
-  const { term } = useI18n()
+  const { t, term } = useI18n()
   const groups = new Map<string, Background[]>()
   for (const b of backgroundsFor(edition)) groups.set(b.source ?? '', [...(groups.get(b.source ?? '') ?? []), b])
   const options = (list: Background[]) => list.map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)
-  return <>{[...groups].map(([source, list]) => (source ? <optgroup key={source} label={source}>{options(list)}</optgroup> : options(list)))}</>
+  // No default: an unpicked background shows "Choose a background…" and the step asks for it.
+  return <><option value="" disabled>{t('builder.chooseBackground')}</option>{[...groups].map(([source, list]) => (source ? <optgroup key={source} label={source}>{options(list)}</optgroup> : options(list)))}</>
 }
 
 /** Which book a background comes from, when it isn't in the SRD. */
