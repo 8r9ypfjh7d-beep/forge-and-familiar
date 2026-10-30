@@ -85,6 +85,8 @@ export interface ExplainItem {
   key?: MessageKey
   /** "Level 3" style note shown after the name. */
   note?: string
+  /** The player's own text (custom subclass features); wins over `key`. */
+  text?: string
 }
 
 /** Names with a one-line plain-language explanation each, e.g. a class's features or a race's traits. */
@@ -97,7 +99,7 @@ export function ExplainList({ items }: { items: ExplainItem[] }) {
         <li key={`${it.name}-${i}`}>
           <strong>{it.name}</strong>
           {it.note && <span className="muted"> · {it.note}</span>}
-          <span className="why-list-text">{it.key ? t(it.key) : t('why.homebrew')}</span>
+          <span className="why-list-text">{it.text || (it.key ? t(it.key) : t('why.homebrew'))}</span>
         </li>
       ))}
     </ul>

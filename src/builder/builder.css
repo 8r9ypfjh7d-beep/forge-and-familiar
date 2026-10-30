@@ -151,3 +151,7 @@
 :root[data-contrast="high"] .step.active, :root[data-contrast="high"] .choice.selected { box-shadow: inset 0 0 0 2px var(--accent); }
 :root[data-contrast="high"] :is(.stat, .custom-bg, .kit-choice, .gear-swap, .tag) { box-shadow: inset 0 0 0 1px var(--line); }
 :root[data-contrast="high"] .edit-banner { border: 2px solid var(--accent); }
+.custom-sub-feature { display: grid; gap: var(--sp-2); margin: 0; padding: var(--sp-3); border: 0; border-radius: var(--r-md); background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); }
+.custom-sub-feature textarea { inline-size: 100%; }
+.custom-sub .custom-bg-fields .custom-sub-level { flex: 0 1 6rem; }
+:root[data-contrast="high"] .custom-sub-feature { box-shadow: inset 0 0 0 1px var(--line); }

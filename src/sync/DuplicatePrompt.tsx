@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { Character } from '../model/character'
 import { getCloudAccountId } from '../cloud'
-import { getBackground, subclassById } from '../rules'
+import { getBackground, subclassOf } from '../rules'
 import { useI18n } from '../i18n'
 import { findDuplicates, keepBoth, keepCopy, mergeSameBuilds } from './duplicates'
 import { getSyncStatus, onSyncStatus } from './runner'
@@ -28,7 +28,7 @@ export function DuplicatePrompt({ characters }: { characters: Character[] }) {
   if (!group) return null
 
   const classes = (c: Character) => c.classes.map(cl => {
-    const sub = cl.subclassId ? subclassById(cl.subclassId, c.rulesEdition) : undefined
+    const sub = subclassOf(c, cl)
     const base = `${className(cl.classId)} ${cl.level}`
     return sub ? `${base} (${term('subclass', sub.id, sub.name)})` : base
   }).join(' / ')

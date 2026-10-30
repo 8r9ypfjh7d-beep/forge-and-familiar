@@ -41,7 +41,7 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
   const edition = editionOf(character)
   const lib = useLibrary(edition)
   const stats = derive(character)
-  const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities) : []
+  const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities, undefined, lib.spells) : []
   const [classId, setClassId] = useState<string | null>(null)
   const [tab, setTab] = useState<'mine' | 'browse'>('mine')
   const current = access.find(a => a.classId === classId) ?? access[0]
@@ -110,7 +110,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
   const stats = derive(character)
   const [picking, setPicking] = useState(false)
   const [query, setQuery] = useState('')
-  const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities) : []
+  const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities, undefined, lib.spells) : []
   const slots = hasSlots(character)
   const noSpells = !!lib && lib !== 'error' && access.length === 0
   if (noSpells && !slots && !itemSpellsOf(character).length) return null

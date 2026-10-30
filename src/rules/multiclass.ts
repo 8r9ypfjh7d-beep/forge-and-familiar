@@ -2,16 +2,16 @@ import type { Character } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
 import { classChoices } from './choices'
 import { classById } from './data/classes'
-import { subclassById } from './data/subclasses'
 import {
   MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES, MULTICLASS_PROFICIENCIES_2024, NON_STACKING_FEATURES, NON_STACKING_RESOURCES, type MulticlassPrereq,
 } from './data/multiclass'
 import { rulesEdition } from './edition'
+import { activeSubclasses } from './subclass'
 import type { Abilities, Ability, ArmorCategory, ClassDef, WeaponCategory } from './types'
 
 // Multiclassing (SRD 5.1 and 5.2): prerequisites, limited proficiencies, caster level and warnings.
 
-type Classes = Pick<Character, 'classes'> & Partial<Pick<Character, 'rulesEdition'>>
+type Classes = Pick<Character, 'classes'> & Partial<Pick<Character, 'rulesEdition' | 'customSubclasses'>>
 
 /** The fields multiclass rules read; a builder draft has them too. */
 export type MulticlassInput = Pick<Character, 'classes' | 'baseAbilities' | 'raceId' | 'subraceId' | 'freeAbilityBonuses'> &
@@ -70,9 +70,9 @@ export function getProficiencies(c: Classes & Partial<Pick<Character, 'featureCh
     grant.weapons.forEach(w => weapons.add(w))
     grant.weaponIds?.forEach(id => weaponIds.add(id))
   })
-  for (const cl of c.classes) {
-    const sub = cl.subclassId ? subclassById(cl.subclassId, rulesEdition(c)) : undefined
-    if (sub?.classId === cl.classId && cl.level >= (classById(cl.classId, rulesEdition(c))?.subclassLevel ?? 99)) sub.armor?.forEach(a => armor.add(a))
+  for (const { subclass } of activeSubclasses(c)) {
+    subclass.armor?.forEach(a => armor.add(a))
+    subclass.weapons?.forEach(w => weapons.add(w))
   }
   for (const { picked } of classChoices(c)) {
     picked?.armor?.forEach(a => armor.add(a))

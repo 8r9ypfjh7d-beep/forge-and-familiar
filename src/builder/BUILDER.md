@@ -8,6 +8,7 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 |------|---------|
 | `Builder.tsx` | Wizard shell, step navigation, `emptyDraft()`; `EditCharacter` loads a saved character into it |
 | `edit.ts` | `draftFrom()`, `applyEdit()`, `startingGearChanged()`: editing a saved character |
+| `CustomSubclassForm.tsx` | The player's own subclass editor (Custom chip in the subclass picker) |
 | `steps.tsx` | Step components: Race (+ Dragonborn ancestry), Class (+ subclass), Abilities (+ ASI or feat), Background & skills (+ custom background, languages, tools), Equipment (SRD kit choices), Details |
 | `validate.ts` | `stepIssues()` per step; a step with issues blocks later steps |
 | `Summary.tsx` | Live preview panel using `derive()` |
@@ -36,7 +37,7 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 - Starting equipment follows the SRD "(a) or (b)" choices (`ClassDef.equipmentChoices`); "any martial weapon" slots get a dropdown and a default.
 - Races, subraces, subclasses and feats list SRD content plus every homebrew pack on the device, so content from books the group owns is entered once in Homebrew.
 - Background "Custom background" is the PHB rule: any 2 skills, 2 tools or languages in any mix, a named feature. No background items; the class kit and 15 gp still apply.
-- Subclass is required once a class reaches `subclassLevel`. Each ASI slot (`asiLevels`) needs two +1s or a feat; no score above 20.
+- Subclass is required once a class reaches `subclassLevel`. The picker lists every official subclass (with its book and bonus spells) plus Custom, which opens `CustomSubclassForm.tsx`: name, description, features by level (text, uses with recharge, sheet effects through the inventory `EffectsEditor`), bonus spells, armor/weapon proficiencies, HP per level, unarmored AC and (warlock) Charisma pact weapon. A custom subclass needs a name. Each ASI slot (`asiLevels`) needs two +1s or a feat; no score above 20.
 - Language picks come from race, subrace and background (`languagePickCount`); tool picks from race and first class (`toolPickGroups`), in that order in `chosenTools`.
 - Changing race clears language, tool and trait picks; changing the first class clears skills, tools, gear picks and ASIs.
 - Not in the builder yet: spell selection, Bard (Lore) / Ranger / Rogue extra skill and expertise picks, buying gear with starting gold.

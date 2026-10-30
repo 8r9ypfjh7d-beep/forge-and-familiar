@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
 import {
   CLASSES_2024, SPECIES, allFeats, classById, createCharacter, derive, getAbilityScores, getArmorClass, getAttacks, getCasterLevel,
-  getProficiencies, getSpellSlots, getWeaponMasteryCount, raceById, subclassesFor, type CharacterDraft,
+  SUBCLASSES_2024, getProficiencies, getSpellSlots, getWeaponMasteryCount, raceById, subclassesFor, type CharacterDraft,
 } from './index'
 
 // 2024 rules (SRD 5.2), picked per character with rulesEdition: '2024'.
@@ -44,7 +44,7 @@ describe('2024 content', () => {
     expect(CLASSES_2024).toHaveLength(12)
     for (const c of CLASSES_2024) {
       expect(c.subclassLevel, c.id).toBe(3)
-      expect(subclassesFor(c.id, '2024'), c.id).toHaveLength(1)
+      expect(subclassesFor(c.id, '2024')[0], c.id).toBe(SUBCLASSES_2024.find(s => s.classId === c.id))
     }
     expect(classById('cleric')!.subclassLevel).toBe(1)
   })

@@ -1,8 +1,9 @@
-// Item effects: which equipped items, and which custom actions the player switched on, change the character's numbers.
+// Item effects: which equipped items, which custom actions the player switched on, and which subclass features change the character's numbers.
 // derive() and src/explain both read these, so the sheet and "show the math" agree.
 import type { Character } from '../model/character'
 import { entryItem } from './data/items'
 import { ALL_SKILLS } from './data/skills'
+import { subclassEffects } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type BonusEffectKind, type ConditionId, type InventoryEntry, type ItemEffect, type MoveMode,
   type Recharge, type Sense, type SkillId,
@@ -10,7 +11,7 @@ import {
 
 type EffectOf<K extends ItemEffect['kind']> = ItemEffect & { kind: K }
 
-type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions'>>
+type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses'>>
 
 /** An entry's effects work while it is equipped. */
 export const effectsActive = (e: InventoryEntry) => e.equipped
@@ -25,7 +26,8 @@ export function activeItemEffects(c: Owner): ActiveEffect[] {
   })
   // A custom action's stat changes (Rage-like stances, a blessing) count while it is switched on.
   const actions = (c.customActions ?? []).flatMap(a => (a.active ? (a.stats ?? []).map(effect => ({ source: a.name, effect })) : []))
-  return [...items, ...actions]
+  // Subclass features that change the sheet (Thought Shield's psychic resistance, Gift of the Sea's swim speed).
+  return [...items, ...actions, ...subclassEffects(c)]
 }
 
 /**

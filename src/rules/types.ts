@@ -151,6 +151,45 @@ export interface Subclass {
   features: { level: number; name: string }[]
 }
 
+/** How many uses a subclass feature has: a number, the proficiency bonus, the class level, or an ability modifier. */
+export type UsesCount = number | 'pb' | 'level' | Ability
+
+export interface SubclassFeature {
+  level: number
+  name: string
+  /** What it does, for features the SRD library can't describe (other books, custom subclasses). */
+  text?: string
+  /** Uses tracked on the sheet's Resources: count + add, at least `min` (default 1). */
+  uses?: { count: UsesCount; recharge: RestType; add?: number; min?: number }
+  /** Changes to the sheet from this level on: resistances, speeds, senses, proficiencies, advantage, AC... */
+  effects?: ItemEffect[]
+}
+
+/** A subclass with every mechanic the engine applies. Official subclasses and the player's custom ones share it. */
+export interface SubclassData {
+  classId: string
+  name: string
+  features: SubclassFeature[]
+  /** Armor proficiencies the subclass adds (Life Domain: heavy). */
+  armor?: ArmorCategory[]
+  /** Weapon proficiencies the subclass adds (Hexblade: martial). */
+  weapons?: WeaponCategory[]
+  /** Extra max HP per level in this class (Draconic Resilience). */
+  hpPerLevel?: number
+  /** Unarmored AC base before DEX (Draconic Resilience: 13). */
+  unarmoredBase?: number
+  /** Unarmored AC is 10 + DEX + this ability (2024 Draconic Resilience: CHA). */
+  unarmoredAbility?: Ability
+  /** Spells always prepared (or added to the list), by class level, as spell names. */
+  spells?: { level: number; names: string[] }[]
+  /** Pact weapon attacks may use Charisma under 2014 rules too (Hex Warrior). */
+  castingWeapon?: boolean
+  /** Book it comes from, shown in the builder ("Xanathar's Guide"). SRD subclasses have none. */
+  source?: string
+  /** Player's own description (custom subclasses). */
+  description?: string
+}
+
 /** Effects a feat applies to the sheet. Shared with homebrew feats. */
 export type FeatEffect =
   | { kind: 'ability'; ability: Ability; amount: number }
