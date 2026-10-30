@@ -3,7 +3,7 @@ import { coinText } from './shop'
 import {
   ABILITIES, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_FEAT, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses, improvementFeat,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
-  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassById, subclassOf, subclassPickLists, subclassesFor, toolPickGroups,
+  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassById, subclassOf, subclassPickLists, toolPickGroups,
   type Ability, type CharacterDraft, type ClassPick, type SkillId,
 } from '../rules'
 
