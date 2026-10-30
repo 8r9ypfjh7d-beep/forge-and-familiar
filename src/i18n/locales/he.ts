@@ -21,6 +21,8 @@ import { useHe } from './use.he'
 import { hurtHe } from './hurt.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
 import { subfeatureTermsHe } from './subfeatures.he'
+import { spellNamesHe } from './spells.he'
+import { itemNamesHe, whenTermsHe } from './itemnames.he'
 
 const messages: Messages = {
   ...explainHe,
@@ -715,7 +717,7 @@ const messages: Messages = {
   'spells.empty': 'אין עדיין לחשים. בחרו מרשימת הלחשים של {className}.',
   'spells.level': '{ordinal}',
   'spells.available': '{count} לחשי {className} עד {ordinal}',
-  'spells.search': 'חיפוש לחשים (באנגלית)',
+  'spells.search': 'חיפוש לחשים (עברית או אנגלית)',
   'spells.levelFilter': 'דרגת לחש',
   'spells.all': 'הכול',
   'spells.noMatch': 'אין לחשים מתאימים.',
@@ -1972,6 +1974,7 @@ const messages: Messages = {
   'starters.spells': 'לחשים מומלצים',
   'starters.attack': '{bonus} לפגיעה, {damage} {type}',
   // Accessibility dialog, homebrew and change history
+  'a11y.skip': 'דלגו לתוכן הראשי',
   'a11y.button': 'נגישות',
   'a11y.activeCount_one': 'אחת פעילה',
   'a11y.activeCount': '{count} פעילות',
@@ -2623,6 +2626,9 @@ const messages: Messages = {
 
 const terms: Terms = {
   ...subfeatureTermsHe,
+  ...itemNamesHe,
+  ...whenTermsHe,
+  ...Object.fromEntries(Object.entries(spellNamesHe).map(([id, name]) => [`spell.${id}`, name])),
   ...proficiencyTermsHe,
   ...metamagicTermsHe,
   ...speciesTermsHe,

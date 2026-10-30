@@ -479,7 +479,7 @@ function SubclassPickList({ draft, update, at }: StepProps & { at: ReturnType<ty
 }
 
 function SubclassPicker({ draft, update, classId }: StepProps & { classId: string }) {
-  const { t, term, className } = useI18n()
+  const { t, term, className, spellName } = useI18n()
   const edition = rulesEdition(draft)
   const own = draft.classes.find(cl => cl.classId === classId)
   const ownDef = classById(classId, edition)
@@ -518,7 +518,7 @@ function SubclassPicker({ draft, update, classId }: StepProps & { classId: strin
                 {picked && !custom && <SubclassPicks draft={draft} update={update} classId={cl.classId} />}
                 {!custom && spells.length > 0 && (
                   <p className="small">
-                    <strong>{t('builder.subSpells')}</strong> {spells.map(s => `${t('builder.level', { level: s.level })}: ${s.names.map(n => term('spell', n, n)).join(', ')}`).join(' · ')}
+                    <strong>{t('builder.subSpells')}</strong> {spells.map(s => `${t('builder.level', { level: s.level })}: ${s.names.map(n => spellName(n)).join(', ')}`).join(' · ')}
                   </p>
                 )}
                 {custom && <CustomSubclassForm draft={draft} classId={cl.classId} update={update} />}
@@ -1119,7 +1119,7 @@ function LanguagesAndTools({ draft, update }: StepProps) {
         offset += g.count
         return (
           <div key={g.source} className="row">
-            <span className="small">{t('builder.toolsFrom', { source: g.source, count: g.count })}</span>
+            <span className="small">{t('builder.toolsFrom', { source: term(g.kind, g.id, g.source), count: g.count })}</span>
             {Array.from({ length: g.count }, (_, k) => (
               <ToolPick key={start + k} i={start + k} tools={tools} known={known} from={g.from} onChange={v => setTool(start + k, v)} />
             ))}

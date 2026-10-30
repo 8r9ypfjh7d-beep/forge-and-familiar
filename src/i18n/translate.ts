@@ -51,6 +51,10 @@ export function translate(locale: Locale, key: MessageKey, vars?: Vars): string 
 }
 
 /** SRD name for `kind.id` in `locale`, or `fallback` (the English data name). */
+/** Term id of a spell from its id or English name ("Syluné's Viper" → "sylunes-viper"). */
+export const spellTermId = (nameOrId: string) =>
+  nameOrId.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 export function term(locale: Locale, kind: string, id: string, fallback: string): string {
   return LOCALES[locale].terms[`${kind}.${id}`] ?? fallback
 }

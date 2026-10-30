@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { stepIssues } from '../builder/validate'
 import { emptyDraft } from '../builder/Builder'
-import { ALIGNMENTS, BACKGROUNDS, BOOK_RACES, BOOK_SPECIES_2024, BOOK_SUBRACES, CLASSES, LANGUAGES, RACES, SKILLS, TOOLS, backgroundsFor, classesFor, subclassesFor } from '../rules'
+import { ITEMS, ALIGNMENTS, BACKGROUNDS, BOOK_RACES, BOOK_SPECIES_2024, BOOK_SUBRACES, CLASSES, LANGUAGES, RACES, SKILLS, TOOLS, backgroundsFor, classesFor, subclassesFor } from '../rules'
 import { en } from './locales/en'
 import { he } from './locales/he'
-import { LOCALES, term, translate } from './translate'
+import { LOCALES, spellTermId, term, translate } from './translate'
+import { spellMeasureHe } from './locales/spells.he'
+import { loadKind } from '../content'
 
 describe('translate', () => {
   it('fills vars and falls back to English, then to the key', () => {
@@ -80,6 +82,29 @@ describe('Hebrew coverage', () => {
       ...classes.flatMap(({ c, ed }) => subclassesFor(c.id, ed).flatMap(s => s.features.map(f => `feature.${f.name}`))),
     ]
     expect([...new Set(ids)].filter(k => !(k in he.terms))).toEqual([])
+  })
+
+  // Every spell in the library (SRD and book spells, both editions) has a Hebrew name, found by id or English name.
+  it('names every spell', async () => {
+    const spells = await loadKind('spells')
+    expect(spells.length).toBeGreaterThan(500)
+    expect([...new Set(spells.map(sp => `spell.${spellTermId(sp.name)}`))].filter(k => !(k in he.terms))).toEqual([])
+    expect([...new Set(spells.map(sp => `spell.${sp.id}`))].filter(k => !(k in he.terms))).toEqual([])
+  })
+
+  it('translates every spell casting time, range and duration', async () => {
+    const spells = await loadKind('spells')
+    const texts = [...new Set(spells.flatMap(sp => [sp.castingTime, sp.range, sp.duration]))]
+    expect(texts.filter(x => /[a-z]{3}/i.test(spellMeasureHe(x)))).toEqual([])
+    expect(spellMeasureHe('1 action')).toBe('פעולה')
+    expect(spellMeasureHe('Self (30-foot cone)')).toBe('עצמי (חרוט 30 רגל)')
+    expect(spellMeasureHe('up to 1 minute')).toBe('עד דקה')
+    expect(spellMeasureHe('60 feet')).toBe('60 רגל')
+    expect(spellMeasureHe('Homebrew time')).toBe('Homebrew time')
+  })
+
+  it('names every rules-engine item', () => {
+    expect(ITEMS.map(i => `item.${i.id}`).filter(k => !(k in he.terms))).toEqual([])
   })
 
   it('names every 2024 background', () => {

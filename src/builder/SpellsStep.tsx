@@ -2,7 +2,7 @@
 // race and lineage spells, and picks from spell feats (Magic Initiate). Counts guide, they never block.
 import { useEffect, useMemo, useState } from 'react'
 import { loadKind, searchEntries, type CharacterClass, type Edition, type Spell, type Subclass } from '../content'
-import { useI18n, type MessageKey } from '../i18n'
+import { SpellName, useI18n, type MessageKey } from '../i18n'
 import type { KnownSpell } from '../model/character'
 import { classById, featById, getAbilityScores, raceById } from '../rules'
 import { SearchField } from '../rulesqa/SearchField'
@@ -59,14 +59,14 @@ function Count({ label, picked, target, why }: { label: string; picked: number; 
 
 /** The picks as removable chips, then search, level chips and a list of spells with an add/remove button each. */
 function SpellPicker({ pool, chosen, onToggle, label }: { pool: Spell[]; chosen: Set<string>; onToggle: (s: Spell) => void; label: string }) {
-  const { t } = useI18n()
+  const { t, spellName } = useI18n()
   const [query, setQuery] = useState('')
   const [level, setLevel] = useState<number | 'all'>('all')
   const levels = [...new Set(pool.map(s => s.level))].sort((a, b) => a - b)
   // A steady order (level, then name), so a row never jumps away from the finger that tapped it.
   const sorted = useMemo(() => [...pool].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)), [pool])
   const picked = sorted.filter(s => chosen.has(s.id))
-  const matches = searchEntries(sorted.filter(s => level === 'all' || s.level === level), query)
+  const matches = searchEntries(sorted.filter(s => level === 'all' || s.level === level), query, sp => spellName(sp.id, ''))
   const shown = matches.slice(0, 80)
   return (
     <div className="sb-browse" role="group" aria-label={label}>
@@ -74,12 +74,12 @@ function SpellPicker({ pool, chosen, onToggle, label }: { pool: Spell[]; chosen:
         <div className="bs-picked" role="group" aria-label={t('builder.spells.picked')}>
           {picked.map(s => (
             <button key={s.id} type="button" className="glass-chip on" aria-label={t('spells.removeName', { name: s.name })} onClick={() => onToggle(s)}>
-              <bdi lang="en">{s.name}</bdi> ✕
+              <bdi>{spellName(s.id, s.name)}</bdi> ✕
             </button>
           ))}
         </div>
       )}
-      <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} lang="en" />
+      <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} />
       {levels.length > 1 && (
         <div className="sb-levels" role="group" aria-label={t('spells.levelFilter')}>
           <button type="button" className={`glass-chip${level === 'all' ? ' on' : ''}`} aria-pressed={level === 'all'} onClick={() => setLevel('all')}>{t('spells.all')}</button>
@@ -114,7 +114,7 @@ function SpellPicker({ pool, chosen, onToggle, label }: { pool: Spell[]; chosen:
 }
 
 export function SpellsStep({ draft, update }: StepProps) {
-  const { t, term } = useI18n()
+  const { t, term, spellName } = useI18n()
   const lib = useSpellLibrary(editionOf(draft))
   const [classId, setClassId] = useState<string | null>(null)
   const [lists, setLists] = useState<Record<string, string>>({})
@@ -161,7 +161,7 @@ export function SpellsStep({ draft, update }: StepProps) {
           <ul className="bs-granted">
             {granted.map(g => (
               <li key={g.spell.id} className={g.unlocked ? '' : 'locked'}>
-                <bdi lang="en">{g.spell.name}</bdi>
+                <SpellName name={g.spell.name} id={g.spell.id} />
                 <span className="muted small">
                   {g.from !== g.spell.name ? `${term('trait', g.from, g.from)} · ` : ''}
                   {g.unlocked ? (g.spell.level === 0 ? t('spells.cantrip') : t('builder.spells.oncePerRest')) : t('builder.spells.atLevel', { level: g.atLevel })}
@@ -189,7 +189,7 @@ export function SpellsStep({ draft, update }: StepProps) {
           title={source.kind === 'feat'
             ? term('feat', source.grantId, featById(source.grantId, draft.rulesEdition)?.name ?? source.grantId)
             : term('subrace', source.grantId, raceById(draft.raceId, draft.rulesEdition)?.subraces?.find(s => s.id === source.grantId)?.name ?? source.grantId)}
-          fixedNames={(source.fixed ?? []).map(id => byId.get(id)?.name).filter((n): n is string => !!n)}
+          fixedNames={(source.fixed ?? []).flatMap(id => { const n = byId.get(id)?.name; return n ? [spellName(id, n)] : [] })}
         />
       ))}
     </div>
@@ -203,7 +203,7 @@ function ClassSpells({ access: a, spells, saved, toggle, name }: {
   toggle: (key: string, id: string) => void
   name: string
 }) {
-  const { t } = useI18n()
+  const { t, spellName } = useI18n()
   const pool = useMemo(() => availableSpells(spells, a).filter(s => !a.alwaysPrepared.includes(s.id)), [spells, a])
   const byId = new Map(spells.map(s => [s.id, s]))
   const mine = saved.filter(k => k.classId === a.classId).map(k => byId.get(k.id)).filter((s): s is Spell => !!s)
@@ -236,7 +236,7 @@ function ClassSpells({ access: a, spells, saved, toggle, name }: {
       {always.length > 0 && (
         <p className="small bs-always">
           {t('builder.spells.always')} <Why id="alwaysPrepared" />{' '}
-          <bdi lang="en">{always.map(s => s.name).join(', ')}</bdi>
+          <bdi>{always.map(s => spellName(s.id, s.name)).join(', ')}</bdi>
         </p>
       )}
       <SpellPicker pool={pool} chosen={chosen} onToggle={s => toggle(a.classId, s.id)} label={t('builder.spells.pickFor', { name })} />
@@ -274,7 +274,7 @@ function ExtraSpells({ source, spells, saved, list, setList, toggle, className, 
           ))}
         </div>
       )}
-      {fixedNames.length > 0 && <p className="small">{t('builder.spells.alsoGives')} <bdi lang="en">{fixedNames.join(', ')}</bdi></p>}
+      {fixedNames.length > 0 && <p className="small">{t('builder.spells.alsoGives')} <bdi>{fixedNames.join(', ')}</bdi></p>}
       {(source.cantrips > 0 || source.spells > 0) && (
         <>
           <dl className="bs-counts">

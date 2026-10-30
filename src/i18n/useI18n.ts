@@ -2,7 +2,8 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { ABILITY_NAMES, ITEMS, SKILLS, classById, raceById, type Ability, type RulesEdition, type SkillId } from '../rules'
 import type { MessageKey } from './locales/en'
 import { getLocale, setLocale, subscribeLocale } from './store'
-import { LOCALES, term, translate, type Vars } from './translate'
+import { spellMeasureHe } from './locales/spells.he'
+import { LOCALES, spellTermId, term, translate, type Vars } from './translate'
 
 /** Current language plus translators. Re-renders the component when the language changes. */
 export function useI18n() {
@@ -31,6 +32,10 @@ export function useI18n() {
       abilityShort: (a: Ability) => tr('abilityShort', a, a.toUpperCase()),
       skill: (s: SkillId) => tr('skill', s, SKILLS[s].name),
       item: (id: string, fallback: string) => tr('item', id, fallback),
+      /** A spell's name in the current language, from its id or English name; homebrew keeps its own name. */
+      spellName: (nameOrId: string, fallback = nameOrId) => tr('spell', spellTermId(nameOrId), fallback),
+      /** Casting time, range or duration in the current language ("1 action" → "פעולה"). */
+      spellMeasure: (text: string) => (locale === 'he' ? spellMeasureHe(text) : text),
       /** Attacks are named after their weapon (or "Unarmed Strike"). */
       attackName: (name: string) => {
         const item = ITEMS.find(i => i.name === name)

@@ -59,7 +59,7 @@ function useDescribe() {
 export function EffectRows({ character, effects, isOn, onToggle, apply }: {
   character: Character; effects: EffectToggle[]; isOn: (e: EffectToggle) => boolean; onToggle: (e: EffectToggle, value: boolean, slot?: SlotChoice) => void; apply: Apply
 }) {
-  const { t, term } = useI18n()
+  const { t, term, spellName, spellMeasure } = useI18n()
   const describe = useDescribe()
   const warning = useCastWarning(character)
   // A cast that warns (no slot left, or it ends another concentration spell) waits here for Cast anyway.
@@ -81,7 +81,7 @@ export function EffectRows({ character, effects, isOn, onToggle, apply }: {
           <li key={e.id} className={live ? 'running' : undefined}>
             <label className="cs-switch">
               <input type="checkbox" role="switch" checked={live ? true : isOn(e)} onChange={ev => flip(e, ev.target.checked)} />
-              <span>{e.feature ? term('feature', e.name, e.name) : <bdi>{e.name}</bdi>}</span>
+              <span>{e.feature ? term('feature', e.name, e.name) : <bdi>{e.spell ? spellName(e.spell.id, e.name) : e.name}</bdi>}</span>
             </label>
             {e.damage && <span className="dmg" dir="ltr">{e.damage}</span>}
             <span className="hint">{describe(e)}</span>
@@ -90,7 +90,7 @@ export function EffectRows({ character, effects, isOn, onToggle, apply }: {
               {level ? <span className="sb-badge">{t(`sheet.slot.${level}` as MessageKey)}{!live && e.slot?.source === 'pact' ? ` ${t('cast.pact')}` : ''}</span> : null}
               {noSlot && <small>{t('cast.warn.noSlot')}</small>}
               {!live && e.spell && <SlotPicker character={character} spell={e.spell} onPick={s => flip(e, true, s)} />}
-              {live?.duration && <small lang="en" dir="ltr">{live.duration}</small>}
+              {live?.duration && <small>{spellMeasure(live.duration)}</small>}
               {live && !(live.self && live.on) && (
                 <button type="button" className={`glass-chip small${live.on ? ' on' : ''}`} aria-pressed={live.on} aria-label={t('fx.onMeName', { name: e.name })}
                   onClick={() => apply(t(live.on ? 'cs.log.effectOff' : 'cs.log.effectOn', { name: e.name }), c => setEffectOn(c, e.id, !live.on))}>

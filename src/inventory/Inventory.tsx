@@ -124,7 +124,7 @@ export function effectText({ t, term, skill }: T, f: ItemEffect): string {
     case 'skill': return t('inv.fx.text.skill', { n: signed, skill: skill(f.skill) })
     case 'saveProficiency': return t('inv.fx.text.saveProficiency', { ability: ability(f.ability) })
     case 'skillProficiency': return t(f.expertise ? 'inv.fx.text.skillExpertise' : 'inv.fx.text.skillProficiency', { skill: skill(f.skill) })
-    case 'advantage': return t(f.when?.trim() ? 'inv.fx.text.advantageWhen' : 'inv.fx.text.advantage', { on: advantageName({ t, term, skill } as T, f.on), when: f.when?.trim() ?? '' })
+    case 'advantage': return t(f.when?.trim() ? 'inv.fx.text.advantageWhen' : 'inv.fx.text.advantage', { on: advantageName({ t, term, skill } as T, f.on), when: f.when?.trim() ? term('when', f.when.trim(), f.when.trim()) : '' })
     case 'resistance':
     case 'immunity': return t(`inv.fx.text.${f.kind}`, { damage: term('damage', f.damage, f.damage) })
     case 'conditionImmunity': return t('inv.fx.text.conditionImmunity', { condition: term('condition', f.condition, f.condition) })

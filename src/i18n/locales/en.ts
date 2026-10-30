@@ -1971,6 +1971,7 @@ export const en = {
   'starters.spells': 'Suggested spells',
   'starters.attack': '{bonus} to hit, {damage} {type}',
   // Accessibility dialog, homebrew and change history
+  'a11y.skip': 'Skip to main content',
   'a11y.button': 'Accessibility',
   'a11y.activeCount': '{count} on',
   'a11y.lead': 'Saved on this device for every player.',
