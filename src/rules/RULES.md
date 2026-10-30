@@ -22,9 +22,10 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `data/books/subclasses.ts` | Subclasses from official books outside the SRD (`BOOK_SUBCLASSES`, `BOOK_SUBCLASSES_2024`) for every class: names, levels and mechanics only; feature text is our own summary in `explain.books.*.ts` (warlock) and `explain.classes.*.ts` (the rest) |
 | `data/books/martial.ts`, `casters.ts` | Barbarian/fighter/monk/rogue and the caster classes' book subclasses (2014, 2024, and `*_REWRITTEN` ids that 2024 redid so they are not also offered as legacy) |
 | `data/books/helpers.ts` | Builders for the book data: source names, `f` (feature), `short`/`long` uses, `fx`, `resist`, `dark`, `move`, `fullSpells`/`halfSpells`/`spells2024`, `legacy` |
+| `data/classFeatures2014.ts` | `FEATURES_2014`: every 2014 class feature from level 1 to 20, with `effects` (sheet changes) and `detail` steps (what grows with level) |
 | `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one SRD per class, listed first), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (languages, tools), items |
 | `data/srd52/*.ts` | SRD 5.2 (2024) content: `SPECIES`, `CLASSES_2024`, `SUBCLASSES_2024`, `BACKGROUNDS_2024`, `FEATS_2024` |
-| `rules.test.ts`, `multiclass.test.ts`, `choices.test.ts`, `srd52.test.ts` | Engine tests |
+| `rules.test.ts`, `multiclass.test.ts`, `choices.test.ts`, `srd52.test.ts`, `classFeatures.test.ts` | Engine tests |
 
 ## Rules editions (2014 and 2024)
 
@@ -61,6 +62,9 @@ Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missi
 - Resources: per-class maxima by level; `recharge` resolved for level (e.g. Bardic Inspiration short rest from 5).
 - Speed: heavy armor STR requirement, Monk/Barbarian movement.
 - Saving throw proficiencies come from the first class only.
+- Class features (`ClassFeature`, both editions): `effects` (any `ItemEffect`) apply from the feature's level through `activeItemEffects` as `classEffects`, labelled with the feature name (Diamond Soul and Disciplined Survivor save proficiencies, Feral Instinct, Danger Sense, Purity of Body, Aura of Courage, Blindsense, Slippery Mind, Primal Champion and Body and Mind +4). `detail` steps (`featureDetail`) give `DerivedStats.features[].detail` ("d8", "CR 1", "3 attacks"); the UI translates it with `term('detail', …)`.
+  - Aura of Protection (paladin 6): CHA modifier, min +1, on every save (`auraOfProtection`, also a "show the math" line). Improved Divine Smite / Radiant Strikes (paladin 11): melee weapon attacks get `extraDamage` 1d8 radiant (a note when the weapon has its own). Brutal Critical (2014 barbarian 9/13/17) and Ki-Empowered Strikes (2014 monk 6) are attack notes.
+  - 2014 resources added for levels 6–20: Indomitable, Divine Intervention, Cleansing Touch, Mystic Arcanum 6th–9th, Eldritch Master, Stroke of Luck, Signature Spells; Wild Shape is unlimited (99) at 20 like Rage.
 - Subclasses (`SubclassData`): features join `features` from `subclassLevel`; Life Domain adds heavy armor; Draconic Bloodline adds 1 HP per sorcerer level and 13 + DEX unarmored AC.
   - A feature's `uses` (number, `'pb'`, `'level'` or an ability modifier, times `mult`, + `add`, min 1; `steps: [[level, count]]` overrides the count by class level) becomes a resource `sub:<subclassId>:<slug>`; its `effects` (any `ItemEffect`) apply from its level through `activeItemEffects`, labelled with the feature name.
   - `armor`/`weapons` add proficiencies, `spells` (names by class level) are always prepared (the spellbook resolves names in the library and skips missing ones), `castingWeapon` lets pact weapons use CHA under 2014 rules (Hex Warrior).

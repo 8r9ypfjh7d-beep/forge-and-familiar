@@ -119,7 +119,7 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
     equipment: c.inventory.map(e => ({ name: entryItem(e)?.name ?? e.itemId, qty: e.qty, equipped: e.equipped })),
     coins: c.coins,
     carried: `${d.carriedWeight} / ${d.carryingCapacity} lb`,
-    features: [...d.features.map(f => `${f.name} (${f.className} ${f.level})`), ...d.feats.map(f => `${f} (feat)`)],
+    features: [...d.features.map(f => `${f.name}${f.detail ? `, ${f.detail}` : ''} (${f.className} ${f.level})`), ...d.feats.map(f => `${f} (feat)`)],
     traits: d.traits,
     languages: [...d.languages, ...d.tools],
     conditions: play ? c.state.conditions.map(cap) : [],

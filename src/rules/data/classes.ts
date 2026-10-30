@@ -1,9 +1,10 @@
 import type { ClassDef, RulesEdition } from '../types'
+import { FEATURES_2014 } from './classFeatures2014'
 import { CLASSES_2024 } from './srd52/classes'
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from './proficiencies'
 import { ALL_SKILLS } from './skills'
 
-// SRD 5.1 classes. Subclasses live in subclasses.ts.
+// SRD 5.1 classes. Subclasses live in subclasses.ts; features (levels 1–20) in classFeatures2014.ts.
 const scale = (table: [number, number][]) => (level: number) => {
   let v = 0
   for (const [from, value] of table) if (level >= from) v = value
@@ -24,7 +25,7 @@ export const CLASSES: ClassDef[] = [
       { options: [{ items: ['handaxe', 'handaxe'] }, { items: ['any:simple'] }] },
     ],
     subclassLevel: 3, subclassTitle: 'Primal Path', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Rage' }, { level: 1, name: 'Unarmored Defense' }, { level: 2, name: 'Reckless Attack' }, { level: 2, name: 'Danger Sense' }, { level: 5, name: 'Extra Attack' }, { level: 5, name: 'Fast Movement' }],
+    features: FEATURES_2014.barbarian,
   },
   {
     id: 'bard', name: 'Bard', hitDie: 8, primary: ['cha'], savingThrows: ['dex', 'cha'],
@@ -42,7 +43,7 @@ export const CLASSES: ClassDef[] = [
     ],
     toolChoices: { count: 3, from: MUSICAL_INSTRUMENTS },
     subclassLevel: 3, subclassTitle: 'Bard College', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Spellcasting' }, { level: 1, name: 'Bardic Inspiration' }, { level: 2, name: 'Jack of All Trades' }, { level: 2, name: 'Song of Rest' }, { level: 3, name: 'Expertise' }, { level: 5, name: 'Font of Inspiration' }],
+    features: FEATURES_2014.bard,
   },
   {
     id: 'cleric', name: 'Cleric', hitDie: 8, primary: ['wis'], savingThrows: ['wis', 'cha'],
@@ -50,6 +51,7 @@ export const CLASSES: ClassDef[] = [
     armor: ['light', 'medium', 'shield'], weapons: ['simple'], caster: 'full', spellAbility: 'wis',
     resources: [
       { id: 'channel-divinity', name: 'Channel Divinity', recharge: 'short', max: scale([[2, 1], [6, 2], [18, 3]]) },
+      { id: 'divine-intervention', name: 'Divine Intervention', recharge: 'long', max: scale([[10, 1]]) },
     ],
     startingEquipment: ['shield', 'holy-symbol'],
     equipmentChoices: [
@@ -59,7 +61,7 @@ export const CLASSES: ClassDef[] = [
       { options: [{ items: ['priests-pack'] }, { items: ['explorers-pack'] }] },
     ],
     subclassLevel: 1, subclassTitle: 'Divine Domain', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Spellcasting' }, { level: 1, name: 'Divine Domain' }, { level: 2, name: 'Channel Divinity' }, { level: 5, name: 'Destroy Undead' }],
+    features: FEATURES_2014.cleric,
   },
   {
     id: 'druid', name: 'Druid', hitDie: 8, primary: ['wis'], savingThrows: ['int', 'wis'],
@@ -67,7 +69,8 @@ export const CLASSES: ClassDef[] = [
     armor: ['light', 'medium', 'shield'], weapons: [],
     weaponIds: ['club', 'dagger', 'javelin', 'mace', 'quarterstaff', 'scimitar', 'spear'],
     caster: 'full', spellAbility: 'wis',
-    resources: [{ id: 'wild-shape', name: 'Wild Shape', recharge: 'short', max: scale([[2, 2]]) }],
+    // Archdruid (20): Wild Shape without limit.
+    resources: [{ id: 'wild-shape', name: 'Wild Shape', recharge: 'short', max: scale([[2, 2], [20, 99]]) }],
     startingEquipment: ['leather', 'explorers-pack', 'druidic-focus'],
     equipmentChoices: [
       { options: [{ items: ['shield'] }, { items: ['any:simple'] }] },
@@ -75,7 +78,7 @@ export const CLASSES: ClassDef[] = [
     ],
     toolProficiencies: ['Herbalism kit'],
     subclassLevel: 2, subclassTitle: 'Druid Circle', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Druidic' }, { level: 1, name: 'Spellcasting' }, { level: 2, name: 'Wild Shape' }, { level: 2, name: 'Druid Circle' }],
+    features: FEATURES_2014.druid,
   },
   {
     id: 'fighter', name: 'Fighter', hitDie: 10, primary: ['str', 'dex'], savingThrows: ['str', 'con'],
@@ -84,6 +87,7 @@ export const CLASSES: ClassDef[] = [
     resources: [
       { id: 'second-wind', name: 'Second Wind', recharge: 'short', max: () => 1 },
       { id: 'action-surge', name: 'Action Surge', recharge: 'short', max: scale([[2, 1], [17, 2]]) },
+      { id: 'indomitable', name: 'Indomitable', recharge: 'long', max: scale([[9, 1], [13, 2], [17, 3]]) },
     ],
     startingEquipment: [],
     equipmentChoices: [
@@ -93,7 +97,7 @@ export const CLASSES: ClassDef[] = [
       { options: [{ items: ['dungeoneers-pack'] }, { items: ['explorers-pack'] }] },
     ],
     subclassLevel: 3, subclassTitle: 'Martial Archetype', asiLevels: [4, 6, 8, 12, 14, 16, 19],
-    features: [{ level: 1, name: 'Fighting Style' }, { level: 1, name: 'Second Wind' }, { level: 2, name: 'Action Surge' }, { level: 3, name: 'Martial Archetype' }, { level: 5, name: 'Extra Attack' }],
+    features: FEATURES_2014.fighter,
   },
   {
     id: 'monk', name: 'Monk', hitDie: 8, primary: ['dex', 'wis'], savingThrows: ['str', 'dex'],
@@ -107,7 +111,7 @@ export const CLASSES: ClassDef[] = [
     ],
     toolChoices: { count: 1, from: [...ARTISAN_TOOLS, ...MUSICAL_INSTRUMENTS] },
     subclassLevel: 3, subclassTitle: 'Monastic Tradition', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Unarmored Defense' }, { level: 1, name: 'Martial Arts' }, { level: 2, name: 'Ki' }, { level: 2, name: 'Unarmored Movement' }, { level: 3, name: 'Deflect Missiles' }, { level: 5, name: 'Extra Attack' }, { level: 5, name: 'Stunning Strike' }],
+    features: FEATURES_2014.monk,
   },
   {
     id: 'paladin', name: 'Paladin', hitDie: 10, primary: ['str', 'cha'], savingThrows: ['wis', 'cha'],
@@ -117,6 +121,7 @@ export const CLASSES: ClassDef[] = [
       { id: 'divine-sense', name: 'Divine Sense', recharge: 'long', max: (_l, m) => 1 + Math.max(0, m.cha) },
       { id: 'lay-on-hands', name: 'Lay on Hands (HP pool)', recharge: 'long', max: l => 5 * l },
       { id: 'channel-divinity', name: 'Channel Divinity', recharge: 'short', max: scale([[3, 1]]) },
+      { id: 'cleansing-touch', name: 'Cleansing Touch', recharge: 'long', max: (l, m) => (l >= 14 ? Math.max(1, m.cha) : 0) },
     ],
     startingEquipment: ['chain-mail', 'holy-symbol'],
     equipmentChoices: [
@@ -125,7 +130,7 @@ export const CLASSES: ClassDef[] = [
       { options: [{ items: ['priests-pack'] }, { items: ['explorers-pack'] }] },
     ],
     subclassLevel: 3, subclassTitle: 'Sacred Oath', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Divine Sense' }, { level: 1, name: 'Lay on Hands' }, { level: 2, name: 'Fighting Style' }, { level: 2, name: 'Spellcasting' }, { level: 2, name: 'Divine Smite' }, { level: 3, name: 'Sacred Oath' }, { level: 5, name: 'Extra Attack' }],
+    features: FEATURES_2014.paladin,
   },
   {
     id: 'ranger', name: 'Ranger', hitDie: 10, primary: ['dex', 'wis'], savingThrows: ['str', 'dex'],
@@ -139,13 +144,13 @@ export const CLASSES: ClassDef[] = [
       { options: [{ items: ['dungeoneers-pack'] }, { items: ['explorers-pack'] }] },
     ],
     subclassLevel: 3, subclassTitle: 'Ranger Archetype', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Favored Enemy' }, { level: 1, name: 'Natural Explorer' }, { level: 2, name: 'Fighting Style' }, { level: 2, name: 'Spellcasting' }, { level: 3, name: 'Ranger Archetype' }, { level: 5, name: 'Extra Attack' }],
+    features: FEATURES_2014.ranger,
   },
   {
     id: 'rogue', name: 'Rogue', hitDie: 8, primary: ['dex'], savingThrows: ['dex', 'int'],
     skillChoices: { count: 4, from: ['acrobatics', 'athletics', 'deception', 'insight', 'intimidation', 'investigation', 'perception', 'performance', 'persuasion', 'sleightOfHand', 'stealth'] },
     armor: ['light'], weapons: ['simple'], weaponIds: ['hand-crossbow', 'longsword', 'rapier', 'shortsword'], caster: 'none',
-    resources: [],
+    resources: [{ id: 'stroke-of-luck', name: 'Stroke of Luck', recharge: 'short', max: scale([[20, 1]]) }],
     startingEquipment: ['leather', 'dagger', 'dagger', 'thieves-tools'],
     equipmentChoices: [
       { options: [{ items: ['rapier'] }, { items: ['shortsword'] }] },
@@ -154,7 +159,7 @@ export const CLASSES: ClassDef[] = [
     ],
     toolProficiencies: ["Thieves' tools"],
     subclassLevel: 3, subclassTitle: 'Roguish Archetype', asiLevels: [4, 8, 10, 12, 16, 19],
-    features: [{ level: 1, name: 'Expertise' }, { level: 1, name: 'Sneak Attack' }, { level: 1, name: "Thieves' Cant" }, { level: 2, name: 'Cunning Action' }, { level: 3, name: 'Roguish Archetype' }, { level: 5, name: 'Uncanny Dodge' }],
+    features: FEATURES_2014.rogue,
   },
   {
     id: 'sorcerer', name: 'Sorcerer', hitDie: 6, primary: ['cha'], savingThrows: ['con', 'cha'],
@@ -168,13 +173,20 @@ export const CLASSES: ClassDef[] = [
       { options: [{ items: ['dungeoneers-pack'] }, { items: ['explorers-pack'] }] },
     ],
     subclassLevel: 1, subclassTitle: 'Sorcerous Origin', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Spellcasting' }, { level: 1, name: 'Sorcerous Origin' }, { level: 2, name: 'Font of Magic' }, { level: 3, name: 'Metamagic' }],
+    features: FEATURES_2014.sorcerer,
   },
   {
     id: 'warlock', name: 'Warlock', hitDie: 8, primary: ['cha'], savingThrows: ['wis', 'cha'],
     skillChoices: { count: 2, from: ['arcana', 'deception', 'history', 'intimidation', 'investigation', 'nature', 'religion'] },
     armor: ['light'], weapons: ['simple'], caster: 'pact', spellAbility: 'cha',
-    resources: [],
+    // Each Mystic Arcanum spell is cast once per long rest.
+    resources: [
+      { id: 'mystic-arcanum-6', name: 'Mystic Arcanum (6th level)', recharge: 'long', max: scale([[11, 1]]) },
+      { id: 'mystic-arcanum-7', name: 'Mystic Arcanum (7th level)', recharge: 'long', max: scale([[13, 1]]) },
+      { id: 'mystic-arcanum-8', name: 'Mystic Arcanum (8th level)', recharge: 'long', max: scale([[15, 1]]) },
+      { id: 'mystic-arcanum-9', name: 'Mystic Arcanum (9th level)', recharge: 'long', max: scale([[17, 1]]) },
+      { id: 'eldritch-master', name: 'Eldritch Master', recharge: 'long', max: scale([[20, 1]]) },
+    ],
     startingEquipment: ['leather', 'dagger', 'dagger'],
     equipmentChoices: [
       { options: [{ items: ['any:simple'] }] },
@@ -183,13 +195,17 @@ export const CLASSES: ClassDef[] = [
       { options: [{ items: ['scholars-pack'] }, { items: ['dungeoneers-pack'] }] },
     ],
     subclassLevel: 1, subclassTitle: 'Otherworldly Patron', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Otherworldly Patron' }, { level: 1, name: 'Pact Magic' }, { level: 2, name: 'Eldritch Invocations' }, { level: 3, name: 'Pact Boon' }],
+    features: FEATURES_2014.warlock,
   },
   {
     id: 'wizard', name: 'Wizard', hitDie: 6, primary: ['int'], savingThrows: ['int', 'wis'],
     skillChoices: { count: 2, from: ['arcana', 'history', 'insight', 'investigation', 'medicine', 'religion'] },
     armor: [], weapons: [], weaponIds: ['dagger', 'quarterstaff', 'light-crossbow'], caster: 'full', spellAbility: 'int',
-    resources: [{ id: 'arcane-recovery', name: 'Arcane Recovery', recharge: 'long', max: () => 1 }],
+    resources: [
+      { id: 'arcane-recovery', name: 'Arcane Recovery', recharge: 'long', max: () => 1 },
+      // Signature Spells: each of the two spells once per short rest without a slot.
+      { id: 'signature-spells', name: 'Signature Spells', recharge: 'short', max: scale([[20, 2]]) },
+    ],
     startingEquipment: ['spellbook'],
     equipmentChoices: [
       { options: [{ items: ['quarterstaff'] }, { items: ['dagger'] }] },
@@ -197,7 +213,7 @@ export const CLASSES: ClassDef[] = [
       { options: [{ items: ['scholars-pack'] }, { items: ['explorers-pack'] }] },
     ],
     subclassLevel: 2, subclassTitle: 'Arcane Tradition', asiLevels: [4, 8, 12, 16, 19],
-    features: [{ level: 1, name: 'Spellcasting' }, { level: 1, name: 'Arcane Recovery' }, { level: 2, name: 'Arcane Tradition' }],
+    features: FEATURES_2014.wizard,
   },
 ]
 
