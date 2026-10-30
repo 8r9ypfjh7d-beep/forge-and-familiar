@@ -8,7 +8,7 @@ export const WHY_TOPICS = [
   'edition', 'originFeat', 'bgBonus',
   'subrace', 'traits', 'languages', 'size', 'speed', 'ancestry', 'originSwap',
   'level', 'savingThrows', 'proficiencies', 'features', 'hitDie', 'primary', 'casting', 'subclassChoice', 'multiclass',
-  'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder', 'choice.metamagic', 'choice.blessedStrikes', 'choice.elementalFury',
+  'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder', 'choice.metamagic', 'choice.blessedStrikes', 'choice.elementalFury', 'invocations', 'pactBoon',
   'pick.expertise', 'pick.skill', 'pick.mastery', 'epicBoon',
   'method.standard', 'method.pointBuy', 'method.rolled', 'method.manual', 'reroll', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',
   'background', 'customBackground', 'skills', 'tools',
@@ -26,7 +26,7 @@ export type WhyId = (typeof WHY_TOPICS)[number]
  */
 export type ExplainKind =
   | 'race' | 'race2024' | 'class' | 'about' | 'sub2014' | 'sub2024' | 'subclass'
-  | 'feature' | 'subfeature' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool'
+  | 'feature' | 'subfeature' | 'invocation' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool'
   | 'metamagic' | 'metamagic2024'
   | 'pick' | 'opt'
 
@@ -59,13 +59,13 @@ export function optionName(o: ClassOption, term: (kind: string, id: string, name
   const skill = optionSkill(o)
   if (skill) return term('skill', skill, SKILLS[skill].name)
   const item = optionItem(o)
-  return item ? term('item', item, o.name) : term('option', o.id, o.name)
+  return item ? term('item', item, o.name) : term('option', o.id, term('feature', o.name, o.name))
 }
 
 /** What explains a class option: its own line, its skill's, or (Kensei weapons) the list's; none for homebrew. */
 export const optionKey = (o: ClassOption): MessageKey | undefined => {
   const skill = optionSkill(o)
-  return explainKey('opt', o.id) ?? (skill ? explainKey('skill', skill) : undefined) ?? (optionItem(o) ? explainKey('pick', o.kind) : undefined)
+  return explainKey('opt', o.id) ?? explainKey('invocation', o.id) ?? (skill ? explainKey('skill', skill) : undefined) ?? (optionItem(o) ? explainKey('pick', o.kind) : undefined)
 }
 
 /** Message key for why a new player might pick this race or class; none for homebrew. */

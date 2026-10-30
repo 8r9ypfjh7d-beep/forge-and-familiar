@@ -16,6 +16,7 @@ import { useDice } from '../dice/ui'
 import type { RollResult } from '../dice'
 import { ClassSkillPicks, WeaponMasteryPicks } from './ClassPicks'
 import { Shop } from './Shop'
+import { ClassOptionPicker } from './ClassOptionPicker'
 import { CustomSubclassForm } from './CustomSubclassForm'
 import { MetamagicPicker } from './MetamagicPicker'
 import { MulticlassPicker } from './MulticlassPicker'
@@ -43,7 +44,7 @@ function switchEdition(draft: CharacterDraft, edition: RulesEdition): Partial<Ch
     // Spells follow the rules edition again.
     spellEdition: undefined,
     raceId: '', subraceId: undefined, freeAbilityBonuses: [], originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {},
-    backgroundId: 'acolyte', originFeatId: undefined, featureChoices: {}, classPicks: {}, weaponMasteries: [], improvements: [], equipmentPicks: [], startingWealth: undefined, purchases: [],
+    backgroundId: 'acolyte', originFeatId: undefined, featureChoices: {}, classOptions: [], classPicks: {}, weaponMasteries: [], improvements: [], equipmentPicks: [], startingWealth: undefined, purchases: [],
     classes: draft.classes.map(cl => ({ classId: cl.classId, level: cl.level })),
   }
 }
@@ -292,7 +293,7 @@ function ClassStep({ draft, update }: StepProps) {
           <button
             key={c.id}
             className={`choice ${current?.classId === c.id ? 'selected' : ''}`}
-            onClick={() => update({ classes: [{ classId: c.id, level }, ...extras.filter(x => x.classId !== c.id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], startingWealth: undefined, improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [] })}
+            onClick={() => update({ classes: [{ classId: c.id, level }, ...extras.filter(x => x.classId !== c.id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], startingWealth: undefined, improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [], classOptions: (draft.classOptions ?? []).filter(p => p.classId !== current?.classId || p.classId === c.id) })}
           >
             <strong>{className(c.id)}</strong>
             <span className="muted small">{t('builder.class.hitDie', { die: c.hitDie, primary: c.primary.map(abilityShort).join('/') || '—' })}</span>
@@ -329,6 +330,7 @@ function ClassStep({ draft, update }: StepProps) {
       {cls && <SubclassPicker draft={draft} update={update} />}
       {cls && <ClassChoices draft={draft} update={update} />}
       {cls && <MetamagicPicker draft={draft} update={update} />}
+      {cls && <ClassOptionPicker draft={draft} update={update} />}
       <MulticlassPicker draft={draft} update={update} />
     </>
   )

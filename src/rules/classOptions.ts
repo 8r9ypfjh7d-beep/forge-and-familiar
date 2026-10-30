@@ -113,7 +113,8 @@ export function pickedClassOptions(c: Owner): { pick: ClassOptionPick; option: C
     // A subclass's option (a maneuver, a rune) only counts while the picking class has that subclass.
     if (option.subclassIds && !subs.some(s => (!pick.classId || s.classId === pick.classId) && option.subclassIds!.includes(s.subclass.id))) return []
     const level = pick.classId ? c.classes?.find(cl => cl.classId === pick.classId)?.level ?? 0 : total
-    return [{ pick, option, level }]
+    // A pick made through a class the character no longer has does nothing.
+    return level > 0 ? [{ pick, option, level }] : []
   })
 }
 

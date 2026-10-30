@@ -705,7 +705,8 @@ export function FeaturesTraits({ character }: { character: Character }) {
   const option = (f: DerivedStats['features'][number]) => (f.optionId ? classOptionById(f.optionId, rulesEdition(character)) : undefined)
   const featureName = (f: DerivedStats['features'][number]) => {
     const o = option(f)
-    return o ? optionName(o, term) : term('feature', f.name, f.name)
+    // A repeated 2024 invocation keeps its cantrip: "Agonizing Blast (Eldritch Blast)".
+    return o ? optionName(o, term) + f.name.slice(f.name.startsWith(o.name) ? o.name.length : f.name.length) : term('feature', f.name, f.name)
   }
   const featureText = (f: DerivedStats['features'][number]) => {
     const o = option(f)
