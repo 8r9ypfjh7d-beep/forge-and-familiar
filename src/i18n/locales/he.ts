@@ -1363,6 +1363,7 @@ const messages: Messages = {
   'cs.tab.inventory': 'ציוד',
   'cs.tab.features': 'יכולות ותכונות',
   'cs.tab.notes': 'הערות',
+  'cs.tab.map': 'מפה',
   'cs.tab.checks': 'בדיקות',
   'cs.hpChip': 'נקודות פגיעה {hp} מתוך {max}, זמניות {temp}. מעבר לנקודות הפגיעה',
   'cs.attacks': 'התקפות',

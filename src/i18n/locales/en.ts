@@ -1361,6 +1361,7 @@ export const en = {
   'cs.tab.inventory': 'Inventory',
   'cs.tab.features': 'Features & Traits',
   'cs.tab.notes': 'Notes',
+  'cs.tab.map': 'Map',
   'cs.tab.checks': 'Checks',
   'cs.hpChip': 'Hit points {hp} of {max}, temporary {temp}. Go to hit points',
   'cs.attacks': 'Attacks',

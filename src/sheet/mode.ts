@@ -19,9 +19,11 @@ export type SheetSection =
   | 'effects'
   // Tamir's Super Saiyan strip (src/powerup), only on his characters.
   | 'powerUp'
+  // The party's live battle map (src/combat/live), only while the DM runs a combat.
+  | 'map'
 
 /** Tabs of the combat page's main panel, like Roll20's character sheet. */
-export type CombatTab = 'combat' | 'checks' | 'spells' | 'inventory' | 'features' | 'notes'
+export type CombatTab = 'combat' | 'map' | 'checks' | 'spells' | 'inventory' | 'features' | 'notes'
 
 export interface SheetLayout {
   /** Full-width strip above the columns. */
@@ -65,17 +67,25 @@ const SHARED_SIDE: SheetSection[] = ['skills']
  * Feature uses and trackers live only in combat's Features & Traits tab, since story mode leaves them out.
  * A character at 0 HP gets death saves on top in either mode. `powerUp` adds Tamir's strip card under the character card.
  * On a phone (`narrow`) combat mode puts abilities and skills in a Checks tab, so a turn starts
- * right under HP instead of below six abilities and eighteen skills.
+ * right under HP instead of below six abilities and eighteen skills. While the DM runs a live combat
+ * for the character's party (`liveMap`) a Map tab follows the Combat tab; it leaves when combat ends.
  */
-export function sheetLayout(mode: SheetMode, { dying, powerUp, narrow }: { dying: boolean; powerUp?: boolean; narrow?: boolean }): SheetLayout {
+export function sheetLayout(mode: SheetMode, { dying, powerUp, narrow, liveMap }: { dying: boolean; powerUp?: boolean; narrow?: boolean; liveMap?: boolean }): SheetLayout {
   const phoneCombat = mode === 'combat' && !!narrow
   const sharedTop = phoneCombat ? SHARED_TOP.filter(s => s !== 'abilities') : SHARED_TOP
   const shared: SheetSection[] = powerUp ? ['summary', 'powerUp', ...sharedTop.slice(1)] : sharedTop
   const top = dying ? ['death' as const, ...shared] : shared
   const vitals: SheetSection[] = ['hp', 'rests']
-  if (phoneCombat) return { top, columns: [[], ['tabs']], vitals, tabs: PHONE_COMBAT_TABS }
-  if (mode === 'combat') return { top, columns: [SHARED_SIDE, ['tabs']], vitals, tabs: COMBAT_TABS }
+  if (phoneCombat) return { top, columns: [[], ['tabs']], vitals, tabs: withMap(PHONE_COMBAT_TABS, liveMap) }
+  if (mode === 'combat') return { top, columns: [SHARED_SIDE, ['tabs']], vitals, tabs: withMap(COMBAT_TABS, liveMap) }
   return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'effects', 'attacks', 'inventory']], vitals }
+}
+
+/** The Map tab right after Combat, only while a live combat exists. */
+function withMap(tabs: Partial<Record<CombatTab, SheetSection[]>>, liveMap?: boolean): Partial<Record<CombatTab, SheetSection[]>> {
+  if (!liveMap) return tabs
+  const { combat, ...rest } = tabs
+  return { combat, map: ['map'], ...rest }
 }
 
 export const DEFAULT_MODE: SheetMode = 'story'

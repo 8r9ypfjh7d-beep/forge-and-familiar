@@ -263,7 +263,7 @@ export function SkillsPanel({ character }: { character: Character }) {
 // ---------- Tabs ----------
 
 const TAB_KEYS: Record<CombatTab, MessageKey> = {
-  combat: 'cs.tab.combat', checks: 'cs.tab.checks', spells: 'cs.tab.spells', inventory: 'cs.tab.inventory', features: 'cs.tab.features', notes: 'cs.tab.notes',
+  combat: 'cs.tab.combat', map: 'cs.tab.map', checks: 'cs.tab.checks', spells: 'cs.tab.spells', inventory: 'cs.tab.inventory', features: 'cs.tab.features', notes: 'cs.tab.notes',
 }
 
 /**
