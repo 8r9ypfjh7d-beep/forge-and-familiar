@@ -1,5 +1,5 @@
 // Changes to a character's chosen spells, and turning a library spell into a quick-cast entry.
-import type { Edition, Spell } from '../content'
+import type { Spell } from '../content'
 import type { Character, KnownSpell } from '../model/character'
 import { addEntry, newEntryId } from '../quickcast/quickcast'
 import type { SpellEntry } from '../quickcast/types'
@@ -17,9 +17,6 @@ export function addSpell(c: Character, classId: string, id: string): Character {
 export function removeSpell(c: Character, classId: string, id: string): Character {
   return { ...c, spells: spellsOf(c).filter(s => !(s.classId === classId && s.id === id)) }
 }
-
-/** Switching rules editions keeps the chosen spells; ids are shared slugs, and ones the new list lacks just don't show. */
-export const setEdition = (c: Character, edition: Edition): Character => ({ ...c, spellEdition: edition === (c.rulesEdition ?? '2014') ? undefined : edition })
 
 const DICE = /^(\d+)d(\d+)(.*)$/
 

@@ -5,7 +5,7 @@ import { getEntry, loadKind, type Edition } from '../content'
 import type { Character } from '../model/character'
 import type { Abilities } from '../rules/types'
 import { availableSpells, sourceFor, spellAccess } from './access'
-import { addSpell, removeSpell, setEdition, spellsOf, isPinned, pinnedSpells, toQuickCast, toggleSpellPin, upcastStep } from './spellbook'
+import { addSpell, removeSpell, spellsOf, isPinned, pinnedSpells, toQuickCast, toggleSpellPin, upcastStep } from './spellbook'
 
 const scores: Abilities = { str: 10, dex: 14, con: 12, int: 16, wis: 14, cha: 16 }
 
@@ -72,8 +72,6 @@ describe('chosen spells', () => {
     c = addSpell(c, 'warlock', 'eldritch-blast')
     expect(spellsOf(c, 'warlock').map(s => s.id)).toEqual(['hex', 'eldritch-blast'])
     expect(spellsOf(removeSpell(c, 'warlock', 'hex')).map(s => s.id)).toEqual(['eldritch-blast'])
-    expect(setEdition(c, '2024').spellEdition).toBe('2024')
-    expect(setEdition(setEdition(c, '2024'), '2014').spellEdition).toBeUndefined()
   })
 })
 
