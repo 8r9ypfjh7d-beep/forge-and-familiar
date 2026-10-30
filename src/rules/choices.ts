@@ -5,9 +5,9 @@ import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { featById } from './data/feats'
 import { ITEMS } from './data/items'
-import { raceById } from './data/races'
 import { rulesEdition } from './edition'
 import { racialLanguages } from './origin'
+import { raceProfile } from './race'
 import { ABILITIES, type Abilities, type Ability, type ClassChoice, type ClassDef, type Feat, type FeatEffect, type Item } from './types'
 
 type Edition = Partial<Pick<Character, 'rulesEdition'>>
@@ -117,24 +117,22 @@ export function fixedLanguages(c: RaceBg & Classes): string[] {
 
 /** How many languages the player picks: race, subrace and background choices. */
 export function languagePickCount(c: RaceBg): number {
-  const race = raceById(c.raceId, rulesEdition(c))
-  const sub = race?.subraces?.find(s => s.id === c.subraceId)
-  return (race?.languageChoices ?? 0) + (sub?.languageChoices ?? 0) + (getBackground(c)?.languageChoices ?? 0)
+  return raceProfile(c).languageChoices + (getBackground(c)?.languageChoices ?? 0)
 }
 
 export function getLanguages(c: RaceBg & Classes & Pick<Character, 'chosenLanguages'>): string[] {
   return [...new Set([...fixedLanguages(c), ...(c.chosenLanguages ?? [])])]
 }
 
-/** Tools known without choosing: background and the first class. */
+/** Tools known without choosing: race, background and the first class. */
 export function fixedTools(c: RaceBg & Classes): string[] {
   const first = classById(c.classes[0]?.classId ?? '', rulesEdition(c))
-  return [...new Set([...(first?.toolProficiencies ?? []), ...(getBackground(c)?.toolProficiencies ?? [])])]
+  return [...new Set([...raceProfile(c).tools, ...(first?.toolProficiencies ?? []), ...(getBackground(c)?.toolProficiencies ?? [])])]
 }
 
 /** Tool pick groups from race, first class and background, e.g. Dwarf artisan's tools, Bard instruments, Soldier gaming set. */
 export function toolPickGroups(c: RaceBg & Classes): { source: string; count: number; from: string[] }[] {
-  const race = raceById(c.raceId, rulesEdition(c))
+  const race = raceProfile(c).race
   const first = classById(c.classes[0]?.classId ?? '', rulesEdition(c))
   const bg = getBackground(c)
   return [

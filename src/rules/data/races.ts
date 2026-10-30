@@ -1,4 +1,5 @@
 import type { Race, RulesEdition, Subrace } from '../types'
+import { SETTING_RACES, SETTING_SUBRACES } from './books/races.settings'
 import { SPECIES } from './srd52/species'
 
 // SRD 5.1 races and subraces only.
@@ -93,23 +94,37 @@ export const RACES: Race[] = [
   },
 ]
 
+// Official races from other books (names and mechanics only; our own text lives in i18n explain files).
+// Each book group keeps its own file under books/; subraces with parentRaceId attach to that race.
+export const BOOK_RACES: Record<RulesEdition, Race[]> = { '2014': [...SETTING_RACES], '2024': [] }
+export const BOOK_SUBRACES: Record<RulesEdition, Subrace[]> = { '2014': [...SETTING_SUBRACES], '2024': [] }
+
+/** Attach subraces to their race (by parentRaceId); unknown parents are dropped. */
+const attach = (list: Race[], subraces: Subrace[]): Race[] =>
+  list.map(r => {
+    const extra = subraces.filter(s => s.parentRaceId === r.id)
+    return extra.length ? { ...r, subraces: [...(r.subraces ?? []), ...extra] } : r
+  })
+
+/** SRD then book races of an edition, book subraces attached. */
+const official = (edition: RulesEdition) =>
+  attach([...(edition === '2014' ? RACES : SPECIES), ...BOOK_RACES[edition]], BOOK_SUBRACES[edition])
+
 // Homebrew races and subraces registered at runtime (ids namespaced `hb:<packId>:<slug>`).
 // Homebrew is offered with both editions; homebrew subraces attach to the edition's race of that id.
-let merged: Record<RulesEdition, Race[]> = { '2014': RACES, '2024': SPECIES }
+let merged: Record<RulesEdition, Race[]> = { '2014': official('2014'), '2024': official('2024') }
 
-/** Replace the registered homebrew races. Subraces (parentRaceId set) attach to their race; SRD ids always win. */
+/** Replace the registered homebrew races. Subraces (parentRaceId set) attach to their race; official ids always win. */
 export function registerHomebrewRaces(races: Race[], subraces: Subrace[]): void {
-  const build = (srdList: Race[]) => {
-    const srd = new Set([...RACES, ...SPECIES].map(r => r.id))
-    return [...srdList, ...races.filter(r => !srd.has(r.id))].map(r => {
-      const extra = subraces.filter(s => s.parentRaceId === r.id)
-      return extra.length ? { ...r, subraces: [...(r.subraces ?? []), ...extra] } : r
-    })
+  const build = (edition: RulesEdition) => {
+    const list = official(edition)
+    const taken = new Set([...official('2014'), ...official('2024')].map(r => r.id))
+    return attach([...list, ...races.filter(r => !taken.has(r.id))], subraces)
   }
-  merged = { '2014': build(RACES), '2024': build(SPECIES) }
+  merged = { '2014': build('2014'), '2024': build('2024') }
 }
 
-/** SRD races (2024: species) followed by homebrew ones, with homebrew subraces attached. */
+/** SRD and book races (2024: species) followed by homebrew ones, with subraces attached. */
 export const allRaces = (edition: RulesEdition = '2014'): Race[] => merged[edition]
 
 export const raceById = (id: string, edition: RulesEdition = '2014') => merged[edition].find(r => r.id === id)

@@ -6,8 +6,8 @@ import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
   ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
-  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pointBuyCost, racialLanguages, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
-  type Ability, type Background, type CharacterDraft, type RulesEdition, type SkillId,
+  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
+  type Ability, type Background, type CharacterDraft, type RulesEdition, type SkillId, type TraitChoice,
 } from '../rules'
 import type { OriginSwaps } from '../model/character'
 import { RandomName } from '../random/RandomBar'
@@ -74,7 +74,14 @@ function RaceStep({ draft, update }: StepProps) {
   const racePitch = race && pitchKey(edition === '2024' ? 'race2024' : 'race', race.id)
   const subBonus = (b: Partial<Record<Ability, number>>) => (Object.keys(b).length ? ` (${bonusText(b, abilityShort)})` : '')
   const originFeats = allFeats(edition).filter(f => f.category === 'origin')
-  const raceTraits = race ? [...race.traits, ...(race.subraces?.find(s => s.id === draft.subraceId)?.traits ?? [])] : []
+  const profile = raceProfile(draft)
+  const raceTraits = race ? profile.traits : []
+  const featList = profile.featChoice === 'origin' ? originFeats : allFeats(edition)
+  const toggleOption = (ch: TraitChoice, id: string) => {
+    const now = pickedOptions(draft, ch.id)
+    const next = now.includes(id) ? now.filter(x => x !== id) : (ch.count ?? 1) === 1 ? [id] : [...now, id].slice(-(ch.count ?? 1))
+    update({ traitChoices: { ...draft.traitChoices, [ch.id]: next.join(',') }, chosenSkills: [] })
+  }
   return (
     <>
       <EditionPicker draft={draft} update={update} />
@@ -89,14 +96,15 @@ function RaceStep({ draft, update }: StepProps) {
           <button
             key={r.id}
             className={`choice ${draft.raceId === r.id ? 'selected' : ''}`}
-            onClick={() => update({ raceId: r.id, subraceId: r.subraces?.[0]?.id, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined })}
+            onClick={() => update({ raceId: r.id, subraceId: r.subraceOptional ? undefined : r.subraces?.[0]?.id, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined, sizeChoice: undefined })}
           >
             <strong>{term('race', r.id, r.name)}</strong>
             <span className="muted small">
-              {edition === '2024' ? t('builder.race.noBonus') : bonusText(r.abilityBonuses, abilityShort)}
+              {edition === '2024' ? t('builder.race.noBonus') : r.flexibleAbilityBonuses ? t('builder.race.flexBonus') : bonusText(r.abilityBonuses, abilityShort)}
               {r.freeAbilityBonuses ? t('builder.race.freeBonus', { count: r.freeAbilityBonuses.count }) : ''}
             </span>
-            <span className="muted small">{t('builder.race.sizeSpeed', { size: term('size', r.size, r.size), speed: r.speed })}</span>
+            <span className="muted small">{t('builder.race.sizeSpeed', { size: (r.sizeOptions ?? [r.size]).map(x => term('size', x, x)).join(' / '), speed: r.speed })}</span>
+            {r.source && <span className="muted small">{r.source}</span>}
           </button>
         ))}
       </div>
@@ -104,8 +112,13 @@ function RaceStep({ draft, update }: StepProps) {
         <div className="field">
           <label>{t(edition === '2024' ? 'builder.lineage' : 'builder.subrace')} <Why id="subrace" /></label>
           <div className="row">
+            {race.subraceOptional && (
+              <button className={`glass-chip ${!draft.subraceId ? 'on' : ''}`} onClick={() => update({ subraceId: undefined, chosenLanguages: [], chosenSkills: [], freeAbilityBonuses: [], originFeatId: undefined, racialBonusTargets: undefined, originSwaps: undefined })}>
+                {t('builder.race.noSubrace')}
+              </button>
+            )}
             {race.subraces.map(s => (
-              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [], racialBonusTargets: undefined, originSwaps: undefined })}>
+              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [], chosenSkills: [], freeAbilityBonuses: [], originFeatId: undefined, racialBonusTargets: undefined, originSwaps: undefined })}>
                 {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}
               </button>
             ))}
@@ -113,12 +126,22 @@ function RaceStep({ draft, update }: StepProps) {
           {draft.subraceId && <Explain kind={edition === '2024' ? 'sub2024' : 'sub2014'} id={draft.subraceId} />}
         </div>
       )}
-      {race?.originFeatChoice && (
+      {race && race.sizeOptions && race.sizeOptions.length > 1 && (
         <div className="field">
-          <label htmlFor="origin-feat">{t('builder.originFeat')} <Why id="originFeat" /></label>
+          <label>{t('builder.race.size')} <Why id="size" /></label>
+          <div className="row">
+            {race.sizeOptions.map(x => (
+              <button key={x} className={`glass-chip ${profile.size === x ? 'on' : ''}`} onClick={() => update({ sizeChoice: x })}>{term('size', x, x)}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {profile.featChoice && (
+        <div className="field">
+          <label htmlFor="origin-feat">{t(profile.featChoice === 'origin' ? 'builder.originFeat' : 'builder.race.feat')} <Why id="originFeat" /></label>
           <select id="origin-feat" value={draft.originFeatId ?? ''} onChange={e => update({ originFeatId: e.target.value || undefined, chosenSkills: [] })}>
             <option value="">{t('builder.asi.pickFeat')}</option>
-            {originFeats.map(f => <option key={f.id} value={f.id}>{term('feat', f.id, f.name)}</option>)}
+            {featList.map(f => <option key={f.id} value={f.id}>{term('feat', f.id, f.name)}</option>)}
           </select>
           {(() => {
             const f = featById(draft.originFeatId ?? '', edition)
@@ -147,6 +170,23 @@ function RaceStep({ draft, update }: StepProps) {
           })()}
         </div>
       )}
+      {profile.choices.map(ch => {
+        const picked = pickedOptions(draft, ch.id)
+        const key = explainKey('trait', ch.name)
+        return (
+          <div className="field" key={ch.id}>
+            <label>{term('trait', ch.name, ch.name)}{(ch.count ?? 1) > 1 ? ` (${picked.length}/${ch.count})` : ''} {key && <Why title={term('trait', ch.name, ch.name)} text={t(key)} />}</label>
+            <div className="row">
+              {ch.options.map(o => (
+                <button key={o.id} className={`glass-chip ${picked.includes(o.id) ? 'on' : ''}`} title={o.detail} onClick={() => toggleOption(ch, o.id)}>
+                  {term('trait', o.name, o.name)}
+                </button>
+              ))}
+            </div>
+            {ch.options.filter(o => picked.includes(o.id) && o.detail).map(o => <p key={o.id} className="muted small" dir="auto">{o.name}: {o.detail}</p>)}
+          </div>
+        )
+      })}
       <p className="muted small">{t('builder.race.homebrewHint')}</p>
       {race && (
         <p className="small">
@@ -367,7 +407,6 @@ function suggestedArray(draft: CharacterDraft) {
 
 function AbilitiesStep({ draft, update }: StepProps) {
   const edition = rulesEdition(draft)
-  const race = raceById(draft.raceId, edition)
   const bonus = racialBonuses(draft)
   const asi = improvementBonuses(draft)
   for (const { ability: a } of featAbilityChoices(draft)) asi[a] += 1
@@ -387,7 +426,9 @@ function AbilitiesStep({ draft, update }: StepProps) {
     update({ baseAbilities: { ...draft.baseAbilities, [a]: v, ...(other ? { [other]: draft.baseAbilities[a] } : {}) } })
   }
 
-  const free = edition === '2014' ? race?.freeAbilityBonuses : undefined
+  const raceInfo = raceProfile(draft)
+  const free = edition === '2014' ? raceInfo.freeAbilityBonuses : undefined
+  const flexible = edition === '2014' && raceInfo.flexibleAbilityBonuses
   const toggleFree = (a: Ability) => {
     const has = draft.freeAbilityBonuses.includes(a)
     const next = has ? draft.freeAbilityBonuses.filter(x => x !== a) : [...draft.freeAbilityBonuses, a]
@@ -413,6 +454,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
         </p>
       )}
       {edition === '2024' && <BackgroundBonuses draft={draft} update={update} />}
+      {flexible && <FlexibleRaceBonuses draft={draft} />}
       <table className="ability-table">
         <thead>
           <tr><th>{t('builder.col.ability')}</th><th>{t('builder.col.base')}</th><th>{t(edition === '2024' ? 'builder.col.background' : 'builder.col.racial')}<Why id={edition === '2024' ? 'bgBonus' : 'racial'} compact /></th>{hasAsi && <th>{t('builder.col.asi')}</th>}<th>{t('builder.col.score')}</th><th>{t('builder.col.mod')}<Why id="modifier" compact /></th>{free && <th>+1<Why id="freeBonus" compact /></th>}</tr>
@@ -446,7 +488,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
                 )}
               </td>
               <td className="muted">
-                {edition === '2024'
+                {edition === '2024' || flexible
                   ? <BackgroundBonusPick draft={draft} update={update} a={a} />
                   : bonus[a] ? formatMod(bonus[a]) : ''}
               </td>
@@ -514,6 +556,12 @@ function RolledScores({ draft, update }: StepProps) {
   )
 }
 
+/** 2014 races with free bonuses (Monsters of the Multiverse style): +2/+1 or +1/+1/+1 to any abilities, picked in the table. */
+function FlexibleRaceBonuses({ draft }: Pick<StepProps, 'draft'>) {
+  const { t } = useI18n()
+  return <p className="small">{t('builder.flexBonus.intro', { total: draft.freeAbilityBonuses.length })} <Why id="racial" /></p>
+}
+
 /** 2024: a new background keeps bonuses the player placed off its list, and clears ones that followed the old list. */
 function bonusesAfterBackground(draft: CharacterDraft): Ability[] {
   const listed = getBackground(draft)?.abilityScores ?? []
@@ -556,7 +604,7 @@ function BackgroundBonuses({ draft, update }: StepProps) {
   )
 }
 
-/** 2024: one ability's background bonus (—, +1 or +2) in the ability table. Options that would pass +3 in total are off. */
+/** 2024 (and flexible 2014 races): one ability's bonus (—, +1 or +2) in the ability table. Options that would pass +3 in total are off. */
 function BackgroundBonusPick({ draft, update, a }: StepProps & { a: Ability }) {
   const { t, ability } = useI18n()
   const listed = getBackground(draft)?.abilityScores ?? []

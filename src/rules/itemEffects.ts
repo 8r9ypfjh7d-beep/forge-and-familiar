@@ -1,9 +1,10 @@
-// Item effects: which equipped items, which custom actions the player switched on, and which class and subclass features change the character's numbers.
+// Item effects: which equipped items, which custom actions the player switched on, and which class and subclass features and racial traits change the character's numbers.
 // derive() and src/explain both read these, so the sheet and "show the math" agree.
 import type { Character } from '../model/character'
 import { entryItem } from './data/items'
 import { ALL_SKILLS } from './data/skills'
 import { classOptionEffects } from './classOptions'
+import { raceEffects } from './race'
 import { classEffects, subclassEffects } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type BonusEffectKind, type ConditionId, type InventoryEntry, type ItemEffect, type MoveMode,
@@ -12,7 +13,7 @@ import {
 
 type EffectOf<K extends ItemEffect['kind']> = ItemEffect & { kind: K }
 
-type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions'>>
+type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions' | 'raceId' | 'subraceId' | 'traitChoices'>>
 
 /** An entry's effects work while it is equipped. */
 export const effectsActive = (e: InventoryEntry) => e.equipped
@@ -27,9 +28,10 @@ export function activeItemEffects(c: Owner): ActiveEffect[] {
   })
   // A custom action's stat changes (Rage-like stances, a blessing) count while it is switched on.
   const actions = (c.customActions ?? []).flatMap(a => (a.active ? (a.stats ?? []).map(effect => ({ source: a.name, effect })) : []))
-  // Class and subclass features that change the sheet (Diamond Soul, Thought Shield's psychic resistance, Gift of the Sea's swim speed).
-  // Picked class options (invocations, fighting styles, infusions...) that change the sheet.
-  return [...items, ...actions, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c)]
+  // Class and subclass features that change the sheet (Diamond Soul, Thought Shield's psychic resistance, Gift of the Sea's swim speed),
+  // picked class options (invocations, fighting styles, infusions...), then racial traits (Warforged poison
+  // resistance, innate spells, picked Simic Hybrid enhancements).
+  return [...items, ...actions, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c)]
 }
 
 /**
