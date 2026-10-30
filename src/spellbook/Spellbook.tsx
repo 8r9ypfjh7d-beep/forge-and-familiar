@@ -4,7 +4,7 @@ import { BOOK_SOURCES, BOOK_TITLES, loadKind, searchEntries, type CharacterClass
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
-import { derive, formatMod } from '../rules'
+import { derive, formatMod, spellEffectId } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import { SearchField } from '../rulesqa/SearchField'
 import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlots'
@@ -12,6 +12,7 @@ import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, spellAccess, spellSourcesFor, type SpellAccess } from './access'
 import { grantedSpells, isExtraSpell } from './extra'
 import { addSpell, isPinned, pinnedSpells, removeSpell, setEdition, spellsOf, toggleSpellPin } from './spellbook'
+import { CastButton, CastResult, useCast } from './Cast'
 import './spellbook.css'
 
 interface Library {
@@ -113,6 +114,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
   const stats = derive(character)
   const [picking, setPicking] = useState(false)
   const [query, setQuery] = useState('')
+  const casting = useCast(character, apply)
   const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities, undefined, lib.spells) : []
   const slots = hasSlots(character)
   const spells = lib && lib !== 'error' ? lib.spells : []
@@ -153,6 +155,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
         <div className="sb-pinned" role="group" aria-labelledby="pinned-title">
           {slots && <h3 id="pinned-title" className="sub-title">{t('spells.story.pinnedTitle')}</h3>}
           {pinned.length === 0 && !picking && <p className="hint">{t('spells.story.empty')}</p>}
+          <CastResult out={casting.out} outKey={casting.outKey} onDone={casting.clear} character={character} apply={apply} />
           {pinned.length > 0 && (
             <ul className="sb-list">
               {pinned.map(e => {
@@ -163,7 +166,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
                 )
                 // Spells typed into quick-cast by hand have no library text, so they show as a plain row.
                 return s
-                  ? <SpellRow key={e.id} spell={s} badge={badge}>{remove}</SpellRow>
+                  ? <SpellRow key={e.id} spell={s} badge={badge} running={isRunning(character, s.id)}><CastButton character={character} spell={s} onCast={casting.cast} />{remove}</SpellRow>
                   : (
                     <li key={e.id} className="sb-row">
                       <div className="sb-line">
@@ -239,6 +242,7 @@ function groupByLevel(spells: Spell[]) {
 
 function Mine({ character, apply, access, spells, onBrowse }: { character: Character; apply: Apply; access: SpellAccess; spells: Spell[]; onBrowse: () => void }) {
   const { t } = useI18n()
+  const casting = useCast(character, apply)
   const levelName = useLevelName()
   const byId = new Map(spells.map(s => [s.id, s]))
   const chosen = new Set(spellsOf(character, access.classId).map(k => k.id))
@@ -257,6 +261,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
   const pin = (s: Spell, on: boolean) => apply(t(on ? 'spells.story.log.unpin' : 'spells.log.pin', { name: s.name }), c => toggleSpellPin(c, s))
   return (
     <div className="sb-groups">
+      <CastResult out={casting.out} outKey={casting.outKey} onDone={casting.clear} character={character} apply={apply} />
       {groupByLevel(list).map(([level, group]) => (
         <section key={level} aria-label={levelName(level)}>
           <h3>{levelName(level)}</h3>
@@ -265,7 +270,8 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
               const always = access.alwaysPrepared.includes(s.id)
               const pinned = isPinned(character, s.name)
               return (
-                <SpellRow key={s.id} spell={s} badge={always ? t('spells.always') : undefined}>
+                <SpellRow key={s.id} spell={s} badge={always ? t('spells.always') : undefined} running={isRunning(character, s.id)}>
+                  <CastButton character={character} spell={s} onCast={casting.cast} />
                   <button type="button" className={`glass-btn small${pinned ? '' : ' sb-add'}`} aria-pressed={pinned} onClick={() => pin(s, pinned)}
                     aria-label={pinned ? t('spells.story.unpinName', { name: s.name }) : t('spells.pinName', { name: s.name })}>
                     {pinned ? t('spells.pinned') : t('spells.pin')}
@@ -334,8 +340,10 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
   )
 }
 
+const isRunning = (c: Character, spellId: string) => (c.state.effects ?? []).some(e => e.id === spellEffectId(spellId))
+
 /** One spell: name and stat line; tapping the name opens the full text. Actions go in children. */
-export function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: string; children: ReactNode }) {
+export function SpellRow({ spell: s, badge, running, children }: { spell: Spell; badge?: string; running?: boolean; children: ReactNode }) {
   const { t, locale, dir } = useI18n()
   const he = locale === 'he' && !!s.descriptionHe
   const [open, setOpen] = useState(false)
@@ -348,6 +356,7 @@ export function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: 
           {s.concentration && <abbr className="sb-tag" title={t('spells.concentration')}>C</abbr>}
           {s.ritual && <abbr className="sb-tag" title={t('spells.ritual')}>R</abbr>}
           {badge && <span className="sb-badge">{badge}</span>}
+          {running && <span className="sb-badge sb-running">{t('cast.running')}</span>}
           {s.book && <abbr className="sb-tag sb-book" title={BOOK_TITLES[s.book] ?? s.book} lang="en">{s.book}</abbr>}
           <small><bdi lang="en">{s.castingTime.split(',')[0]} · {s.range}</bdi></small>
         </button>

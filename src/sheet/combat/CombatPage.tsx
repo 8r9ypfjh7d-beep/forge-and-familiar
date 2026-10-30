@@ -3,14 +3,17 @@
 // summary, skills rail, attacks table, effects, action lists and features view live here.
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BUNDLED, loadKind, type Equipment, type Feat, type Feature, type Spell, type Trait } from '../../content'
-import type { RollMode, RollResult } from '../../dice'
+import type { RollMode } from '../../dice'
 import { featExplainKey, optionKey, optionName } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
-import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
+import { slotChoices, spellDamage } from '../../quickcast/quickcast'
+import { castPlan, castSpell } from '../../spellbook/cast'
+import { spendOnceEffects, startEffect } from '../effects'
+import { EffectRows, toggleEffect } from '../components/Effects'
 import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
@@ -20,10 +23,11 @@ import { useSheetRolls } from '../dice'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
-  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteredWeapons, masteryLimit, featureDescription, newActionId, removeAction, resolveDice, setActionActive, spellAttackRows, updateAction,
+  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteredWeapons, masteryLimit, featureDescription, newActionId, removeAction, resolveDice, spellAttackRows, updateAction,
   effectsUsed, type ActionKind, type CustomAction, type EffectToggle, type UsedEffect, type SpellAttackRow,
 } from './combat'
 import './combat.css'
+import { LastRoll, type Shown } from './LastRoll'
 
 interface Library {
   spells: Spell[]
@@ -52,43 +56,6 @@ function useLibrary(character: Character): Library {
     return () => { live = false }
   }, [source])
   return lib?.source === source ? lib.data : EMPTY
-}
-
-/** A roll and what it is for, e.g. "To hit" or "Damage (force)". */
-interface Shown { roll: RollResult; what: string }
-
-/**
- * The last roll a panel made, one labeled line per roll so "to hit" and "damage" can't be mixed up.
- * The dice history keeps them all. With `onDone` it fades away on its own (see FadingResult).
- */
-function LastRoll({ rolls, note, onDone }: { rolls: Shown[]; note?: string; onDone?: () => void }) {
-  const { t } = useI18n()
-  if (!rolls.length && !note) return null
-  const body = (
-    <>
-      {rolls.map(({ roll: r, what }) => {
-        const crit = r.d20?.crit
-        const fumble = r.d20?.fumble
-        const mode = r.d20 && r.d20.mode !== 'normal' ? t(r.d20.mode === 'advantage' ? 'dice.advShort' : 'dice.disShort') : ''
-        return (
-          <div key={r.id} className={`cs-rollline type-${r.type}${crit ? ' crit' : ''}${fumble ? ' fumble' : ''}`}>
-            <span className="what">{what}{mode && <small> ({mode})</small>}</span>
-            <span className="total">{r.total}</span>
-            <span className="how" dir="ltr">{r.breakdown}</span>
-            {r.type === 'attack' && (
-              <span className="meaning">
-                {fumble ? t('cs.roll.fumble') : crit ? t('cs.roll.crit') : t('cs.roll.hitsAc', { n: r.total })}
-              </span>
-            )}
-          </div>
-        )
-      })}
-      {note && <p className="hint">{note}</p>}
-    </>
-  )
-  return onDone
-    ? <FadingResult className="cs-last" onDone={onDone}>{body}</FadingResult>
-    : <div className="cs-last" aria-live="polite">{body}</div>
 }
 
 // ---------- Character card (both modes) ----------
@@ -294,22 +261,21 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const outRef = useRef<HTMLDivElement>(null)
   // Actions sit far below the result box, so bring the result into view after every roll.
   useEffect(() => { if (out) outRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }) }, [out])
-  const spellNames = Object.fromEntries(lib.spells.map(s => [s.id, s.name]))
-  const effects = effectToggles(character, d, spellNames)
+  const effects = effectToggles(character, d, lib.spells)
   const spells = spellAttackRows(character, d, lib.spells)
   const critRange = getCritRange(character)
-  // Custom action effects are saved on the action (their stat changes reach derive()); the rest are per-session switches.
-  const isOn = (e: EffectToggle) => (e.id.startsWith('act:') ? !!character.customActions?.find(a => `act:${a.id}` === e.id)?.active : !!on[e.id])
-  const toggle = (e: EffectToggle, value: boolean) => {
-    if (!e.id.startsWith('act:')) return setOn(o => ({ ...o, [e.id]: value }))
-    apply(t(value ? 'cs.log.effectOn' : 'cs.log.effectOff', { name: e.name }), c => setActionActive(c, e.id.slice(4), value))
-  }
+  // Custom action effects are saved on the action, running spells on the character (their stat changes reach derive()); Rage and Sneak Attack are per-session switches.
+  const isOn = (e: EffectToggle) =>
+    e.id.startsWith('act:') ? !!character.customActions?.find(a => `act:${a.id}` === e.id)?.active
+      : e.live || e.start ? !!e.live?.on
+        : !!on[e.id]
+  const toggle = (e: EffectToggle, value: boolean) => toggleEffect(e, value, apply, t, () => setOn(o => ({ ...o, [e.id]: value })))
   const active = effects.filter(isOn)
   const damaging = active.filter((e): e is EffectToggle & { damage: string } => !!e.damage)
 
   const weapon = (a: DerivedStats['attacks'][number]) => {
     const own = getDamageRiders(character, a).map(r => r.id as string)
-    const used = damaging.filter(e => !e.weaponOnly || own.includes(e.id))
+    const used = damaging.filter(e => !e.feature || own.includes(e.id))
     const riders = used.map(e => ({ name: e.name, damage: e.damage }))
     const extra = a.extraDamage ? /^(\S+)\s*(.*)$/.exec(a.extraDamage) : null
     const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1] }] : riders
@@ -322,15 +288,24 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         f.kind === 'attack' || (f.kind === 'damage' && !!r.damage) || ((f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === a.ability)),
     })
     if (r.damage && active.some(e => e.oncePerTurn)) setOn(o => ({ ...o, ...Object.fromEntries(active.filter(e => e.oncePerTurn).map(e => [e.id, false])) }))
+    // A 2014 smite is spent by the hit it rode on.
+    const spent = used.filter(e => e.live?.once)
+    if (r.damage && spent.length) apply(t('fx.log.spent', { name: spent.map(e => e.name).join(', ') }), spendOnceEffects)
   }
 
   const cast = (r: SpellAttackRow) => {
     const notes: string[] = []
     const choice = r.level > 0 ? slotChoices(character, r.level)[0] : undefined
-    if (choice) {
-      apply(t(choice.source === 'pact' ? 'cs.log.castPact' : 'cs.log.cast', { name: r.name, level: choice.level }), c => spendSlot(c, choice))
-      notes.push(t(choice.source === 'pact' ? 'cs.usedPact' : 'cs.usedSlot', { level: choice.level }))
-    } else if (r.level > 0) notes.push(t('cs.noSlot'))
+    // A library spell also starts its running effect, so concentration (Hold Person) is tracked under Effects.
+    const spell = lib.spells.find(s => s.name.toLowerCase() === r.name.toLowerCase())
+    const plan = spell ? castPlan(character, d, spell, choice) : {}
+    if (choice || plan.effect) {
+      const log = choice ? t(choice.source === 'pact' ? 'cs.log.castPact' : 'cs.log.cast', { name: r.name, level: choice.level }) : t('cast.log', { name: r.name })
+      apply(log, c => castSpell(c, plan, { slot: choice }).character)
+    }
+    if (choice) notes.push(t(choice.source === 'pact' ? 'cs.usedPact' : 'cs.usedSlot', { level: choice.level }))
+    else if (r.level > 0) notes.push(t('cs.noSlot'))
+    for (const name of plan.effect ? startEffect(character, plan.effect).ended : []) notes.push(t('cast.concEnded', { name }))
     if (r.kind === 'save' && r.save) notes.push(t('cs.saveNote', { dc: r.value, ability: abilityShort(r.save) }))
     const sc = d.spellcasting
     const damage = spellDamage({ ...r.entry, id: '', kind: 'spell' }, choice?.level ?? r.level, d.level, sc ? d.mods[sc.ability] : 0)
@@ -460,25 +435,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
 
       <h3 className="cs-sub">{t('cs.effects')}</h3>
       {effects.length
-        ? (
-          <ul className="cs-rows cs-effects">
-            {effects.map(e => (
-              <li key={e.id}>
-                <label className="cs-switch">
-                  <input type="checkbox" role="switch" checked={isOn(e)} onChange={ev => toggle(e, ev.target.checked)} />
-                  <span>{e.weaponOnly ? term('feature', e.name, e.name) : e.name}</span>
-                </label>
-                {e.damage && <span className="dmg" dir="ltr">{e.damage}</span>}
-                <span className="hint">
-                  {[
-                    e.damage ? `${t(e.weaponOnly ? 'cs.affects.weapon' : 'cs.affects.damage')}${e.damageType ? ` (${term('damage', e.damageType, e.damageType)})` : ''}` : '',
-                    ...(e.stats ?? []).map(f => effectText(i18n, f)),
-                  ].filter(Boolean).join(' · ')}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )
+        ? <EffectRows effects={effects} isOn={isOn} onToggle={toggle} apply={apply} />
         : <p className="hint">{t('cs.noEffects')}</p>}
 
       <CustomActions character={character} apply={apply} onRoll={runAction} />

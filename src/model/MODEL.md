@@ -24,6 +24,7 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
 - Characters of signed-in accounts sync to the cloud (`src/sync/SYNC.md`); `updatedAt` decides which copy wins a conflict.
 - Old saves may still hold `state.exhaustion`, `state.inspiration`, `state.attuned` and `state.clock`. Those features were removed; `normalize()` in `sheet/engine.ts` drops the fields on load.
 - `state.counters` with `recharge: 'dawn'` are magic item charges; `regain` is dice notation rolled at dawn (blank refills all). Rests never touch them; `dawn()` in `sheet/engine.ts` does.
+- `state.effects` (optional) lists what is running on the character: spells cast (Armor of Agathys, Hex, Bless), later features and items too (`LiveEffect`: `id` like `spell:hex`, `name`, `from`, `level`, `concentration`, `on`, `duration`, `ends`, and its numbers: `damage`/`damageType`/`weaponOnly`/`once`, `stats` (item-effect shape), `rollDice`, `acBase`, `acMin`, `reflect`, `whileTempHp`). Built by `rules/usables.ts`, changed by `sheet/effects.ts`; rests drop what they outlast. Optional, so old saves need no migration.
 - `state.supplies` (optional) holds ammo fired since the last battlefield search and hungry days; see `src/supplies/SUPPLIES.md`.
 - `rulesEdition` (optional): `'2024'` uses SRD 5.2 rules and content for the whole character; missing means 2014. See `src/rules/RULES.md` (Rules editions). `spellEdition` now only overrides it for spells.
 - Builder choices, all optional so old saves stay valid without a schema bump:

@@ -30,6 +30,8 @@ export interface CharacterState {
     /** Dawn trackers only: dice regained each dawn, e.g. "1d6+1". Blank means all of them. */
     regain?: string
   }[]
+  /** Spells, features and items in effect right now (src/rules/usables.ts): cast or switched on, ended by the player, concentration or a rest. */
+  effects?: LiveEffect[]
   /** Ammo and food countdowns (src/supplies). Counts themselves are inventory quantities. */
   supplies?: {
     /** Pieces fired per ammo item id since the last battlefield search. */
@@ -37,6 +39,45 @@ export interface CharacterState {
     /** Long rests in a row taken without eating. */
     daysWithoutFood?: number
   }
+}
+
+/**
+ * Something in effect on the character: a spell they cast (Armor of Agathys, Bless, Hex), a feature they used
+ * or an item they activated. Its numbers count while `on`; switching it off keeps it tracked (cast on an ally).
+ */
+export interface LiveEffect {
+  /** `spell:<spellId>`, `feature:<id>` or `item:<id>`; one of each at a time. */
+  id: string
+  name: string
+  from: 'spell' | 'feature' | 'item'
+  /** Slot level it was cast with. */
+  level?: number
+  concentration?: boolean
+  /** Its numbers apply to this character. */
+  on: boolean
+  /** The library's duration text, shown on the sheet. */
+  duration?: string
+  /** The rest that ends it: 'short' for up to an hour, 'long' for up to 8 hours, 'never' for longer (ended by hand). */
+  ends?: 'short' | 'long' | 'never'
+  /** Extra damage on each hit (Hex 1d6 necrotic). */
+  damage?: string
+  damageType?: string
+  /** Only weapon attacks get the damage (Divine Favor, smites); otherwise spell attacks too. */
+  weaponOnly?: boolean
+  /** Ends after its first hit (2014 smites). */
+  once?: boolean
+  /** Stat changes while on: the item effect shape (AC, saves, advantage, resistance, speed...). */
+  stats?: ItemEffect[]
+  /** Dice added to d20 rolls while on (Bless: 1d4 on attacks and saves). */
+  rollDice?: Partial<Record<'attack' | 'save' | 'check', string>>
+  /** Unarmored AC becomes this + DEX (Mage Armor 13). */
+  acBase?: number
+  /** AC can't be lower than this (Barkskin). */
+  acMin?: number
+  /** Damage a creature takes when it hits you with a melee attack (Armor of Agathys). */
+  reflect?: { damage: string; type?: string }
+  /** Ends when the temporary hit points it gave run out. */
+  whileTempHp?: boolean
 }
 
 /** The PHB "Customizing a Background" rule: used when backgroundId is 'custom'. */

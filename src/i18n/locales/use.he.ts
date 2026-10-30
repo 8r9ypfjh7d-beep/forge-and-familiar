@@ -1,0 +1,32 @@
+// Hebrew casting and running effects, one per key in use.en.ts.
+import type { Messages } from '../translate'
+
+export const useHe: Messages = {
+  'cast.cast': 'הטלה',
+  'cast.castName': 'להטיל {name}',
+  'cast.higher': 'להטיל {name} במשבצת גבוהה יותר',
+  'cast.pact': 'ברית',
+  'cast.log': 'הוטל {name}',
+  'cast.noSlot': 'לא נשארה משבצת: הוטל בכל זאת',
+  'cast.tempHp': 'נקודות פגיעה זמניות',
+  'cast.gotTempHp': '+{n} נקודות פגיעה זמניות',
+  'cast.healed': 'ריפוי של {n} נ"פ',
+  'cast.healMe': 'לרפא אותי (+{n})',
+  'cast.log.healMe': 'ריפוי של {n} נ"פ מ{name}',
+  'cast.concEnded': 'הריכוז ב{name} הסתיים',
+  'cast.inEffect': 'עכשיו תחת השפעות',
+  'cast.running': 'פעיל',
+  'fx.end': 'לסיים',
+  'fx.endName': 'לסיים את {name}',
+  'fx.log.end': '{name} הסתיים',
+  'fx.log.spent': '{name} נוצל בפגיעה',
+  'fx.notOnMe': 'לא עליי',
+  'fx.once': 'רק בפגיעה הבאה',
+  'fx.dice.attack': '+{dice} לגלגולי התקפה',
+  'fx.dice.save': '+{dice} לגלגולי הצלה',
+  'fx.dice.check': '+{dice} לבדיקות יכולת',
+  'fx.acBase': 'דרג"ש {n} + זריזות בלי שריון',
+  'fx.acMin': 'דרג"ש לפחות {n}',
+  'fx.reflect': 'תוקף בתגרה שפוגע בך סופג {dice}{type}',
+  'fx.whileTempHp': 'נגמר כשנקודות הפגיעה הזמניות שלו אוזלות',
+}

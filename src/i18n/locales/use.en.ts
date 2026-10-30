@@ -1,0 +1,32 @@
+// Casting spells and running effects on the sheet (src/spellbook/Cast.tsx, src/sheet/components/Effects.tsx).
+// Hebrew in use.he.ts, one line per key.
+
+export const useEn = {
+  'cast.cast': 'Cast',
+  'cast.castName': 'Cast {name}',
+  'cast.higher': 'Cast {name} with a higher slot',
+  'cast.pact': 'pact',
+  'cast.log': 'Cast {name}',
+  'cast.noSlot': 'No slot left: cast anyway',
+  'cast.tempHp': 'Temporary HP',
+  'cast.gotTempHp': '+{n} temporary HP',
+  'cast.healed': 'Healed {n} HP',
+  'cast.healMe': 'Heal me (+{n})',
+  'cast.log.healMe': 'Healed {n} HP from {name}',
+  'cast.concEnded': 'Stopped concentrating on {name}',
+  'cast.inEffect': 'Now under Effects',
+  'cast.running': 'Active',
+  'fx.end': 'End',
+  'fx.endName': 'End {name}',
+  'fx.log.end': 'Ended {name}',
+  'fx.log.spent': 'Used up {name} on a hit',
+  'fx.notOnMe': 'Not on me',
+  'fx.once': 'Next hit only',
+  'fx.dice.attack': '+{dice} to attack rolls',
+  'fx.dice.save': '+{dice} to saving throws',
+  'fx.dice.check': '+{dice} to ability checks',
+  'fx.acBase': 'AC {n} + DEX without armor',
+  'fx.acMin': 'AC at least {n}',
+  'fx.reflect': 'Melee attackers that hit you take {dice}{type}',
+  'fx.whileTempHp': 'Ends when its temporary HP are gone',
+}

@@ -3,7 +3,7 @@ import type { HitDie } from '../model/character'
 import { SKILLS } from '../rules/data/skills'
 import type { DamageRider } from '../rules/attackRiders'
 import type { Attack, DerivedStats } from '../rules/derive'
-import { autoFailsSave, getRollMode, type RollKind as ConditionRollKind } from '../rules/rollMode'
+import { autoFailsSave, getRollDice, getRollMode, type RollKind as ConditionRollKind } from '../rules/rollMode'
 import { ABILITY_NAMES, type Ability, type SkillId } from '../rules/types'
 import { critNotation } from './notation'
 import { roll, rollD20 } from './roll'
@@ -17,7 +17,11 @@ function prepare(opts: RollOptions, label: string, kind: ConditionRollKind, abil
   if (opts.character && !opts.ignoreConditions) modes.push(getRollMode(opts.character, kind, ability))
   // Items that always give advantage (Boots of Elvenkind on Stealth); a disadvantage still cancels it out.
   if (itemAdvantage) modes.push('advantage')
-  return { ...opts, label: opts.label ?? label, mode: modes }
+  // Running spells that add dice to this kind of roll (Bless, Guidance).
+  const extra = opts.character && !opts.ignoreConditions ? getRollDice(opts.character, kind) : []
+  if (!extra.length) return { ...opts, label: opts.label ?? label, mode: modes }
+  const base = opts.label ?? label
+  return { ...opts, label: `${base} + ${extra.map(x => x.name).join(', ')}`, mode: modes, bonusDice: [...(opts.bonusDice ?? []), ...extra.map(x => x.dice)] }
 }
 
 export function rollCheck(stats: DerivedStats, ability: Ability, opts: RollOptions = {}): RollResult {

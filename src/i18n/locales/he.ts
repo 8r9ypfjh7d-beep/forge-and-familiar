@@ -17,6 +17,7 @@ import { explainRacesHe, racesTermsHe } from './explain.races.he'
 import { explainRaces2014He, racesTerms2014He } from './explain.races2014.he'
 import { explainSettingsHe, settingTermsHe } from './explain.settings.he'
 import { itemsHe } from './items.he'
+import { useHe } from './use.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
 import { subfeatureTermsHe } from './subfeatures.he'
 
@@ -37,6 +38,7 @@ const messages: Messages = {
   ...explainArtificerHe,
   ...explainSettingsHe,
   ...itemsHe,
+  ...useHe,
   ...picks2014He,
   'common.back': 'חזרה',
   'common.backArrow': '→',

@@ -13,6 +13,9 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 | `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `pinnedSpells`, `toggleSpellPin`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
 | `Spellbook.tsx` | `Spellbook` (combat's Spells tab): spell slots, summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
 | `spellbook.css` | Liquid Glass styles for the card's insides (the card frame is the sheet's): `.glass-segmented` tabs, `.glass-chip` filters, `SearchField`, inset spell list on thin glass, tinted Add/Pin buttons |
+| `cast.ts` | Pure: `castPlan` (rules `planCast` with the character's edition, spellcasting modifier and speed), `defaultSlot` (lowest free slot that fits), `castSpell` (spends the slot, starts the running effect, adds temp HP and healing) |
+| `Cast.tsx` | `useCast` (one tap: rolls the spell's attack, save DC, damage or healing, 2024 smite damage, temp HP dice, then applies `castSpell` as one undoable step), `CastButton` (Cast, plus ▾ for a higher slot when there is a choice), `CastResult` (fading result; healing spells offer Heal me) |
+| `cast.test.ts` | Casting Armor of Agathys, concentration, rests, smites, Aid |
 | `spellbook.test.ts` | Access for both editions, multiclass, subclass spells, quick-cast mapping |
 
 ## Rules
@@ -46,3 +49,7 @@ Spells from the official books show their book code (XGE, TCE…) as a tag. The 
 ## Licence
 
 The card shows the SRD's CC-BY attribution and the book spells' note under "Source". Keep both.
+
+## Casting
+
+Every spell row in My spells (combat's Spells tab) and every pinned spell (story's Spells card) has **Cast**. One tap spends the lowest free slot (pact slots included), rolls whatever the spell rolls, gives its temporary HP (Armor of Agathys: 5 per slot level) or healing, and starts its running effect, which then shows under Effects with concentration and duration (`src/rules/usables.ts`). A new concentration spell ends the old one. With no slot left it still casts and says so (warn, don't block). Spells that are running show an Active tag.

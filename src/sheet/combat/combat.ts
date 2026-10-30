@@ -1,11 +1,12 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
-import type { ActionKind, Character, CustomAction } from '../../model/character'
-import { classChoices, getDamageRiders, getWeaponMasteryCount, weaponMastery, type DerivedStats } from '../../rules'
+import type { ActionKind, Character, CustomAction, LiveEffect } from '../../model/character'
+import { classChoices, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { spellDamage } from '../../quickcast/quickcast'
 import type { SpellEntry } from '../../quickcast/types'
+import { editionOf } from '../../spellbook/access'
 import { toQuickCast } from '../../spellbook/spellbook'
 import { explainKey, featureKey } from '../../builder/why'
 import type { MessageKey } from '../../i18n/locales/en'
@@ -167,6 +168,8 @@ export function featureDescription(
   return shared ? explain(shared) : undefined
 }
 
+const slug = (name: string) => name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 /** Damage a toggled effect adds to each hit. */
 export interface EffectToggle {
   id: string
@@ -175,34 +178,49 @@ export interface EffectToggle {
   /** Extra damage dice on each hit; a custom action may only change stats. */
   damage?: string
   damageType?: string
-  /** A custom action's stat changes, applied by the rules engine while it is switched on. */
+  /** A custom action's or running spell's stat changes, applied by the rules engine while it is switched on. */
   stats?: ItemEffect[]
-  /** Weapon attacks only (Rage, Sneak Attack); spell effects also ride on spell attacks. */
+  /** A feature's own rider (Rage, Sneak Attack): it rides only on the weapons that allow it. */
+  feature?: boolean
+  /** Weapon attacks only (Divine Favor, smites, Rage); otherwise spell attacks get it too. */
   weaponOnly?: boolean
   oncePerTurn?: boolean
+  /** The running spell or feature behind the switch (saved on the character), when there is one. */
+  live?: LiveEffect
+  /** What switching it on starts, for a known spell that isn't running yet (Hex before the fight). */
+  start?: Omit<LiveEffect, 'on'>
 }
 
-/** Spells whose ongoing effect adds damage to the caster's hits (SRD 5.1 and 5.2). */
-const SPELL_EFFECTS: Record<string, { damage: string; damageType?: string }> = {
-  hex: { damage: '1d6', damageType: 'necrotic' },
-  'hunters-mark': { damage: '1d6' },
-  'divine-favor': { damage: '1d4', damageType: 'radiant' },
-}
-
-const slug = (name: string) => name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-
-/** Effects the player can switch on: Rage and Sneak Attack from features, Hex-like spells they know or pinned. */
-export function effectToggles(c: Character, stats: DerivedStats, spellNames: Record<string, string> = {}): EffectToggle[] {
+/**
+ * Effects the player can switch on: Rage and Sneak Attack from features, every known or pinned spell
+ * whose running effect changes numbers (Hex, Bless, Shield of Faith...), everything running now, and the
+ * player's own actions with an effect.
+ */
+export function effectToggles(c: Character, stats: DerivedStats, spells: Spell[] = []): EffectToggle[] {
   const out: EffectToggle[] = []
   for (const a of stats.attacks) {
     for (const r of getDamageRiders(c, a)) {
-      if (!out.some(e => e.id === r.id)) out.push({ id: r.id, name: r.name, damage: r.damage, weaponOnly: true, ...(r.oncePerTurn ? { oncePerTurn: true } : {}) })
+      if (!out.some(e => e.id === r.id)) out.push({ id: r.id, name: r.name, damage: r.damage, feature: true, weaponOnly: true, ...(r.oncePerTurn ? { oncePerTurn: true } : {}) })
     }
   }
+  const running = c.state.effects ?? []
+  const fromLive = (live: Omit<LiveEffect, 'on'> & { on?: boolean }) => ({
+    ...(live.damage ? { damage: live.damage } : {}),
+    ...(live.damageType ? { damageType: live.damageType } : {}),
+    ...(live.weaponOnly ? { weaponOnly: true } : {}),
+    ...(live.stats?.length ? { stats: live.stats } : {}),
+  })
   const ids = new Set([...(c.spells ?? []).map(s => s.id), ...(c.quickCast ?? []).flatMap(q => (q.kind === 'spell' ? [slug(q.name)] : []))])
-  for (const [id, fx] of Object.entries(SPELL_EFFECTS)) {
-    if (ids.has(id)) out.push({ id, name: spellNames[id] ?? id, ...fx })
+  const ctx = { edition: editionOf(c), mod: stats.spellcasting ? stats.mods[stats.spellcasting.ability] : 0, speed: stats.speed }
+  for (const s of spells) {
+    if (!ids.has(s.id) || !hasRunningNumbers(s, ctx)) continue
+    const live = running.find(e => e.id === spellEffectId(s.id))
+    const start = planCast(s, s.level, ctx).effect
+    if (!start || out.some(e => e.id === start.id)) continue
+    out.push({ id: start.id, name: s.name, ...fromLive(live ?? start), ...(live ? { live } : { start }) })
   }
+  // Running effects from anything else: spells cast from an item or pinned under another name, features, items.
+  for (const live of running) if (!out.some(e => e.id === live.id)) out.push({ id: live.id, name: live.name, ...fromLive(live), live })
   // The player's own actions that carry an effect (a curse, a blessing, a stance): extra damage, stat changes or both.
   for (const a of c.customActions ?? []) {
     const damage = a.effect && resolveDice(a.effect.damage, stats)

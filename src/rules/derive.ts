@@ -220,6 +220,9 @@ export function getEquippedArmor(c: Character): { armor?: Armor; shield?: Armor 
   return { armor: body?.item, shield: shield?.item }
 }
 
+/** Running spells and features that apply to the character (switched on). */
+export const liveEffects = (c: Pick<Character, 'state'>) => (c.state?.effects ?? []).filter(e => e.on)
+
 export function getArmorClass(c: Character): { value: number; source: string } {
   const mods = getAbilityMods(getAbilityScores(c))
   const { armor, shield } = getEquippedArmor(c)
@@ -257,6 +260,15 @@ export function getArmorClass(c: Character): { value: number; source: string } {
       }
     }
   }
+  // Mage Armor: a new unarmored base.
+  if (!armor) {
+    for (const e of liveEffects(c)) {
+      if (e.acBase && e.acBase + mods.dex > value) {
+        value = e.acBase + mods.dex
+        source = e.name
+      }
+    }
+  }
   const featAc = featBonus(c, 'ac') + (armor ? featBonus(c, 'armoredAc') : 0)
   if (featAc) {
     value += featAc
@@ -270,6 +282,13 @@ export function getArmorClass(c: Character): { value: number; source: string } {
   if (magic) {
     value += magic
     source += ` + ${magic} magic`
+  }
+  // Barkskin: AC can't be lower than its number.
+  for (const e of liveEffects(c)) {
+    if (e.acMin && e.acMin > value) {
+      value = e.acMin
+      source = e.name
+    }
   }
   return { value, source }
 }

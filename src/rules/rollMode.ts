@@ -23,6 +23,8 @@ export function getRollMode(c: Pick<Character, 'state'>, kind: RollKind, ability
   if (kind === 'save') {
     if (ability === 'dex' && has('restrained')) dis = true
   }
+  // Running spells that always give advantage on attacks (Foresight, Greater Invisibility).
+  if (kind === 'attack' && (c.state.effects ?? []).some(e => e.on && e.stats?.some(f => f.kind === 'advantage' && f.on === 'attacks' && !f.when))) adv = true
   return adv === dis ? 'normal' : adv ? 'advantage' : 'disadvantage'
 }
 
@@ -30,4 +32,9 @@ export function getRollMode(c: Pick<Character, 'state'>, kind: RollKind, ability
 export function autoFailsSave(c: Pick<Character, 'state'>, ability: Ability): boolean {
   if (ability !== 'str' && ability !== 'dex') return false
   return ['paralyzed', 'stunned', 'unconscious', 'petrified'].some(id => c.state.conditions.includes(id as never))
+}
+
+/** Dice running spells add to this kind of d20 roll (Bless: 1d4 on attacks and saves), with where each came from. */
+export function getRollDice(c: Pick<Character, 'state'>, kind: RollKind): { name: string; dice: string }[] {
+  return (c.state.effects ?? []).flatMap(e => (e.on && e.rollDice?.[kind] ? [{ name: e.name, dice: e.rollDice[kind]! }] : []))
 }

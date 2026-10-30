@@ -1,6 +1,7 @@
 import { useI18n } from '../i18n'
 import { ExportButton } from '../portability/ui'
 import type { Character } from '../model/character'
+import { EffectsCard } from './components/Effects'
 import { Attacks } from './components/Attacks'
 import { DeathSaves } from './components/DeathSaves'
 import { HitPoints } from './components/HitPoints'
@@ -56,7 +57,8 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'hp': return <HitPoints key={s} {...p} />
       case 'death': return <DeathSaves key={s} {...p} />
       case 'rests': return <Rests key={s} {...p} />
-      case 'attacks': return <Attacks key={s} character={character} />
+      case 'effects': return <EffectsCard key={s} {...p} />
+      case 'attacks': return <Attacks key={s} {...p} />
       case 'spells': return <Spellbook key={s} {...p} />
       case 'inventory': return <Inventory key={s} {...p} />
       case 'resources': return <Resources key={s} {...p} />
