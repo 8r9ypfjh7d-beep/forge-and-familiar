@@ -59,6 +59,7 @@ export const STARTER_HEROES: StarterHero[] = [
       chosenLanguages: ['Elvish', 'Celestial'],
       baseAbilities: { str: 8, dex: 15, con: 14, int: 12, wis: 13, cha: 10 },
       chosenSkills: ['stealth', 'acrobatics', 'perception', 'sleightOfHand'],
+      classPicks: { 'rogue.expertise': ['stealth', 'sleightOfHand'] },
     },
   },
   {

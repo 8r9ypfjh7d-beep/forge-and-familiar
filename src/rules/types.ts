@@ -224,6 +224,8 @@ export interface ClassPick {
   count: number
   /** The book's list. Missing means any skill (Expertise: any skill you're proficient in). Others only warn. */
   from?: SkillId[]
+  /** Only while a class choice has (or, with `not`, lacks) this option (2014 Deft Explorer's expertise). */
+  when?: ClassChoice['when']
 }
 
 export interface ClassDef {

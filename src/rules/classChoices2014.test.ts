@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
-import { CLASS_CHOICES_2014, classChoiceDefs, classChoices, createCharacter, derive, registerClassOptions, type CharacterDraft } from './index'
+import { CLASS_CHOICES_2014, classChoiceDefs, classChoices, classPickSlots, createCharacter, derive, registerClassOptions, type CharacterDraft } from './index'
 
 const make = (over: Partial<CharacterDraft>, inventory: string[] = []): Character => {
   const c = createCharacter({
@@ -28,7 +28,7 @@ describe('2014 class picks', () => {
     expect(style('paladin', 1)).toBeUndefined()
     expect(style('paladin', 2)?.choice.options.map(o => o.id)).toContain('blessed-warrior')
     expect(style('ranger', 2)?.choice.options.map(o => o.id)).toEqual(expect.arrayContaining(['archery', 'druidic-warrior', 'thrown-weapon-fighting']))
-    expect(classChoiceDefs('fighter', '2024').find(c => c.id === 'fightingStyle')?.options.map(o => o.id)).not.toContain('blind-fighting')
+    expect(classChoiceDefs('fighter', '2024').find(c => c.id === 'fightingStyle')?.options.map(o => o.id)).not.toContain('superior-technique')
   })
 
   it('applies Archery, Defense and Blind Fighting to the sheet', () => {
@@ -79,5 +79,15 @@ describe('2014 class picks', () => {
     expect(classChoiceDefs('ranger').find(c => c.id === 'fightingStyle')?.options.map(o => o.id)).not.toContain('hb:test:mariner')
     expect(derive(make({ featureChoices: { 'fighter.fightingStyle': 'hb:test:mariner' } })).armorClass.value).toBe(derive(make({})).armorClass.value + 1)
     registerClassOptions('homebrew', [])
+  })
+  it('asks for Bard and Rogue Expertise, and Deft Explorer expertise only with Deft Explorer', () => {
+    const ids = (classId: string, level: number, featureChoices?: Record<string, string>) => classPickSlots({ classes: [{ classId, level }], featureChoices }).map(s => `${s.pick.id}:${s.pick.count}`)
+    expect(ids('bard', 2)).toEqual([])
+    expect(ids('bard', 10)).toEqual(['expertise:2', 'expertise10:2'])
+    expect(ids('rogue', 6)).toEqual(['expertise:2', 'expertise6:2'])
+    expect(ids('ranger', 1)).toEqual([])
+    expect(ids('ranger', 1, { 'ranger.naturalExplorer': 'deft-explorer' })).toEqual(['deftExplorer:1', 'deftExplorerLanguages:2'])
+    const rogue = derive(make({ classes: [{ classId: 'rogue', level: 1 }], chosenSkills: ['stealth', 'acrobatics', 'deception', 'perception'], classPicks: { 'rogue.expertise': ['stealth', 'perception'] } }))
+    expect(rogue.skills.stealth).toMatchObject({ expertise: true, bonus: rogue.skills.acrobatics.bonus + rogue.proficiencyBonus })
   })
 })

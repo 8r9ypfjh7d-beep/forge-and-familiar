@@ -178,7 +178,7 @@ export interface Character {
   traitChoices?: Record<string, string>
   /** Size picked when the race offers more than one (Race.sizeOptions). */
   sizeChoice?: Size
-  /** Class choices, keyed `<classId>.<ClassChoice id>` → option id (2024 Fighting Style, Divine Order). */
+  /** Class choices, keyed `<classId>.<ClassChoice id>` → option id (Fighting Style, Divine Order, Favored Enemy, Tasha's options). */
   featureChoices?: Record<string, string>
   /** Picks from class option lists: invocations, pact boons, metamagic, maneuvers, fighting styles, infusions (rules/classOptions). */
   classOptions?: ClassOptionPick[]

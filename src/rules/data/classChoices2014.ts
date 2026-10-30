@@ -1,9 +1,9 @@
-import type { ClassChoice, ClassChoiceOption } from '../types'
+import type { ClassChoice, ClassChoiceOption, ClassPick } from '../types'
 import { SKILLS } from './skills'
 
 // 2014 class build picks: Fighting Styles (PHB and Tasha's), Ranger Favored Enemy and Natural Explorer, and Tasha's
 // optional class features. Names and mechanics only; non-SRD details are our own short summaries.
-// Saved in Character.featureChoices under `<classId>.<choice id>`. Expertise picks live in the class's `picks`.
+// Saved in Character.featureChoices under `<classId>.<choice id>`; the multi-picks at the end (Expertise) in Character.classPicks.
 const TCE = "Tasha's Cauldron of Everything"
 
 const style = (id: string, name: string, detail: string, extra: Partial<ClassChoiceOption> = {}): ClassChoiceOption => ({ id, name, detail, ...extra })
@@ -136,5 +136,18 @@ export const CLASS_CHOICES_2014: Record<string, ClassChoice[]> = {
   ],
   wizard: [
     optional('cantripFormulas', 'Cantrip Formulas', 3, 'After a long rest, swap one wizard cantrip for another from your spellbook.'),
+  ],
+}
+
+const expertise = (id: string, level: number, count: number, name = 'Expertise'): ClassPick => ({ id, name, level, kind: 'expertise', count })
+const deft = { choice: 'naturalExplorer', option: 'deft-explorer' }
+
+/** 2014 multi-picks, read by classPickSlots(). Rogue Expertise may also go to thieves' tools (noted in its why? text). */
+export const CLASS_PICKS_2014: Record<string, ClassPick[]> = {
+  bard: [expertise('expertise', 3, 2), expertise('expertise10', 10, 2)],
+  rogue: [expertise('expertise', 1, 2), expertise('expertise6', 6, 2)],
+  ranger: [
+    { ...expertise('deftExplorer', 1, 1, 'Deft Explorer'), when: deft },
+    { id: 'deftExplorerLanguages', name: 'Deft Explorer', level: 1, kind: 'language', count: 2, when: deft },
   ],
 }
