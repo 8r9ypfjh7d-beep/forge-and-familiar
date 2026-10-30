@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { Feature } from '../content/types'
-import { derive } from '../rules'
+import { draftFrom } from '../builder/edit'
+import type { Character } from '../model/character'
+import { CUSTOM_SUBCLASS, blankSubclass, derive, type CharacterDraft } from '../rules'
 import { makeCharacter } from '../sheet/fixtures'
-import { fillWith, planAt, planSteps, routeFor, setClass, setEntry, stepLibraryFeatures } from './plan'
+import { fillWith, followPlan, planAt, plannedPicks, planSteps, routeFor, setClass, setEntry, stepLibraryFeatures } from './plan'
 
 const fighter = (level: number, extra = {}) =>
   makeCharacter({ classes: [{ classId: 'fighter', level, ...(level >= 3 ? { subclassId: 'champion' } : {}) }], ...extra })
@@ -110,5 +112,64 @@ describe('planner CSS', () => {
   it('uses logical properties only', () => {
     const css = readFileSync(new URL('./planner.css', import.meta.url), 'utf8')
     expect(css).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):|text-align:\s*(left|right)/)
+  })
+})
+
+describe('subclass picks', () => {
+  it('counts a subclass kept from before as picked at the subclass level', () => {
+    const c = makeCharacter({ classes: [{ classId: 'fighter', level: 2, subclassId: 'champion' }] })
+    const three = planSteps(c).find(s => s.level === 3)!
+    expect(three.subclassDue).toBe(true)
+    expect(three.subclassId).toBe('champion')
+    expect(three.needs).not.toContain('subclass')
+  })
+
+  it('takes a custom subclass from the plan', () => {
+    const c = fighter(2, { levelPlan: [{ level: 3, classId: 'fighter', subclassId: CUSTOM_SUBCLASS }] })
+    const three = planSteps(c).find(s => s.level === 3)!
+    expect(three.subclassId).toBe(CUSTOM_SUBCLASS)
+    expect(three.needs).not.toContain('subclass')
+  })
+})
+
+describe('levelling up from the plan', () => {
+  const planned = fighter(2, {
+    levelPlan: [
+      { level: 3, classId: 'fighter', subclassId: 'champion' },
+      { level: 4, classId: 'fighter', featId: 'grappler' },
+    ],
+  })
+  const raise = (c: Character, level: number, patch: Partial<CharacterDraft> = {}) => {
+    const before = draftFrom(c)
+    return followPlan(c, before, { ...before, ...patch, classes: [{ ...before.classes[0], level }] })
+  }
+
+  it('fills the planned subclass and ASI for the levels gained', () => {
+    const d = raise(planned, 4)
+    expect(d.classes[0].subclassId).toBe('champion')
+    expect(d.improvements).toEqual([{ classId: 'fighter', level: 4, featId: 'grappler' }])
+    expect(plannedPicks(planned).subclasses.get('fighter')).toBe('champion')
+  })
+
+  it('leaves levels not gained and the player’s own picks alone', () => {
+    expect(raise(planned, 2).classes[0].subclassId).toBeUndefined()
+    const own = raise(planned, 4, { improvements: [{ classId: 'fighter', level: 4, abilities: { str: 2 } }] })
+    expect(own.improvements).toEqual([{ classId: 'fighter', level: 4, abilities: { str: 2 } }])
+    const before = draftFrom(planned)
+    const picked = followPlan(planned, before, { ...before, classes: [{ classId: 'fighter', level: 3, subclassId: 'battle-master' }] })
+    expect(picked.classes[0].subclassId).toBe('battle-master')
+  })
+
+  it('opens a blank custom subclass when the plan picked Custom', () => {
+    const c = fighter(2, { levelPlan: [{ level: 3, classId: 'fighter', subclassId: CUSTOM_SUBCLASS }] })
+    const d = raise(c, 3)
+    expect(d.classes[0].subclassId).toBe(CUSTOM_SUBCLASS)
+    expect(d.customSubclasses).toEqual([blankSubclass('fighter')])
+  })
+
+  it('does nothing without a plan', () => {
+    const before = draftFrom(fighter(2))
+    const next = { ...before, classes: [{ classId: 'fighter', level: 3 }] }
+    expect(followPlan(fighter(2), before, next)).toBe(next)
   })
 })

@@ -6,7 +6,7 @@ Plan a character's levels from now to 20: which class takes each level, the subc
 
 | File | Purpose |
 |------|---------|
-| `plan.ts` | Pure: `routeFor` (one entry per level up to 20), `applyLevel`, `planAt` (the "what if" character at a level), `planSteps` (per-level HP gain, proficiency, new slot level, features, prerequisite issues, missing picks), `setEntry` / `setClass` / `fillWith` (plan edits), `stepLibraryFeatures` |
+| `plan.ts` | Pure: `routeFor` (one entry per level up to 20), `applyLevel`, `planAt` (the "what if" character at a level), `planSteps` (per-level HP gain, proficiency, new slot level, features, prerequisite issues, missing picks), `setEntry` / `setClass` / `fillWith` (plan edits), `stepLibraryFeatures`, `plannedPicks` / `followPlan` (Edit level-ups take the plan's picks) |
 | `PlanView.tsx` | The screen: fill tools, one glass card per level, level 20 summary, CC-BY source line |
 | `planner.css` | Liquid Glass styles (`src/design/DESIGN.md`), logical properties only |
 | `planner.test.ts` | Route, picks, prerequisites, plan edits, library feature filter, CSS check |
@@ -17,4 +17,6 @@ Plan a character's levels from now to 20: which class takes each level, the subc
 - A level with no entry takes the class of the level before. Changing one level's class pins the levels after it to their old class, so nothing else moves; picks on that level are dropped.
 - Stats come from `derive()` on `planAt()`. Ability score checks ignore item effects (the 20 cap is on the scores).
 - Feature chips use the content library (`src/content`, all 20 levels, both editions) and open their rules text; while it loads (or offline before first load) the engine's feature list is used (all 20 levels in both editions). Library text is English and needs the attribution line.
+- The subclass list ends with Custom (`CUSTOM_SUBCLASS`), named after the character's custom subclass for that class when there is one. A subclass the class already has (a level lowered in Edit) shows as picked and is not asked for again.
+- Levelling up in Edit (`Builder` `update`) runs `followPlan`: class levels gained in that change take the plan's subclass and ASI or feat, only where the draft has none, so the player's own picks win. A planned Custom subclass opens a blank custom subclass form.
 - Comparing two whole builds side by side was cut with Compare (PR #35); the planner shows each level's gains instead.

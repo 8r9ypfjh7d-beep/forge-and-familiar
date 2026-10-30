@@ -6,7 +6,7 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 
 | File | Purpose |
 |------|---------|
-| `Builder.tsx` | Wizard shell, step navigation, `emptyDraft()`; `EditCharacter` loads a saved character into it |
+| `Builder.tsx` | Wizard shell, step navigation, `emptyDraft()`; `EditCharacter` loads a saved character into it; in Edit, levels gained take the build plan's subclass and ASI picks (`followPlan`, src/planner) |
 | `edit.ts` | `draftFrom()`, `applyEdit()`, `startingGearChanged()`: editing a saved character |
 | `CustomSubclassForm.tsx` | The player's own subclass editor (Custom chip in the subclass picker) |
 | `steps.tsx` | Step components: Race (+ Dragonborn ancestry), Class (+ subclass), Abilities (+ ASI or feat), Background & skills (+ custom background, languages, tools), Equipment (SRD kit choices), Details |

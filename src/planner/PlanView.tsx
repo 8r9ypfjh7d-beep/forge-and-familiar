@@ -4,7 +4,7 @@ import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import type { Character, PlannedLevel } from '../model/character'
 import {
-  ABILITIES, MAX_CHARACTER_LEVEL, allFeats, classById, classesFor, formatMod, prereqLabel, rulesEdition, subclassesFor, totalLevel,
+  ABILITIES, CUSTOM_SUBCLASS, MAX_CHARACTER_LEVEL, allFeats, classById, classesFor, formatMod, prereqLabel, rulesEdition, subclassesFor, totalLevel,
   type Ability,
 } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
@@ -123,6 +123,7 @@ function StepRow({ character, step, library, onChange }: {
   const def = classById(step.entry.classId, edition)
   const set = (patch: Partial<PlannedLevel>) => onChange(setEntry(character, { ...step.entry, ...patch }))
   const top = topSlotLevel(step.stats)
+  const customName = character.customSubclasses?.find(s => s.classId === step.entry.classId)?.name
   return (
     <li className={`glass plan-step${step.issues.length ? ' blocked' : ''}`}>
       <div className="plan-head">
@@ -144,9 +145,10 @@ function StepRow({ character, step, library, onChange }: {
       {step.subclassDue && def && (
         <label className="plan-pick small">
           <span>{def.subclassTitle}</span>
-          <select className="glass-field" value={step.entry.subclassId ?? ''} onChange={e => set({ subclassId: e.target.value || undefined })}>
+          <select className="glass-field" value={step.entry.subclassId ?? step.subclassId ?? ''} onChange={e => set({ subclassId: e.target.value || undefined })}>
             <option value="">{t('plan.pickSubclass')}</option>
             {subclassesFor(step.entry.classId, edition).map(s => <option key={s.id} value={s.id}>{term('subclass', s.id, s.name)}</option>)}
+            <option value={CUSTOM_SUBCLASS}>{customName || t('builder.customSubclass', { title: term('feature', def.subclassTitle, def.subclassTitle) })}</option>
           </select>
         </label>
       )}
