@@ -2,6 +2,7 @@
 import type { NavKey } from './items'
 
 const PATHS: Record<NavKey | 'more', string> = {
+  campaigns: 'M5 4h14v16l-7-4-7 4zM9 9h6M9 12h4',
   list: 'M12 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM4 21c0-4 3.6-7 8-7s8 3 8 7',
   party: 'M9 4a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM2 20c0-3.5 3-6 7-6s7 2.5 7 6M16 4.5a3 3 0 0 1 0 6M18 14c2.4.6 4 2.8 4 6',
   combat: 'M4 4l9 9M4 4v4M4 4h4M20 4l-9 9M20 4v4M20 4h-4M7 14l3 3M17 14l-3 3M5 19l3-3M19 19l-3-3',

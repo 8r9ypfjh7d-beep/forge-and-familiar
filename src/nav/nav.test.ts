@@ -6,24 +6,24 @@ const keys = (items: { key: string }[]) => items.map(i => i.key)
 describe('navItems', () => {
   it('gives a player Ask the DM but no DM screen or combat tracker', () => {
     const { main, more } = navItems({ isDm: false, partyDm: false })
-    expect(keys(main)).toEqual(['list', 'party', 'requests'])
+    expect(keys(main)).toEqual(['campaigns', 'list', 'party', 'requests'])
     expect(keys(more)).toContain('rules')
     expect(keys(more)).not.toContain('admin')
   })
 
   it('gives the DM of the party in play just the DM pages and Party', () => {
-    expect(keys(navItems({ isDm: true, partyDm: true }).main)).toEqual(['dm', 'combat', 'party'])
+    expect(keys(navItems({ isDm: true, partyDm: true }).main)).toEqual(['campaigns', 'dm', 'combat', 'party'])
   })
 
   it('gives the admin DM tabs when they run the party in play, still with Admin under More', () => {
     const { main, more } = navItems({ isDm: true, partyDm: true, admin: true })
-    expect(keys(main)).toEqual(['dm', 'combat', 'party'])
+    expect(keys(main)).toEqual(['campaigns', 'dm', 'combat', 'party'])
     expect(keys(more)[0]).toBe('admin')
   })
 
   it('gives the admin account a player\'s tabs, with the admin page first under More', () => {
     const { main, more } = navItems({ isDm: true, partyDm: false, admin: true })
-    expect(keys(main)).toEqual(['list', 'party', 'requests'])
+    expect(keys(main)).toEqual(['campaigns', 'list', 'party', 'requests'])
     expect(keys(more)[0]).toBe('admin')
   })
 

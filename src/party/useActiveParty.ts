@@ -1,10 +1,10 @@
 // Which party the open player is playing in right now, for App: the DM pages follow its DM.
 import { useCallback, useEffect, useState } from 'react'
-import { activeParty, isPartyDm, lastPartyId, needsPartyPick, pickedThisVisit, rememberParty } from './active'
+import { activeParty, isPartyDm, lastPartyId, pickedThisVisit, rememberParty } from './active'
 import { listParties, onPartiesChanged } from './store'
 import type { Party } from './types'
 
-/** The player's parties and the one in play. mustPick asks on entering the app when there are several. */
+/** The player's parties (null while loading) and the one in play. */
 export function useActiveParty(userId: string) {
   // Keyed by player, so switching profiles never shows the last player's parties or pick.
   const [loaded, setLoaded] = useState<{ userId: string; parties: Party[] } | null>(null)
@@ -32,5 +32,5 @@ export function useActiveParty(userId: string) {
 
   const parties = loaded?.userId === userId ? loaded.parties : null
   const party = parties ? activeParty(parties, lastPartyId(userId)) : undefined
-  return { parties, party, mustPick: !!parties && needsPartyPick(parties, pickedThisVisit(userId)), isDm: isPartyDm(party, userId), choose }
+  return { parties, party, isDm: isPartyDm(party, userId), choose }
 }
