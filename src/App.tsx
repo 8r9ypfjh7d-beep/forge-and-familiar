@@ -13,7 +13,7 @@ import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
-import { campaignTarget, CampaignsHome, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, useXpAwards, type Party } from './party'
+import { campaignTarget, CampaignsHome, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, useCharacterAccess, useXpAwards, type Party } from './party'
 import { xpForNextLevel, xpReady } from './rules'
 import { RulesQA } from './rulesqa'
 import { ShareButton } from './share'
@@ -108,7 +108,9 @@ export default function App() {
   }
   // A screen this account may not open (a shortcut, a link, a switched profile) falls back to its home screen.
   // The DM role is known once the parties have loaded, so a refresh on a DM page waits instead of bouncing.
-  const allowed = canOpen(view.kind, nav) || playing.parties === null
+  // Another player's character this profile may not see also bounces (src/party/visibility.ts).
+  const characterAllowed = useCharacterAccess(view, active?.id, playing.parties ?? undefined)
+  const allowed = (canOpen(view.kind, nav) || playing.parties === null) && characterAllowed
   useEffect(() => {
     if (!allowed) setView({ kind: 'campaigns' }, true)
   }, [allowed, setView])

@@ -22,6 +22,12 @@ export interface Combatant {
   conSave?: number
   /** npc only: conditions set by hand. For a pc they live on character.state.conditions. */
   conditions: ConditionId[]
+  /** npc only: what players are told this creature is ("Hooded figure"); the real name stays with the DM. */
+  alias?: string
+  /** npc only: not shown to players at all (an unseen ambusher, an invisible stalker). */
+  hidden?: boolean
+  /** npc only: players see the HP numbers and bar; otherwise only healthy / bloodied / down. */
+  revealHp?: boolean
 }
 
 /** A spell or effect with a duration. Ticks on its source's turn; with no source, at the top of each round. */
