@@ -58,6 +58,51 @@ export interface PendingCheck {
   dc: number
 }
 
+/** A piece on the battle map. Cells count from the top-left corner; a token covers size × size cells. */
+export interface Token {
+  id: string
+  combatantId: string
+  /** pc tokens: the character this token plays, so its player may move it. */
+  characterId?: string
+  /** Colour hint: party member, enemy, or a friendly npc. */
+  kind: 'pc' | 'npc' | 'ally'
+  /** Short text on the token: initials for a party member, "G1" for a monster. */
+  label: string
+  x: number
+  y: number
+  /** Footprint in cells: Medium 1, Large 2, Huge 3, Gargantuan 4. */
+  size: 1 | 2 | 3 | 4
+  /** DM-only: the token (and its combatant) exist only on the DM's view. A hidden combatant row hides its token too. */
+  hidden?: boolean
+  color?: string
+}
+
+/** A cell as a key, "x,y" (src/maps uses the same keys). */
+export type CellKey = `${number},${number}`
+
+/** Everything on the map that changes during play. Lives on the DM's Encounter and on the live row. */
+export interface Board {
+  /** The map this combat is fought on (src/maps); undefined for a map-less combat. */
+  mapId?: string
+  tokens: Token[]
+  /** Covered cells (DM-painted fog), as "x,y" keys. Starts as the map's own fog. */
+  fog: CellKey[]
+  /** True freezes player moves; the DM always moves. */
+  locked: boolean
+}
+
+/** The part of a map (src/maps) the live row and move checks need. A map's saved shape extends it. */
+export interface LiveMap {
+  id: string
+  name: string
+  /** Cells across and down. */
+  width: number
+  height: number
+  /** Cells covered when the combat starts, as "x,y" keys. */
+  fog?: CellKey[]
+  [extra: string]: unknown
+}
+
 export interface Encounter {
   id: string
   ownerId: string
@@ -73,6 +118,8 @@ export interface Encounter {
   pendingChecks: PendingCheck[]
   /** Newest first. */
   log: LogLine[]
+  /** Battle map state, once the combat has a map or tokens. */
+  board?: Board
   createdAt: string
   updatedAt: string
 }
