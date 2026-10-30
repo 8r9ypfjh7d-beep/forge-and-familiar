@@ -1289,6 +1289,8 @@ const messages: Messages = {
   'sheet.attacks.twoHanded': 'בשתי ידיים',
   'sheet.attacks.thrownName': '{name} (בהטלה)',
   'sheet.attacks.miss': '1 טבעי: החטאה אוטומטית, אין נזק.',
+  'supplies.log.shot': '{weapon}: {ammo} −1',
+  'supplies.out': 'אין {ammo}. אפשר להוסיף במלאי.',
   // Combat page (src/sheet/combat)
   'cs.level': 'דרגה {n}',
   'cs.xp': 'נ״ח: {xp}/{next}',
@@ -1415,6 +1417,7 @@ const messages: Messages = {
   'cs.roll.beam': '{what}, קרן {n}',
   'cs.roll.dart': '{what}, טיל {n}',
   'cs.roll.damagePlain': 'נזק',
+  'cs.roll.halfOnSave': '{n} אם ההצלה מצליחה',
   'cs.roll.healing': 'ריפוי',
   'cs.roll.initiative': 'יוזמה',
   'cs.roll.check': 'בדיקת {ability}',

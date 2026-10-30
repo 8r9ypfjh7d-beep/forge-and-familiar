@@ -49,7 +49,7 @@ export {
   homebrewLanguageNames, homebrewToolNames, homebrewProficiencyText, registerHomebrewProficiencies,
   type HomebrewProficiency, type LanguageGroupId, type ToolGroupId,
 } from './data/proficiencies'
-export { ITEMS, entryItem, itemById, registerHomebrewItems } from './data/items'
+export { ITEMS, entryItem, itemById, packRations, registerHomebrewItems } from './data/items'
 export { SKILLS, ALL_SKILLS } from './data/skills'
 export * from './multiclass'
 export * from './spellAbility'

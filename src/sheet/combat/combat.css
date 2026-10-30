@@ -275,6 +275,10 @@
 .cs-rollline .total { grid-area: total; font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; line-height: 1; }
 .cs-rollline .how { grid-area: how; color: var(--s-muted); font-size: .8rem; justify-self: start; }
 .cs-rollline .meaning { grid-area: meaning; font-size: .85rem; }
+.cs-rollline .how.parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; justify-self: stretch; }
+.cs-rollline .how.parts li { display: flex; flex-wrap: wrap; gap: 0 var(--sp-2); align-items: baseline; }
+.cs-rollline .part-name { font-weight: 600; color: var(--s-ink); }
+.cs-rollline .part-type { margin-inline-start: auto; }
 .cs-rollline.type-attack { border-inline-start-color: var(--s-accent); }
 .cs-rollline.type-damage { border-inline-start-color: var(--s-bad); }
 .cs-rollline.type-damage .total { color: var(--s-bad); }

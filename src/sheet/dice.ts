@@ -47,7 +47,7 @@ export function useSheetRolls(c: Character) {
      * A spell from the attacks table: the spell attack (if any), then its damage plus riders.
      * A crit doubles the dice; a natural 1 on the attack rolls no damage.
      */
-    spell(name: string, opts: { attackBonus?: number; damage?: string; damageType?: string; mode?: RollMode; riders?: { name: string; damage: string }[] }): AttackOutcome | { damage?: RollResult } {
+    spell(name: string, opts: { attackBonus?: number; damage?: string; damageType?: string; mode?: RollMode; riders?: { name: string; damage: string; damageType?: string }[] }): AttackOutcome | { damage?: RollResult } {
       const hit = opts.attackBonus === undefined ? undefined : rollAttack({ name, bonus: opts.attackBonus }, { character, mode: opts.mode, lucky })
       const action = hit && opts.damage && !hit.d20?.fumble ? { id: hit.id, name } : undefined
       if (hit) record(Object.assign(hit, action && { action }))
@@ -56,7 +56,7 @@ export function useSheetRolls(c: Character) {
       const crit = !!hit?.d20?.crit
       const extras = riders.length ? ` + ${riders.map(r => r.name).join(', ')}` : ''
       const label = `${name}${opts.damageType ? ` ${opts.damageType}` : ''}${extras}${crit ? ' (crit)' : ''}`
-      const parts = [{ notation: opts.damage, source: name }, ...riders.map(r => ({ notation: r.damage, source: r.name }))]
+      const parts = [{ notation: opts.damage, source: name, damageType: opts.damageType }, ...riders.map(r => ({ notation: r.damage, source: r.name, damageType: r.damageType ?? opts.damageType }))]
       const damage = record({ ...rollParts(parts, { character, label }, 'damage', crit), action, damageType: opts.damageType })
       return hit ? { attack: hit, damage } : { damage }
     },

@@ -66,7 +66,7 @@ export function useCast(character: Character, apply: Apply) {
     const dice = spellDamage({ ...entry, id: '', kind: 'spell' }, level, d.level, sc ? d.mods[sc.ability] : 0, perHit)
     const healing = entry.damageType === 'healing'
     const riders = entry.roll === 'attack' && !healing
-      ? (character.state.effects ?? []).filter(e => e.on && e.damage && !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage! }))
+      ? (character.state.effects ?? []).filter(e => e.on && e.damage && !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage!, damageType: e.damageType }))
       : []
     let healMe: number | undefined
     // Hex, Hunter's Mark, Divine Favor: their dice ride on each hit (the attack rolls add them), so casting rolls nothing.
@@ -80,7 +80,7 @@ export function useCast(character: Character, apply: Apply) {
         if ('attack' in res && res.attack) shown.push({ roll: res.attack, what: what(t('cs.roll.toHit')) })
         if (res.damage) {
           const type = entry.damageType && !healing ? term('damage', entry.damageType, entry.damageType) : ''
-          shown.push({ roll: res.damage, what: what(healing ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })) })
+          shown.push({ roll: res.damage, what: what(healing ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })), half: entry.roll === 'save' && spell.save?.onSuccess === 'half' })
           if (healing) healMe = res.damage.total
         }
       }

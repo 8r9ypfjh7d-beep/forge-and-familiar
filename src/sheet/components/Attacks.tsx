@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
 import { derive, featureEffectId, formatMod, getCritRange, getDamageRiders, getRollMode, type DamageRider } from '../../rules'
 import { useSheetRolls } from '../dice'
+import { ammoForAttack, spendAmmo } from '../../supplies/supplies'
 import { spendOnceEffects } from '../effects'
 import type { Apply } from '../types'
 
@@ -16,7 +17,7 @@ export function Attacks({ character, apply }: { character: Character; apply?: Ap
   const [mode, setMode] = useState<RollMode>('normal')
   const [on, setOn] = useState<Partial<Record<DamageRider['id'], boolean>>>({})
   const [twoHanded, setTwoHanded] = useState<Record<string, boolean>>({})
-  const [last, setLast] = useState<(AttackOutcome & { name: string }) | null>(null)
+  const [last, setLast] = useState<(AttackOutcome & { name: string; noAmmo?: string }) | null>(null)
   const { attacks } = derive(character)
   if (!attacks.length) return null
 
@@ -33,9 +34,13 @@ export function Attacks({ character, apply }: { character: Character; apply?: Ap
     const live = (character.state.effects ?? []).filter(e => e.on && e.damage)
     // An item's own extra damage ("1d6 fire") rolls on every hit, like a rider that is always on.
     const extra = a.extraDamage ? /^(\S+)\s*(.*)$/.exec(a.extraDamage) : null
-    const all = [...riders, ...live.map(e => ({ name: e.name, damage: e.damage! })), ...(extra ? [{ name: extra[2] || a.name, damage: extra[1] }] : [])]
+    const all = [...riders, ...live.map(e => ({ name: e.name, damage: e.damage!, damageType: e.damageType })), ...(extra ? [{ name: extra[2] || a.name, damage: extra[1], damageType: extra[2] || undefined }] : [])]
     const out = rolls.attack(a, { mode, critRange, riders: all, twoHanded: twoHanded[a.name] })
-    setLast({ ...out, name: a.name })
+    const ammo = ammoForAttack(character, a)
+    const ammoName = ammo && term('item', ammo.ammoId, ammo.ammoName)
+    setLast({ ...out, name: a.name, ...(ammo && !ammo.left ? { noAmmo: ammoName } : {}) })
+    // A bow or crossbow shot uses a piece of ammunition, the same as Shoot on the Ammo and rations card.
+    if (ammo?.left && apply) apply(t('supplies.log.shot', { weapon: attackName(a.name), ammo: ammoName! }), c => spendAmmo(c, ammo.ammoId))
     // Sneak Attack is once per turn, so it switches itself off once it has been rolled.
     if (out.damage && riders.some(r => r.oncePerTurn)) setOn(o => ({ ...o, sneakAttack: false }))
     // A 2014 smite is spent by the hit it rode on.
@@ -100,6 +105,7 @@ export function Attacks({ character, apply }: { character: Character; apply?: Ap
 
       {last && (
         <FadingResult key={last.attack.id} className="attack-result" onDone={() => setLast(null)}>
+          {last.noAmmo && <p className="hint">{t('supplies.out', { ammo: last.noAmmo })}</p>}
           {last.damage ? <RollGroupView rolls={[last.attack, last.damage]} compact /> : (
             <>
               <RollView roll={last.attack} compact />

@@ -2,7 +2,7 @@
 // Pure: each change takes a Character and returns a new one, like sheet/engine.
 // Rules follow SRD 5.1: Ammunition (weapon property), Food and Water.
 import type { Character, CharacterState } from '../model/character'
-import { abilityMod, entryItem, getAbilityScores, itemById, type InventoryEntry, type Item } from '../rules'
+import { abilityMod, entryItem, getAbilityScores, itemById, packRations, rulesEdition, type Attack, type InventoryEntry, type Item } from '../rules'
 
 type Weapon = Extract<Item, { kind: 'weapon' }>
 type Supplies = NonNullable<CharacterState['supplies']>
@@ -46,6 +46,12 @@ export function rangedWeapons(c: Character): RangedWeapon[] {
     if (ammoId) out.push({ weapon: item, ammoId, ammoName: itemById(ammoId)?.name ?? ammoId, left: countOf(c, ammoId) })
   }
   return out
+}
+
+/** The ammunition an attack from derive().attacks fires, if its weapon uses any (Shortbow → arrows). */
+export function ammoForAttack(c: Character, a: Pick<Attack, 'name' | 'itemId'>): RangedWeapon | undefined {
+  const ranged = rangedWeapons(c)
+  return ranged.find(r => a.itemId && r.weapon.id === a.itemId) ?? ranged.find(r => r.weapon.name === a.name)
 }
 
 function supplies(c: Character): Supplies {
@@ -111,6 +117,23 @@ export function foodLimit(c: Character): number {
   return Math.max(1, 3 + abilityMod(getAbilityScores(c).con))
 }
 
+/** Rations still inside carried equipment packs (an Explorer's Pack holds 10 days), less those eaten from them. */
+function packRationsLeft(c: Character): number {
+  const packed = c.inventory.reduce((n, e) => n + packRations(e.itemId, rulesEdition(c)) * e.qty, 0)
+  return Math.max(0, packed - (supplies(c).packRationsUsed ?? 0))
+}
+
+/** Days of food carried: loose rations plus the ones still in a pack. */
+export function rationsLeft(c: Character): number {
+  return countOf(c, RATION_ID) + packRationsLeft(c)
+}
+
+/** Eats one day of rations: a loose ration first, then one from a pack. */
+function eatRation(c: Character, patch: Partial<Supplies>): Character {
+  if (countOf(c, RATION_ID) > 0) return withSupplies(c, patch, take(c.inventory, RATION_ID, 1))
+  return withSupplies(c, { ...patch, packRationsUsed: (supplies(c).packRationsUsed ?? 0) + 1 })
+}
+
 export function daysWithoutFood(c: Character): number {
   return supplies(c).daysWithoutFood ?? 0
 }
@@ -118,20 +141,20 @@ export function daysWithoutFood(c: Character): number {
 /**
  * Settles the day's food after a long rest (one long rest = one day).
  * Pass the character before and after sheet/engine longRest:
- * - a meal resets the hungry count; a ration comes out of the pack;
+ * - a meal resets the hungry count; a ration comes out of the bag (loose ones before an equipment pack's);
  * - going hungry adds a day to the hungry count;
  * - ammunition nobody searched for is lost.
  */
 export function endDay(before: Character, rested: Character, meal: Meal): Character {
   if (rested === before) return rested
   let c = forgetSpentAmmo(rested)
-  if (meal === 'ration' && countOf(c, RATION_ID) <= 0) meal = 'none'
-  if (meal === 'ration') return withSupplies(c, { daysWithoutFood: 0 }, take(c.inventory, RATION_ID, 1))
+  if (meal === 'ration' && rationsLeft(c) <= 0) meal = 'none'
+  if (meal === 'ration') return eatRation(c, { daysWithoutFood: 0 })
   if (meal === 'other') return withSupplies(c, { daysWithoutFood: 0 })
   return withSupplies(c, { daysWithoutFood: daysWithoutFood(c) + 1 })
 }
 
 /** The long-rest dialog suggests a ration when there is one; tables that skip food tracking never go hungry by default. */
 export function defaultMeal(c: Character): Meal {
-  return countOf(c, RATION_ID) > 0 ? 'ration' : 'other'
+  return rationsLeft(c) > 0 ? 'ration' : 'other'
 }

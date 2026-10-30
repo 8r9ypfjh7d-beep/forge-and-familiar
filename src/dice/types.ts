@@ -18,10 +18,13 @@ export type Term =
   | { kind: 'dice'; sign: 1 | -1; count: number; sides: number; keep?: { type: 'kh' | 'kl' | 'dh' | 'dl'; n: number } }
   | { kind: 'const'; sign: 1 | -1; value: number }
 
-/** `source` names where the term came from on a damage roll ("Greatsword", "Hex"), so the card can show each part. */
+/**
+ * `source` names where the term came from on a damage roll ("Greatsword", "Hex"), so the card can show each part;
+ * `damageType` is that part's own type when it has one (a smite's radiant on a slashing hit).
+ */
 export type TermResult =
-  | { kind: 'dice'; sign: 1 | -1; notation: string; rolls: DieRoll[]; subtotal: number; source?: string }
-  | { kind: 'const'; sign: 1 | -1; value: number; source?: string }
+  | { kind: 'dice'; sign: 1 | -1; notation: string; rolls: DieRoll[]; subtotal: number; source?: string; damageType?: string }
+  | { kind: 'const'; sign: 1 | -1; value: number; source?: string; damageType?: string }
 
 export type RollType = 'custom' | 'check' | 'save' | 'skill' | 'initiative' | 'attack' | 'damage' | 'hitDie' | 'deathSave'
 

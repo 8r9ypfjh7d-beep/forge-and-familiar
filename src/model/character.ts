@@ -38,6 +38,8 @@ export interface CharacterState {
     ammoSpent?: Record<string, number>
     /** Long rests in a row taken without eating. */
     daysWithoutFood?: number
+    /** Rations eaten out of carried equipment packs (an Explorer's Pack holds 10 days); loose rations are an inventory stack. */
+    packRationsUsed?: number
   }
 }
 

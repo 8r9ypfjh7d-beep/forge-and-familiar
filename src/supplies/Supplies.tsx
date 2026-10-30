@@ -5,7 +5,7 @@ import { rollAttack } from '../dice'
 import { useDice } from '../dice/ui'
 import { derive, formatMod } from '../rules'
 import type { Apply } from '../sheet/types'
-import { ammoSpent, countOf, daysWithoutFood, foodLimit, rangedWeapons, recoverAmmo, spendAmmo, RATION_ID, type Meal } from './supplies'
+import { ammoSpent, daysWithoutFood, foodLimit, rangedWeapons, rationsLeft, recoverAmmo, spendAmmo, type Meal } from './supplies'
 import './supplies.css'
 
 /** At or below this many pieces the count turns to a warning. */
@@ -15,7 +15,7 @@ export function Supplies({ character, apply }: { character: Character; apply: Ap
   const { record } = useDice()
   const [lastShot, setLastShot] = useState<string>()
   const ranged = rangedWeapons(character)
-  const rations = countOf(character, RATION_ID)
+  const rations = rationsLeft(character)
   const hungry = daysWithoutFood(character)
   const limit = foodLimit(character)
   const ammoIds = [...new Set(ranged.map(r => r.ammoId))]
@@ -83,7 +83,7 @@ const MEALS: { id: Meal; label: string }[] = [
 
 /** The day's meal, picked in the long rest dialog and passed to endDay. */
 export function MealChoice({ character, meal, onChange }: { character: Character; meal: Meal; onChange: (m: Meal) => void }) {
-  const rations = countOf(character, RATION_ID)
+  const rations = rationsLeft(character)
   return (
     <fieldset className="meal-choice">
       <legend>Food today</legend>

@@ -1,6 +1,7 @@
 // One roll: label, dice (dropped dice struck through), total, crit/fumble badge. Or one action: to-hit and damage on one card.
 import { useI18n } from '../../i18n'
 import { actionName } from '../history'
+import { bySource, hasSources } from '../roll'
 import type { RollResult, TermResult } from '../types'
 
 /** Dice notation reads left to right in Hebrew too, and may break after each + or − instead of mid-die. */
@@ -38,24 +39,9 @@ function Terms({ terms }: { terms: TermResult[] }) {
   )
 }
 
-/** Two or more named parts (weapon, Hex, a smite): worth one line each. */
-const hasSources = (r: RollResult) => new Set(r.terms.map(t => t.source).filter(Boolean)).size > 1
-
-/** Consecutive terms from the same source, with their subtotal. */
-function bySource(terms: TermResult[]): { source?: string; terms: TermResult[]; total: number }[] {
-  const out: { source?: string; terms: TermResult[]; total: number }[] = []
-  for (const t of terms) {
-    const value = t.sign * (t.kind === 'const' ? t.value : t.subtotal)
-    const last = out[out.length - 1]
-    if (last && last.source === t.source) { last.terms.push(t); last.total += value }
-    else out.push({ source: t.source, terms: [t], total: value })
-  }
-  return out
-}
-
-/** One line per damage source: "Hex  [3, 3] = 6". */
+/** One line per damage source: "Hex  [3, 3] = 6 necrotic". */
 function Sources({ terms }: { terms: TermResult[] }) {
-  const { attackName } = useI18n()
+  const { attackName, term } = useI18n()
   return (
     <ul className="ff-roll__sources">
       {bySource(terms).map((g, i) => (
@@ -63,6 +49,7 @@ function Sources({ terms }: { terms: TermResult[] }) {
           {g.source && <span className="ff-roll__source">{attackName(g.source)}</span>}
           <bdi dir="ltr" className="ff-roll__dice"><Terms terms={g.terms} /></bdi>
           <bdi dir="ltr" className="ff-roll__subtotal">= {g.total}</bdi>
+          {g.damageType && <span className="ff-roll__type">{term('damage', g.damageType, g.damageType)}</span>}
         </li>
       ))}
     </ul>

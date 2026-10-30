@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { longRest } from '../sheet/engine'
 import { makeCharacter } from '../sheet/fixtures'
-import { ammoSpent, countOf, daysWithoutFood, endDay, foodLimit, rangedWeapons, recoverAmmo, spendAmmo } from './supplies'
+import { derive } from '../rules'
+import { ammoForAttack, ammoSpent, countOf, daysWithoutFood, defaultMeal, endDay, foodLimit, rangedWeapons, rationsLeft, recoverAmmo, spendAmmo } from './supplies'
 
 const archer = makeCharacter({
   inventory: [
@@ -18,6 +19,13 @@ const fireTimes = (n: number) => Array.from({ length: n }).reduce<typeof archer>
 const day = (c: typeof archer, meal: Parameters<typeof endDay>[2]) => endDay(c, longRest(c), meal)
 
 describe('ammunition', () => {
+  it('finds the ammo an attack row fires, and none for a sword', () => {
+    const attacks = derive(archer).attacks
+    expect(ammoForAttack(archer, attacks.find(a => a.name === 'Longbow')!)?.ammoId).toBe('arrows')
+    expect(ammoForAttack(archer, attacks.find(a => a.name === 'Light Crossbow')!)?.ammoId).toBe('bolts')
+    expect(ammoForAttack(archer, attacks.find(a => a.name === 'Longsword')!)).toBeUndefined()
+  })
+
   it('lists equipped ammunition weapons with their stack counts', () => {
     expect(rangedWeapons(archer).map(r => [r.weapon.id, r.ammoId, r.left])).toEqual([
       ['longbow', 'arrows', 23],
@@ -89,5 +97,31 @@ describe('rations', () => {
   it('does nothing when the long rest itself was refused', () => {
     const dying = { ...archer, state: { ...archer.state, currentHp: 0 } }
     expect(endDay(dying, longRest(dying), 'ration')).toBe(dying)
+  })
+})
+
+describe('rations in equipment packs', () => {
+  const packed = makeCharacter({ inventory: [{ uid: 'p', itemId: 'explorers-pack', qty: 1, equipped: false }] })
+
+  it('counts the pack\'s 10 days, so a fresh hero is not out of food', () => {
+    expect(rationsLeft(packed)).toBe(10)
+    expect(defaultMeal(packed)).toBe('ration')
+  })
+
+  it('eats loose rations first, then from the pack, then goes hungry', () => {
+    const both = { ...packed, inventory: [...packed.inventory, { uid: 'r', itemId: 'rations', qty: 1, equipped: false }] }
+    let c = day(both, 'ration')
+    expect(countOf(c, 'rations')).toBe(0)
+    expect(rationsLeft(c)).toBe(10)
+    for (let i = 0; i < 10; i++) c = day(c, 'ration')
+    expect(rationsLeft(c)).toBe(0)
+    expect(daysWithoutFood(c)).toBe(0)
+    c = day(c, 'ration')
+    expect(daysWithoutFood(c)).toBe(1)
+  })
+
+  it('a 2024 Priest\'s Pack holds 7 days', () => {
+    const priest = makeCharacter({ rulesEdition: '2024', inventory: [{ uid: 'p', itemId: 'priests-pack', qty: 1, equipped: false }] })
+    expect(rationsLeft(priest)).toBe(7)
   })
 })

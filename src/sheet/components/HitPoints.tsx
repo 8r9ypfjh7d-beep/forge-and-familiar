@@ -10,14 +10,11 @@ import type { Apply } from '../types'
 import { AfterDamage, type Hit } from './AfterDamage'
 import { Conditions } from './Conditions'
 
-const TYPE_KEY = 'ff.damageType.v1'
-const loadType = () => { try { return localStorage.getItem(TYPE_KEY) ?? '' } catch { return '' } }
-
 export function HitPoints({ character, apply }: { character: Character; apply: Apply }) {
   const [amount, setAmount] = useState('')
   const [critical, setCritical] = useState(false)
-  // The last damage type picked, remembered on this device; blank means untyped.
-  const [type, setTypeState] = useState(loadType)
+  // Blank means untyped. It goes back to blank after each hit, so one hit's Fire never lands on the next character's.
+  const [type, setType] = useState('')
   const [hit, setHit] = useState<Hit | null>(null)
   const [said, setSaid] = useState<{ key: number; text: string } | null>(null)
   const { currentHp, tempHp } = character.state
@@ -29,7 +26,6 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
   const d = derive(character)
   const typeName = (x: string) => term('damage', x, x)
   const typeLabel = (x: string) => term('damage', x, x[0].toUpperCase() + x.slice(1))
-  const setType = (x: string) => { setTypeState(x); try { localStorage.setItem(TYPE_KEY, x) } catch { /* private mode */ } }
 
   const act = (fn: () => void) => { if (n > 0) { fn(); setAmount(''); setCritical(false) } }
 
@@ -51,6 +47,7 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
       ...(conc && taken > 0 ? { conc: { id: conc.id, name: conc.name, dc: concentrationDc(taken, editionOf(character)) } } : {}),
       reprisals: meleeReprisals(character),
     })
+    setType('')
   }
   const defended = (x: string) => damageDefense(d, x, character)
   const types = [...DAMAGE_TYPES].sort((a, b) => Number(!defended(a)) - Number(!defended(b)))

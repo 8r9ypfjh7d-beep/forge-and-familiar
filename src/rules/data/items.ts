@@ -166,6 +166,13 @@ export const ITEMS: Item[] = [
   ...BACKGROUND_GEAR,
 ]
 
+/** Days of rations inside each equipment pack (SRD contents); 2024's Priest's Pack holds 7 instead of 2. */
+const PACK_RATIONS: Record<string, number> = { 'burglars-pack': 5, 'dungeoneers-pack': 10, 'entertainers-pack': 5, 'explorers-pack': 10, 'priests-pack': 2 }
+
+export function packRations(itemId: string, edition: '2014' | '2024' = '2014'): number {
+  return itemId === 'priests-pack' && edition === '2024' ? 7 : PACK_RATIONS[itemId] ?? 0
+}
+
 // Homebrew items registered at runtime (ids namespaced `hb:<packId>:<slug>`).
 const homebrew = new Map<string, Item>()
 

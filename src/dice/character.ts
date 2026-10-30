@@ -75,7 +75,7 @@ export interface AttackOutcome {
  */
 export function rollAttackWithDamage(
   attack: Pick<Attack, 'name' | 'bonus' | 'damage' | 'damageType' | 'versatile'> & Partial<Pick<Attack, 'greatWeapon' | 'properties'>>,
-  opts: RollOptions & { critRange?: number; twoHanded?: boolean; riders?: Pick<DamageRider, 'name' | 'damage'>[] } = {},
+  opts: RollOptions & { critRange?: number; twoHanded?: boolean; riders?: (Pick<DamageRider, 'name' | 'damage'> & { damageType?: string })[] } = {},
 ): AttackOutcome {
   const { label, riders = [], twoHanded, critRange, ...rest } = opts
   const hit = rollAttack(attack, { ...rest, critRange, label })
@@ -88,7 +88,7 @@ export function rollAttackWithDamage(
   const action = { id: hit.id, name: attack.name }
   hit.action = action
   const damage = rollParts(
-    [{ notation: base, source: attack.name, ...(gwf ? { lowDice: gwf } : {}) }, ...riders.map(r => ({ notation: r.damage, source: r.name }))],
+    [{ notation: base, source: attack.name, damageType: attack.damageType, ...(gwf ? { lowDice: gwf } : {}) }, ...riders.map(r => ({ notation: r.damage, source: r.name, damageType: r.damageType ?? attack.damageType }))],
     { ...rest, label: `${attack.name} ${attack.damageType}${extras}${crit ? ' (crit)' : ''}` }, 'damage', crit,
   )
   damage.action = action
