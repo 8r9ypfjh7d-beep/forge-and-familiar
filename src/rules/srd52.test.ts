@@ -37,7 +37,7 @@ describe('2024 content', () => {
     expect(SPECIES.map(r => r.id).sort()).toEqual(['dragonborn', 'dwarf', 'elf', 'gnome', 'goliath', 'halfling', 'human', 'orc', 'tiefling'])
     expect(raceById('orc', '2024')).toBeDefined()
     expect(raceById('orc')).toBeUndefined()
-    expect(raceById('half-elf', '2024')).toBeUndefined()
+    expect(raceById('half-elf', '2024')?.legacy).toBe(true)
   })
 
   it('has all twelve classes with a level 3 subclass and an SRD 5.2 subclass each', () => {

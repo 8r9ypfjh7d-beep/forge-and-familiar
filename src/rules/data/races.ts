@@ -1,5 +1,6 @@
 import type { Race, RulesEdition, Subrace } from '../types'
 import { SETTING_RACES, SETTING_SUBRACES } from './books/races.settings'
+import { BOOK_SPECIES_2024 } from './books/species2024'
 import { SPECIES } from './srd52/species'
 
 // SRD 5.1 races and subraces only.
@@ -96,7 +97,7 @@ export const RACES: Race[] = [
 
 // Official races from other books (names and mechanics only; our own text lives in i18n explain files).
 // Each book group keeps its own file under books/; subraces with parentRaceId attach to that race.
-export const BOOK_RACES: Record<RulesEdition, Race[]> = { '2014': [...SETTING_RACES], '2024': [] }
+export const BOOK_RACES: Record<RulesEdition, Race[]> = { '2014': [...SETTING_RACES], '2024': [...BOOK_SPECIES_2024] }
 export const BOOK_SUBRACES: Record<RulesEdition, Subrace[]> = { '2014': [...SETTING_SUBRACES], '2024': [] }
 
 /** Attach subraces to their race (by parentRaceId); unknown parents are dropped. */
@@ -106,9 +107,23 @@ const attach = (list: Race[], subraces: Subrace[]): Race[] =>
     return extra.length ? { ...r, subraces: [...(r.subraces ?? []), ...extra] } : r
   })
 
-/** SRD then book races of an edition, book subraces attached. */
-const official = (edition: RulesEdition) =>
-  attach([...(edition === '2014' ? RACES : SPECIES), ...BOOK_RACES[edition]], BOOK_SUBRACES[edition])
+/** SRD then book races of an edition, book subraces attached; 2024 then offers the legacy races. */
+const official = (edition: RulesEdition): Race[] =>
+  edition === '2014'
+    ? attach([...RACES, ...BOOK_RACES['2014']], BOOK_SUBRACES['2014'])
+    : [...attach([...SPECIES, ...BOOK_RACES['2024']], BOOK_SUBRACES['2024']), ...legacyRaces()]
+
+/**
+ * 2014 races (SRD and books) that have no 2024 version, playable under 2024 rules as the 2024 Player's Handbook
+ * allows: they keep their traits, but their ability bonuses come from the background instead.
+ */
+export function legacyRaces(): Race[] {
+  const ids = new Set([...SPECIES, ...BOOK_RACES['2024']].map(r => r.id))
+  return official('2014').filter(r => !ids.has(r.id)).map(r => ({
+    ...r, legacy: true, abilityBonuses: {}, flexibleAbilityBonuses: undefined, freeAbilityBonuses: undefined,
+    subraces: r.subraces?.map(s => ({ ...s, abilityBonuses: {}, freeAbilityBonuses: undefined, replacesBonuses: undefined })),
+  }))
+}
 
 // Homebrew races and subraces registered at runtime (ids namespaced `hb:<packId>:<slug>`).
 // Homebrew is offered with both editions; homebrew subraces attach to the edition's race of that id.
@@ -124,7 +139,7 @@ export function registerHomebrewRaces(races: Race[], subraces: Subrace[]): void 
   merged = { '2014': build('2014'), '2024': build('2024') }
 }
 
-/** SRD and book races (2024: species) followed by homebrew ones, with subraces attached. */
+/** SRD and book races (2024: species, then legacy 2014 races) followed by homebrew ones, with subraces attached. */
 export const allRaces = (edition: RulesEdition = '2014'): Race[] => merged[edition]
 
 export const raceById = (id: string, edition: RulesEdition = '2014') => merged[edition].find(r => r.id === id)

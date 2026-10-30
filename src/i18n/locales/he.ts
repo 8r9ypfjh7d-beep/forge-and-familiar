@@ -6,6 +6,7 @@ import { explainClassesHe } from './explain.classes.he'
 import { explainHe } from './explain.he'
 import { explainProficienciesHe, proficiencyTermsHe } from './explain.proficiencies.he'
 import { explainMetamagicHe, metamagicTermsHe } from './explain.metamagic.he'
+import { explainSpeciesHe, speciesTermsHe } from './explain.species.he'
 import { itemsHe } from './items.he'
 
 const messages: Messages = {
@@ -14,6 +15,7 @@ const messages: Messages = {
   ...explainClassesHe,
   ...explainProficienciesHe,
   ...explainMetamagicHe,
+  ...explainSpeciesHe,
   ...itemsHe,
   'common.back': 'חזרה',
   'common.backArrow': '→',
@@ -156,6 +158,8 @@ const messages: Messages = {
   'builder.issue.raceFeat': 'בחרו הישג לגזע.',
   'builder.issue.flexibleBonus': 'חלקו את תוספות הגזע: +2 ו־+1, או +1 לשלוש יכולות.',
   'builder.race.noBonus': 'תוספות מהרקע',
+  'builder.race.legacy': 'מורשת (2014)',
+  'builder.raceSource': 'מתוך {source}. התיאורים כאן הם סיכום קצר שלנו; החוקים המלאים בספר.',
   'builder.originFeat': 'הישג מוצא (רב־גוני)',
   'builder.languages2024': 'שפה משותפת + 2 לבחירתכם (נבחרות עם הרקע)',
   'builder.traits': 'תכונות:',
@@ -2155,6 +2159,7 @@ const messages: Messages = {
 const terms: Terms = {
   ...proficiencyTermsHe,
   ...metamagicTermsHe,
+  ...speciesTermsHe,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',

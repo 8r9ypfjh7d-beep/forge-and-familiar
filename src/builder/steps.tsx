@@ -75,7 +75,8 @@ function RaceStep({ draft, update }: StepProps) {
   const edition = rulesEdition(draft)
   const race = raceById(draft.raceId, edition)
   const { t, term, abilityShort } = useI18n()
-  const racePitch = race && pitchKey(edition === '2024' ? 'race2024' : 'race', race.id)
+  // Legacy (2014) races under 2024 rules keep their 2014 pitch and subrace explanations.
+  const racePitch = race && (pitchKey(edition === '2024' && !race.legacy ? 'race2024' : 'race', race.id))
   const subBonus = (b: Partial<Record<Ability, number>>) => (Object.keys(b).length ? ` (${bonusText(b, abilityShort)})` : '')
   const originFeats = allFeats(edition).filter(f => f.category === 'origin')
   const profile = raceProfile(draft)
@@ -109,6 +110,7 @@ function RaceStep({ draft, update }: StepProps) {
             </span>
             <span className="muted small">{t('builder.race.sizeSpeed', { size: (r.sizeOptions ?? [r.size]).map(x => term('size', x, x)).join(' / '), speed: r.speed })}</span>
             {r.source && <span className="muted small">{r.source}</span>}
+            {r.legacy && <span className="muted small">{t('builder.race.legacy')}</span>}
           </button>
         ))}
       </div>
@@ -127,7 +129,7 @@ function RaceStep({ draft, update }: StepProps) {
               </button>
             ))}
           </div>
-          {draft.subraceId && <Explain kind={edition === '2024' ? 'sub2024' : 'sub2014'} id={draft.subraceId} />}
+          {draft.subraceId && <Explain kind={edition === '2024' && !race.legacy ? 'sub2024' : 'sub2014'} id={draft.subraceId} />}
         </div>
       )}
       {race && race.sizeOptions && race.sizeOptions.length > 1 && (
@@ -195,6 +197,8 @@ function RaceStep({ draft, update }: StepProps) {
       {race && (
         <p className="small">
           {racePitch && <><strong>{t('why.pick', { name: term('race', race.id, race.name) })}</strong> {t(racePitch)}<br /></>}
+          {race.legacy && <>{t('why.race2024.legacy')}<br /></>}
+          {race.source && <span className="muted">{t('builder.raceSource', { source: race.source })}<br /></span>}
           <strong>{t('builder.languages')}</strong><Why id="languages" />{' '}
           {edition === '2024' ? t('builder.languages2024') : racialLanguages(draft).map(x => term('language', x, x)).join(', ')}
           {languagePickCount({ ...draft, backgroundId: '' }) > 0 && <> {t('builder.languagesPlus', { count: languagePickCount({ ...draft, backgroundId: '' }) })}</>}
