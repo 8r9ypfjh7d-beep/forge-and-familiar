@@ -187,6 +187,8 @@ export interface UseContext {
 
 /** What using a feature does besides spending one use. */
 export interface UsePlan {
+  /** A pool spent in any amount (Lay on Hands): the player picks how many points, which heal them or an ally. */
+  pool?: 'heal'
   heal?: string
   tempHp?: string
   effect?: Omit<LiveEffect, 'on'>
@@ -197,6 +199,7 @@ type FeatureTemplate = (ctx: UseContext) => UsePlan & { effectAs?: Omit<LiveEffe
 /** Features with numbers, by resource id. Everything else still gets Use: it spends one and logs it. */
 export const FEATURE_TEMPLATES: Record<string, FeatureTemplate> = {
   'second-wind': ({ classLevel }) => ({ heal: `1d10+${classLevel}` }),
+  'lay-on-hands': () => ({ pool: 'heal' }),
   rage: ({ edition }) => ({
     effectAs: {
       duration: edition === '2024' ? '10 minutes' : '1 minute', ends: 'short',
@@ -234,8 +237,34 @@ export function potionHealing(itemId: string, name = ''): string | undefined {
   return POTIONS[itemId] ?? POTIONS[name.trim().toLowerCase()]
 }
 
+/** Potions, elixirs and oils: drunk (or applied) once, so they get Drink. */
+export const isPotion = (name: string) => /^(potion|elixir|philter|oil)\b/i.test(name.trim())
+
+/** A drunk potion's stat changes (Giant Strength, Resistance, Heroism...) as a running effect; most last an hour. */
+export function potionEffect(uid: string, name: string, effects: ItemEffect[] = []): Omit<LiveEffect, 'on'> | undefined {
+  const stats = effects.filter(f => f.kind !== 'charges' && f.kind !== 'spell')
+  return stats.length ? { id: `item:${uid}`, name, from: 'item', duration: '1 hour', ends: 'short', stats } : undefined
+}
+
 /** "Hellish Rebuke (as 2nd level)" → the spell's name and the level it is cast at. */
 export function itemSpellCast(text: string): { name: string; level?: number } {
   const m = /^(.*?)\s*\((?:as\s+)?(\d)(?:st|nd|rd|th)[- ]level\)\s*$/i.exec(text)
   return m ? { name: m[1].trim(), level: Number(m[2]) } : { name: text.replace(/\s*\(.*\)\s*$/, '').trim() }
+}
+
+/** How a race's or item's spell is limited, read from its note: uses that come back on a rest or at dawn, or item charges per cast. */
+export type SpellLimit = { max: number; recharge: 'short' | 'long' | 'dawn' } | { charges: number }
+
+const COUNT_WORDS: Record<string, number> = { once: 1, twice: 2, 'three times': 3, 'four times': 4, 'five times': 5 }
+
+export function spellLimit(note = ''): SpellLimit | undefined {
+  const n = note.toLowerCase()
+  if (!n.trim() || /at will/.test(n)) return undefined
+  const charges = /(\d+)\s*charges?\b/.exec(n) ?? (/\bcharge\b/.test(n) ? ['', '1'] : null)
+  if (charges) return { charges: Number(charges[1]) }
+  const recharge = /short/.test(n) ? 'short' : /dawn/.test(n) ? 'dawn' : /long rest|per day|a day|\/day|daily|each day/.test(n) ? 'long' : undefined
+  if (!recharge) return undefined
+  const word = Object.keys(COUNT_WORDS).find(w => n.includes(w))
+  const digits = /(\d+)\s*(?:\/|times|per|uses?|x\b)/.exec(n)
+  return { max: word ? COUNT_WORDS[word] : digits ? Number(digits[1]) : 1, recharge }
 }

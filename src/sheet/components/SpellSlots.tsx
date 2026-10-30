@@ -1,6 +1,6 @@
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
-import { derive, getSpellSlots } from '../../rules'
+import { derive, getResources, getSpellSlots, type ItemSpell } from '../../rules'
 import { setPactUsed, setSlotUsed } from '../engine'
 import type { Apply } from '../types'
 import { Pips } from './Pips'
@@ -16,7 +16,7 @@ export const itemSpellsOf = (character: Character) => derive(character).itemSpel
 
 /** Spell slot pips by level, plus warlock pact slots and spells from items. Lives inside the Spells card in both sheet modes. */
 /** Casts an item's or race's spell by its listed text, when the library has it. */
-export interface ItemSpellCaster { can: (text: string) => boolean; cast: (text: string) => void }
+export interface ItemSpellCaster { can: (s: ItemSpell) => boolean; cast: (s: ItemSpell) => void }
 
 /** `onCastItemSpell`: casts a spell from the From your items list (no slot); undefined hides the buttons. */
 export function SpellSlots({ character, apply, onCastItemSpell }: { character: Character; apply: Apply; onCastItemSpell?: ItemSpellCaster }) {
@@ -25,7 +25,7 @@ export function SpellSlots({ character, apply, onCastItemSpell }: { character: C
   const { t } = useI18n()
   const ordinal = (level: number) => t(`sheet.slot.${level}` as MessageKey)
   const fromItems = itemSpellsOf(character)
-  if (!hasSlots(character)) return fromItems.length ? <ItemSpells spells={fromItems} onCast={onCastItemSpell} /> : null
+  if (!hasSlots(character)) return fromItems.length ? <ItemSpells character={character} spells={fromItems} onCast={onCastItemSpell} /> : null
 
   return (
     <>
@@ -51,13 +51,19 @@ export function SpellSlots({ character, apply, onCastItemSpell }: { character: C
       </ul>
       {pact && <p className="hint">{t('sheet.pactHint')}</p>}
     </div>
-    {fromItems.length > 0 && <ItemSpells spells={fromItems} onCast={onCastItemSpell} />}
+    {fromItems.length > 0 && <ItemSpells character={character} spells={fromItems} onCast={onCastItemSpell} />}
     </>
   )
 }
 
-function ItemSpells({ spells, onCast }: { spells: ReturnType<typeof itemSpellsOf>; onCast?: ItemSpellCaster }) {
+function ItemSpells({ character, spells, onCast }: { character: Character; spells: ReturnType<typeof itemSpellsOf>; onCast?: ItemSpellCaster }) {
   const { t } = useI18n()
+  const resources = getResources(character)
+  // What a limited spell has left: its own uses, or the item's charges.
+  const left = (s: ItemSpell) => {
+    const r = resources.find(x => x.id === (s.useId ?? s.charges?.id))
+    return r ? `${r.max - (character.state.resources[r.id]?.used ?? 0)}/${r.max}` : ''
+  }
   return (
     <div className="spell-slots item-spells" role="group" aria-labelledby="item-spells-title">
       <h3 id="item-spells-title" className="sub-title">{t('spells.fromItems')}</h3>
@@ -65,8 +71,9 @@ function ItemSpells({ spells, onCast }: { spells: ReturnType<typeof itemSpellsOf
         {spells.map((s, i) => (
           <li key={i}>
             <span className="track-label"><bdi>{s.spell}</bdi><small><bdi>{s.source}</bdi>{s.note ? <> · <bdi>{s.note}</bdi></> : null}</small></span>
-            {onCast?.can(s.spell) && (
-              <button type="button" className="glass-btn small prominent track-use" aria-label={t('use.castFree', { name: s.spell, source: s.source })} onClick={() => onCast.cast(s.spell)}>
+            {left(s) && <span className="track-count" dir="ltr">{left(s)}</span>}
+            {onCast?.can(s) && (
+              <button type="button" className="glass-btn small prominent track-use" aria-label={t('use.castFree', { name: s.spell, source: s.source })} onClick={() => onCast.cast(s)}>
                 {t('cast.cast')}
               </button>
             )}

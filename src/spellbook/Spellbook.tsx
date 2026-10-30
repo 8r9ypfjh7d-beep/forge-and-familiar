@@ -342,10 +342,17 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
   )
 }
 
-/** Item and race spells ("Hellish Rebuke (as 2nd level)") cast from the library without a slot. */
-function itemSpellCaster(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number }) => unknown): ItemSpellCaster {
+/** Item and race spells ("Hellish Rebuke (as 2nd level)") cast from the library without a slot, spending their use or charges. */
+function itemSpellCaster(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number; spend?: { id: string; n: number } }) => unknown): ItemSpellCaster {
   const find = (text: string) => { const { name, level } = itemSpellCast(text); const s = spells.find(x => x.name.toLowerCase() === name.toLowerCase()); return s && { s, level } }
-  return { can: text => !!find(text), cast: text => { const f = find(text); if (f) cast(f.s, undefined, { level: f.level }) } }
+  return {
+    can: s => !!find(s.spell),
+    cast: s => {
+      const f = find(s.spell)
+      const spend = s.useId ? { id: s.useId, n: 1 } : s.charges ? { id: s.charges.id, n: s.charges.cost } : undefined
+      if (f) cast(f.s, undefined, { level: f.level, ...(spend ? { spend } : {}) })
+    },
+  }
 }
 
 const isRunning = (c: Character, spellId: string) => (c.state.effects ?? []).some(e => e.id === spellEffectId(spellId))

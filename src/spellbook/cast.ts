@@ -5,7 +5,7 @@ import type { Character } from '../model/character'
 import { planCast, type CastContext, type CastPlan, type DerivedStats } from '../rules'
 import type { SlotChoice } from '../quickcast'
 import { slotChoices, spendSlot } from '../quickcast/quickcast'
-import { grantTempHp, heal } from '../sheet/engine'
+import { grantTempHp, heal, setResourceUsed } from '../sheet/engine'
 import { startEffect } from '../sheet/effects'
 import { editionOf } from './access'
 
@@ -26,8 +26,10 @@ export const fixedAmount = (notation: string) => (/^\d+$/.test(notation) ? Numbe
  * Applies a cast: the slot (if any), the rolled temporary HP and healing, and the running effect.
  * `ended` names a concentration spell the new one replaced.
  */
-export function castSpell(c: Character, plan: CastPlan, opts: { slot?: SlotChoice; tempHp?: number; heal?: number } = {}): { character: Character; ended: string[] } {
+export function castSpell(c: Character, plan: CastPlan, opts: { slot?: SlotChoice; tempHp?: number; heal?: number; spend?: { id: string; n: number } } = {}): { character: Character; ended: string[] } {
   let next = opts.slot ? spendSlot(c, opts.slot) : c
+  // A race or item spell spends its own use or the item's charges instead of a slot.
+  if (opts.spend) next = setResourceUsed(next, opts.spend.id, (next.state.resources[opts.spend.id]?.used ?? 0) + opts.spend.n)
   let ended: string[] = []
   // The effect first, so Aid's higher maximum is in place before its healing.
   if (plan.effect) ({ character: next, ended } = startEffect(next, plan.effect))
