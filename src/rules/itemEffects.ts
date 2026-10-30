@@ -1,6 +1,7 @@
-// Item effects: which equipped items, which custom actions the player switched on, and which class and subclass features, racial traits and feats change the character's numbers.
+// Item effects: which equipped items, which custom actions the player switched on, and which class and subclass features, racial traits, feats and class picks change the character's numbers.
 // derive() and src/explain both read these, so the sheet and "show the math" agree.
 import type { Character } from '../model/character'
+import { classChoiceEffects } from './choices'
 import { entryItem } from './data/items'
 import { ALL_SKILLS } from './data/skills'
 import { featStats, type FeatInput } from './choices'
@@ -34,7 +35,9 @@ export function activeItemEffects(c: Owner): ActiveEffect[] {
   // picked class options (invocations, fighting styles, infusions...), then racial traits (Warforged poison
   // resistance, innate spells, picked Simic Hybrid enhancements), class skill picks (Expertise, Primal Knowledge),
   // and feats' own sheet changes (Fey Touched's Misty Step, Infernal Constitution's resistances, Resilient's save).
-  return [...items, ...actions, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c), ...classPickEffects(c), ...featStats({ ...c, classes: c.classes ?? [] })]
+  // Class choices that change the sheet (Archery, Blind Fighting, Deft Explorer).
+  const choices = c.classes ? classChoiceEffects({ ...c, classes: c.classes }) : []
+  return [...items, ...actions, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c), ...classPickEffects(c), ...featStats({ ...c, classes: c.classes ?? [] }), ...choices]
 }
 
 /**

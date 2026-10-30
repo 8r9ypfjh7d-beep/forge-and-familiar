@@ -1,14 +1,14 @@
 // Topics for the builder's "why?" tips. The text lives in i18n/locales as why.<topic>.title / .text,
 // plus one explanation per builder option (why.<kind>.<id>, mostly in locales/explain.en.ts).
 import { en, type MessageKey } from '../i18n/locales/en'
-import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS, SKILLS, type ClassOption, type SkillId } from '../rules'
+import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS, SKILLS, type ClassChoice, type ClassChoiceOption, type ClassOption, type SkillId } from '../rules'
 
 export const WHY_TOPICS = [
   'step.race', 'step.class', 'step.abilities', 'step.skills', 'step.spells', 'step.equipment', 'step.details',
   'edition', 'originFeat', 'bgBonus',
   'subrace', 'traits', 'languages', 'size', 'speed', 'ancestry', 'originSwap',
   'level', 'savingThrows', 'proficiencies', 'features', 'hitDie', 'primary', 'casting', 'subclassChoice', 'multiclass',
-  'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder', 'choice.metamagic', 'choice.blessedStrikes', 'choice.elementalFury', 'invocations', 'pactBoon',
+  'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder', 'choice.metamagic', 'choice.blessedStrikes', 'choice.elementalFury', 'choice.favoredEnemy', 'choice.naturalExplorer', 'choice.tashas', 'invocations', 'pactBoon',
   'pick.expertise', 'pick.skill', 'pick.mastery', 'epicBoon',
   'method.standard', 'method.pointBuy', 'method.rolled', 'method.manual', 'reroll', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',
   'background', 'customBackground', 'skills', 'tools',
@@ -26,7 +26,7 @@ export type WhyId = (typeof WHY_TOPICS)[number]
  */
 export type ExplainKind =
   | 'race' | 'race2024' | 'class' | 'about' | 'sub2014' | 'sub2024' | 'subclass'
-  | 'feature' | 'subfeature' | 'invocation' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool'
+  | 'feature' | 'subfeature' | 'invocation' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool' | 'pick'
   | 'metamagic' | 'metamagic2024' | 'feat' | 'feat2024'
   | 'pick' | 'opt'
 
@@ -82,3 +82,16 @@ function toolGroup(tool: string): string {
 /** The explanation of an official feat: 2024 and 2014 versions differ, so each edition has its own key; older book feats under 2024 rules read the 2014 one. */
 export const featExplainKey = (id: string, edition: string): MessageKey | undefined =>
   (edition === '2024' ? explainKey('feat2024', id) : undefined) ?? explainKey('feat', id)
+
+/** A class choice's why? topic: shared ones (every Favored Enemy pick) name it with `topic`. */
+export const choiceTopic = (choice: ClassChoice) => `choice.${choice.topic ?? choice.id}` as WhyId
+
+/**
+ * What a class choice option does: taking an optional feature (why.pick.use.<choice>), a named pick (why.pick.<option>)
+ * or a skill. Keeping the base rules needs none.
+ */
+export function choiceOptionKey(choice: ClassChoice, o: ClassChoiceOption): MessageKey | undefined {
+  if (o.id === 'phb') return undefined
+  if (o.id === 'use') return explainKey('pick', `use.${choice.id}`)
+  return explainKey('pick', o.id) ?? explainKey('skill', o.id)
+}

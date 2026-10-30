@@ -109,7 +109,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
           {!editing && STEPS[step].id === 'details' && <BackstoryHook hookKey={hookKey} setHookKey={setHookKey} />}
           {issues[step].length > 0 && (
             <ul className="issues">
-              {issues[step].map(m => <li key={m}>{m}</li>)}
+              {issues[step].map((m, i) => <li key={`${i}-${m}`}>{m}</li>)}
             </ul>
           )}
           {warnings.length > 0 && (

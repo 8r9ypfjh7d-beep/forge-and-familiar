@@ -7,7 +7,7 @@ import {
   CUSTOM_FEAT, ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, improvementFeat, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, stalePicks, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
-  type Ability, type Background, type CharacterDraft, type RulesEdition, type SkillId, type TraitChoice,
+  type Ability, type Background, type CharacterDraft, type ClassChoiceOption, type RulesEdition, type SkillId, type TraitChoice,
   averageWealth, BACKGROUND_GOLD_2024, takesBackgroundGold, takesClassGold, wealthDice,
 } from '../rules'
 import type { OriginSwaps } from '../model/character'
@@ -25,7 +25,7 @@ import { MulticlassPicker } from './MulticlassPicker'
 import { SpellsStep } from './SpellsStep'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
-import { explainKey, featExplainKey, featureKey, optionKey, optionName, pitchKey, type WhyId } from './why'
+import { choiceOptionKey, choiceTopic, explainKey, featExplainKey, featureKey, optionKey, optionName, pitchKey } from './why'
 import { groupKitItems } from './kit'
 import { effectText } from '../inventory/Inventory'
 import { PickOrWrite, useLanguageGroups, useToolGroups } from './ProficiencyPick'
@@ -345,28 +345,66 @@ function ClassStep({ draft, update }: StepProps) {
   )
 }
 
-/** 2024 class picks: Fighting Style, Divine Order, Primal Order. */
+/**
+ * Class picks: Fighting Style, Divine/Primal Order, Favored Enemy, Natural Explorer, and Tasha's optional
+ * features (2014) in a fold of their own, since leaving them unpicked keeps the Player's Handbook rules.
+ */
 function ClassChoices({ draft, update }: StepProps) {
   const { t, term, className } = useI18n()
   const list = classChoices(draft)
   if (list.length === 0) return null
   const pick = (classId: string, choiceId: string, optionId: string) =>
     update({ featureChoices: { ...draft.featureChoices, [choiceKey(classId, choiceId)]: optionId } })
-  return (
-    <>
-      {list.map(({ classId, choice, picked }) => (
-        <div className="field" key={choiceKey(classId, choice.id)}>
-          <label>{term('feature', choice.name, choice.name)} ({className(classId)}) <Why id={`choice.${choice.id}` as WhyId} /></label>
+  const label = (o: ClassChoiceOption) =>
+    o.featId ? term('feat', o.featId, o.name)
+      : o.id === 'use' ? term('feature', o.name, o.name)
+        : o.id === 'phb' ? t('builder.pickBase')
+          : term('pick', o.id, term('skill', o.id, o.name))
+  // The same feature picked again at a higher level (Favored Enemy at 6) says which level it is for.
+  const repeated = (classId: string, name: string) => list.filter(x => x.classId === classId && x.choice.name === name).length > 1
+  const row = ({ classId, choice, picked }: (typeof list)[number]) => {
+    const key = picked && choiceOptionKey(choice, picked)
+    return (
+      <div className="field" key={choiceKey(classId, choice.id)}>
+        <label htmlFor={`choice-${classId}-${choice.id}`}>
+          {term('feature', choice.name, choice.name)} ({className(classId)}{repeated(classId, choice.name) ? `, ${t('builder.level', { level: choice.level })}` : ''}) <Why id={choiceTopic(choice)} />
+        </label>
+        {choice.options.length > 8 ? (
+          <select id={`choice-${classId}-${choice.id}`} value={picked?.id ?? ''} onChange={e => pick(classId, choice.id, e.target.value)}>
+            <option value="" disabled>{t('builder.pickPlaceholder')}</option>
+            {choice.options.map(o => <option key={o.id} value={o.id}>{label(o)}{o.source ? ' *' : ''}</option>)}
+          </select>
+        ) : (
           <div className="row">
             {choice.options.map(o => (
               <button key={o.id} className={`glass-chip ${picked?.id === o.id ? 'on' : ''}`} title={o.detail} onClick={() => pick(classId, choice.id, o.id)}>
-                {o.featId ? term('feat', o.featId, o.name) : term('feature', o.name, o.name)}
+                {label(o)}
               </button>
             ))}
           </div>
-          {picked && <p className="muted small" dir="auto">{(picked.featId && featExplainKey(picked.featId, rulesEdition(draft)) && t(featExplainKey(picked.featId, rulesEdition(draft))!)) || picked.detail}</p>}
-        </div>
-      ))}
+        )}
+        {picked && picked.id !== 'phb' && (
+          <p className="muted small" dir="auto">
+            {key ? t(key) : (picked.featId && featExplainKey(picked.featId, rulesEdition(draft)) && t(featExplainKey(picked.featId, rulesEdition(draft))!)) || picked.detail}
+            {picked.source && <> · {t('builder.pickSource', { source: picked.source })}</>}
+          </p>
+        )}
+      </div>
+    )
+  }
+  const required = list.filter(x => !x.choice.optional)
+  const optional = list.filter(x => x.choice.optional)
+  const taken = optional.filter(x => x.picked && x.picked.id !== 'phb').length
+  return (
+    <>
+      {required.map(row)}
+      {optional.length > 0 && (
+        <details className="field">
+          <summary>{t('builder.tashasTitle', { count: taken })} <Why id="choice.tashas" /></summary>
+          <p className="muted small">{t('builder.tashasHint')}</p>
+          {optional.map(row)}
+        </details>
+      )}
     </>
   )
 }

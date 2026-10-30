@@ -173,6 +173,13 @@ export function getResources(c: Character): ResourceInfo[] {
   for (const f of getFeats(c)) {
     if (f.uses) out.push({ id: `feat:${f.id}`, label: f.uses.label ?? f.name, max: usesMax(f.uses, charLevel, prof, mods), recharge: f.uses.recharge })
   }
+  // Class picks with uses (Favored Foe, Harness Divine Power, Superior Technique's die).
+  for (const { classId, level, choice, picked } of classChoices(c)) {
+    const u = picked?.uses
+    if (!u) continue
+    const max = usesMax(u, level, prof, mods)
+    if (max > 0) out.push({ id: `pick:${classId}:${choice.id}`, label: picked.name, max, recharge: u.recharge })
+  }
   return [...out, ...getItemCharges(c)]
 }
 
@@ -580,8 +587,10 @@ export function derive(c: Character): DerivedStats {
     features: [
       ...classes.flatMap(({ def, level: l, subclass }) =>
         [...def.features, ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).flatMap(f => {
-          // A class choice shows its pick: "Divine Order (Protector)".
-          const picked = choices.find(x => x.classId === def.id && x.choice.name === f.name)?.picked
+          // A class choice shows its picks: "Divine Order (Protector)", "Favored Enemy (Undead, Fiends)".
+          // Keeping the base rule adds nothing; a renamed version ("Primal Awareness (Tasha's)") replaces the name.
+          const picked = choices.filter(x => x.classId === def.id && x.choice.name === f.name && x.picked && x.picked.id !== 'phb').map(x => x.picked!.name)
+          const name = picked.length === 1 && picked[0].startsWith(f.name) ? picked[0] : picked.length ? `${f.name} (${picked.join(', ')})` : f.name
           const { detail: steps, ...rest } = f as typeof f & { detail?: [number, string][] }
           const detail = featureDetail({ detail: steps }, l)
           // Subclass picks (maneuvers, runes, a totem animal) follow the feature that grants them.
@@ -589,10 +598,14 @@ export function derive(c: Character): DerivedStats {
             ? pickLists.filter(p => p.classId === def.id && p.list.feature === f.name).flatMap(p => p.options.filter(o => p.picked.some(x => x.id === o.id)))
             : []
           return [
-            { ...rest, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name, ...(detail ? { detail } : {}) },
+            { ...rest, name, className: def.name, ...(detail ? { detail } : {}) },
             ...options.map(o => ({ level: f.level, name: o.name, className: def.name, optionId: o.id, ...(o.text ? { text: o.text } : {}) })),
           ]
-        }),
+        }).concat(
+          // Optional features taken (Tasha's Harness Divine Power) that the class's own list doesn't name.
+          choices.filter(x => x.classId === def.id && x.choice.optional && x.picked && x.picked.id !== 'phb' && !def.features.some(f => f.name === x.choice.name))
+            .map(x => ({ level: x.choice.level, name: x.picked!.name, className: def.name, text: x.picked!.detail })),
+        ),
       ),
       // Picked invocations and pact boons, after the class features. A repeated pick names its cantrip.
       ...pickedClassOptions(c).filter(x => x.option.kind === 'invocation' || x.option.kind === 'pactBoon').map(({ pick, option }) => ({

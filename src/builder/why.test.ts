@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { en } from '../i18n/locales/en'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_BACKGROUNDS_2024, BOOK_SPECIES_2024, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
-  SUBCLASSES, SUBCLASSES_2024, TOOLS, allFeats,
+  SUBCLASSES, SUBCLASSES_2024, TOOLS, allFeats, CLASS_CHOICES_2014,
 } from '../rules'
+import { he } from '../i18n/locales/he'
 import { STEPS } from './steps'
-import { WHY_TOPICS, explainKey, featExplainKey, featureKey, pitchKey, type ExplainKind } from './why'
+import { WHY_TOPICS, explainKey, featExplainKey, featureKey, choiceOptionKey, choiceTopic, pitchKey, type ExplainKind } from './why'
 
 // SRD 5.2 species and the 2024 species from other books.
 const SPECIES_ALL = [...SPECIES, ...BOOK_SPECIES_2024]
@@ -30,7 +31,18 @@ describe('why? tooltips', () => {
     expect(missing('subclass', subclasses.map(s => s.id))).toEqual([])
     expect(missing('feature', classes.flatMap(c => c.features.map(f => f.name)))).toEqual([])
     expect(subclasses.flatMap(s => s.features.filter(f => !featureKey(f.name, s.id)).map(f => `${s.id}: ${f.name}`))).toEqual([])
-    for (const ch of classes.flatMap(c => c.choices ?? [])) expect(WHY_TOPICS).toContain(`choice.${ch.id}`)
+    for (const ch of [...classes.flatMap(c => c.choices ?? []), ...Object.values(CLASS_CHOICES_2014).flat()]) expect(WHY_TOPICS).toContain(choiceTopic(ch))
+  })
+
+  // Every 2014 pick explains each option (keeping the base rules needs none) and has a Hebrew name.
+  it('explains and names every 2014 class pick', () => {
+    const choices = Object.values(CLASS_CHOICES_2014).flat()
+    expect(choices.flatMap(ch => ch.options.filter(o => o.id !== 'phb' && !choiceOptionKey(ch, o)).map(o => `${ch.id}: ${o.id}`))).toEqual([])
+    const names = choices.flatMap(ch => [
+      `feature.${ch.name}`,
+      ...ch.options.filter(o => o.id !== 'phb').map(o => (o.id === 'use' ? `feature.${o.name}` : o.effects?.some(e => e.kind === 'skillProficiency') ? `skill.${o.id}` : `pick.${o.id}`)),
+    ])
+    expect([...new Set(names)].filter(k => !(k in he.terms))).toEqual([])
   })
 
   it('explains every subrace, lineage and trait', () => {

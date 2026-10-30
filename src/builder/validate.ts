@@ -99,7 +99,8 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
         }
       }
       for (const x of classChoices(d)) {
-        if (!x.picked) out.push(t('builder.issue.classChoice', { className: className(x.classId), choice: x.choice.name }))
+        // Optional rules (Tasha's) left unpicked keep the base rules.
+        if (!x.picked && !x.choice.optional) out.push(t('builder.issue.classChoice', { className: className(x.classId), choice: x.choice.name }))
       }
       break
     case 'abilities': {

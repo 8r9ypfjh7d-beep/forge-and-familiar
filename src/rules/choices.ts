@@ -1,9 +1,10 @@
 // Builder choices beyond race, class and scores: languages, tools, Ability Score Improvements,
 // feats and starting-gear picks. Pure helpers shared by the builder and derive().
 import type { Character, Improvement } from '../model/character'
-import { homebrewClassOptions } from './classOptions'
 import { classOptionFeats } from './invocations'
 import { getBackground } from './data/backgrounds'
+import { classOptions } from './classOptions'
+import { CLASS_CHOICES_2014 } from './data/classChoices2014'
 import { classById } from './data/classes'
 import { classLanguagePicks } from './classPicks'
 import { CUSTOM_FEAT, featById } from './data/feats'
@@ -11,7 +12,7 @@ import { ITEMS } from './data/items'
 import { rulesEdition } from './edition'
 import { racialLanguages } from './origin'
 import { raceProfile } from './race'
-import { ABILITIES, type Abilities, type Ability, type ArmorCategory, type ClassChoice, type ClassDef, type Feat, type FeatEffect, type Item, type ItemEffect, type WeaponCategory } from './types'
+import { ABILITIES, type Abilities, type Ability, type ArmorCategory, type ClassChoice, type ClassChoiceOption, type ClassDef, type Feat, type FeatEffect, type Item, type ItemEffect, type RulesEdition, type WeaponCategory } from './types'
 
 type Edition = Partial<Pick<Character, 'rulesEdition'>>
 type Classes = Pick<Character, 'classes'> & Edition
@@ -27,24 +28,51 @@ export function improvementSlots(c: Classes): { classId: string; level: number }
   return c.classes.flatMap(cl => (classById(cl.classId, rulesEdition(c))?.asiLevels ?? []).filter(l => l <= cl.level).map(level => ({ classId: cl.classId, level })))
 }
 
-// ---------- Class choices (2024 Fighting Style, Divine Order, Primal Order) ----------
+// ---------- Class choices (Fighting Style, Favored Enemy, Tasha's options, 2024 orders) ----------
 
 /** Key of a class choice in Character.featureChoices. */
 export const choiceKey = (classId: string, choiceId: string) => `${classId}.${choiceId}`
 
-/** Class choices the character's levels have unlocked, with the option picked (if any). */
-export function classChoices(c: Classes & Partial<Pick<Character, 'featureChoices'>>): { classId: string; choice: ClassChoice; picked?: ClassChoice['options'][number] }[] {
-  const edition = rulesEdition(c)
-  return c.classes.flatMap(cl => (classById(cl.classId, edition)?.choices ?? []).filter(ch => ch.level <= cl.level).map(base => {
-    // Homebrew fighting styles join every Fighting Style list; their effects and uses apply through classOptionEffects.
-    const extra = base.id === 'fightingStyle'
-      ? homebrewClassOptions('fightingStyle').filter(o => (!o.edition || o.edition === edition) && (!o.classIds?.length || o.classIds.includes(cl.classId)))
-        .map(o => ({ id: o.id, name: o.name, detail: o.text ?? '' }))
-      : []
-    const choice = extra.length ? { ...base, options: [...base.options, ...extra] } : base
-    return { classId: cl.classId, choice, picked: choice.options.find(o => o.id === c.featureChoices?.[choiceKey(cl.classId, choice.id)]) }
-  }))
+/**
+ * Every choice a class offers in an edition: the class's own list plus the 2014 picks kept in classChoices2014.ts.
+ * A choice with a pool also lists the registered options of that kind for the class (homebrew fighting styles);
+ * their effects and uses apply through classOptionEffects, so the option carries only its name and text.
+ */
+export function classChoiceDefs(classId: string, edition?: RulesEdition): ClassChoice[] {
+  const def = classById(classId, edition)
+  if (!def) return []
+  const own = [...(def.choices ?? []), ...(edition === '2024' ? [] : (CLASS_CHOICES_2014[classId] ?? []))]
+  return own.map(ch => {
+    if (!ch.pool) return ch
+    const extra = classOptions(ch.pool, edition === '2024' ? '2024' : '2014')
+      .filter(o => (!o.classIds?.length || o.classIds.includes(classId)) && !ch.options.some(x => x.id === o.id))
+      .map((o): ClassChoiceOption => ({ id: o.id, name: o.name, detail: o.text ?? '', source: o.source }))
+    return extra.length ? { ...ch, options: [...ch.options, ...extra] } : ch
+  })
 }
+
+type Picks = Classes & Partial<Pick<Character, 'featureChoices'>>
+
+/**
+ * Class choices the character's levels have unlocked, with the option picked (if any). A choice with `when`
+ * shows only while its sibling choice has (or lacks) that option: Favored Enemy at 6 goes away with Favored Foe.
+ */
+export function classChoices(c: Picks): { classId: string; level: number; choice: ClassChoice; picked?: ClassChoiceOption }[] {
+  return c.classes.flatMap(cl => {
+    const picked = (id: string) => c.featureChoices?.[choiceKey(cl.classId, id)]
+    return classChoiceDefs(cl.classId, rulesEdition(c))
+      .filter(ch => ch.level <= cl.level && (!ch.when || (picked(ch.when.choice) === ch.when.option) !== !!ch.when.not))
+      .map(choice => ({ classId: cl.classId, level: cl.level, choice, picked: choice.options.find(o => o.id === picked(choice.id)) }))
+  })
+}
+
+/** Sheet changes from picked class options, labelled with the option name. */
+export const classChoiceEffects = (c: Picks): { source: string; effect: ItemEffect }[] =>
+  classChoices(c).flatMap(({ level, picked }) => {
+    if (!picked) return []
+    const later = (picked.levelEffects ?? []).filter(([from]) => level >= from).flatMap(([, list]) => list)
+    return [...(picked.effects ?? []), ...later].map(effect => ({ source: picked.name, effect }))
+  })
 
 /** Improvements that still match a slot (a lower class level drops the ones above it). */
 export function activeImprovements(c: Classes & Pick<Character, 'improvements'>) {
@@ -93,7 +121,9 @@ export function getFeats(c: FeatInput): Feat[] {
 
 /** All effects of one kind from the character's feats. */
 export function featEffects<K extends FeatEffect['kind']>(c: FeatInput, kind: K): Extract<FeatEffect, { kind: K }>[] {
-  return getFeats(c).flatMap(f => f.effects.filter((e): e is Extract<FeatEffect, { kind: K }> => e.kind === kind))
+  // 2014 Fighting Styles are not feats, but Defense works like the 2024 feat.
+  const fromChoices = classChoices(c).flatMap(x => x.picked?.featEffects ?? [])
+  return [...getFeats(c).flatMap(f => f.effects), ...fromChoices].filter((e): e is Extract<FeatEffect, { kind: K }> => e.kind === kind)
 }
 
 /** Feat +1 picks (Resilient, 2024 general feats, Epic Boons): the ability chosen on the improvement, its cap, and whether its save comes too. */

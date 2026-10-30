@@ -36,6 +36,7 @@ export const STARTER_HEROES: StarterHero[] = [
     draft: {
       ...BASE, name: 'Brannoc Steelheart', alignment: 'Lawful Good',
       raceId: 'human', classes: [{ classId: 'fighter', level: 1 }],
+      featureChoices: { 'fighter.fightingStyle': 'defense' },
       chosenLanguages: ['Dwarvish', 'Celestial', 'Giant'],
       baseAbilities: { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 },
       chosenSkills: ['athletics', 'perception'],
