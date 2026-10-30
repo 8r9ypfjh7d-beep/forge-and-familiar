@@ -11,7 +11,7 @@ import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlo
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, spellAccess, spellSourcesFor, type SpellAccess } from './access'
 import { grantedSpells, isExtraSpell } from './extra'
-import { addSpell, isPinned, pinnedSpells, removeSpell, setEdition, spellsOf, toggleSpellPin } from './spellbook'
+import { addSpell, isPinned, pinnedSpells, removeSpell, spellsOf, toggleSpellPin } from './spellbook'
 import { CastButton, CastResult, itemSpellCaster, useCast } from './Cast'
 import './spellbook.css'
 
@@ -42,8 +42,7 @@ function useLibrary(edition: Edition): Library | 'error' | null {
 
 export function Spellbook({ character, apply }: { character: Character; apply: Apply }) {
   const { t } = useI18n()
-  const edition = editionOf(character)
-  const lib = useLibrary(edition)
+  const lib = useLibrary(editionOf(character))
   const stats = derive(character)
   const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities, undefined, lib.spells) : []
   const [classId, setClassId] = useState<string | null>(null)
@@ -59,13 +58,6 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
     <section className="card spellbook" aria-labelledby="spells-title">
       <div className="card-head">
         <h2 id="spells-title">{t('spells.title')}</h2>
-        <label className="sb-edition">
-          <span className="sr-only">{t('spells.rules')}</span>
-          <select value={edition} onChange={e => apply(t('spells.log.rules', { rules: t(`spells.rules.${e.target.value as Edition}`) }), c => setEdition(c, e.target.value as Edition))}>
-            <option value="2014">{t('spells.rules.2014')}</option>
-            <option value="2024">{t('spells.rules.2024')}</option>
-          </select>
-        </label>
       </div>
       <SpellSlots character={character} apply={apply} onCastItemSpell={lib && lib !== 'error' ? itemSpellCaster(lib.spells, itemCasting.cast) : undefined} />
       <CastResult out={itemCasting.out} outKey={itemCasting.outKey} onDone={itemCasting.clear} character={character} apply={apply} />

@@ -1,11 +1,6 @@
 /* Spells card on the live sheet, Liquid Glass (src/design/DESIGN.md). Only the card's insides live here;
    the card frame belongs to the sheet. Two-class selectors so .ff-sheet's input/button rules don't win. */
 .spellbook .card-head { align-items: center; }
-.spellbook .sb-edition select {
-  min-height: 32px; font-size: 0.8rem; padding-block: 0; padding-inline: var(--sp-3) var(--sp-2);
-  border-radius: var(--r-pill); border: 1px solid var(--glass-hairline); background: var(--glass-thin); color: var(--ink);
-  box-shadow: var(--glass-highlight);
-}
 .sb-classes, .sb-levels { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-1) 0 var(--sp-3); }
 .sb-levels { margin: var(--sp-3) 0 var(--sp-1); }
 .sb-levels .glass-chip, .sb-classes .glass-chip { min-height: 32px; }

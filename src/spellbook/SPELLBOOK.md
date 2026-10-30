@@ -1,6 +1,6 @@
 # Spellbook
 
-Combat mode's Spells tab and story mode's Spells card. The tab shows the spell slots, then lists the character's own spells by level, and every spell their class can take right now, pulled from the content library (`src/content`): the edition's SRD plus the official book spells (`src/content/books`). Each character can use the 2014 rules (SRD 5.1) or the 2024 rules (SRD 5.2) for spell lists and counts.
+Combat mode's Spells tab and story mode's Spells card. The tab shows the spell slots, then lists the character's own spells by level, and every spell their class can take right now, pulled from the content library (`src/content`): the edition's SRD plus the official book spells (`src/content/books`). Spell lists and counts follow the character's rules edition: 2014 (SRD 5.1) or 2024 (SRD 5.2). The edition is changed in Edit, not on the sheet, since it changes the whole character.
 
 ## Files Covered
 
@@ -10,7 +10,7 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 | `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells), `canTake`, `availableSpells`, `editionOf`, `sourceFor`, `spellSourcesFor` (SRD + books), `spellIdByName` (book and SRD names of the same spell) |
 | `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells; classes the library has no table for, like the Artificer, use the engine's `bookSpellcasting` list as `listed`), `canTake`, `availableSpells`, `editionOf`, `sourceFor` |
 | `extra.ts` | Pure: `grantedSpells` (race and lineage spells with the level they arrive), `extraSources` (High Elf cantrip, spell feats such as Magic Initiate from the 2024 background, a Human's origin feat or an ASI), `canPickExtra`, `extraKey`, `extraList`, `keepValidSpells` |
-| `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `pinnedSpells`, `toggleSpellPin`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
+| `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `pinnedSpells`, `toggleSpellPin`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
 | `Spellbook.tsx` | `Spellbook` (combat's Spells tab): spell slots, summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
 | `spellbook.css` | Liquid Glass styles for the card's insides (the card frame is the sheet's): `.glass-segmented` tabs, `.glass-chip` filters, `SearchField`, inset spell list on thin glass, tinted Add/Pin buttons |
 | `cast.ts` | Pure: `castPlan` (rules `planCast` with the character's edition, spellcasting modifier and speed), `defaultSlot` (lowest free slot that fits), `castWarnings` (no slot left, or the concentration spell a cast would end), `castSpell` (spends the slot, starts the running effect, adds temp HP and healing) |
