@@ -17,11 +17,18 @@ export function grantedSkills(d: CharacterDraft): Set<SkillId> {
   ])
 }
 
-/** Skill picks: the first class's list, plus picks of any skill from the race and feats (2024 Skilled) as `raceCount`. */
+/**
+ * Skill picks: the first class's list, picks of any skill from the race and feats (2024 Skilled) as `raceCount`,
+ * and the background's short list (Haunted One) as `bgCount`/`bgFrom`.
+ */
 export function skillPicks(d: CharacterDraft) {
   const cls = classById(d.classes[0]?.classId ?? '', d.rulesEdition)
   const free = raceProfile(d).freeSkillChoices + featSkillPicks(d)
-  return { classCount: cls?.skillChoices.count ?? 0, classFrom: cls?.skillChoices.from ?? [], raceCount: free }
+  const bg = getBackground(d)?.skillChoices
+  return {
+    classCount: cls?.skillChoices.count ?? 0, classFrom: cls?.skillChoices.from ?? [], raceCount: free,
+    bgCount: bg?.count ?? 0, bgFrom: bg?.from ?? [],
+  }
 }
 
 /** Class entries at or past their subclass level. Classes with no subclass to choose from are skipped. */
@@ -131,11 +138,12 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       break
     }
     case 'skills': {
-      const { classCount, raceCount } = skillPicks(d)
+      const { classCount, raceCount, bgCount } = skillPicks(d)
       const granted = grantedSkills(d)
       if (d.chosenSkills.some(s => granted.has(s))) out.push(t('builder.issue.skillGranted'))
-      // Skills off the class list only warn (stepWarnings): the count is what matters.
-      if (d.chosenSkills.length !== classCount + raceCount) {
+      // Skills off the class and background lists only warn (stepWarnings): the count is what matters.
+      if (bgCount && d.chosenSkills.length !== classCount + raceCount + bgCount) out.push(t('builder.issue.skillsBackground', { count: bgCount }))
+      if (d.chosenSkills.length !== classCount + raceCount + bgCount) {
         out.push(raceCount
           ? t('builder.issue.skillsMixed', { classCount, raceCount })
           : t('builder.issue.skillsClass', { classCount }))
@@ -237,9 +245,11 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
       }
       break
     case 'skills': {
-      const { classCount, classFrom } = skillPicks(d)
+      const { classCount, classFrom, bgCount, bgFrom } = skillPicks(d)
       const fromClass = d.chosenSkills.filter(s => classFrom.includes(s)).length
-      if (classCount && d.chosenSkills.length && fromClass < Math.min(classCount, d.chosenSkills.length)) out.push(t('builder.warn.skillsOffList'))
+      const fromBg = d.chosenSkills.filter(s => bgFrom.includes(s) && !classFrom.includes(s)).length
+      const listed = classCount + bgCount
+      if (listed && d.chosenSkills.length && Math.min(fromClass, classCount) + fromBg < Math.min(listed, d.chosenSkills.length)) out.push(t('builder.warn.skillsOffList'))
       const tools = d.chosenTools ?? []
       let at = 0
       const off = toolPickGroups(d).some(g => tools.slice(at, (at += g.count)).some(p => p && !g.from.includes(p)))

@@ -352,6 +352,8 @@ export interface Background {
   id: string
   name: string
   skillProficiencies: SkillId[]
+  /** Skill picks from a short list (Haunted One: two of Arcana, Investigation, Religion, Survival). */
+  skillChoices?: { count: number; from: SkillId[] }
   toolProficiencies?: string[]
   /** Fixed languages the background teaches. */
   languages?: string[]
@@ -365,7 +367,7 @@ export interface Background {
   abilityScores?: Ability[]
   /** 2024: the Origin feat the background grants, with a note such as "Cleric" for Magic Initiate. */
   feat?: { id: string; note?: string; /** Shown until the feat itself is defined, or for a pick such as "A Dark Gift feat". */ name?: string }
-  /** Gold that comes with the background's gear (2024). */
+  /** Gold that comes with the background's gear (2024; the purse of an official 2014 one). */
   gold?: number
   /** Homebrew: rule effects the background grants in either edition, applied like a feat's. */
   effects?: FeatEffect[]

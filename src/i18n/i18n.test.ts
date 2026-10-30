@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { stepIssues } from '../builder/validate'
 import { emptyDraft } from '../builder/Builder'
-import { ALIGNMENTS, BOOK_SPECIES_2024, CLASSES, LANGUAGES, RACES, SKILLS, TOOLS, backgroundsFor } from '../rules'
+import { ALIGNMENTS, BACKGROUNDS, BOOK_SPECIES_2024, CLASSES, LANGUAGES, RACES, SKILLS, TOOLS, backgroundsFor } from '../rules'
 import { en } from './locales/en'
 import { he } from './locales/he'
 import { LOCALES, term, translate } from './translate'
@@ -52,6 +52,7 @@ describe('Hebrew coverage', () => {
       ...BOOK_SPECIES_2024.flatMap(r => [`race.${r.id}`, ...r.traits.map(x => `trait.${x}`)]),
       ...Object.keys(SKILLS).map(s => `skill.${s}`),
       ...ALIGNMENTS.map(a => `alignment.${a}`),
+      ...BACKGROUNDS.flatMap(b => [`background.${b.id}`, `bgFeature.${b.feature}`]),
     ]
     expect(ids.filter(k => !(k in he.terms))).toEqual([])
   })

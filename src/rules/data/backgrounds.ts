@@ -2,8 +2,9 @@ import type { Character } from '../../model/character'
 import type { Background, RulesEdition } from '../types'
 import { BOOK_BACKGROUNDS_2024 } from './books/backgrounds2024'
 import { BACKGROUNDS_2024 } from './srd52/backgrounds'
+import { BOOK_BACKGROUNDS } from './books/backgrounds'
 
-// The SRD 5.1 includes only one background.
+// 2014 backgrounds: the SRD 5.1's Acolyte, then every background from the official books.
 export const BACKGROUNDS: Background[] = [
   {
     id: 'acolyte',
@@ -11,8 +12,10 @@ export const BACKGROUNDS: Background[] = [
     skillProficiencies: ['insight', 'religion'],
     languageChoices: 2,
     feature: 'Shelter of the Faithful',
-    equipment: ['holy-symbol', 'prayer-book', 'vestments'],
+    equipment: ['holy-symbol', 'prayer-book', 'incense', 'vestments', 'clothes-common', 'pouch'],
+    gold: 15,
   },
+  ...BOOK_BACKGROUNDS,
 ]
 
 export const ALIGNMENTS = [

@@ -1,6 +1,6 @@
 import { CHARACTER_SCHEMA_VERSION, type Character, type CharacterState } from '../model/character'
 import { classKit, kitGold } from './choices'
-import { getBackground } from './data/backgrounds'
+import { BACKGROUNDS, getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { itemById } from './data/items'
 import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS } from './data/proficiencies'
@@ -40,11 +40,15 @@ export function startingItemIds(draft: GearInput): string[] {
 }
 
 /**
- * Starting gold before shopping. 2014: 15 gp (plus a homebrew background's coins), or the class gold taken instead of the gear.
- * 2024: the class kit's and the background's coins (50 gp when the background's option B is taken).
+ * Starting gold before shopping. 2014: an official background's purse (15 gp plus the coins of a homebrew one),
+ * or the class gold taken instead of the gear. 2024: the class kit's and the background's coins (50 gp when the background's option B is taken).
  */
 export function startingGold(draft: GearInput): number {
-  if (rulesEdition(draft) !== '2024') return takesClassGold(draft) ? Math.max(0, draft.startingWealth?.classGold ?? 0) : 15 + (getBackground(draft)?.gold ?? 0)
+  if (rulesEdition(draft) !== '2024') {
+    if (takesClassGold(draft)) return Math.max(0, draft.startingWealth?.classGold ?? 0)
+    const bg = getBackground(draft)
+    return bg && BACKGROUNDS.some(b => b.id === bg.id) ? bg.gold ?? 15 : 15 + (bg?.gold ?? 0)
+  }
   const cls = classById(draft.classes[0]?.classId ?? '', '2024')
   const bg = takesBackgroundGold(draft) ? BACKGROUND_GOLD_2024 : (getBackground(draft)?.gold ?? 0)
   return (cls ? kitGold(cls, draft.equipmentPicks) : 0) + bg

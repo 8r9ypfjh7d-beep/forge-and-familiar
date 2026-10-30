@@ -1,6 +1,7 @@
 // English UI text: the source of truth for message keys. Other locales may leave keys out.
 // Plural keys end in _one / _two / _other; pass the base key and a numeric `count`.
 import { explainBackgroundsEn } from './explain.backgrounds.en'
+import { explainBackgrounds2014En } from './explain.backgrounds2014.en'
 import { explainBooksEn } from './explain.books.en'
 import { explainClassesEn } from './explain.classes.en'
 import { explainPicksEn } from './explain.picks.en'
@@ -15,6 +16,7 @@ export const en = {
   ...explainEn,
   ...explainBooksEn,
   ...explainBackgroundsEn,
+  ...explainBackgrounds2014En,
   ...explainClassesEn,
   ...explainProficienciesEn,
   ...explainMetamagicEn,
@@ -242,7 +244,9 @@ export const en = {
   'builder.raise': 'Raise {ability}',
   'builder.racialPlusOne': 'Racial +1 to {ability}',
   'builder.background': 'Background',
-  'builder.bgFeature': 'Feature: {feature}. For any other background, choose Custom background.',
+  'builder.bgFeature': 'Feature: {feature}. Not in the list? Choose Custom background.',
+  'builder.bgSkills': 'Your background also lets you pick {count} from: {skills}.',
+  'builder.tag.background': 'background',
   'builder.bgFeat': 'Origin feat: {feat}.',
   'builder.bgFeat.bonusNote': 'Its ability bonuses are set on the Abilities step.',
   'builder.chosenClass': 'Chosen {chosen} of {total}. Your class suggests the ones tagged "class".',
@@ -319,7 +323,7 @@ export const en = {
   'builder.warn.picks': '{feature} ({className}): pick {max}, {picked} chosen so far.',
   'builder.warn.picksOver': '{feature} ({className}): {picked} chosen, the rules give {max}. Fine if your DM agrees.',
   'builder.warn.pickLevel': '{option} is usually learned from level {level}. Fine if your DM agrees.',
-  'builder.warn.skillsOffList': 'Some skills are not on your class list. Fine if your DM agrees.',
+  'builder.warn.skillsOffList': 'Some skills are not on your class or background list. Fine if your DM agrees.',
   'builder.warn.toolsOffList': 'Some tools are not on the usual list. Fine if your DM agrees.',
   'builder.warn.secretLanguage': '{language} is normally taught only by its class (Druid or Rogue). Fine if your DM agrees.',
   'builder.warn.expertiseOffList': '{pick}: some picks are skills you are not proficient in (or off the list). Expertise normally needs proficiency first; fine if your DM agrees.',
@@ -329,6 +333,7 @@ export const en = {
   'builder.pick.skill': 'Pick {count} more skill proficiency ({chosen} chosen). The class list is highlighted.',
   'builder.pick.mastery': 'Pick {count} kinds of weapons whose mastery property you can use ({chosen} chosen). You can swap them after each long rest.',
   'builder.issue.skillsClass': 'Pick {classCount} class skills.',
+  'builder.issue.skillsBackground': 'Pick {count} skills from your background list.',
   'builder.mc.open': '+ Multiclass (optional)',
   'builder.mc.title': 'Multiclass',
   'builder.mc.intro': 'Each class needs its ability minimums, and so does {className} ({prereq}).',

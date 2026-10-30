@@ -1,4 +1,5 @@
 import type { InventoryEntry, Item } from '../types'
+import { BACKGROUND_GEAR } from './backgroundGear'
 
 // SRD 5.1 weapons, armor and a little adventuring gear.
 export const ITEMS: Item[] = [
@@ -162,6 +163,7 @@ export const ITEMS: Item[] = [
   { kind: 'gear', id: 'priests-pack', name: "Priest's Pack", weight: 24, description: 'Backpack, blanket, 10 candles, tinderbox, alms box, 2 blocks of incense, censer, vestments, 2 days rations, waterskin.' },
   { kind: 'gear', id: 'scholars-pack', name: "Scholar's Pack", weight: 10, description: 'Backpack, book of lore, ink, ink pen, 10 sheets of parchment, little bag of sand, small knife.' },
   { kind: 'gear', id: 'potion-healing', name: 'Potion of Healing', weight: 0.5, description: 'Regain 2d4 + 2 hit points.' },
+  ...BACKGROUND_GEAR,
 ]
 
 // Homebrew items registered at runtime (ids namespaced `hb:<packId>:<slug>`).
