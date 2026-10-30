@@ -258,5 +258,6 @@ form.inline input { width: 84px; }
 .metamagic .mm-list { list-style: none; margin: 0; margin-block-start: var(--sp-3); padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
 .metamagic .mm-list li { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; padding-block: var(--sp-2); border-block-end: 1px solid var(--glass-hairline); }
 .metamagic .mm-name { display: flex; flex-direction: column; flex: 1 1 10rem; }
+.metamagic .mm-head { display: flex; align-items: center; gap: var(--sp-1); }
 .metamagic .mm-name small { color: var(--s-muted); font-size: .75rem; }
 .metamagic .mm-level { display: flex; align-items: center; gap: var(--sp-1); font-size: .8125rem; color: var(--s-muted); }

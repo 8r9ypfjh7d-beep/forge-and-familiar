@@ -19,6 +19,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `multiclass.ts` | Prerequisites, multiclass proficiencies, caster level breakdown, per-class spell DCs, multiclass warnings |
 | `subclass.ts` | `subclassOf(c, cl)` (official, homebrew or the character's custom subclass), `activeSubclasses`, `subclassFeatures`, `subclassEffects`, `subclassSpellNames` |
 | `classOptions.ts` | Shared registry of class option lists (invocations, pact boons, metamagic, maneuvers, fighting styles, infusions, and any other kind): `registerClassOptions(origin, list)`, `classOptions(kind, edition)`, `classOptionById(id, edition)`, `homebrewClassOptions`, `pickedClassOptions`, `classOptionEffects` |
+| `metamagic.ts`, `data/metamagic.ts` | Every Metamagic option (`METAMAGIC`: 8 PHB + Tasha's Seeking and Transmuted; `METAMAGIC_2024`: 10) registered as kind `'metamagic'`; `metamagicCount(c)` by sorcerer level (2014: 2/3/4 at 3/10/17, 2024: 2/4/6 at 2/10/17), `metamagicOptions`, `getMetamagic`, `toggleMetamagic`, `metamagicCost(option, spellLevel)` (2014 Twinned costs the spell level). Explanations are `why.metamagic.<id>` / `why.metamagic2024.<id>` in `explain.metamagic.*.ts` |
 | `data/books/subclasses.ts` | Subclasses from official books outside the SRD (`BOOK_SUBCLASSES`, `BOOK_SUBCLASSES_2024`) for every class: names, levels and mechanics only; feature text is our own summary in `explain.books.*.ts` (warlock) and `explain.classes.*.ts` (the rest) |
 | `data/books/martial.ts`, `casters.ts` | Barbarian/fighter/monk/rogue and the caster classes' book subclasses (2014, 2024, and `*_REWRITTEN` ids that 2024 redid so they are not also offered as legacy) |
 | `data/books/helpers.ts` | Builders for the book data: source names, `f` (feature), `short`/`long` uses, `fx`, `resist`, `dark`, `move`, `fullSpells`/`halfSpells`/`spells2024`, `legacy` |
@@ -38,7 +39,7 @@ Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missi
 - Classes: subclass at 3, Epic Boon slot at 19, 2024 resources (Second Wind uses, Indomitable, Focus Points, Favored Enemy...), Monk and Rogue Light/Finesse martial weapons, Martial Arts d6 to d12, Draconic Sorcery 10 + DEX + CHA. `getWeaponMasteryCount(c)` reads `ClassDef.weaponMastery`.
 - Half casters get slots from level 1 and always round their levels up (also when multiclassed). Multiclass grants come from `MULTICLASS_PROFICIENCIES_2024`.
 - Starting gear is the class's option A kit with its coins or option B coins only (`EquipmentChoice` options carry `gold`); `startingGold` adds the background's coins. 2014 characters start with 15 gp plus a homebrew background's gold.
-- Not modelled yet: Weapon Mastery picks, Eldritch Invocations, Expertise and Metamagic picks, Elf Keen Senses limited to three skills (any skill is accepted), Skilled's tool option, Heroic Inspiration, background option B (50 gp).
+- Not modelled yet: Weapon Mastery picks, Eldritch Invocations, Expertise picks, Elf Keen Senses limited to three skills (any skill is accepted), Skilled's tool option, Heroic Inspiration, background option B (50 gp).
 - Older saves that only set `spellEdition: '2024'` keep 2014 rules; `uses2024Spells` still gives their pact weapon CHA.
 
 ## Key rules implemented

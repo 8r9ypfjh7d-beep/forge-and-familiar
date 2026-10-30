@@ -55,7 +55,7 @@ function Option({ option: o, character, left, used, apply }: { option: ClassOpti
   return (
     <li>
       <span className="mm-name">
-        <strong>{name}</strong> <Why title={name} text={text} compact />
+        <span className="mm-head"><strong>{name}</strong> <Why title={name} text={text} compact /></span>
         <small>{o.costPerSpellLevel ? t('mm.perLevel') : t('mm.cost', { count: cost })}</small>
       </span>
       {o.costPerSpellLevel && (
