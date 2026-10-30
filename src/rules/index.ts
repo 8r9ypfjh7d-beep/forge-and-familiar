@@ -28,6 +28,8 @@ export { CUSTOM_SUBCLASS, SUBCLASSES, registerHomebrewSubclasses, subclassById, 
 export { BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024 } from './data/books/subclasses'
 export * from './classOptions'
 export { activeSubclasses, blankSubclass, subclassFeatures, subclassOf, subclassSpellNames } from './subclass'
+export { pickCount, stalePicks, subclassPickLists, togglePick, type ActivePickList } from './subclassPicks'
+export { SUBCLASS_OPTIONS, SUBCLASS_PICK_LISTS } from './data/books/subclassPicks'
 export { FEATS, allFeats, featById, registerHomebrewFeats } from './data/feats'
 export { FEATS_2024 } from './data/srd52/feats'
 export { SUBCLASSES_2024 } from './data/srd52/subclasses'

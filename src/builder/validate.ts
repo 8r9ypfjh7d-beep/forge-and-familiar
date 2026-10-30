@@ -3,7 +3,7 @@ import { coinText } from './shop'
 import {
   ABILITIES, ALL_SKILLS, CUSTOM_BACKGROUND, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
-  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassOf, subclassesFor, toolPickGroups,
+  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassOf, subclassPickLists, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type ClassPick, type SkillId,
 } from '../rules'
 
@@ -225,6 +225,17 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
       }
       break
     }
+    case 'class':
+      // Subclass picks (maneuvers, runes...) only warn: a player may decide later, and tables bend the counts.
+      for (const at of subclassPickLists(d)) {
+        const vars = { feature: term('feature', at.list.feature, at.list.feature), className: term('class', at.classId, classById(at.classId, edition)?.name ?? at.classId), max: at.max, picked: at.picked.length }
+        if (at.picked.length < at.max) out.push(t('builder.warn.picks', vars))
+        else if (at.picked.length > at.max) out.push(t('builder.warn.picksOver', vars))
+        for (const o of at.options.filter(o => o.minLevel && o.minLevel > at.level && at.picked.some(p => p.id === o.id))) {
+          out.push(t('builder.warn.pickLevel', { option: term('option', o.id, o.name), level: o.minLevel! }))
+        }
+      }
+      break
     case 'skills': {
       const { classCount, classFrom } = skillPicks(d)
       const fromClass = d.chosenSkills.filter(s => classFrom.includes(s)).length

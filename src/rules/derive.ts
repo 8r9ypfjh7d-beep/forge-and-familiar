@@ -2,6 +2,8 @@ import type { Character, HitDie } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
 import { classChoices, featBonus, featEffects, getFeats, getLanguages, getTools } from './choices'
 import { classOptionResourceId, pickedClassOptions } from './classOptions'
+// Also registers the subclass pick lists' options, so saved picks resolve wherever derive() runs.
+import { subclassPickLists } from './subclassPicks'
 import { getBackground } from './data/backgrounds'
 import { AURA_OF_PROTECTION_LEVEL, RADIANT_STRIKE_LEVEL } from './data/classFeatures2014'
 import { classById } from './data/classes'
@@ -406,8 +408,8 @@ export interface DerivedStats {
   carryingCapacity: number
   carriedWeight: number
   /** `text` describes features the SRD library has no entry for (other books, custom subclasses). */
-  /** `detail`: what the feature has grown to at this level ("d8", "CR 1", "3 attacks"). */
-  features: { level: number; name: string; className: string; text?: string; subclassId?: string; detail?: string }[]
+  /** `detail`: what the feature has grown to at this level ("d8", "CR 1", "3 attacks"). `optionId`: a pick from a subclass list (a maneuver, a rune), listed right after its feature. */
+  features: { level: number; name: string; className: string; text?: string; subclassId?: string; detail?: string; optionId?: string }[]
   /** Size from the race, or the player's pick when the race offers two. */
   size: Size
   traits: string[]
@@ -450,6 +452,7 @@ export function derive(c: Character): DerivedStats {
   const jackOfAllTrades = bard && bard.level >= 2 ? Math.floor(prof / 2) : 0
   const warnings: string[] = []
   const choices = classChoices(c)
+  const pickLists = subclassPickLists(c)
 
   const itemSaves = itemBonus(c, 'saves')
   const itemChecks = itemBonus(c, 'checks')
@@ -550,12 +553,19 @@ export function derive(c: Character): DerivedStats {
     carryingCapacity,
     carriedWeight: Math.round(carriedWeight * 100) / 100,
     features: classes.flatMap(({ def, level: l, subclass }) =>
-      [...def.features, ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).map(f => {
+      [...def.features, ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).flatMap(f => {
         // A class choice shows its pick: "Divine Order (Protector)".
         const picked = choices.find(x => x.classId === def.id && x.choice.name === f.name)?.picked
         const { detail: steps, ...rest } = f as typeof f & { detail?: [number, string][] }
         const detail = featureDetail({ detail: steps }, l)
-        return { ...rest, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name, ...(detail ? { detail } : {}) }
+        // Subclass picks (maneuvers, runes, a totem animal) follow the feature that grants them.
+        const options = 'subclassId' in f
+          ? pickLists.filter(p => p.classId === def.id && p.list.feature === f.name).flatMap(p => p.options.filter(o => p.picked.some(x => x.id === o.id)))
+          : []
+        return [
+          { ...rest, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name, ...(detail ? { detail } : {}) },
+          ...options.map(o => ({ level: f.level, name: o.name, className: def.name, optionId: o.id, ...(o.text ? { text: o.text } : {}) })),
+        ]
       }),
     ),
     size: raceInfo.size,

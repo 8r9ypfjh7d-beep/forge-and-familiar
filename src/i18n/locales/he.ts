@@ -4,6 +4,7 @@ import type { Messages, Terms } from '../translate'
 import { backgroundTermsHe, explainBackgroundsHe } from './explain.backgrounds.he'
 import { explainBooksHe } from './explain.books.he'
 import { explainClassesHe } from './explain.classes.he'
+import { explainPicksHe, pickTermsHe } from './explain.picks.he'
 import { explainHe } from './explain.he'
 import { explainProficienciesHe, proficiencyTermsHe } from './explain.proficiencies.he'
 import { explainMetamagicHe, metamagicTermsHe } from './explain.metamagic.he'
@@ -18,6 +19,7 @@ const messages: Messages = {
   ...explainProficienciesHe,
   ...explainMetamagicHe,
   ...explainSpeciesHe,
+  ...explainPicksHe,
   ...itemsHe,
   'common.back': 'חזרה',
   'common.backArrow': '→',
@@ -310,6 +312,9 @@ const messages: Messages = {
   'builder.warn.originSwapped': 'החלפתם מיומנויות גזע (כלל רשות מהקדרה של טאשה). בדקו עם השה"מ.',
   'builder.warn.asiCap': 'ערכים נעצרים ב־20, אז חלק מהתוספת ל־{ability} הולך לאיבוד.',
   'builder.warn.featLevel': 'בדרך כלל לוקחים את {feat} מדרגה {level}. זה בסדר אם השה"מ מסכים.',
+  'builder.warn.picks': '{feature} ({className}): בוחרים {max}, נבחרו עד עכשיו {picked}.',
+  'builder.warn.picksOver': '{feature} ({className}): נבחרו {picked}, החוקים נותנים {max}. זה בסדר אם השה"מ מסכים.',
+  'builder.warn.pickLevel': 'בדרך כלל לומדים את {option} מדרגה {level}. זה בסדר אם השה"מ מסכים.',
   'builder.warn.skillsOffList': 'חלק מהמיומנויות אינן ברשימת המקצוע. זה בסדר אם השה"מ מסכים.',
   'builder.warn.toolsOffList': 'חלק מהכלים אינם ברשימה הרגילה. זה בסדר אם השה"מ מסכים.',
   'builder.warn.secretLanguage': 'בדרך כלל רק המקצוע שלה מלמד את {language} (דרואיד או נוכל). זה בסדר אם השה"מ מסכים.',
@@ -392,6 +397,9 @@ const messages: Messages = {
   'builder.customSubclass': '{title} מותאם',
   'builder.subSource': 'מתוך {source}. התיאורים כאן הם סיכום קצר שלנו; החוקים המלאים בספר.',
   'builder.subSpells': 'לחשים נוספים:',
+  'builder.picks.count': 'נבחרו {picked} מתוך {max}',
+  'builder.picks.swapLevel': 'אפשר להחליף אחד מאלה בכל פעם שעולים דרגה במקצוע הזה.',
+  'builder.picks.swapRest': 'אפשר לשנות את זה אחרי מנוחה ארוכה. בחרו את מה שתשתמשו בו הכי הרבה.',
   'builder.issue.customSubclass': 'תנו שם ל{title} המותאם.',
   'builder.cs.intro': 'בנו {title} משלכם. הוסיפו יכולות לפי דרגה; כל יכולת יכולה לספור שימושים בגיליון ולשנות את המספרים שלכם.',
   'builder.cs.why.title': 'תת־מקצוע מותאם',
@@ -2276,6 +2284,7 @@ const terms: Terms = {
   ...metamagicTermsHe,
   ...speciesTermsHe,
   ...backgroundTermsHe,
+  ...pickTermsHe,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',
