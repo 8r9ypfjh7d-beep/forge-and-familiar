@@ -40,4 +40,19 @@ describe('2024 builder checks', () => {
     const d = draft({ raceId: 'human', originFeatId: 'skilled', chosenSkills: ['acrobatics', 'perception', 'arcana', 'history', 'nature', 'religion'], chosenLanguages: ['Elvish', 'Giant'], chosenTools: ['Dice set'] })
     expect(stepIssues('skills', d)).toEqual([])
   })
+
+  it('needs Expertise and Weapon Mastery picks, and only warns about off-list ones', () => {
+    const rogue = draft({ classes: [{ classId: 'rogue', level: 1 }], chosenSkills: ['stealth', 'acrobatics', 'deception', 'insight'], chosenLanguages: ['Elvish'] })
+    expect(stepIssues('skills', rogue)).toContain('Rogue: pick 2 for Expertise.')
+    const picked = { ...rogue, classPicks: { 'rogue.expertise': ['stealth', 'insight'] } }
+    expect(stepIssues('skills', picked).filter(i => i.includes('Expertise'))).toEqual([])
+    expect(stepIssues('skills', rogue)).toContain("Pick 3 languages you don't already know.")
+    expect(stepWarnings('skills', picked)).toEqual([])
+    expect(stepWarnings('skills', { ...rogue, classPicks: { 'rogue.expertise': ['stealth', 'arcana'] } })[0]).toMatch(/Expertise/)
+    expect(stepIssues('equipment', draft())).toEqual(['Pick 3 weapons for Weapon Mastery.'])
+    expect(stepIssues('equipment', draft({ weaponMasteries: ['longsword', 'longbow', 'dagger'] }))).toEqual([])
+    const barb = draft({ classes: [{ classId: 'barbarian', level: 1 }], weaponMasteries: ['greataxe', 'longbow'] })
+    expect(stepIssues('equipment', barb)).toEqual([])
+    expect(stepWarnings('equipment', barb)).toHaveLength(1)
+  })
 })

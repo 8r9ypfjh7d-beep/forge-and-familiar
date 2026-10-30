@@ -3,6 +3,7 @@
 import type { Character } from '../model/character'
 import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
+import { classLanguagePicks } from './classPicks'
 import { featById } from './data/feats'
 import { ITEMS } from './data/items'
 import { rulesEdition } from './edition'
@@ -115,9 +116,9 @@ export function fixedLanguages(c: RaceBg & Classes): string[] {
   ])]
 }
 
-/** How many languages the player picks: race, subrace and background choices. */
-export function languagePickCount(c: RaceBg): number {
-  return raceProfile(c).languageChoices + (getBackground(c)?.languageChoices ?? 0)
+/** How many languages the player picks: race, subrace and background choices, and class picks (2024 Rogue, Ranger). */
+export function languagePickCount(c: RaceBg & Partial<Classes>): number {
+  return raceProfile(c).languageChoices + (getBackground(c)?.languageChoices ?? 0) + (c.classes ? classLanguagePicks(c as Classes) : 0)
 }
 
 export function getLanguages(c: RaceBg & Classes & Pick<Character, 'chosenLanguages'>): string[] {

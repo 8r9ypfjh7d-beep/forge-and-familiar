@@ -174,6 +174,21 @@ export interface ClassChoice {
   }[]
 }
 
+/**
+ * A feature that picks several things: Expertise skills, an extra skill (Primal Knowledge) or languages.
+ * Skill picks are saved in Character.classPicks under `<classId>.<id>`; language picks add to the language count.
+ */
+export interface ClassPick {
+  id: string
+  /** Feature name, e.g. "Expertise". */
+  name: string
+  level: number
+  kind: 'expertise' | 'skill' | 'language'
+  count: number
+  /** The book's list. Missing means any skill (Expertise: any skill you're proficient in). Others only warn. */
+  from?: SkillId[]
+}
+
 export interface ClassDef {
   id: string
   name: string
@@ -207,6 +222,8 @@ export interface ClassDef {
   features: ClassFeature[]
   /** Level-gated picks (2024: Fighting Style, Divine Order, Primal Order). Saved in Character.featureChoices. */
   choices?: ClassChoice[]
+  /** Level-gated multi-picks (Expertise, Primal Knowledge, Thieves' Cant language). */
+  picks?: ClassPick[]
   /** Weapon Mastery (2024): [class level, weapons] steps. */
   weaponMastery?: [number, number][]
   /** Gold in the starting kit (2024 kits list it; 2014 characters start with 15 gp). */

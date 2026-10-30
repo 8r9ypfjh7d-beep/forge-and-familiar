@@ -1,7 +1,7 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction } from '../../model/character'
-import { getDamageRiders, getWeaponMasteryCount, type DerivedStats } from '../../rules'
+import { classChoices, getDamageRiders, getWeaponMasteryCount, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { spellDamage } from '../../quickcast/quickcast'
@@ -98,14 +98,18 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
   const sc = stats.spellcasting
   if (!sc) return []
   const byId = new Map(library.map(s => [s.id, s]))
-  const known = (c.spells ?? []).map(k => byId.get(k.id)).filter((s): s is Spell => !!s)
+  const known = (c.spells ?? []).flatMap(k => { const s = byId.get(k.id); return s ? [{ s, classId: k.classId }] : [] })
   const out: SpellAttackRow[] = []
   const seen = new Set<string>()
-  const push = (entry: Omit<SpellEntry, 'id' | 'kind'>, range: string) => {
+  // 2024 Potent Spellcasting (Cleric Blessed Strikes, Druid Elemental Fury): WIS on that class's cantrip damage.
+  const potent = new Set(c.rulesEdition === '2024' ? classChoices(c).filter(x => x.picked?.id === 'potent-spellcasting').map(x => x.classId) : [])
+  const push = (entry: Omit<SpellEntry, 'id' | 'kind'>, range: string, classId?: string) => {
     const key = entry.name.toLowerCase()
     if (seen.has(key) || entry.roll === 'none') return
     seen.add(key)
-    const damage = spellDamage({ ...entry, id: '', kind: 'spell' }, entry.level, stats.level, stats.mods[sc.ability])
+    let damage = spellDamage({ ...entry, id: '', kind: 'spell' }, entry.level, stats.level, stats.mods[sc.ability])
+    const wis = stats.mods.wis
+    if (damage && entry.level === 0 && classId && potent.has(classId) && wis) damage = formatNotation(parseNotation(`${damage}${wis > 0 ? '+' : ''}${wis}`))
     out.push({
       name: entry.name, level: entry.level, range, kind: entry.roll,
       value: entry.roll === 'attack' ? sc.attackBonus : sc.saveDc,
@@ -115,7 +119,7 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
       entry,
     })
   }
-  for (const s of known) push(toQuickCast(withRollFromText(s)), s.range)
+  for (const { s, classId } of known) push(toQuickCast(withRollFromText(s)), s.range, classId)
   for (const q of c.quickCast ?? []) if (q.kind === 'spell') push(q, byName(library, q.name)?.range ?? '')
   return out.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
 }
@@ -205,6 +209,16 @@ export function effectsUsed(active: EffectToggle[], riderIds: Iterable<string>, 
     if (!dice && !stats.length) return []
     return [{ id: e.id, name: e.name, ...(dice ? { damage: e.damage } : {}), ...(dice && e.damageType ? { damageType: e.damageType } : {}), stats }]
   })
+}
+
+/**
+ * Weapon Mastery: the weapons the player picked in the builder, with their property, up to the limit.
+ * Characters saved before the picks existed fall back to their attacks' weapons (`fallback` item ids).
+ */
+export function masteredWeapons(c: Pick<Character, 'classes' | 'spellEdition' | 'rulesEdition' | 'weaponMasteries'>, fallback: string[] = []): { itemId: string; mastery: string }[] {
+  const limit = masteryLimit(c)
+  const ids = c.weaponMasteries?.length ? c.weaponMasteries : fallback
+  return [...new Set(ids)].flatMap(itemId => { const mastery = weaponMastery(itemId); return mastery ? [{ itemId, mastery }] : [] }).slice(0, limit)
 }
 
 /** Weapon Mastery (SRD 5.2): how many weapons' mastery properties the character can use. 0 without the feature. */

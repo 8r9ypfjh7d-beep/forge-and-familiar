@@ -173,6 +173,10 @@ export interface Character {
   featureChoices?: Record<string, string>
   /** Picks from class option lists: invocations, pact boons, metamagic, maneuvers, fighting styles, infusions (rules/classOptions). */
   classOptions?: ClassOptionPick[]
+  /** Class multi-picks, keyed `<classId>.<ClassPick id>` → skill ids (Expertise, Primal Knowledge). */
+  classPicks?: Record<string, string[]>
+  /** Weapon Mastery (2024): weapon item ids whose mastery property the character can use. */
+  weaponMasteries?: string[]
   /** 2024 Human (Versatile): the Origin feat picked. */
   originFeatId?: string
   /** Ability Score Improvements or feats, one per slot the class levels grant. */
