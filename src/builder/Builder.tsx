@@ -67,6 +67,17 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
   }, [step])
 
   const issues = useMemo(() => STEPS.map(s => stepIssues(s.id, draft, t, term)), [draft, t, term])
+  // Next on a step with missing picks first points at them; a second tap moves on (steps stay open in any order).
+  const [nudged, setNudged] = useState<number | null>(null)
+  const issuesRef = useRef<HTMLUListElement>(null)
+  const next = () => {
+    if (issues[step].length && nudged !== step) {
+      setNudged(step)
+      issuesRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+      return
+    }
+    setStep(step + 1)
+  }
   const firstBlocked = issues.findIndex(i => i.length > 0)
   const warnings = useMemo(() => stepWarnings(STEPS[step].id, draft, t, term), [step, draft, t, term])
   const Current = STEPS[step].Component
@@ -160,7 +171,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
           <Current draft={draft} update={update} editing={!!editing} />
           {!editing && STEPS[step].id === 'details' && <BackstoryHook hookKey={hookKey} setHookKey={setHookKey} />}
           {issues[step].length > 0 && (
-            <ul className="issues">
+            <ul className={`issues ${nudged === step ? 'nudged' : ''}`} ref={issuesRef} role={nudged === step ? 'alert' : undefined}>
               {issues[step].map((m, i) => <li key={`${i}-${m}`}>{m}</li>)}
             </ul>
           )}
@@ -194,8 +205,8 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
             )}
             <div className="row">
               {!isLast && (
-                <button className={`glass-btn ${editing ? '' : 'prominent'}`} onClick={() => setStep(step + 1)}>
-                  {t('builder.next')}
+                <button className={`glass-btn ${editing ? '' : 'prominent'}`} onClick={next}>
+                  {t(nudged === step && issues[step].length ? 'builder.nextAnyway' : 'builder.next')}
                 </button>
               )}
               {(isLast || editing) && (

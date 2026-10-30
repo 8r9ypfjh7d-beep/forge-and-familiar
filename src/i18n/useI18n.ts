@@ -20,12 +20,13 @@ export function useI18n() {
       t,
       term: tr,
       className,
-      /** 2014: the subrace's name ("High Elf"). 2024: species and lineage ("Elf (Drow)"). */
+      /** 2014: the subrace's name ("High Elf"), or race and subrace ("Halfling (Lightfoot)"). 2024: species and lineage ("Elf (Drow)"). */
       raceName: (raceId: string, subraceId?: string, edition?: RulesEdition) => {
         const race = raceById(raceId, edition)
         const sub = race?.subraces?.find(s => s.id === subraceId)
         if (!race) return raceId
-        if (edition === '2024') return sub ? `${tr('race', race.id, race.name)} (${tr('race', sub.id, sub.name)})` : tr('race', race.id, race.name)
+        // A 2014 subrace that doesn't name its race ("Lightfoot") gets it too: "Halfling (Lightfoot)".
+        if (sub && (edition === '2024' || !sub.name.includes(race.name))) return `${tr('race', race.id, race.name)} (${tr('race', sub.id, sub.name)})`
         return sub ? tr('race', sub.id, sub.name) : tr('race', race.id, race.name)
       },
       ability: (a: Ability) => tr('ability', a, ABILITY_NAMES[a]),

@@ -16,6 +16,8 @@ export interface GrantedSpell {
   /** Character level it arrives at. */
   atLevel: number
   unlocked: boolean
+  /** How often it is cast without a slot, as the trait says ("proficiency bonus times per long rest"). */
+  note?: string
 }
 
 /**
@@ -27,7 +29,7 @@ export function grantedSpells(c: Input, spells: Spell[]): GrantedSpell[] {
   const out: GrantedSpell[] = []
   for (const g of raceProfile(c).spells) {
     const spell = byName.get(norm(itemSpellCast(g.spell).name))
-    if (spell && !out.some(x => x.spell.id === spell.id)) out.push({ spell, from: g.trait ?? g.source, atLevel: g.atLevel, unlocked: g.unlocked })
+    if (spell && !out.some(x => x.spell.id === spell.id)) out.push({ spell, from: g.trait ?? g.source, atLevel: g.atLevel, unlocked: g.unlocked, note: g.note })
   }
   return out
 }

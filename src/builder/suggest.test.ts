@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { emptyDraft } from './Builder'
-import { suggestedArray, suggestedImprovements, suggestedSkills } from './suggest'
+import { suggestedArray, suggestedImprovements, suggestedSkillStep, suggestedSkills } from './suggest'
 import { stepIssues } from './validate'
 import { getAbilityScores } from '../rules'
 import { clearDraft, loadDraft, saveDraft } from './draftStore'
@@ -72,5 +72,27 @@ describe('unfinished draft', () => {
     expect(loadDraft('u2')).toBeUndefined()
     clearDraft('u1')
     expect(loadDraft('u1')).toBeUndefined()
+  })
+})
+
+describe('suggest the rest of Background & skills', () => {
+  it('fills skills, languages, tools and Expertise so the step is done', () => {
+    const base = { ...emptyDraft('u1', 'Ana'), raceId: 'human', backgroundId: 'guild-artisan', classes: [{ classId: 'rogue', level: 1 }] }
+    const d = { ...base, baseAbilities: suggestedArray(base) }
+    expect(stepIssues('skills', d).length).toBeGreaterThan(0)
+    const done = { ...d, ...suggestedSkillStep(d) }
+    expect(stepIssues('skills', done)).toEqual([])
+    // Expertise lands on skills the rogue is proficient in, DEX ones first.
+    const expertise = Object.values(done.classPicks ?? {}).flat()
+    expect(expertise).toHaveLength(2)
+    expect(expertise.every(s => done.chosenSkills.includes(s as never) || ['insight', 'persuasion'].includes(s))).toBe(true)
+  })
+
+  it('fills the 2024 wizard Scholar pick and keeps what was picked', () => {
+    const base = { ...emptyDraft('u1', 'Ana'), rulesEdition: '2024' as const, raceId: 'human', backgroundId: 'sage', classes: [{ classId: 'wizard', level: 2 }] }
+    const d = { ...base, baseAbilities: suggestedArray(base), freeAbilityBonuses: ['int', 'int', 'con'] as ('int' | 'con')[], chosenLanguages: ['Elvish'] }
+    const done = { ...d, ...suggestedSkillStep(d) }
+    expect(stepIssues('skills', done)).toEqual([])
+    expect(done.chosenLanguages[0]).toBe('Elvish')
   })
 })

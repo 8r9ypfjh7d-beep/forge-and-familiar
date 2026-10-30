@@ -1,7 +1,10 @@
 // "Suggest for my class": fills the picks with an obvious answer from the class's main abilities.
 import type { Improvement } from '../model/character'
-import { SKILLS, STANDARD_ARRAY, classById, getAbilityScores, improvementSlots, type Ability, type CharacterDraft, type SkillId } from '../rules'
-import { grantedSkills, skillPicks } from './validate'
+import {
+  SKILLS, STANDARD_ARRAY, classById, classPickSlots, fixedLanguages, fixedTools, getAbilityScores, improvementSlots, languagePickCount, pickKey, rulesEdition, tableLanguages, toolPickGroups,
+  type Ability, type CharacterDraft, type SkillId,
+} from '../rules'
+import { grantedSkills, skillPicks, suggestedForPick } from './validate'
 
 /** Abilities in the order the class wants them: its primary ones, then CON, DEX, WIS, STR, CHA, INT. */
 function abilityOrder(draft: CharacterDraft): Ability[] {
@@ -52,4 +55,40 @@ export function suggestedSkills(draft: CharacterDraft): SkillId[] {
   add(bgFrom, raceListCount + classCount + bgCount)
   add(Object.keys(SKILLS) as SkillId[], classCount + bgCount + raceListCount + raceCount)
   return out
+}
+
+/**
+ * Everything the Background & skills step asks for, with what was picked kept: skills, then class picks
+ * (Expertise sees the skills, Scholar its list), languages from the table in order, tools from each pick's own list.
+ */
+export function suggestedSkillStep(draft: CharacterDraft): Pick<CharacterDraft, 'chosenSkills' | 'classPicks' | 'chosenLanguages' | 'chosenTools'> {
+  let d: CharacterDraft = { ...draft, chosenSkills: suggestedSkills(draft) }
+  const scores = getAbilityScores(d)
+  const classPicks = { ...(d.classPicks ?? {}) }
+  for (const { classId, pick } of classPickSlots(d)) {
+    if (pick.kind === 'language') continue
+    const key = pickKey(classId, pick.id)
+    const picked = (classPicks[key] ?? []).slice(0, pick.count)
+    // Other picks of the same kind count, so a second Expertise doesn't repeat the first.
+    const taken = new Set(classPickSlots(d).filter(s => s.pick.kind === pick.kind && pickKey(s.classId, s.pick.id) !== key).flatMap(s => s.picked))
+    const options = [...suggestedForPick(d, pick)].filter(s => !picked.includes(s) && !taken.has(s))
+      .sort((a, b) => scores[SKILLS[b].ability] - scores[SKILLS[a].ability])
+    classPicks[key] = [...picked, ...options.slice(0, pick.count - picked.length)]
+    d = { ...d, classPicks }
+  }
+  const knownLangs = fixedLanguages(d)
+  const langs = Array.from({ length: languagePickCount(d) }, (_, i) => d.chosenLanguages?.[i] ?? '')
+  const freeLangs = tableLanguages(rulesEdition(d)).filter(l => !knownLangs.includes(l) && !langs.includes(l))
+  const chosenLanguages = langs.map(l => l || freeLangs.shift() || '')
+  const knownTools = fixedTools(d)
+  const chosenTools: string[] = []
+  let at = 0
+  for (const g of toolPickGroups(d)) {
+    for (let k = 0; k < g.count; k++, at++) {
+      const own = d.chosenTools?.[at] ?? ''
+      const usedLater = (x: string) => (d.chosenTools ?? []).slice(at + 1).includes(x)
+      chosenTools.push(own || g.from.find(x => !knownTools.includes(x) && !chosenTools.includes(x) && !usedLater(x)) || '')
+    }
+  }
+  return { chosenSkills: d.chosenSkills, classPicks, chosenLanguages, chosenTools }
 }

@@ -24,8 +24,8 @@ import { FeatDetails, FeatSelect } from './FeatPicker'
 import { InfusionPicker } from './InfusionPicker'
 import { MulticlassPicker } from './MulticlassPicker'
 import { SpellsStep } from './SpellsStep'
-import { suggestedArray, suggestedImprovements, suggestedSkills } from './suggest'
-import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
+import { suggestedArray, suggestedImprovements, suggestedSkillStep } from './suggest'
+import { grantedSkills, skillPicks, stepIssues, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
 import { ChoicePicker, Fold, useFilter } from './Compact'
 import { choiceOptionKey, choiceTopic, explainKey, featExplainKey, featureKey, optionKey, optionName, pitchKey } from './why'
@@ -700,10 +700,10 @@ function FlexibleRaceBonuses({ draft }: Pick<StepProps, 'draft'>) {
   return <p className="small">{t('builder.flexBonus.intro', { total: draft.freeAbilityBonuses.length })} <Why id="racial" /></p>
 }
 
-/** 2024: a new background keeps bonuses the player placed off its list, and clears ones that followed the old list. */
-function bonusesAfterBackground(draft: CharacterDraft): Ability[] {
+/** 2024: a new background keeps bonuses the player placed off the old list; otherwise it takes the new one's suggested +2/+1. */
+function bonusesAfterBackground(draft: CharacterDraft, backgroundId: string): Ability[] {
   const listed = getBackground(draft)?.abilityScores ?? []
-  return draft.freeAbilityBonuses.some(a => !listed.includes(a)) ? draft.freeAbilityBonuses : []
+  return draft.freeAbilityBonuses.some(a => !listed.includes(a)) ? draft.freeAbilityBonuses : suggestedBonuses({ ...draft, backgroundId })
 }
 
 /** 2024 suggestion: +2 and +1 to the background's two listed abilities with the best base scores. */
@@ -727,7 +727,7 @@ function BackgroundBonuses({ draft, update }: StepProps) {
   return (
     <div className="field bg-bonus">
       <label>{t('builder.background')} <Why id="background" /></label>
-      <BackgroundPicker edition="2024" value={draft.backgroundId} onPick={id => update({ backgroundId: id, freeAbilityBonuses: bonusesAfterBackground(draft), chosenSkills: [], chosenLanguages: [], chosenTools: [] })} />
+      <BackgroundPicker edition="2024" value={draft.backgroundId} onPick={id => update({ backgroundId: id, freeAbilityBonuses: bonusesAfterBackground(draft, id), chosenSkills: [], chosenLanguages: [], chosenTools: [] })} />
       <BackgroundExplain kind="bg2024" bg={bg} id={draft.backgroundId} />
       <BackgroundSource id={draft.backgroundId} edition="2024" />
       <p className="small">
@@ -883,7 +883,7 @@ function SkillsStep({ draft, update }: StepProps) {
     chosenSkills: [],
     chosenLanguages: [],
     chosenTools: [],
-    ...(edition === '2024' ? { freeAbilityBonuses: bonusesAfterBackground(draft) } : {}),
+    ...(edition === '2024' ? { freeAbilityBonuses: bonusesAfterBackground(draft, id) } : {}),
     customBackground: id === CUSTOM_BACKGROUND ? draft.customBackground ?? { name: '', feature: '', skills: [], tools: [], languages: [] } : draft.customBackground,
   })
   return (
@@ -908,8 +908,8 @@ function SkillsStep({ draft, update }: StepProps) {
           ? t('builder.chosenMixed', { chosen: draft.chosenSkills.length, total, classCount, raceCount })
           : t('builder.chosenClass', { chosen: draft.chosenSkills.length, total })}
         <Why id="skills" />
-        {draft.chosenSkills.length < total && (
-          <> <button className="glass-btn small" onClick={() => update({ chosenSkills: suggestedSkills(draft) })}>{t('builder.suggestSkills')}</button></>
+        {stepIssues('skills', draft).length > 0 && (
+          <> <button className="glass-btn small" onClick={() => update(suggestedSkillStep(draft))}>{t('builder.suggestSkills')}</button></>
         )}
       </p>
       {bgCount > 0 && <p className="small">{t('builder.bgSkills', { count: bgCount, skills: bgFrom.map(s => skill(s)).join(', ') })}</p>}

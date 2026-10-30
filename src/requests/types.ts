@@ -31,6 +31,8 @@ export interface DmRequest {
   extraDamage?: { damage: string; type?: string }
   /** Stat changes: AC, saves, checks, attack, damage, speed, ability scores. */
   stats?: ItemEffect[]
+  /** Limited uses ("once per day" boots): the granted action tracks them and refills on that rest. */
+  uses?: CustomAction['uses']
   createdAt: string
   status: RequestStatus
   /** The DM's answer to the player. */

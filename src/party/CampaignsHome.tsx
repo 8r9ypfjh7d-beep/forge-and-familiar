@@ -33,7 +33,7 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
   return (
     <section className="ff-party campaigns-home" aria-labelledby="campaigns-title">
       <div className="campaigns-head">
-        <span className="glass-eyebrow">{t('home.eyebrow', { name: playerName })}</span>
+        <span className="glass-eyebrow">{t(parties.length || characters.length ? 'home.eyebrow' : 'home.eyebrowNew', { name: playerName })}</span>
         <h2 id="campaigns-title" className="glass-title">{t('home.title')}</h2>
       </div>
       {/* Campaigns live on the server: a device not signed in to its account can't see them. */}

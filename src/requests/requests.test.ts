@@ -69,6 +69,15 @@ describe('requests', () => {
     expect(derive(c).armorClass.value).toBe(before + 1)
   })
 
+  it('gives an item with uses a Use action that counts them', () => {
+    const r = req('r1', { title: 'Boots of Leaping', details: '', uses: { count: 1, recharge: 'dawn' } })
+    expect(r.uses).toEqual({ count: 1, recharge: 'dawn' })
+    const c = grantToCharacter(fighter(), r, 'u1')
+    expect(c.inventory).toHaveLength(1)
+    expect(c.customActions).toEqual([{ id: 'u1', kind: 'other', name: 'Boots of Leaping', uses: { count: 1, recharge: 'dawn' } }])
+    expect(req('r2', { uses: { count: 0, recharge: 'long' } }).uses).toBeUndefined()
+  })
+
   it('grants effects and abilities as combat-page actions, and plain ideas as notes', () => {
     const fx = grantToCharacter(fighter(), req('r1', { kind: 'effect', title: 'Blessed', details: '', stats: [{ kind: 'saves', value: 1 }] }), 'u2')
     expect(fx.customActions).toEqual([{ id: 'u2', kind: 'other', name: 'Blessed', stats: [{ kind: 'saves', value: 1 }] }])
