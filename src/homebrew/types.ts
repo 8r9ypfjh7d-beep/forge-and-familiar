@@ -1,6 +1,6 @@
-// Homebrew content: spells, items, feats, races, subclasses, backgrounds and class options a group writes themselves, grouped into shareable packs.
+// Homebrew content: spells, items, feats, races, subclasses, backgrounds class options and classes a group writes themselves, grouped into shareable packs.
 import type { ClassOption, HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
-import type { Abilities, Ability, ArmorCategory, FeatEffect, Item, Size, SkillId } from '../rules/types'
+import type { Abilities, Ability, ArmorCategory, CasterType, ClassFeature, ClassSpellcasting, FeatEffect, Item, Size, SkillId, WeaponCategory } from '../rules/types'
 
 export type { FeatEffect }
 
@@ -109,6 +109,36 @@ export type HomebrewOptionKind = (typeof HOMEBREW_OPTION_KINDS)[number]
 /** An invocation, metamagic, maneuver, fighting style or infusion. Registered with rules/classOptions, so the matching picker offers it. */
 export type HomebrewClassOption = ClassOption & { kind: HomebrewOptionKind; text: string; classIds: string[] }
 
+export const HIT_DICE = [6, 8, 10, 12] as const
+
+/** A whole class: proficiencies, casting, features by level with uses and sheet effects, and where its subclass starts. */
+export interface HomebrewClass {
+  id: string
+  name: string
+  hitDie: number
+  primary: Ability[]
+  savingThrows: Ability[]
+  skillChoices: { count: number; from: SkillId[] }
+  armor: ArmorCategory[]
+  weapons: WeaponCategory[]
+  /** Tools it is always proficient with (free text). */
+  tools: string[]
+  caster: CasterType
+  spellAbility?: Ability
+  /** Set for casters: which list, known or prepared, cantrips and spells known by level. */
+  spellcasting?: ClassSpellcasting
+  /** Unarmored AC is 10 + DEX + this ability. */
+  unarmoredDefense?: Ability
+  subclassLevel: number
+  subclassTitle: string
+  asiLevels: number[]
+  features: ClassFeature[]
+  /** Multiclassing into it: ability minimums (all must be met) and the proficiencies it then grants. */
+  multiclass: { prereq: Partial<Abilities>; armor: ArmorCategory[]; weapons: WeaponCategory[] }
+  startingGold?: number
+  description?: string
+}
+
 /** A rules-engine Item plus flavour. Weapons and armor work in derive() once registered. */
 export type HomebrewItem = Item & { description?: string; rarity?: Rarity }
 
@@ -134,11 +164,12 @@ export interface HomebrewPack {
   backgrounds: HomebrewBackground[]
   /** Invocations, metamagic, maneuvers, fighting styles, infusions. Older packs load with none. */
   classOptions: HomebrewClassOption[]
+  classes: HomebrewClass[]
   /** Author's change history, only in downloaded pack files. Validated by src/history, never stored in the library. */
   history?: unknown[]
 }
 
-export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions'
+export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions' | 'classes'
 
 
-export type HomebrewEntry = HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass | HomebrewBackground | HomebrewClassOption
+export type HomebrewEntry = HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass | HomebrewBackground | HomebrewClassOption | HomebrewClass

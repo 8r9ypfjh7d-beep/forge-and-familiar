@@ -1,22 +1,22 @@
-// Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds and class options. Each edits a copy and hands it back on save.
+// Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds and class options (classes are in ClassForm.tsx). Each edits a copy and hands it back on save.
 import { useState, type ReactNode } from 'react'
 import { Why } from '../../builder/Why'
 import { useI18n } from '../../i18n'
 import { EffectsEditor } from '../../inventory'
 import {
-  ABILITIES, ALL_SKILLS, CLASSES, HOMEBREW_OPTION_KINDS, ITEMS, OPTION_KIND_CLASSES, allFeats, allRaces, isUsefulEffect, itemById,
+  ABILITIES, ALL_SKILLS, CLASSES, classesFor, HOMEBREW_OPTION_KINDS, ITEMS, OPTION_KIND_CLASSES, allFeats, allRaces, isUsefulEffect, itemById,
   type Ability, type ArmorCategory, type SkillId, type UsesCount, type WeaponProperty,
 } from '../../rules'
 import { backgroundIssues, classOptionIssues, featIssues, itemIssues, raceIssues, spellIssues, subclassIssues } from '../pack'
 import {
   BACKGROUND_EDITIONS, RARITIES, SPELL_SCHOOLS,
-  type BackgroundEditions, type FeatEffect, type HomebrewBackground, type HomebrewClassOption, type HomebrewFeat, type HomebrewItem, type HomebrewOptionKind,
+  type BackgroundEditions, type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClassOption, type HomebrewFeat, type HomebrewItem, type HomebrewOptionKind,
   type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type Rarity, type SpellSchool,
 } from '../types'
 
 const WEAPON_PROPS: WeaponProperty[] = ['finesse', 'light', 'heavy', 'reach', 'thrown', 'two-handed', 'versatile', 'ammunition', 'loading', 'ranged']
 
-function Field({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
+export function Field({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
   return (
     <label className={`hb-field ${wide ? 'wide' : ''}`}>
       <span>{label}</span>
@@ -25,7 +25,7 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
   )
 }
 
-function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+export function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="hb-check">
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
@@ -37,9 +37,9 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
 const numOr = (s: string, fallback: number) => (s === '' || Number.isNaN(Number(s)) ? fallback : Number(s))
 const opt = (s: string) => (s.trim() ? s : undefined)
 
-function FormShell<T>({ kind, name, value, issues, onSave, onCancel, children }: {
+export function FormShell<T>({ kind, name, value, issues, onSave, onCancel, children }: {
   /** Which entry this edits, for the title. */
-  kind: 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions'
+  kind: ContentKind
   /** The saved name, or empty for a new entry. */
   name: string
   value: T
@@ -75,7 +75,7 @@ export function SpellForm({ initial, onSave, onCancel }: { initial: HomebrewSpel
   const [s, setS] = useState(initial)
   const set = (patch: Partial<HomebrewSpell>) => setS(prev => ({ ...prev, ...patch }))
   const comp = (patch: Partial<HomebrewSpell['components']>) => set({ components: { ...s.components, ...patch } })
-  const casters = CLASSES.filter(c => c.caster !== 'none')
+  const casters = classesFor().filter(c => c.caster !== 'none')
   return (
     <FormShell kind="spells" name={initial.name} value={s} issues={spellIssues(s)} onSave={onSave} onCancel={onCancel}>
       <Field label={t('hb.f.name')} wide><input value={s.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
@@ -300,7 +300,7 @@ export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat;
 }
 
 /** One entry per line, for traits and languages. */
-function LinesField({ label, value, onChange, placeholder }: { label: string; value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+export function LinesField({ label, value, onChange, placeholder }: { label: string; value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
   const [text, setText] = useState(value.join('\n'))
   return (
     <Field label={label} wide>
@@ -399,7 +399,7 @@ export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewS
       <Field label={t('hb.f.name')} wide><input value={sc.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.subclassPlaceholder')} /></Field>
       <Field label={t('hb.f.class')}>
         <select value={sc.classId} onChange={e => set({ classId: e.target.value })}>
-          {CLASSES.map(c => <option key={c.id} value={c.id}>{className(c.id)} ({c.subclassTitle})</option>)}
+          {classesFor().map(c => <option key={c.id} value={c.id}>{className(c.id)} ({c.subclassTitle})</option>)}
         </select>
       </Field>
       <div className="hb-field wide">
@@ -428,7 +428,7 @@ export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewS
   )
 }
 
-const classLevel = (classId: string) => CLASSES.find(c => c.id === classId)?.subclassLevel ?? 3
+const classLevel = (classId: string) => classesFor().find(c => c.id === classId)?.subclassLevel ?? 3
 
 export function BackgroundForm({ initial, pack, onSave, onCancel }: { initial: HomebrewBackground; pack: HomebrewPack; onSave: (b: HomebrewBackground) => void; onCancel: () => void }) {
   const { t, abilityShort, skill, term } = useI18n()

@@ -295,11 +295,12 @@ function ClassStep({ draft, update }: StepProps) {
             onClick={() => update({ classes: [{ classId: c.id, level }, ...extras.filter(x => x.classId !== c.id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], startingWealth: undefined, improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [] })}
           >
             <strong>{className(c.id)}</strong>
-            <span className="muted small">{t('builder.class.hitDie', { die: c.hitDie, primary: c.primary.map(abilityShort).join('/') })}</span>
-            <span className="muted small">{t(c.caster === 'none' ? 'builder.class.noCasting' : c.caster === 'pact' ? 'builder.class.pact' : c.caster === 'full' ? 'builder.class.full' : 'builder.class.half')}</span>
+            <span className="muted small">{t('builder.class.hitDie', { die: c.hitDie, primary: c.primary.map(abilityShort).join('/') || '—' })}</span>
+            <span className="muted small">{t(c.caster === 'none' ? 'builder.class.noCasting' : c.caster === 'pact' ? 'builder.class.pact' : c.caster === 'full' ? 'builder.class.full' : c.caster === 'third' ? 'builder.class.third' : 'builder.class.half')}</span>
           </button>
         ))}
       </div>
+      <p className="muted small">{t('builder.class.homebrewHint')}</p>
       <div className="field">
         <label htmlFor="level">{t('builder.startLevel')} <Why id="level" /></label>
         <select
@@ -315,6 +316,7 @@ function ClassStep({ draft, update }: StepProps) {
         <p className="small">
           {classPitch && <><strong>{t('why.pick', { name: className(cls.id) })}</strong> {t(classPitch)}<br /></>}
           {classAbout && <>{t(classAbout)}<br /></>}
+          {cls.description && <>{cls.description}<br /></>}
           <strong>{t('builder.savingThrows')}</strong><Why id="savingThrows" /> {cls.savingThrows.map(ability).join(', ')}
           <br />
           <strong>{t('builder.armor')}</strong><Why id="proficiencies" /> {cls.armor.length ? cls.armor.map(a => term('armor', a, a)).join(', ') : t('common.noneLower')} · <strong>{t('builder.weapons')}</strong>{' '}
@@ -323,7 +325,7 @@ function ClassStep({ draft, update }: StepProps) {
           <strong>{t('builder.featuresTo', { level })}</strong><Why id="features" />
         </p>
       )}
-      {cls && <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }) + detailOf(featureDetail(f, level)), key: explainKey('feature', f.name) }))} />}
+      {cls && <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }) + detailOf(featureDetail(f, level)), key: explainKey('feature', f.name), text: f.text }))} />}
       {cls && <SubclassPicker draft={draft} update={update} />}
       {cls && <ClassChoices draft={draft} update={update} />}
       {cls && <MetamagicPicker draft={draft} update={update} />}

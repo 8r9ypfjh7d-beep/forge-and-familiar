@@ -1,5 +1,6 @@
 import type { Character, HitDie } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
+import { classFeatures } from './classFeatures'
 import { classChoices, featBonus, featEffects, getFeats, getLanguages, getTools } from './choices'
 import { classOptionResourceId, pickedClassOptions } from './classOptions'
 // Also registers the subclass pick lists' options, so saved picks resolve wherever derive() runs.
@@ -142,13 +143,17 @@ export function getResources(c: Character): ResourceInfo[] {
       else out.push({ id: r.id, label: r.name, max, recharge, shortRestFromLevel: r.shortRestFromLevel })
     }
   }
-  // Subclass features with uses (Hexblade's Curse, Healing Light): counted from the class level, PB or a modifier.
+  // Class and subclass features with uses (homebrew class features, Hexblade's Curse, Healing Light): counted from the class level, PB or a modifier.
   const prof = proficiencyBonus(totalLevel(c))
-  for (const { level, subclass, feature } of subclassFeatures(c)) {
+  const withUses = [
+    ...classFeatures(c).map(({ level, def, feature }) => ({ level, feature, id: `class:${def.id}:${slug(feature.name)}` })),
+    ...subclassFeatures(c).map(({ level, subclass, feature }) => ({ level, feature, id: `sub:${subclass.id}:${slug(feature.name)}` })),
+  ]
+  for (const { level, feature, id } of withUses) {
     const u = feature.uses
     if (!u) continue
     const max = usesMax(u, level, prof, mods)
-    if (max > 0) out.push({ id: `sub:${subclass.id}:${slug(feature.name)}`, label: feature.name, max, recharge: u.recharge })
+    if (max > 0) out.push({ id, label: feature.name, max, recharge: u.recharge })
   }
   // Picked class options with uses (a homebrew invocation once per long rest), counted from the picking class's level.
   for (const { option, level } of pickedClassOptions(c)) {

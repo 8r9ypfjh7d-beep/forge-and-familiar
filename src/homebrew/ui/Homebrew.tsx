@@ -6,16 +6,17 @@ import type { Character, UserProfile } from '../../model/character'
 import { OPTION_KIND_CLASSES, featById, itemById, raceById } from '../../rules'
 import { effectText } from '../../inventory'
 import { listCharacters, saveCharacter } from '../../storage'
-import { allEntries, decodePack, describeEffect, encodeShareCode, entryId, newPack, PackError, sanitizeEntry, slug } from '../pack'
+import { allEntries, blankClass, decodePack, describeEffect, encodeShareCode, entryId, newPack, PackError, sanitizeEntry, slug } from '../pack'
 import { deletePack, importPack, listPacks, onPacksChanged, savePack } from '../store'
 import type { Ability } from '../../rules'
-import type { ContentKind, HomebrewBackground, HomebrewClassOption, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
+import type { ContentKind, HomebrewBackground, HomebrewClass, HomebrewClassOption, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
 import { BackgroundForm, ClassOptionForm, FeatForm, ItemForm, RaceForm, SpellForm, SubclassForm } from './forms'
+import { ClassForm } from './ClassForm'
 import './homebrew.css'
 
 const shortId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 
-const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds', 'classOptions']
+const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds', 'classOptions', 'classes']
 
 /** "2 spells · 1 item", or "Empty". */
 const packCounts = (t: Translate, p: HomebrewPack) =>
@@ -150,6 +151,7 @@ type Editing =
   | { kind: 'subclasses'; entry: HomebrewSubclass }
   | { kind: 'backgrounds'; entry: HomebrewBackground }
   | { kind: 'classOptions'; entry: HomebrewClassOption }
+  | { kind: 'classes'; entry: HomebrewClass }
 
 function blank(kind: ContentKind): Editing {
   if (kind === 'spells') {
@@ -180,6 +182,7 @@ function blank(kind: ContentKind): Editing {
     }
   }
   if (kind === 'classOptions') return { kind, entry: { id: '', kind: 'invocation', name: '', text: '', classIds: OPTION_KIND_CLASSES.invocation, effects: [] } }
+  if (kind === 'classes') return { kind, entry: blankClass() }
   return { kind, entry: { id: '', name: '', description: '', effects: [] } }
 }
 
@@ -205,6 +208,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
     else if (e.kind === 'subclasses') next.subclasses = upsert(pack.subclasses, (entry = withId(e.entry)))
     else if (e.kind === 'backgrounds') next.backgrounds = upsert(pack.backgrounds, (entry = withId(e.entry)))
     else if (e.kind === 'classOptions') next.classOptions = upsert(pack.classOptions, (entry = withId(e.entry)))
+    else if (e.kind === 'classes') next.classes = upsert(pack.classes, (entry = withId(e.entry)))
     else next.feats = upsert(pack.feats, (entry = withId(e.entry)))
     await savePack(next)
     await recordRevision({ kind: e.kind, entry, authorId: profile.id, authorName: profile.displayName, ...meta })
@@ -217,7 +221,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   }
 
   const removeEntry = async (kind: ContentKind, id: string, name: string) => {
-    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'races' || kind === 'subclasses' || kind === 'backgrounds' || kind === 'classOptions' ? t('hb.deleteWarnBonus') : ''
+    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'races' || kind === 'subclasses' || kind === 'backgrounds' || kind === 'classOptions' || kind === 'classes' ? t('hb.deleteWarnBonus') : ''
     if (!confirm(t('hb.deleteConfirm', { name }) + warn)) return
     await savePack({ ...pack, [kind]: (pack[kind] as { id: string }[]).filter(x => x.id !== id) })
   }
@@ -230,7 +234,6 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
       description: pack.description,
       spells: pack.spells.map(rename), items: pack.items.map(rename), feats: pack.feats.map(rename),
       races: pack.races.map(r => ({ ...rename(r), parentRaceId: r.parentRaceId?.replace(`hb:${pack.id}:`, `hb:${id}:`) })),
-      subclasses: pack.subclasses.map(rename),
       // The copy's own feats and items get new ids, so a background pointing at them follows.
       backgrounds: pack.backgrounds.map(b => ({
         ...rename(b),
@@ -238,6 +241,9 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
         equipment: b.equipment.map(x => x.replace(`hb:${pack.id}:`, `hb:${id}:`)),
       })),
       classOptions: pack.classOptions.map(rename),
+      // A copied pack's subclasses follow its classes to their new ids.
+      subclasses: pack.subclasses.map(sc => ({ ...rename(sc), classId: sc.classId.replace(`hb:${pack.id}:`, `hb:${id}:`) })),
+      classes: pack.classes.map(c => ({ ...rename(c), ...(c.spellcasting ? { spellcasting: { ...c.spellcasting, list: c.spellcasting.list.replace(`hb:${pack.id}:`, `hb:${id}:`) } } : {}) })),
     })
     onOpen(copy.id)
   }
@@ -303,6 +309,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
           {editing?.kind === 'backgrounds' && <BackgroundForm key={editing.entry.id || 'new'} initial={editing.entry} pack={pack} onSave={entry => saveEntry({ kind: 'backgrounds', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'classOptions' && <ClassOptionForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'classOptions', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'subclasses' && <SubclassForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'subclasses', entry })} onCancel={() => setEditing(null)} />}
+          {editing?.kind === 'classes' && <ClassForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'classes', entry })} onCancel={() => setEditing(null)} />}
 
           {!editing && (
             <EntryList
@@ -406,6 +413,10 @@ function subtitle({ t, className }: I18n, kind: ContentKind, e: HomebrewEntry): 
       o.edition && t(`hb.opt.edition.${o.edition}`), o.cost && t(o.costPerSpellLevel ? 'hb.opt.sub.costPerLevel' : 'hb.opt.sub.cost', { n: o.cost }),
     ].filter(Boolean).join(' · ')
   }
+  if (kind === 'classes') {
+    const c = e as HomebrewClass
+    return [t('hb.sub.class', { die: c.hitDie }), t(`hb.cls.caster.${c.caster}`)].join(' · ')
+  }
   const f = e as HomebrewFeat
   return f.prerequisite ? t('hb.sub.prereq', { text: f.prerequisite }) : t('hb.sub.feat')
 }
@@ -470,6 +481,22 @@ function EntryBody({ i18n, kind, entry }: { i18n: I18n; kind: ContentKind; entry
         {sc.features.length > 0 && <p className="small">{[...sc.features].sort((a, b) => a.level - b.level).map(f => `${f.level}: ${f.name}`).join(' · ')}</p>}
         {sc.armor.length > 0 && <p className="small">{t('hb.armorList', { list: list(sc.armor.map(a => t(`hb.cat.${a}`))) })}</p>}
         {sc.description && <p className="hb-text">{sc.description}</p>}
+      </>
+    )
+  }
+  if (kind === 'classes') {
+    const c = entry as HomebrewClass
+    const lines = [
+      t('hb.cls.line.saves', { list: list(c.savingThrows.map(ability)) || t('hb.race.none') }),
+      t('hb.cls.line.profs', { list: list([...c.armor.map(a => t(`hb.cat.${a}`)), ...c.weapons.map(w => t(`hb.cls.weapons.${w}`)), ...c.tools]) || t('hb.race.none') }),
+      c.caster !== 'none' && c.spellAbility && t('hb.cls.line.casting', { ability: ability(c.spellAbility) }),
+      t('hb.cls.line.subclass', { title: c.subclassTitle || t('hb.cls.subclassTitlePlaceholder'), level: c.subclassLevel }),
+    ].filter(Boolean)
+    return (
+      <>
+        {lines.map(l => <p key={l as string} className="small">{l}</p>)}
+        {c.features.length > 0 && <p className="small">{[...c.features].sort((a, b) => a.level - b.level).map(f => `${f.level}: ${f.name}`).join(' · ')}</p>}
+        {c.description && <p className="hb-text">{c.description}</p>}
       </>
     )
   }

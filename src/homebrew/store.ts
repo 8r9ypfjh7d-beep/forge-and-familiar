@@ -2,11 +2,11 @@
 // Every pack on this device is active: its items are registered with the rules engine so
 // characters holding them keep their attacks, AC and weight.
 import {
-  TOOLS, registerClassOptions, registerHomebrewBackgrounds, registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses,
-  type HomebrewBackgroundDef, type Race, type Subrace,
+  TOOLS, registerClassOptions, registerHomebrewBackgrounds, registerHomebrewClasses, registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses,
+  type ClassDef, type HomebrewBackgroundDef, type Race, type Subrace,
 } from '../rules'
 import { sanitizePack } from './pack'
-import type { HomebrewBackground, HomebrewPack, HomebrewRace } from './types'
+import type { HomebrewBackground, HomebrewClass, HomebrewPack, HomebrewRace } from './types'
 
 const KEY = 'ff.homebrew.v1'
 const CHANGED = 'ff:homebrew-changed'
@@ -52,6 +52,14 @@ export const toBackground = (b: HomebrewBackground): HomebrewBackgroundDef => ({
   description: [b.featureText && `${b.feature}: ${b.featureText}`, b.description].filter(Boolean).join('\n\n') || undefined,
 })
 
+/** A pack class as the engine's ClassDef. Its feature uses become resources; gear is left to the player. */
+export const toClass = ({ tools, ...c }: HomebrewClass): ClassDef => ({
+  ...c, resources: [], startingEquipment: [], subclassTitle: c.subclassTitle.trim() || 'Subclass',
+  ...(tools.length ? { toolProficiencies: tools } : {}),
+  // A blank spell list means the class's own: homebrew spells that name it.
+  ...(c.spellcasting ? { spellcasting: { ...c.spellcasting, list: c.spellcasting.list || c.id } } : {}),
+})
+
 /** Hands every pack's content to the rules engine. */
 function register(packs: HomebrewPack[]) {
   registerHomebrewItems(packs.flatMap(p => p.items))
@@ -61,6 +69,7 @@ function register(packs: HomebrewPack[]) {
   registerHomebrewSubclasses(packs.flatMap(p => p.subclasses))
   registerHomebrewBackgrounds(packs.flatMap(p => p.backgrounds).map(toBackground))
   registerClassOptions('homebrew', packs.flatMap(p => p.classOptions.map(o => ({ ...o, source: p.name }))))
+  registerHomebrewClasses(packs.flatMap(p => p.classes).map(toClass))
 }
 
 function writePacks(packs: HomebrewPack[]) {
