@@ -7,14 +7,15 @@ import type { Character } from '../model/character'
 import { slotChoices, spellBeams, spellDamage } from '../quickcast/quickcast'
 import type { SlotChoice } from '../quickcast'
 import { setEquipped } from '../inventory/inventory'
-import { cantripDamageBonus, derive, getResources, wornArmor } from '../rules'
+import { cantripDamageBonus, derive, getResources, itemSpellCast, wornArmor, type ItemSpell } from '../rules'
 import { withRollFromText } from '../sheet/combat/combat'
 import { LastRoll, type Shown } from '../sheet/combat/LastRoll'
 import { useSheetRolls } from '../sheet/dice'
 import { heal } from '../sheet/engine'
 import { startEffect } from '../sheet/effects'
 import type { Apply } from '../sheet/types'
-import { castPlan, castSpell, defaultSlot, fixedAmount } from './cast'
+import type { ItemSpellCaster } from '../sheet/components/SpellSlots'
+import { castPlan, castSpell, castWarnings, defaultSlot, fixedAmount } from './cast'
 import { toQuickCast } from './spellbook'
 
 export interface CastOut {
@@ -61,7 +62,9 @@ export function useCast(character: Character, apply: Apply) {
       ? (character.state.effects ?? []).filter(e => e.on && e.damage && !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage! }))
       : []
     let healMe: number | undefined
-    if (entry.roll !== 'none' || dice) {
+    // Hex, Hunter's Mark, Divine Favor: their dice ride on each hit (the attack rolls add them), so casting rolls nothing.
+    const rider = !!plan.effect?.damage
+    if (!rider && (entry.roll !== 'none' || dice)) {
       // Each beam (Eldritch Blast, Scorching Ray) rolls to hit and for damage on its own.
       const beams = entry.roll === 'attack' ? spellBeams(entry, level, d.level) : 1
       for (let i = 1; i <= beams; i++) {
@@ -147,28 +150,78 @@ export function CastResult({ out, outKey, onDone, character, apply }: { out: Cas
   )
 }
 
-/** Cast, plus ▾ to pick a higher slot when there is more than one to choose from. */
-export function CastButton({ character, spell, onCast }: { character: Character; spell: Spell; onCast: (spell: Spell, slot?: SlotChoice) => void }) {
+/** The one-line warning before a cast: no slot left, or the concentration spell it would end. Empty when there is none. */
+export function useCastWarning(character: Character) {
+  const { t } = useI18n()
+  return (spell: Spell, slot?: SlotChoice, free?: boolean) => {
+    const w = castWarnings(character, spell, slot, free)
+    return [w.noSlot ? t('cast.warn.noSlot') : '', w.ends ? t('cast.warn.ends', { name: w.ends }) : ''].filter(Boolean).join(' · ')
+  }
+}
+
+/** Asks once before a cast that warns: the warning, then Cast anyway or Cancel. */
+export function ConfirmCast({ text, onYes, onNo }: { text: string; onYes: () => void; onNo: () => void }) {
+  const { t } = useI18n()
+  return (
+    <span className="sb-cast-confirm" role="alert">
+      <span>{text}</span>
+      <button type="button" className="glass-btn small prominent" onClick={onYes}>{t('cast.anyway')}</button>
+      <button type="button" className="glass-btn small" onClick={onNo}>{t('common.cancel')}</button>
+    </span>
+  )
+}
+
+/** ▾ and the slots to cast with, when there is more than one to choose from. */
+export function SlotPicker({ character, spell, onPick }: { character: Character; spell: Spell; onPick: (slot: SlotChoice) => void }) {
   const { t } = useI18n()
   const [picking, setPicking] = useState(false)
   const choices = slotChoices(character, spell.level)
-  const levels = choices.length > 1
+  if (choices.length < 2) return null
   const name = (s: SlotChoice) => `${t(`sheet.slot.${s.level}` as MessageKey)}${s.source === 'pact' ? ` ${t('cast.pact')}` : ''} · ${s.remaining}`
   return (
-    <span className="sb-cast">
-      <button type="button" className="glass-btn small prominent" aria-label={t('cast.castName', { name: spell.name })} onClick={() => { setPicking(false); onCast(spell) }}>
-        {t('cast.cast')}
-      </button>
-      {levels && (
-        <button type="button" className="glass-btn small icon" aria-expanded={picking} aria-label={t('cast.higher', { name: spell.name })} onClick={() => setPicking(p => !p)}>▾</button>
-      )}
+    <>
+      <button type="button" className="glass-btn small icon" aria-expanded={picking} aria-label={t('cast.higher', { name: spell.name })} onClick={() => setPicking(p => !p)}>▾</button>
       {picking && (
         <span className="sb-cast-levels" role="group" aria-label={t('cast.higher', { name: spell.name })}>
           {choices.map(s => (
-            <button key={`${s.source}-${s.level}`} type="button" className="glass-chip" onClick={() => { setPicking(false); onCast(spell, s) }}>{name(s)}</button>
+            <button key={`${s.source}-${s.level}`} type="button" className="glass-chip" onClick={() => { setPicking(false); onPick(s) }}>{name(s)}</button>
           ))}
         </span>
       )}
+    </>
+  )
+}
+
+/** Cast, plus ▾ to pick a higher slot. A cast with no slot left, or one that ends concentration, asks first. */
+export function CastButton({ character, spell, onCast }: { character: Character; spell: Spell; onCast: (spell: Spell, slot?: SlotChoice) => void }) {
+  const { t } = useI18n()
+  const warning = useCastWarning(character)
+  const [pending, setPending] = useState<{ slot?: SlotChoice; text: string } | null>(null)
+  const go = (slot?: SlotChoice) => {
+    const text = warning(spell, slot)
+    if (text) return setPending({ slot, text })
+    onCast(spell, slot)
+  }
+  return (
+    <span className="sb-cast">
+      <button type="button" className="glass-btn small prominent" aria-label={t('cast.castName', { name: spell.name })} onClick={() => go()}>
+        {t('cast.cast')}
+      </button>
+      <SlotPicker character={character} spell={spell} onPick={go} />
+      {pending && <ConfirmCast text={pending.text} onYes={() => { setPending(null); onCast(spell, pending.slot) }} onNo={() => setPending(null)} />}
     </span>
   )
+}
+
+/** Casting the spells that items, races and feats give: free, at their own level, spending their use or charges. */
+export function itemSpellCaster<R>(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number; spend?: { id: string; n: number } }) => R): Pick<ItemSpellCaster, 'can'> & { cast: (s: ItemSpell) => R | undefined } {
+  const find = (text: string) => { const { name, level } = itemSpellCast(text); const s = spells.find(x => x.name.toLowerCase() === name.toLowerCase()); return s && { s, level } }
+  return {
+    can: s => !!find(s.spell),
+    cast: s => {
+      const f = find(s.spell)
+      const spend = s.useId ? { id: s.useId, n: 1 } : s.charges ? { id: s.charges.id, n: s.charges.cost } : undefined
+      return f ? cast(f.s, undefined, { level: f.level, ...(spend ? { spend } : {}) }) : undefined
+    },
+  }
 }

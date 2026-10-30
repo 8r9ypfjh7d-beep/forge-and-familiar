@@ -46,7 +46,9 @@ describe('combat page helpers', () => {
     const c = warlock()
     const hex = effectToggles(c, derive(c), spells)
     expect(hex).toHaveLength(1)
-    expect(hex[0]).toMatchObject({ id: 'spell:hex', name: 'Hex', damage: '1d6', damageType: 'necrotic', start: { concentration: true, level: 1 } })
+    expect(hex[0]).toMatchObject({ id: 'spell:hex', name: 'Hex', damage: '1d6', damageType: 'necrotic', start: { concentration: true, level: 4 }, slot: { source: 'pact', level: 4 } })
+    // Switching it on casts the spell itself (Effects.tsx hands it to Cast).
+    expect(hex[0].spell?.id).toBe('hex')
     // Once running, the switch reads the saved effect.
     const on = { ...c, state: { ...c.state, effects: [{ ...hex[0].start!, on: true }] } }
     expect(effectToggles(on, derive(on), spells)[0].live?.on).toBe(true)

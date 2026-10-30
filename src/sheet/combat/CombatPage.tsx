@@ -10,8 +10,10 @@ import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
+import type { SlotChoice } from '../../quickcast'
 import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
 import { castPlan, castSpell } from '../../spellbook/cast'
+import { useCast } from '../../spellbook/Cast'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
 import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
@@ -305,7 +307,10 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     e.id.startsWith('act:') ? !!character.customActions?.find(a => `act:${a.id}` === e.id)?.active
       : e.live || e.start ? !!e.live?.on
         : !!on[e.id]
-  const toggle = (e: EffectToggle, value: boolean) => toggleEffect(e, value, apply, t, () => setOn(o => ({ ...o, [e.id]: value })))
+  // A spell switched on is cast like Cast, and its rolls and notes show in the result box.
+  const casting = useCast(character, apply)
+  const toggle = (e: EffectToggle, value: boolean, slot?: SlotChoice) =>
+    toggleEffect(e, value, apply, t, () => setOn(o => ({ ...o, [e.id]: value })), (spell, s) => show(casting.cast(spell, s)), slot)
   const active = effects.filter(isOn)
   const damaging = active.filter((e): e is EffectToggle & { damage: string } => !!e.damage)
 
@@ -478,7 +483,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
 
       <h3 className="cs-sub">{t('cs.effects')}</h3>
       {effects.length
-        ? <EffectRows effects={effects} isOn={isOn} onToggle={toggle} apply={apply} />
+        ? <EffectRows character={character} effects={effects} isOn={isOn} onToggle={toggle} apply={apply} />
         : <p className="hint">{t('cs.noEffects')}</p>}
 
       <CustomActions character={character} apply={apply} onRoll={runAction} />

@@ -10,7 +10,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 | `mode.test.ts` | Layout tests |
 | `components/Story.tsx` | `Notes` |
 | `uses.ts` | Pure: `spendResource` (one use of a feature: spent, its effect started, healing), `drinkPotion` |
-| `components/Effects.tsx` | `EffectRows` (Effects switches with running spells and features), `EffectsCard` (story mode), `toggleEffect` |
+| `components/Effects.tsx` | `EffectRows` (Effects switches with running spells and features: on casts a known spell like Cast, off ends a running effect, On me chip), `EffectsCard` (story mode), `toggleEffect`, `useSpells` |
 | `effects.ts` | Pure: running effects (`state.effects`): `startEffect` (one concentration at a time), `endEffect`, `setEffectOn`, `spendOnceEffects`, `dropSpentTempHp`, `effectsAfterRest`, `loseConcentration` (taking damage to 0 HP or `setCondition` with an incapacitating condition ends it) |
 | `components/HitPoints.tsx` | HP card: amount with Damage/Heal/Temp, an optional damage type (remembered per device in `ff.damageType.v1`) that applies resistances and immunities, then `AfterDamage` and `Conditions` |
 | `components/AfterDamage.tsx` | After a hit: concentration save DC with one-tap CON save (a fail ends the spell, undoable), Armor of Agathys reprisal text, Cast for damage reactions (Hellish Rebuke, Absorb Elements; class or race/item spell) |

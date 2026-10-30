@@ -94,6 +94,13 @@
   background: var(--glass-regular); border: 1px solid var(--glass-hairline); border-radius: var(--r-md);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: 0 8px 24px rgb(0 0 0 / .18);
 }
+/* Cast anyway: a cast with no slot left, or one that ends concentration, asks once in a line of its own. */
+.sb-cast-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); flex-basis: 100%; font-size: .9em; }
+.sb-cast > .sb-cast-confirm {
+  position: absolute; inset-block-start: calc(100% + var(--sp-1)); inset-inline-end: 0; z-index: 5; min-inline-size: 13rem; padding: var(--sp-2);
+  background: var(--glass-regular); border: 1px solid var(--glass-hairline); border-radius: var(--r-md);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: 0 8px 24px rgb(0 0 0 / .18);
+}
 .sb-cast-levels .glass-chip { justify-content: flex-start; white-space: nowrap; }
 .sb-running { color: var(--s-good, var(--accent)); }
 .sb-cast-out { display: grid; gap: var(--sp-1); margin-block: var(--sp-2); }

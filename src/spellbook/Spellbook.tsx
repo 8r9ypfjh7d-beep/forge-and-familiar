@@ -4,15 +4,15 @@ import { BOOK_SOURCES, BOOK_TITLES, loadKind, searchEntries, type CharacterClass
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
-import { derive, formatMod, itemSpellCast, spellEffectId } from '../rules'
+import { derive, formatMod, spellEffectId } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import { SearchField } from '../rulesqa/SearchField'
-import { SpellSlots, hasSlots, itemSpellsOf, type ItemSpellCaster } from '../sheet/components/SpellSlots'
+import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlots'
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, spellAccess, spellSourcesFor, type SpellAccess } from './access'
 import { grantedSpells, isExtraSpell } from './extra'
 import { addSpell, isPinned, pinnedSpells, removeSpell, setEdition, spellsOf, toggleSpellPin } from './spellbook'
-import { CastButton, CastResult, useCast } from './Cast'
+import { CastButton, CastResult, itemSpellCaster, useCast } from './Cast'
 import './spellbook.css'
 
 interface Library {
@@ -363,19 +363,6 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
         )}
     </div>
   )
-}
-
-/** Item and race spells ("Hellish Rebuke (as 2nd level)") cast from the library without a slot, spending their use or charges. */
-export function itemSpellCaster(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number; spend?: { id: string; n: number } }) => unknown): ItemSpellCaster {
-  const find = (text: string) => { const { name, level } = itemSpellCast(text); const s = spells.find(x => x.name.toLowerCase() === name.toLowerCase()); return s && { s, level } }
-  return {
-    can: s => !!find(s.spell),
-    cast: s => {
-      const f = find(s.spell)
-      const spend = s.useId ? { id: s.useId, n: 1 } : s.charges ? { id: s.charges.id, n: s.charges.cost } : undefined
-      if (f) cast(f.s, undefined, { level: f.level, ...(spend ? { spend } : {}) })
-    },
-  }
 }
 
 const isRunning = (c: Character, spellId: string) => (c.state.effects ?? []).some(e => e.id === spellEffectId(spellId))

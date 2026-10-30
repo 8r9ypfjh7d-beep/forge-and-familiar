@@ -11,6 +11,9 @@ import { useSheetRolls } from '../dice'
 import type { Apply } from '../types'
 import { SORCERY_POINTS } from './Metamagic'
 import { Pips, Stepper } from './Pips'
+import { itemSpellCaster, useCast } from '../../spellbook/Cast'
+import { useSpells } from './Effects'
+import { itemSpellsOf } from './SpellSlots'
 
 const RECHARGE = { short: 'rest.short', long: 'rest.long', dawn: 'rest.dawn', none: 'rest.none' } as const
 /** Pools larger than this show a stepper instead of a row of pips. */
@@ -28,6 +31,11 @@ export function Resources({ character, apply }: { character: Character; apply: A
 
   const [out, setOut] = useState<{ key: number; name: string; rolls: Shown[]; note?: string } | null>(null)
   const [pool, setPool] = useState<string | null>(null)
+  // A race's or feat's once-per-rest spell (Hellish Rebuke) is cast by Use, the same as its Cast under Spells.
+  const spells = useSpells(character)
+  const casting = useCast(character, apply)
+  const spellCaster = itemSpellCaster(spells, casting.cast)
+  const spellOf = (r: ResourceInfo) => (r.id.startsWith('spell:') ? itemSpellsOf(character).find(s => s.useId === r.id) : undefined)
 
   /** Spends points from a pool: on yourself they heal you, on an ally they are only spent. */
   const spendPool = (r: ResourceInfo, label: string, n: number, self: boolean) => {
@@ -40,6 +48,12 @@ export function Resources({ character, apply }: { character: Character; apply: A
 
   /** One tap: spends a use, rolls its healing (Second Wind) and starts its effect (Rage shows under Effects). */
   const use = (r: ResourceInfo, label: string) => {
+    const spell = spellOf(r)
+    if (spell && spellCaster.can(spell)) {
+      const cast = spellCaster.cast(spell)
+      if (cast) setOut(o => ({ key: (o?.key ?? 0) + 1, name: cast.name, rolls: cast.rolls, note: cast.note }))
+      return
+    }
     const plan = planUse(r.id, label, { edition: rulesEdition(character), classLevel: resourceClassLevel(character, r.id) })
     // A pool (Lay on Hands) asks how many points first.
     if (plan.pool && pool !== r.id) return setPool(r.id)

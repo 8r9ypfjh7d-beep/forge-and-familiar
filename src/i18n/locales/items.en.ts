@@ -2,7 +2,7 @@
 // Hebrew in items.he.ts, one line per key.
 
 export const itemsEn = {
-  'spells.fromItems': 'From your items',
+  'spells.fromItems': 'From your race, feats and items',
   'cs.perks': 'From items and effects',
   'cs.advBadge': 'ADV',
   'inv.why.name.title': 'Name',
