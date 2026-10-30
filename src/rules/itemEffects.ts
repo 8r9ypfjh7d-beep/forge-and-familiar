@@ -4,6 +4,7 @@ import type { Character } from '../model/character'
 import { entryItem } from './data/items'
 import { ALL_SKILLS } from './data/skills'
 import { classOptionEffects } from './classOptions'
+import { classPickEffects } from './classPicks'
 import { raceEffects } from './race'
 import { classEffects, subclassEffects } from './subclass'
 import {
@@ -13,7 +14,7 @@ import {
 
 type EffectOf<K extends ItemEffect['kind']> = ItemEffect & { kind: K }
 
-type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions' | 'raceId' | 'subraceId' | 'traitChoices'>>
+type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions' | 'raceId' | 'subraceId' | 'traitChoices' | 'classPicks'>>
 
 /** An entry's effects work while it is equipped. */
 export const effectsActive = (e: InventoryEntry) => e.equipped
@@ -30,8 +31,8 @@ export function activeItemEffects(c: Owner): ActiveEffect[] {
   const actions = (c.customActions ?? []).flatMap(a => (a.active ? (a.stats ?? []).map(effect => ({ source: a.name, effect })) : []))
   // Class and subclass features that change the sheet (Diamond Soul, Thought Shield's psychic resistance, Gift of the Sea's swim speed),
   // picked class options (invocations, fighting styles, infusions...), then racial traits (Warforged poison
-  // resistance, innate spells, picked Simic Hybrid enhancements).
-  return [...items, ...actions, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c)]
+  // resistance, innate spells, picked Simic Hybrid enhancements), and class skill picks (Expertise, Primal Knowledge).
+  return [...items, ...actions, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c), ...classPickEffects(c)]
 }
 
 /**

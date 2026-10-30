@@ -1,9 +1,9 @@
 // Rolls a whole random level 1 character: every builder step filled in and valid.
 // Randomness lives here, not in src/rules; pass a seeded rng in tests.
-import { grantedSkills, skillPicks, subclassSlots } from '../builder/validate'
+import { grantedSkills, skillPicks, subclassSlots, suggestedForPick, suggestedMasteryWeapons } from '../builder/validate'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, tableLanguages, RACES, SPECIES, STANDARD_ARRAY,
-  allFeats, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor, fixedLanguages, fixedTools,
+  allFeats, anyFilter, classPickSlots, getWeaponMasteryCount, pickKey, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor, fixedLanguages, fixedTools,
   getBackground, languagePickCount, raceById, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type RulesEdition, type SkillId,
 } from '../rules'
@@ -80,6 +80,13 @@ export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng
   const fromClass = pickSome(classFrom.filter(s => !granted.has(s)), classCount, rng)
   const any = pickSome((ALL_SKILLS as readonly SkillId[]).filter(s => !granted.has(s) && !fromClass.includes(s)), raceCount, rng)
   d.chosenSkills = [...fromClass, ...any]
+
+  // Expertise and Primal Knowledge, one class pick at a time so Expertise sees earlier skill picks.
+  d.classPicks = {}
+  for (const { classId, pick: p } of classPickSlots(d)) {
+    if (p.kind !== 'language') d.classPicks[pickKey(classId, p.id)] = pickSome(suggestedForPick(d, p), p.count, rng)
+  }
+  d.weaponMasteries = pickSome(suggestedMasteryWeapons(d), getWeaponMasteryCount(d), rng)
 
   const knownLangs = fixedLanguages(d)
   d.chosenLanguages = pickSome(tableLanguages(edition).filter(l => !knownLangs.includes(l)), languagePickCount(d), rng)

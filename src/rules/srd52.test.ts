@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
 import {
   CLASSES_2024, SPECIES, allFeats, classById, createCharacter, derive, getAbilityScores, getArmorClass, getAttacks, getCasterLevel,
-  SUBCLASSES_2024, getProficiencies, getSpellSlots, getWeaponMasteryCount, raceById, subclassesFor, type CharacterDraft,
+  SUBCLASSES_2024, classPickSlots, getDamageRiders, getProficiencies, languagePickCount, weaponMastery, getSpellSlots, getWeaponMasteryCount, raceById, subclassesFor, type CharacterDraft,
 } from './index'
 
 // 2024 rules (SRD 5.2), picked per character with rulesEdition: '2024'.
@@ -184,5 +184,43 @@ describe('older saves', () => {
   it('keeps 2014 rules for a character that only switched its spells to 2024', () => {
     const c = make({ rulesEdition: undefined, raceId: 'human', backgroundId: 'acolyte', freeAbilityBonuses: [], spellEdition: '2024' })
     expect(getAbilityScores(c).str).toBe(16)
+  })
+
+  it('applies Expertise and Primal Knowledge picks to skills', () => {
+    const rogue = make({ classes: [{ classId: 'rogue', level: 1 }], chosenSkills: ['stealth', 'acrobatics', 'deception', 'insight'], classPicks: { 'rogue.expertise': ['stealth', 'insight'] } })
+    const d = derive(rogue)
+    expect(d.skills.stealth).toMatchObject({ proficient: true, expertise: true, bonus: d.mods.dex + 2 * d.proficiencyBonus })
+    expect(d.skills.acrobatics.expertise).toBeUndefined()
+    const barb = make({ classes: [{ classId: 'barbarian', level: 3 }], chosenSkills: ['athletics', 'survival'], classPicks: { 'barbarian.primalKnowledge': ['intimidation'] } })
+    expect(derive(barb).skills.intimidation).toMatchObject({ proficient: true })
+    expect(derive(barb).skills.intimidation.expertise).toBeUndefined()
+  })
+
+  it('unlocks class picks by level, and Rogue/Ranger language picks', () => {
+    const ids = (classId: string, level: number) => classPickSlots({ rulesEdition: '2024', classes: [{ classId, level }] }).map(s => `${s.pick.id}:${s.pick.count}`)
+    expect(ids('bard', 9)).toEqual(['expertise:2', 'expertise9:2'])
+    expect(ids('rogue', 5)).toEqual(['expertise:2', 'thievesCant:1'])
+    expect(ids('ranger', 9)).toEqual(['deftExplorer:1', 'deftExplorerLanguages:2', 'expertise9:2'])
+    expect(ids('wizard', 2)).toEqual(['scholar:1'])
+    expect(ids('rogue', 5).length).toBe(2)
+    expect(classPickSlots({ classes: [{ classId: 'rogue', level: 5 }] })).toEqual([])
+    expect(languagePickCount(draft({ classes: [{ classId: 'rogue', level: 1 }] })) - languagePickCount(draft())).toBe(1)
+  })
+
+  it('adds Divine Strike and Primal Strike only with that level 7 pick', () => {
+    const axe = { ability: 'str' as const, properties: [] }
+    const cleric = (pick: string, level = 7) => ({ rulesEdition: '2024' as const, classes: [{ classId: 'cleric', level }], featureChoices: { 'cleric.blessedStrikes': pick } })
+    expect(getDamageRiders(cleric('divine-strike'), axe)).toEqual([{ id: 'divineStrike', name: 'Divine Strike', damage: '1d8', oncePerTurn: true, damageTypes: ['necrotic', 'radiant'] }])
+    expect(getDamageRiders(cleric('divine-strike', 14), axe)[0].damage).toBe('2d8')
+    expect(getDamageRiders(cleric('potent-spellcasting'), axe)).toEqual([])
+    expect(getDamageRiders(cleric('divine-strike', 6), axe)).toEqual([])
+    const druid = { rulesEdition: '2024' as const, classes: [{ classId: 'druid', level: 15 }], featureChoices: { 'druid.elementalFury': 'primal-strike' } }
+    expect(getDamageRiders(druid, axe)[0]).toMatchObject({ id: 'primalStrike', damage: '2d8' })
+  })
+
+  it('knows every SRD weapon mastery property', () => {
+    expect(weaponMastery('greatsword')).toBe('graze')
+    expect(weaponMastery('dagger')).toBe('nick')
+    expect(weaponMastery('longbow')).toBe('slow')
   })
 })

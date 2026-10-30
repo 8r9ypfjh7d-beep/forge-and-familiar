@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { loadKind } from '../../content'
 import { derive, xpForNextLevel } from '../../rules'
 import { makeCharacter } from '../fixtures'
-import { actionRoll, actionsOf, addAction, effectToggles, effectsUsed, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
+import { actionRoll, actionsOf, addAction, effectToggles, effectsUsed, masteredWeapons, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
 
 const warlock = (over = {}) => makeCharacter({
   classes: [{ classId: 'warlock', level: 7 }],
@@ -59,6 +59,26 @@ describe('combat page helpers', () => {
     expect(masteryLimit({ classes: [{ classId: 'warlock', level: 7 }], spellEdition: '2024' })).toBe(0)
     expect(masteryLimit({ classes: [{ classId: 'fighter', level: 4 }], spellEdition: '2024' })).toBe(4)
     expect(masteryLimit({ classes: [{ classId: 'fighter', level: 4 }] })).toBe(0)
+  })
+
+  it('lists the masteries the player picked, falling back to attack weapons on older saves', () => {
+    const fighter = { classes: [{ classId: 'fighter', level: 1 }], rulesEdition: '2024' as const }
+    expect(masteredWeapons({ ...fighter, weaponMasteries: ['greatsword', 'longbow', 'dagger', 'maul'] })).toEqual([
+      { itemId: 'greatsword', mastery: 'graze' }, { itemId: 'longbow', mastery: 'slow' }, { itemId: 'dagger', mastery: 'nick' },
+    ])
+    expect(masteredWeapons(fighter, ['longsword'])).toEqual([{ itemId: 'longsword', mastery: 'sap' }])
+  })
+
+  it('adds WIS to cleric cantrip damage with Potent Spellcasting', async () => {
+    const spells = await loadKind('spells', { sources: ['srd-5.2'] })
+    const cleric = (pick: string) => makeCharacter({
+      rulesEdition: '2024', classes: [{ classId: 'cleric', level: 7 }], featureChoices: { 'cleric.blessedStrikes': pick },
+      baseAbilities: { str: 10, dex: 10, con: 10, int: 10, wis: 16, cha: 10 }, spells: [{ id: 'sacred-flame', classId: 'cleric' }],
+    })
+    const flame = (pick: string) => { const c = cleric(pick); return spellAttackRows(c, derive(c), spells).find(r => r.name === 'Sacred Flame')?.damage }
+    const base = flame('divine-strike')
+    expect(base).toMatch(/^2d8$/)
+    expect(flame('potent-spellcasting')).toBe(`${base}+${derive(cleric('x')).mods.wis}`)
   })
 
   it('weapon attacks carry reach and range for the table', () => {

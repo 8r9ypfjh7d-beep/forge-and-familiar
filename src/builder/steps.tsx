@@ -13,6 +13,7 @@ import type { OriginSwaps } from '../model/character'
 import { RandomName } from '../random/RandomBar'
 import { useDice } from '../dice/ui'
 import type { RollResult } from '../dice'
+import { ClassSkillPicks, WeaponMasteryPicks } from './ClassPicks'
 import { CustomSubclassForm } from './CustomSubclassForm'
 import { MetamagicPicker } from './MetamagicPicker'
 import { MulticlassPicker } from './MulticlassPicker'
@@ -39,7 +40,7 @@ function switchEdition(draft: CharacterDraft, edition: RulesEdition): Partial<Ch
     // Spells follow the rules edition again.
     spellEdition: undefined,
     raceId: '', subraceId: undefined, freeAbilityBonuses: [], originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {},
-    backgroundId: 'acolyte', originFeatId: undefined, featureChoices: {}, improvements: [], equipmentPicks: [],
+    backgroundId: 'acolyte', originFeatId: undefined, featureChoices: {}, classPicks: {}, weaponMasteries: [], improvements: [], equipmentPicks: [],
     classes: draft.classes.map(cl => ({ classId: cl.classId, level: cl.level })),
   }
 }
@@ -276,7 +277,7 @@ function ClassStep({ draft, update }: StepProps) {
           <button
             key={c.id}
             className={`choice ${current?.classId === c.id ? 'selected' : ''}`}
-            onClick={() => update({ classes: [{ classId: c.id, level }, ...extras.filter(x => x.classId !== c.id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], improvements: [], featureChoices: {} })}
+            onClick={() => update({ classes: [{ classId: c.id, level }, ...extras.filter(x => x.classId !== c.id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [] })}
           >
             <strong>{className(c.id)}</strong>
             <span className="muted small">{t('builder.class.hitDie', { die: c.hitDie, primary: c.primary.map(abilityShort).join('/') })}</span>
@@ -686,7 +687,7 @@ function Improvements({ draft, update }: StepProps) {
         const choice = feat?.effects.find(e => e.kind === 'abilityChoice')
         return (
           <div key={`${classId}-${level}`} className="asi-row">
-            <span className="small strong">{className(classId)} {level}</span>
+            <span className="small strong">{className(classId)} {level}{edition === '2024' && level === 19 && <> · {term('feature', 'Epic Boon', 'Epic Boon')} <Why id="epicBoon" /></>}</span>
             <select
               value={isFeat ? 'feat' : 'asi'}
               aria-label={t('builder.asi.kind')}
@@ -794,6 +795,7 @@ function SkillsStep({ draft, update }: StepProps) {
           )
         })}
       </div>
+      <ClassSkillPicks draft={draft} update={update} />
       <LanguagesAndTools draft={draft} update={update} />
     </>
   )
@@ -1037,6 +1039,7 @@ function EquipmentStep({ draft, update }: StepProps) {
     <>
       <p className="small">{t('builder.kitIntro')} <Why id="kit" /></p>
       <EquipmentChoices draft={draft} update={update} />
+      <WeaponMasteryPicks draft={draft} update={update} />
       <h4 className="small">{t('builder.kitTotal')} <Why id="kitList" /></h4>
       <ul className="kit">
         {[...counts].map(([id, n]) => {

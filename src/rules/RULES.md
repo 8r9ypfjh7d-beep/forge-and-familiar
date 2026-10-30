@@ -13,7 +13,8 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `derive.ts` | `derive()` and helpers: HP, hit dice, AC, attacks, saves, skills, slots, resources, speed |
 | `factory.ts` | `createCharacter(draft)`, `freshState(maxHp)`, starting kit |
 | `rollMode.ts` | Advantage/disadvantage from own conditions |
-| `attackRiders.ts` | `getDamageRiders` (Rage, Sneak Attack) and `getCritRange` (Champion) for one-tap attacks |
+| `attackRiders.ts` | `getDamageRiders` (Rage, Sneak Attack, 2024 Divine Strike / Primal Strike) and `getCritRange` (Champion) for one-tap attacks |
+| `classPicks.ts` | Class multi-picks (`ClassDef.picks`: Expertise, Primal Knowledge, class languages) as skill effects, and Weapon Mastery weapons (`MASTERY_WEAPONS`, `weaponMastery`; table in `data/masteries.ts`) |
 | `choices.ts` | ASI slots and feats, languages, tools, starting-gear choices (`classKit`) |
 | `edition.ts` | `rulesEdition(c)` ('2014' or '2024') and `uses2024Spells(c)` |
 | `multiclass.ts` | Prerequisites, multiclass proficiencies, caster level breakdown, per-class spell DCs, multiclass warnings |
@@ -37,11 +38,13 @@ Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missi
 2024 differences the engine applies:
 - Origin: species give no ability bonuses or languages. The background lists three abilities as the suggestion; `freeAbilityBonuses` holds one entry per +1 on any ability (`backgroundBonuses`: at most +2 to one, +3 in total). Backgrounds teach Common + 2 picked languages and grant an Origin feat (`Background.feat`, shown as "Magic Initiate (Cleric)"). A Human also picks one (`Character.originFeatId`).
 - `getFeats(c)` = (any edition) a homebrew background's `effects` as one feat-like entry + background feat + Human's feat + Fighting Style feats + ASI feats. Feat effects: `initiativeProficiency` (Alert), `skillPicks` (Skilled), `abilityChoice` (Grappler, Epic Boons up to 30; the pick is `Improvement.featAbility`), `rangedAttack` (Archery), `armoredAc` (Defense).
-- Class choices (`ClassDef.choices`, saved in `Character.featureChoices` as `<classId>.<choiceId>`): Fighting Style (feat options), Divine Order and Primal Order (extra armor and weapon proficiencies). `classChoices(c)` lists them; picks show in `features` as "Divine Order (Protector)".
+- Class choices (`ClassDef.choices`, saved in `Character.featureChoices` as `<classId>.<choiceId>`): Fighting Style (feat options), Divine Order and Primal Order (extra armor and weapon proficiencies). `classChoices(c)` lists them; picks show in `features` as "Divine Order (Protector)". Level 7 Blessed Strikes (Cleric) and Elemental Fury (Druid) are choices too: Divine/Primal Strike are damage riders, Potent Spellcasting adds WIS to that class's cantrip damage on the combat page.
+- Class multi-picks (`ClassDef.picks`, saved in `Character.classPicks` as `<classId>.<pickId>` → skill ids): Expertise (Bard 2/9, Rogue 1/6, Ranger 2 Deft Explorer and 9, Wizard Scholar), Barbarian Primal Knowledge. `classPickEffects` turns them into `skillProficiency` effects inside `activeItemEffects`, so derive and "show the math" agree. `kind: 'language'` picks (Rogue Thieves' Cant, Ranger Deft Explorer) add to `languagePickCount`. Shared with 2014 class picks.
+- Weapon Mastery: `Character.weaponMasteries` (item ids), up to `getWeaponMasteryCount`. Level 19 ASI slots are the Epic Boon (any feat allowed).
 - Classes: subclass at 3, Epic Boon slot at 19, 2024 resources (Second Wind uses, Indomitable, Focus Points, Favored Enemy...), Monk and Rogue Light/Finesse martial weapons, Martial Arts d6 to d12, Draconic Sorcery 10 + DEX + CHA. `getWeaponMasteryCount(c)` reads `ClassDef.weaponMastery`.
 - Half casters get slots from level 1 and always round their levels up (also when multiclassed). Multiclass grants come from `MULTICLASS_PROFICIENCIES_2024`.
 - Starting gear is the class's option A kit with its coins or option B coins only (`EquipmentChoice` options carry `gold`); `startingGold` adds the background's coins. 2014 characters start with 15 gp plus a homebrew background's gold.
-- Not modelled yet: Weapon Mastery picks, Eldritch Invocations, Expertise picks, Elf Keen Senses limited to three skills (any skill is accepted), Skilled's tool option, Heroic Inspiration, background option B (50 gp).
+- Not modelled yet: Eldritch Invocations, Magical Secrets spell lists, Elf Keen Senses limited to three skills (any skill is accepted), Skilled's tool option, Heroic Inspiration, background option B (50 gp).
 - Older saves that only set `spellEdition: '2024'` keep 2014 rules; `uses2024Spells` still gives their pact weapon CHA.
 
 ## Key rules implemented

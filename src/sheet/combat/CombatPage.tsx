@@ -11,7 +11,7 @@ import type { Character } from '../../model/character'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
 import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
-import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCritRange, getDamageRiders, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod, getBackground, getCritRange, getDamageRiders, itemById, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
@@ -20,7 +20,7 @@ import { useSheetRolls } from '../dice'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
-  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteryLimit, matchFeature, newActionId, removeAction, resolveDice, setActionActive, spellAttackRows, updateAction,
+  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteredWeapons, masteryLimit, matchFeature, newActionId, removeAction, resolveDice, setActionActive, spellAttackRows, updateAction,
   effectsUsed, type ActionKind, type CustomAction, type EffectToggle, type UsedEffect, type SpellAttackRow,
 } from './combat'
 import './combat.css'
@@ -367,12 +367,8 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
 
   const ft = (n: number) => t('cs.feet', { n })
   const masteries = masteryLimit(character)
-  const mastered = masteries
-    ? d.attacks.flatMap(a => {
-        const m = lib.equipment.find(e => e.id === a.itemId)?.weapon?.mastery
-        return m ? [{ weapon: attackName(a.name), mastery: m }] : []
-      }).slice(0, masteries)
-    : []
+  const mastered = masteredWeapons(character, d.attacks.flatMap(a => (a.itemId ? [a.itemId] : [])))
+    .map(m => ({ weapon: i18n.item(m.itemId, itemById(m.itemId)?.name ?? m.itemId), mastery: m.mastery }))
 
   return (
     <section className="card cs-fight" aria-labelledby="cs-attacks-title">
@@ -452,6 +448,8 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
       {mastered.length
         ? <ul className="cs-rows">{mastered.map(m => <li key={m.weapon}><span>{term('mastery', m.mastery, cap(m.mastery))}</span><span className="hint">{m.weapon}</span></li>)}</ul>
         : <p className="hint">{t('cs.noMastery')}</p>}
+
+      <CunningStrike character={character} d={d} />
 
       <h3 className="cs-sub">{t('cs.effects')}</h3>
       {effects.length
@@ -664,6 +662,33 @@ function ActionForm({ kind, stats, initial, onSave, onCancel }: {
 }
 
 // ---------- Features & Traits tab ----------
+
+/** SRD 5.2 Cunning Strike (Rogue 5) and Devious Strikes (Rogue 14): what Sneak Attack dice can buy, and the save DC. */
+const CUNNING_STRIKES: { id: string; cost: number; level: number }[] = [
+  { id: 'poison', cost: 1, level: 5 }, { id: 'trip', cost: 1, level: 5 }, { id: 'withdraw', cost: 1, level: 5 },
+  { id: 'daze', cost: 2, level: 14 }, { id: 'knockOut', cost: 6, level: 14 }, { id: 'obscure', cost: 3, level: 14 },
+]
+
+function CunningStrike({ character, d }: { character: Character; d: DerivedStats }) {
+  const { t } = useI18n()
+  const rogue = character.classes.filter(cl => cl.classId === 'rogue').reduce((n, cl) => n + cl.level, 0)
+  if (character.rulesEdition !== '2024' || rogue < 5) return null
+  const dc = 8 + d.mods.dex + d.proficiencyBonus
+  return (
+    <>
+      <h3 className="cs-sub">{t('cs.cunning')} <span className="cs-count" dir="ltr">{t('cs.cunningDc', { dc })}</span></h3>
+      <p className="hint">{t(rogue >= 11 ? 'cs.cunningIntroTwo' : 'cs.cunningIntro')}</p>
+      <ul className="cs-rows">
+        {CUNNING_STRIKES.filter(x => rogue >= x.level).map(x => (
+          <li key={x.id}>
+            <span>{t(`cs.cunning.${x.id}` as MessageKey)} <span className="hint" dir="ltr">−{x.cost}d6</span></span>
+            <span className="hint">{t(`cs.cunning.${x.id}.text` as MessageKey)}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
 
 export function FeaturesTraits({ character }: { character: Character }) {
   const { t, term } = useI18n()

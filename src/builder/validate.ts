@@ -1,9 +1,9 @@
 import { translate, type Translate } from '../i18n/translate'
 import {
-  ABILITIES, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
+  ABILITIES, ALL_SKILLS, CUSTOM_BACKGROUND, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
   flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, SECRET_LANGUAGES, subclassOf, subclassesFor, toolPickGroups,
-  type Ability, type CharacterDraft, type SkillId,
+  type Ability, type CharacterDraft, type ClassPick, type SkillId,
 } from '../rules'
 
 export type StepId = 'race' | 'class' | 'abilities' | 'skills' | 'equipment' | 'details'
@@ -29,6 +29,29 @@ export function subclassSlots(d: CharacterDraft) {
     const def = classById(cl.classId, d.rulesEdition)
     return def && cl.level >= def.subclassLevel && subclassesFor(cl.classId, d.rulesEdition).length > 0
   })
+}
+
+/** Skills the draft is proficient in before Expertise: race, background, chosen skills and skill picks (Primal Knowledge). */
+export function draftProficientSkills(d: CharacterDraft): Set<SkillId> {
+  const extra = classPickSlots(d).flatMap(s => (s.pick.kind === 'skill' ? s.picked : [])) as SkillId[]
+  return new Set([...grantedSkills(d), ...d.chosenSkills, ...extra])
+}
+
+/** Skills a pick suggests; the rest only warn. Expertise needs proficiency (Scholar also its list); a skill pick wants a new skill. */
+export function suggestedForPick(d: CharacterDraft, pick: ClassPick): SkillId[] {
+  if (pick.kind !== 'expertise') {
+    const known = new Set([...grantedSkills(d), ...d.chosenSkills])
+    return (pick.from ?? ALL_SKILLS).filter(s => !known.has(s))
+  }
+  const prof = draftProficientSkills(d)
+  return (pick.from ?? ALL_SKILLS).filter(s => prof.has(s))
+}
+
+/** Weapons a draft can master without a warning: ones it is proficient with (Barbarian: melee only). */
+export function suggestedMasteryWeapons(d: CharacterDraft): string[] {
+  const { weapons, weaponIds } = getProficiencies(d)
+  const meleeOnly = d.classes.every(cl => cl.classId === 'barbarian')
+  return MASTERY_WEAPONS.filter(w => (weapons.has(w.category) || weaponIds.has(w.id)) && !(meleeOnly && w.properties.includes('ranged'))).map(w => w.id)
 }
 
 const english: Translate = (key, vars) => translate('en', key, vars)
@@ -138,10 +161,16 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
         return picks.length === g.count && picks.every(p => !!p && !known.includes(p))
       }) && tools.length === at && new Set(tools).size === tools.length
       if (!toolsOk) out.push(t('builder.issue.tools'))
+      for (const { classId, pick, picked } of classPickSlots(d)) {
+        if (pick.kind !== 'language' && picked.length !== pick.count) out.push(t('builder.issue.classPick', { className: className(classId), pick: pick.name, count: pick.count }))
+      }
       break
     }
-    case 'equipment':
+    case 'equipment': {
+      const count = getWeaponMasteryCount(d)
+      if (count && (d.weaponMasteries ?? []).slice(0, count).length !== count) out.push(t('builder.issue.mastery', { count }))
       break
+    }
     case 'details':
       if (!d.name.trim()) out.push(t('builder.issue.name'))
       break
@@ -205,6 +234,19 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
       for (const lang of SECRET_LANGUAGES) {
         if (picked.includes(lang) && !d.classes.some(cl => cl.classId === teacher[lang])) out.push(t('builder.warn.secretLanguage', { language: term('language', lang, lang) }))
       }
+      // Expertise outside the skills you're proficient in (or Scholar's list), or a Primal Knowledge skill off the class list.
+      const prof = draftProficientSkills(d)
+      for (const { pick, picked } of classPickSlots(d)) {
+        if (pick.kind === 'language') continue
+        const offList = picked.some(s => (pick.from && !pick.from.includes(s as SkillId)) || (pick.kind === 'expertise' && !prof.has(s as SkillId)))
+        if (offList) out.push(t(pick.kind === 'expertise' ? 'builder.warn.expertiseOffList' : 'builder.warn.pickOffList', { pick: term('feature', pick.name, pick.name) }))
+      }
+      break
+    }
+    case 'equipment': {
+      const ok = suggestedMasteryWeapons(d)
+      const unproficient = (d.weaponMasteries ?? []).slice(0, getWeaponMasteryCount(d)).some(id => !ok.includes(id))
+      if (unproficient) out.push(t('builder.warn.masteryOffList'))
       break
     }
   }

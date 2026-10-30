@@ -1,4 +1,4 @@
-import type { Ability, ClassChoice, ClassDef, ClassFeature, ItemEffect } from '../../types'
+import type { Ability, ClassChoice, ClassDef, ClassFeature, ClassPick, ItemEffect, SkillId } from '../../types'
 import { ALL_SAVES, DANGER_SENSE } from '../classFeatures2014'
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from '../proficiencies'
 import { ALL_SKILLS } from '../skills'
@@ -23,17 +23,24 @@ const STYLES: ClassChoice['options'] = [
   { id: 'great-weapon-fighting', name: 'Great Weapon Fighting', featId: 'great-weapon-fighting', detail: 'Treat 1s and 2s on two-handed damage dice as 3s.' },
   { id: 'two-weapon-fighting', name: 'Two-Weapon Fighting', featId: 'two-weapon-fighting', detail: 'Add your modifier to the extra Light weapon attack.' },
 ]
+const expertise = (id: string, level: number, count: number, name = 'Expertise', from?: SkillId[]): ClassPick =>
+  ({ id, name, level, kind: 'expertise', count, ...(from ? { from } : {}) })
+const BARBARIAN_SKILLS: SkillId[] = ['animalHandling', 'athletics', 'intimidation', 'nature', 'perception', 'survival']
+// Level 7 Cleric and Druid picks. Potent Spellcasting adds WIS to the class's cantrip damage (sheet/combat).
+const potent = (cls: string) => ({ id: 'potent-spellcasting', name: 'Potent Spellcasting', detail: `Add your WIS modifier to the damage of your ${cls} cantrips.` })
+
 const fightingStyle = (level: number, extra?: ClassChoice['options'][number]): ClassChoice =>
   ({ id: 'fightingStyle', name: 'Fighting Style', level, options: extra ? [...STYLES, extra] : STYLES })
 
 export const CLASSES_2024: ClassDef[] = [
   {
     id: 'barbarian', name: 'Barbarian', hitDie: 12, primary: ['str'], savingThrows: ['str', 'con'],
-    skillChoices: { count: 2, from: ['animalHandling', 'athletics', 'intimidation', 'nature', 'perception', 'survival'] },
+    skillChoices: { count: 2, from: BARBARIAN_SKILLS },
     armor: ['light', 'medium', 'shield'], weapons: ['simple', 'martial'], caster: 'none', unarmoredDefense: 'con',
     resources: [{ id: 'rage', name: 'Rage', recharge: 'long', max: scale([[1, 2], [3, 3], [6, 4], [12, 5], [17, 6]]) }],
     startingEquipment: [], equipmentChoices: kit(['greataxe', 'handaxe', 'handaxe', 'handaxe', 'handaxe', 'explorers-pack'], 15, 75),
     subclassLevel: 3, subclassTitle: 'Primal Path', asiLevels: ASI, weaponMastery: [[1, 2], [4, 3], [10, 4]],
+    picks: [{ id: 'primalKnowledge', name: 'Primal Knowledge', level: 3, kind: 'skill', count: 1, from: BARBARIAN_SKILLS }],
     features: [
       ...f(1, 'Rage', 'Unarmored Defense', 'Weapon Mastery'), fx(2, 'Danger Sense', DANGER_SENSE), ...f(2, 'Reckless Attack'), ...f(3, 'Primal Knowledge'),
       ...f(5, 'Extra Attack', 'Fast Movement'), fx(7, 'Feral Instinct', { kind: 'advantage', on: 'initiative' }), ...f(7, 'Instinctive Pounce'), ...f(9, 'Brutal Strike'), ...f(11, 'Relentless Rage'),
@@ -49,8 +56,9 @@ export const CLASSES_2024: ClassDef[] = [
     equipmentChoices: [{ options: [{ items: ['leather', 'dagger', 'dagger', 'any:instrument', 'entertainers-pack'], gold: 19 }, { items: [], gold: 90 }] }],
     toolChoices: { count: 3, from: MUSICAL_INSTRUMENTS },
     subclassLevel: 3, subclassTitle: 'Bard College', asiLevels: ASI,
+    picks: [expertise('expertise', 2, 2), expertise('expertise9', 9, 2)],
     features: [
-      ...f(1, 'Bardic Inspiration', 'Spellcasting'), ...f(2, 'Expertise', 'Jack of All Trades'), ...f(5, 'Font of Inspiration'), ...f(7, 'Countercharm'),
+      ...f(1, 'Bardic Inspiration', 'Spellcasting'), ...f(2, 'Expertise', 'Jack of All Trades'), ...f(5, 'Font of Inspiration'), ...f(7, 'Countercharm'), ...f(9, 'Expertise'),
       ...f(10, 'Magical Secrets'), ...f(18, 'Superior Inspiration'), ...f(19, 'Epic Boon'), ...f(20, 'Words of Creation'),
     ],
   },
@@ -69,6 +77,12 @@ export const CLASSES_2024: ClassDef[] = [
       options: [
         { id: 'protector', name: 'Protector', detail: 'Martial weapons and heavy armor.', armor: ['heavy'], weapons: ['martial'] },
         { id: 'thaumaturge', name: 'Thaumaturge', detail: 'One extra cleric cantrip; add your WIS modifier (min +1) to Arcana and Religion checks.' },
+      ],
+    }, {
+      id: 'blessedStrikes', name: 'Blessed Strikes', level: 7,
+      options: [
+        { id: 'divine-strike', name: 'Divine Strike', detail: 'Once on each of your turns, a weapon hit deals an extra 1d8 necrotic or radiant damage (2d8 from level 14).' },
+        potent('cleric'),
       ],
     }],
     features: [
@@ -89,6 +103,12 @@ export const CLASSES_2024: ClassDef[] = [
       options: [
         { id: 'magician', name: 'Magician', detail: 'One extra druid cantrip; add your WIS modifier (min +1) to Arcana and Nature checks.' },
         { id: 'warden', name: 'Warden', detail: 'Martial weapons and medium armor.', armor: ['medium'], weapons: ['martial'] },
+      ],
+    }, {
+      id: 'elementalFury', name: 'Elemental Fury', level: 7,
+      options: [
+        potent('druid'),
+        { id: 'primal-strike', name: 'Primal Strike', detail: 'Once on each of your turns, a weapon or Beast-form hit deals an extra 1d8 cold, fire, lightning or thunder damage (2d8 from level 15).' },
       ],
     }],
     features: [
@@ -160,6 +180,7 @@ export const CLASSES_2024: ClassDef[] = [
     resources: [{ id: 'favored-enemy', name: "Favored Enemy (free Hunter's Mark)", recharge: 'long', max: scale([[1, 2], [5, 3], [9, 4], [13, 5], [17, 6]]) }],
     startingEquipment: [], equipmentChoices: kit(['studded-leather', 'scimitar', 'shortsword', 'longbow', 'arrows', 'quiver', 'druidic-focus', 'explorers-pack'], 7, 150),
     subclassLevel: 3, subclassTitle: 'Ranger Archetype', asiLevels: ASI, weaponMastery: [[1, 2]],
+    picks: [expertise('deftExplorer', 2, 1, 'Deft Explorer'), { id: 'deftExplorerLanguages', name: 'Deft Explorer', level: 2, kind: 'language', count: 2 }, expertise('expertise9', 9, 2)],
     choices: [fightingStyle(2, { id: 'druidic-warrior', name: 'Druidic Warrior', detail: 'Two druid cantrips that count as ranger spells.' })],
     features: [
       ...f(1, 'Favored Enemy', 'Spellcasting', 'Weapon Mastery'), ...f(2, 'Deft Explorer', 'Fighting Style'), ...f(5, 'Extra Attack'), ...f(6, 'Roving'),
@@ -176,9 +197,10 @@ export const CLASSES_2024: ClassDef[] = [
     startingEquipment: [], equipmentChoices: kit(['leather', 'dagger', 'dagger', 'shortsword', 'shortbow', 'arrows', 'quiver', 'thieves-tools', 'burglars-pack'], 8, 100),
     toolProficiencies: ["Thieves' tools"],
     subclassLevel: 3, subclassTitle: 'Roguish Archetype', asiLevels: [4, 8, 10, 12, 16, 19], weaponMastery: [[1, 2]],
+    picks: [expertise('expertise', 1, 2), expertise('expertise6', 6, 2), { id: 'thievesCant', name: "Thieves' Cant", level: 1, kind: 'language', count: 1 }],
     features: [
       ...f(1, 'Expertise', 'Sneak Attack', "Thieves' Cant", 'Weapon Mastery'), ...f(2, 'Cunning Action'), ...f(3, 'Steady Aim'),
-      ...f(5, 'Cunning Strike', 'Uncanny Dodge'), ...f(7, 'Evasion', 'Reliable Talent'), ...f(11, 'Improved Cunning Strike'), ...f(14, 'Devious Strikes'),
+      ...f(5, 'Cunning Strike', 'Uncanny Dodge'), ...f(6, 'Expertise'), ...f(7, 'Evasion', 'Reliable Talent'), ...f(11, 'Improved Cunning Strike'), ...f(14, 'Devious Strikes'),
       fx(15, 'Slippery Mind', { kind: 'saveProficiency', ability: 'wis' }, { kind: 'saveProficiency', ability: 'cha' }), ...f(18, 'Elusive'), ...f(19, 'Epic Boon'), ...f(20, 'Stroke of Luck'),
     ],
   },
@@ -219,6 +241,7 @@ export const CLASSES_2024: ClassDef[] = [
     resources: [{ id: 'arcane-recovery', name: 'Arcane Recovery', recharge: 'long', max: () => 1 }],
     startingEquipment: [], equipmentChoices: kit(['dagger', 'dagger', 'quarterstaff', 'robe', 'spellbook', 'scholars-pack'], 5, 55),
     subclassLevel: 3, subclassTitle: 'Arcane Tradition', asiLevels: ASI,
+    picks: [expertise('scholar', 2, 1, 'Scholar', ['arcana', 'history', 'investigation', 'medicine', 'nature', 'religion'])],
     features: [
       ...f(1, 'Arcane Recovery', 'Ritual Adept', 'Spellcasting'), ...f(2, 'Scholar'), ...f(5, 'Memorize Spell'), ...f(18, 'Spell Mastery'),
       ...f(19, 'Epic Boon'), ...f(20, 'Signature Spells'),

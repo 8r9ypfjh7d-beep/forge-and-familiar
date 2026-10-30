@@ -32,6 +32,8 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
   - `traitChoices`: race trait options, e.g. `{ draconicAncestry: 'red' }`; a `Race.choices` pick that takes several options is comma-separated (`{ instincts: 'insight,deception' }`).
   - `sizeChoice`: Small or Medium when the race offers both (`Race.sizeOptions`).
   - `featureChoices`: 2024 class picks keyed `<classId>.<choiceId>`, e.g. `{ 'fighter.fightingStyle': 'archery' }`.
+  - `classPicks`: class multi-picks keyed `<classId>.<pickId>` → skill ids, e.g. `{ 'rogue.expertise': ['stealth', 'insight'] }`.
+  - `weaponMasteries`: 2024 Weapon Mastery weapon item ids, e.g. `['greatsword', 'longbow']`. Missing on older saves: the combat page falls back to equipped weapons.
   - `originFeatId`: a 2024 Human's Origin feat, or the feat of a 2014 subrace with `featChoice` (Variant Human).
   - `abilityMethod` is `standard`, `pointBuy`, `rolled` or `manual`. `rolledScores` (optional) keeps the six 4d6-drop-lowest totals the builder rolled, so going back or editing never rerolls them; `baseAbilities` must use each once.
   - `freeAbilityBonuses`: 2014 racial +1 picks (for `flexibleAbilityBonuses` races three +1s), or in 2024 the background's three +1s (an ability twice is +2). Any ability is allowed; the builder warns when a pick is off the book.
