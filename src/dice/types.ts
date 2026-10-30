@@ -18,9 +18,10 @@ export type Term =
   | { kind: 'dice'; sign: 1 | -1; count: number; sides: number; keep?: { type: 'kh' | 'kl' | 'dh' | 'dl'; n: number } }
   | { kind: 'const'; sign: 1 | -1; value: number }
 
+/** `source` names where the term came from on a damage roll ("Greatsword", "Hex"), so the card can show each part. */
 export type TermResult =
-  | { kind: 'dice'; sign: 1 | -1; notation: string; rolls: DieRoll[]; subtotal: number }
-  | { kind: 'const'; sign: 1 | -1; value: number }
+  | { kind: 'dice'; sign: 1 | -1; notation: string; rolls: DieRoll[]; subtotal: number; source?: string }
+  | { kind: 'const'; sign: 1 | -1; value: number; source?: string }
 
 export type RollType = 'custom' | 'check' | 'save' | 'skill' | 'initiative' | 'attack' | 'damage' | 'hitDie' | 'deathSave'
 
@@ -40,6 +41,10 @@ export interface RollResult {
   autoFail?: boolean
   /** Who rolled, so a shared or party history can be filtered per character. */
   roller?: { characterId: string; characterName: string }
+  /** Shared by the rolls of one action (an attack's to-hit and its damage), so the history shows them as one entry. */
+  action?: { id: string; name: string }
+  /** On damage rolls: the weapon's or spell's damage type, e.g. "slashing". */
+  damageType?: string
   timestamp: string
 }
 

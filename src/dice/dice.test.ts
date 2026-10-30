@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createCharacter, derive, type CharacterDraft } from '../rules'
 import {
   critNotation, DiceNotationError, parseNotation, roll, rollAttack, rollD20, rollAttackWithDamage, rollDamage, rollDeathSave,
-  rollHitDie, rollSave, rollSkill, RollHistory, type HistoryStorage, type RollResult, type Rng,
+  rollHitDie, rollParts, rollSave, rollSkill, RollHistory, groupByAction, actionName, sameAction, type HistoryStorage, type RollResult, type Rng,
 } from './index'
 
 /** Returns the given values in order, then repeats the last one. */
@@ -196,5 +196,51 @@ describe('one-tap attack', () => {
     const c = fighter()
     c.state.conditions = ['poisoned']
     expect(rollAttackWithDamage(sword, { character: c, rng: seq(15, 4, 3) }).attack.d20?.mode).toBe('disadvantage')
+  })
+})
+
+describe('grouping rolls by action', () => {
+  const sword = { name: 'Greatsword', bonus: 7, damage: '2d6+4', damageType: 'slashing' }
+
+  it('tags each damage part with its source, doubled on a crit', () => {
+    const r = rollParts([{ notation: '2d6+4', source: 'Greatsword' }, { notation: '1d6', source: 'Hex' }], { rng: seq(3) }, 'damage', true)
+    expect(r.notation).toBe('4d6+4+2d6')
+    expect(r.terms.map(t => t.source)).toEqual(['Greatsword', 'Greatsword', 'Hex'])
+    expect(r.total).toBe(12 + 4 + 6)
+  })
+
+  it('links an attack and its damage, with each rider named on its dice', () => {
+    const riders = [{ name: 'Hex', damage: '1d6' }, { name: 'Eldritch Smite', damage: '5d8' }]
+    const { attack, damage } = rollAttackWithDamage(sword, { riders, rng: seq(20, 2) })
+    expect(attack.action).toEqual({ id: attack.id, name: 'Greatsword' })
+    expect(damage?.action).toEqual(attack.action)
+    expect(damage?.damageType).toBe('slashing')
+    expect(damage?.terms.map(t => t.source)).toEqual(['Greatsword', 'Greatsword', 'Hex', 'Eldritch Smite'])
+  })
+
+  it('shows an attack and its damage as one history entry, attack first', () => {
+    const history = new RollHistory()
+    const a = rollAttackWithDamage(sword, { rng: seq(12, 3) })
+    const b = rollAttackWithDamage(sword, { rng: seq(15, 4) })
+    for (const r of [a.attack, a.damage!, roll('1d20'), b.attack, b.damage!]) history.add(r)
+    const groups = groupByAction(history.all(), r => r)
+    expect(groups.map(g => g.map(r => r.type))).toEqual([['attack', 'damage'], ['custom'], ['attack', 'damage']])
+    expect(groups[0][0].id).toBe(b.attack.id)
+    expect(actionName(groups[0])).toBe('Greatsword')
+  })
+
+  it('pairs older saved rolls that have no action by label and time', () => {
+    const at = '2026-10-30T15:00:00.000Z'
+    const hit = { ...rollAttack(sword, { rng: seq(20) }), action: undefined, timestamp: at }
+    const dmg = { ...roll('4d6+4', { label: 'Greatsword slashing + Hex (crit)' }, 'damage'), timestamp: at }
+    expect(sameAction(hit, dmg)).toBe(true)
+    expect(sameAction(hit, { ...dmg, label: 'Mace bludgeoning' })).toBe(false)
+    expect(sameAction(hit, { ...dmg, timestamp: '2026-10-30T15:01:00.000Z' })).toBe(false)
+  })
+
+  it('keeps different party members apart in the feed', () => {
+    const { attack, damage } = rollAttackWithDamage(sword, { rng: seq(12, 3) })
+    const feed = [{ roll: damage!, userId: 'roy' }, { roll: attack, userId: 'maayan' }]
+    expect(groupByAction(feed, f => f.roll, (x, y) => x.userId === y.userId)).toHaveLength(2)
   })
 })

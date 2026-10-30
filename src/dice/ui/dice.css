@@ -124,6 +124,19 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 .ff-roll__badge { margin-inline-start: var(--sp-2); font-weight: 600; }
 .ff-roll--crit .ff-roll__badge { color: var(--ff-dice-crit, var(--good)); }
 .ff-roll--fumble .ff-roll__badge { color: var(--ff-dice-fumble, var(--bad)); }
+/* One action (an attack and its damage) on one card: the name on top, then a labelled line per roll. */
+.ff-roll--action > .ff-roll__label { display: block; }
+.ff-roll__part + .ff-roll__part { margin-block-start: var(--sp-1); padding-block-start: var(--sp-1); border-block-start: 1px dashed var(--ff-dice-line, var(--glass-hairline)); }
+.ff-roll__what { min-width: 0; overflow-wrap: anywhere; font-size: 0.85rem; font-weight: 600; color: var(--ff-dice-muted, var(--muted)); }
+.ff-roll__what .ff-roll__mode { margin-inline-start: var(--sp-1); }
+/* On a crit only the to-hit glows; the damage total keeps the normal ink. */
+.ff-roll--action .ff-roll__part--damage .ff-roll__total { color: inherit; }
+/* Damage from several sources (weapon, Hex, a smite): one line each, subtotal at the end. */
+.ff-roll__sources { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.ff-roll__sources li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--sp-2); min-width: 0; }
+.ff-roll__source { font-weight: 600; color: var(--ff-dice-fg, var(--ink)); }
+.ff-roll__dice { min-width: 0; overflow-wrap: anywhere; }
+.ff-roll__subtotal { margin-inline-start: auto; font-weight: 600; color: var(--ff-dice-fg, var(--ink)); }
 .ff-die--dropped { text-decoration: line-through; opacity: 0.55; }
 .ff-die--max { font-weight: 700; }
 

@@ -75,3 +75,37 @@ export class RollHistory {
     this.listeners.forEach(fn => fn())
   }
 }
+
+/** "Greatsword attack" → "Greatsword", for rolls saved before `action` existed. */
+const attackName = (r: RollResult) => r.label?.replace(/\s+attack$/, '')
+
+/** True when two rolls belong to one action: the same `action.id`, or (older saves) an attack and the damage rolled with it. */
+export function sameAction(a: RollResult, b: RollResult): boolean {
+  if (a.action || b.action) return !!a.action && a.action.id === b.action?.id
+  const [hit, dmg] = a.type === 'attack' ? [a, b] : [b, a]
+  if (hit.type !== 'attack' || dmg.type !== 'damage') return false
+  if (hit.roller?.characterId !== dmg.roller?.characterId) return false
+  const name = attackName(hit)
+  return !!name && !!dmg.label?.startsWith(`${name} `) && Math.abs(Date.parse(dmg.timestamp) - Date.parse(hit.timestamp)) < 2000
+}
+
+/** The action's name for a group: "Greatsword". */
+export function actionName(rolls: readonly RollResult[]): string {
+  const hit = rolls.find(r => r.type === 'attack')
+  return rolls[0]?.action?.name ?? (hit && attackName(hit)) ?? rolls[0]?.label ?? ''
+}
+
+/**
+ * Groups a newest-first list so the rolls of one action (to-hit, then damage) form one entry.
+ * Each group is oldest first, so the attack comes before its damage. `same` adds a check, e.g. same party member.
+ */
+export function groupByAction<T>(list: readonly T[], rollOf: (item: T) => RollResult, same: (a: T, b: T) => boolean = () => true): T[][] {
+  const groups: T[][] = []
+  for (const item of list) {
+    const last = groups[groups.length - 1]
+    const prev = last?.[0]
+    if (prev !== undefined && same(prev, item) && sameAction(rollOf(prev), rollOf(item))) last.unshift(item)
+    else groups.push([item])
+  }
+  return groups
+}

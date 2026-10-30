@@ -1,6 +1,6 @@
 export { DiceProvider, useDice, useRollHistory } from './DiceProvider'
 export { DiceTray } from './DiceTray'
 export { DiceFab } from './DiceFab'
-export { RollView } from './RollView'
+export { RollGroupView, RollView } from './RollView'
 export { FadingResult, RESULT_SHOW_MS } from './FadingResult'
 export { SecretRolls } from './SecretRolls'
