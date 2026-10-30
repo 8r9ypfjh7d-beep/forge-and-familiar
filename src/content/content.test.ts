@@ -214,4 +214,12 @@ describe('search', () => {
     expect(searchEntries(list, 'fire').map(e => e.id)).toEqual(['c', 'b', 'd', 'a'])
     expect(searchEntries(list, '')).toBe(list)
   })
+
+  it('matches a translated name as well as the English one', () => {
+    const mk = (id: string, name: string) => ({ id, name, description: '', source: 's', edition: '2014' as const })
+    const list = [mk('fireball', 'Fireball'), mk('fire-bolt', 'Fire Bolt')]
+    const he: Record<string, string> = { fireball: 'כדור אש', 'fire-bolt': 'קרן אש' }
+    expect(searchEntries(list, 'כדור', e => he[e.id]).map(e => e.id)).toEqual(['fireball'])
+    expect(searchEntries(list, 'bolt', e => he[e.id]).map(e => e.id)).toEqual(['fire-bolt'])
+  })
 })

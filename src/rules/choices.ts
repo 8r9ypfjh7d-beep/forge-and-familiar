@@ -198,16 +198,19 @@ export function fixedTools(c: RaceBg & Classes): string[] {
   return [...new Set([...raceProfile(c).tools, ...(first?.toolProficiencies ?? []), ...(getBackground(c)?.toolProficiencies ?? [])])]
 }
 
-/** Tool pick groups from race, first class and background, e.g. Dwarf artisan's tools, Bard instruments, Soldier gaming set. */
-export function toolPickGroups(c: RaceBg & Classes): { source: string; count: number; from: string[] }[] {
+/**
+ * Tool pick groups from race, first class and background, e.g. Dwarf artisan's tools, Bard instruments, Soldier gaming set.
+ * `kind` and `id` name the source for translation (`race.<id>`, `class.<id>`, `background.<id>`).
+ */
+export function toolPickGroups(c: RaceBg & Classes): { source: string; kind: 'race' | 'class' | 'background'; id: string; count: number; from: string[] }[] {
   const { race, subrace: sub } = raceProfile(c)
   const first = classById(c.classes[0]?.classId ?? '', rulesEdition(c))
   const bg = getBackground(c)
   return [
-    ...(race?.toolChoices ? [{ source: race.name, ...race.toolChoices }] : []),
-    ...(sub?.toolChoices ? [{ source: sub.name, ...sub.toolChoices }] : []),
-    ...(first?.toolChoices ? [{ source: first.name, ...first.toolChoices }] : []),
-    ...(bg?.toolChoices ? [{ source: bg.name, ...bg.toolChoices }] : []),
+    ...(race?.toolChoices ? [{ source: race.name, kind: 'race' as const, id: race.id, ...race.toolChoices }] : []),
+    ...(sub?.toolChoices ? [{ source: sub.name, kind: 'race' as const, id: sub.id, ...sub.toolChoices }] : []),
+    ...(first?.toolChoices ? [{ source: first.name, kind: 'class' as const, id: first.id, ...first.toolChoices }] : []),
+    ...(bg?.toolChoices ? [{ source: bg.name, kind: 'background' as const, id: bg.id, ...bg.toolChoices }] : []),
   ]
 }
 

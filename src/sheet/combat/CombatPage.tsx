@@ -177,7 +177,7 @@ function Perks({ d }: { d: DerivedStats }) {
     ...d.defenses.resistances.map(x => t('inv.fx.text.resistance', { damage: term('damage', x, x) })),
     ...d.defenses.immunities.map(x => t('inv.fx.text.immunity', { damage: term('damage', x, x) })),
     ...d.defenses.conditionImmunities.map(x => t('inv.fx.text.conditionImmunity', { condition: term('condition', x, x) })),
-    ...d.advantages.map(a => t(a.when ? 'inv.fx.text.advantageWhen' : 'inv.fx.text.advantage', { on: advantageName(i18n, a.on), when: a.when ?? '' })),
+    ...d.advantages.map(a => t(a.when ? 'inv.fx.text.advantageWhen' : 'inv.fx.text.advantage', { on: advantageName(i18n, a.on), when: a.when ? i18n.term('when', a.when, a.when) : '' })),
   ]
   if (!chips.length) return null
   return (
@@ -507,8 +507,8 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
           <li key={`spell-${r.name}`}>
             <button type="button" className="cs-attack spell" onClick={() => cast(r)}
               aria-label={t('cs.castLabel', { name: r.name })}>
-              <span className="name">{r.name}<small>{t(r.kind === 'attack' ? 'cs.spellAttack' : 'cs.spellSave')}{r.level === 0 ? ` · ${t('cs.cantrip')}` : ''}</small></span>
-              <span className="range">{r.range}</span>
+              <span className="name"><bdi>{i18n.spellName(r.name)}</bdi><small>{t(r.kind === 'attack' ? 'cs.spellAttack' : 'cs.spellSave')}{r.level === 0 ? ` · ${t('cs.cantrip')}` : ''}</small></span>
+              <span className="range">{i18n.spellMeasure(r.range)}</span>
               <span className="hit" dir="ltr">{r.kind === 'attack' ? formatMod(r.value) : `${r.save ? abilityShort(r.save) : ''} ${r.value}`}</span>
               <span className="dmg">{r.damage ? <><span dir="ltr">{r.beams ? `${r.beams}× ` : ''}{r.damage}</span> {r.damageType ? term('damage', r.damageType, r.damageType) : ''}</> : '—'}</span>
             </button>

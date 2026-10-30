@@ -1,7 +1,7 @@
 // Combat's Spells tab: spell slots, the character's spells by level, and every spell their class can take from the library.
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { BOOK_SOURCES, BOOK_TITLES, loadKind, searchEntries, type CharacterClass, type Edition, type SourceInfo, type Spell, type Subclass, BUNDLED } from '../content'
-import { useI18n, type MessageKey } from '../i18n'
+import { SpellName, useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
 import { derive, formatMod, spellEffectId } from '../rules'
@@ -104,7 +104,7 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
  * With nothing pinned it lists the character's own spells, so a new character can cast right away.
  */
 export function SpellsCard({ character, apply }: { character: Character; apply: Apply }) {
-  const { t } = useI18n()
+  const { t, spellName } = useI18n()
   const lib = useLibrary(editionOf(character))
   const stats = derive(character)
   const [picking, setPicking] = useState(false)
@@ -130,7 +130,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
   const mine = new Set([...spellsOf(character).map(k => k.id), ...access.flatMap(a => a.alwaysPrepared), ...other.map(s => s.id)])
   const pool = [...new Map([...access.flatMap(a => availableSpells(spells, a)), ...other].map(s => [s.id, s])).values()]
     .sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || a.level - b.level || a.name.localeCompare(b.name))
-  const shown = searchEntries(pool, query).slice(0, 60)
+  const shown = searchEntries(pool, query, sp => spellName(sp.id, '')).slice(0, 60)
   const isOn = (s: Spell) => isPinned(character, s.name)
   // Race spells are left out: they cast from "From your items" without a slot.
   const own = pinned.length ? [] : [...new Set([...spellsOf(character).map(k => k.id), ...access.flatMap(a => a.alwaysPrepared)])]
@@ -180,7 +180,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
                   : (
                     <li key={e.id} className="sb-row">
                       <div className="sb-line">
-                        <span className="sb-name"><bdi>{e.name}</bdi><span className="sb-badge">{badge}</span></span>
+                        <span className="sb-name"><SpellName name={e.name} /><span className="sb-badge">{badge}</span></span>
                         <div className="sb-actions">{remove}</div>
                       </div>
                     </li>
@@ -190,7 +190,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
           )}
           {picking && (
             <div className="sb-browse">
-              <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} lang="en" />
+              <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} />
               <ul className="sb-list">
                 {shown.map(s => {
                   const on = isOn(s)
@@ -310,19 +310,19 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
 }
 
 function Browse({ character, apply, access, spells }: { character: Character; apply: Apply; access: SpellAccess; spells: Spell[] }) {
-  const { t } = useI18n()
+  const { t, spellName } = useI18n()
   const levelName = useLevelName()
   const [query, setQuery] = useState('')
   const [level, setLevel] = useState<number | 'all'>('all')
   const available = useMemo(() => availableSpells(spells, access), [spells, access])
   const levels = [...new Set(available.map(s => s.level))]
-  const shown = searchEntries(available.filter(s => level === 'all' || s.level === level), query)
+  const shown = searchEntries(available.filter(s => level === 'all' || s.level === level), query, sp => spellName(sp.id, ''))
   const chosen = new Set(spellsOf(character, access.classId).map(k => k.id))
 
   return (
     <div className="sb-browse">
       <p className="hint">{t('spells.available', { count: available.length, className: access.className, ordinal: levelName(access.maxLevel) })}</p>
-      <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} lang="en" />
+      <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} />
       <div className="sb-levels" role="group" aria-label={t('spells.levelFilter')}>
         <button type="button" className={`glass-chip${level === 'all' ? ' on' : ''}`} aria-pressed={level === 'all'} onClick={() => setLevel('all')}>{t('spells.all')}</button>
         {levels.map(l => (
@@ -361,7 +361,7 @@ const isRunning = (c: Character, spellId: string) => (c.state.effects ?? []).som
 
 /** One spell: name and stat line; tapping the name opens the full text. Actions go in children. */
 export function SpellRow({ spell: s, badge, running, children }: { spell: Spell; badge?: string; running?: boolean; children: ReactNode }) {
-  const { t, locale, dir } = useI18n()
+  const { t, locale, dir, spellMeasure } = useI18n()
   const he = locale === 'he' && !!s.descriptionHe
   const [open, setOpen] = useState(false)
   const comps = [s.components.v && 'V', s.components.s && 'S', s.components.m && 'M'].filter(Boolean).join(', ')
@@ -369,23 +369,23 @@ export function SpellRow({ spell: s, badge, running, children }: { spell: Spell;
     <li className={`sb-row${open ? ' open' : ''}`}>
       <div className="sb-line">
         <button type="button" className="sb-name" aria-expanded={open} onClick={() => setOpen(o => !o)}>
-          <bdi lang="en">{s.name}</bdi>
+          <SpellName name={s.name} id={s.id} />
           {s.concentration && <abbr className="sb-tag" title={t('spells.concentration')}>C</abbr>}
           {s.ritual && <abbr className="sb-tag" title={t('spells.ritual')}>R</abbr>}
           {badge && <span className="sb-badge">{badge}</span>}
           {running && <span className="sb-badge sb-running">{t('cast.running')}</span>}
           {s.book && <abbr className="sb-tag sb-book" title={BOOK_TITLES[s.book] ?? s.book} lang="en">{s.book}</abbr>}
-          <small><bdi lang="en">{s.castingTime.split(',')[0]} · {s.range}</bdi></small>
+          <small><bdi>{spellMeasure(s.castingTime.split(',')[0])} · {spellMeasure(s.range)}</bdi></small>
         </button>
         <div className="sb-actions">{children}</div>
       </div>
       {open && (
         <div className="sb-detail" lang="en" dir="ltr">
-          <dl>
-            <div><dt>{t('spells.castingTime')}</dt><dd>{s.castingTime}</dd></div>
-            <div><dt>{t('spells.range')}</dt><dd>{s.range}</dd></div>
-            <div><dt>{t('spells.components')}</dt><dd>{comps}{s.components.material ? ` (${s.components.material})` : ''}</dd></div>
-            <div><dt>{t('spells.duration')}</dt><dd>{s.concentration ? `${t('spells.concentration')}, ` : ''}{s.duration}</dd></div>
+          <dl lang={locale} dir={dir}>
+            <div><dt>{t('spells.castingTime')}</dt><dd>{spellMeasure(s.castingTime)}</dd></div>
+            <div><dt>{t('spells.range')}</dt><dd>{spellMeasure(s.range)}</dd></div>
+            <div><dt>{t('spells.components')}</dt><dd><bdi lang="en">{comps}{s.components.material ? ` (${s.components.material})` : ''}</bdi></dd></div>
+            <div><dt>{t('spells.duration')}</dt><dd>{s.concentration ? `${t('spells.concentration')}, ` : ''}{spellMeasure(s.duration)}</dd></div>
           </dl>
           {he
             ? <p className="sb-summary" lang="he" dir="rtl">{s.descriptionHe}</p>

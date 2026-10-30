@@ -14,3 +14,10 @@
 [dir='rtl'] .track-count { direction: ltr; unicode-bidi: isolate; }
 /* Damage sources keep the Hebrew line order (name first, from the right); their dice stay LTR. */
 [dir='rtl'] .ff-roll__sources { direction: rtl; }
+
+/* English spell name after the Hebrew one, so table talk still works. */
+.spell-en {
+  font-size: 0.78em;
+  font-weight: 400;
+  opacity: 0.7;
+}
