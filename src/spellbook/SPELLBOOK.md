@@ -1,13 +1,13 @@
 # Spellbook
 
-Combat mode's Spells tab and story mode's Spells card. The tab shows the spell slots, then lists the character's own spells by level, and every spell their class can take right now, pulled from the content library (`src/content`). Each character can use the 2014 rules (SRD 5.1) or the 2024 rules (SRD 5.2) for spell lists and counts.
+Combat mode's Spells tab and story mode's Spells card. The tab shows the spell slots, then lists the character's own spells by level, and every spell their class can take right now, pulled from the content library (`src/content`): the edition's SRD plus the official book spells (`src/content/books`). Each character can use the 2014 rules (SRD 5.1) or the 2024 rules (SRD 5.2) for spell lists and counts.
 
 ## Files Covered
 
 | File | Purpose |
 |------|---------|
 | `index.ts` | Public API |
-| `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells), `canTake`, `availableSpells`, `editionOf`, `sourceFor` |
+| `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells), `canTake`, `availableSpells`, `editionOf`, `sourceFor`, `spellSourcesFor` (SRD + books), `spellIdByName` (book and SRD names of the same spell) |
 | `extra.ts` | Pure: `grantedSpells` (race and lineage spells with the level they arrive), `extraSources` (High Elf cantrip, spell feats such as Magic Initiate from the 2024 background, a Human's origin feat or an ASI), `canPickExtra`, `extraKey`, `extraList`, `keepValidSpells` |
 | `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `pinnedSpells`, `toggleSpellPin`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
 | `Spellbook.tsx` | `Spellbook` (combat's Spells tab): spell slots, summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
@@ -24,10 +24,15 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 - Race spells and spells picked through feats or the High Elf trait show in story mode's pin picker.
 - Limits are shown, not enforced: going over turns the counter red.
 - Multiclass characters get a chip per spellcasting class, each with its own list.
+- Subclass spells are matched by name with `spellIdByName`, which knows the SRD's renames ("Bigby's Hand" is Arcane Hand, 2014 Branding Smite is 2024 Shining Smite).
+
+## Book spells
+
+Spells from the official books show their book code (XGE, TCE…) as a tag. The details show our summary, in Hebrew when the app is in Hebrew, with a line naming the book. Their source note sits under the SRD's.
 
 ## Saved data
 
-`Character.spells` (`{ id, classId }[]`) and `Character.spellEdition` (`'2014'` or `'2024'`; missing follows the character's `rulesEdition`). Ids are library slugs, shared by both editions, so switching edition keeps the choices; spells the new edition lacks (Hex is not in SRD 5.1) just don't show.
+`Character.spells` (`{ id, classId }[]`) and `Character.spellEdition` (`'2014'` or `'2024'`; missing follows the character's `rulesEdition`). Ids are library slugs, shared by both editions, so switching edition keeps the choices; spells the new edition lacks just don't show.
 
 ## Story spells
 
@@ -39,4 +44,4 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 
 ## Licence
 
-The card shows the source's CC-BY attribution under "Source". Keep it.
+The card shows the SRD's CC-BY attribution and the book spells' note under "Source". Keep both.

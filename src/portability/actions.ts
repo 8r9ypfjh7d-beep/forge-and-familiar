@@ -23,7 +23,7 @@ export async function parseAnyFile(text: string): Promise<ParseResult> {
   }
   if (!detectForeign(raw)) return raw && typeof raw === 'object' && 'format' in raw ? own : { ok: false, error: NOT_A_CHARACTER }
   const { loadKind } = await import('../content')
-  const spells = await loadKind('spells', { sources: ['srd-5.1'] })
+  const spells = await loadKind('spells', { sources: ['srd-5.1', 'books-2014'] })
   return parseForeign(raw, { spellIds: new Map(spells.map(s => [s.name.toLowerCase(), s.id])) })
 }
 

@@ -1,6 +1,7 @@
 // Which spells a character can take: per spellcasting class, the highest spell level, cantrips, and how many spells.
 // Pure: reads the class tables from the content library, so 2014 and 2024 rules each use their own numbers.
 import type { CharacterClass, Edition, Spell, Subclass } from '../content'
+import { bookSourceFor } from '../content/books/sources'
 import type { Character } from '../model/character'
 import { classById } from '../rules/data/classes'
 import { rulesEdition } from '../rules/edition'
@@ -38,6 +39,8 @@ export const DEFAULT_EDITION: Edition = '2014'
 /** The character's spell rules: its own spell setting, else its rules edition. */
 export const editionOf = (c: Pick<Character, 'spellEdition' | 'rulesEdition'>): Edition => c.spellEdition ?? c.rulesEdition ?? DEFAULT_EDITION
 export const sourceFor = (edition: Edition) => (edition === '2024' ? 'srd-5.2' : 'srd-5.1')
+/** Where an edition's spells come from: its SRD, then the official book spells (summaries only). */
+export const spellSourcesFor = (edition: Edition) => [sourceFor(edition), bookSourceFor(edition)]
 
 /** Mystic Arcanum: one spell each of levels 6–9 at warlock levels 11, 13, 15, 17 (both editions). */
 const ARCANUM: [number, number][] = [[17, 9], [15, 8], [13, 7], [11, 6]]
@@ -84,6 +87,18 @@ function homebrewAccess(def: ClassDef, level: number, scores: Abilities): Omit<S
   }
 }
 
+/** Spell names the books use where the SRD has another (normalized). Named versions ("Bigby's Hand") also try without the wizard's name. */
+const ALIASES: Record<string, string> = {
+  bigbyshand: 'arcanehand', mordenkainenssword: 'arcanesword', nystulsmagicaura: 'arcanistsmagicaura',
+  brandingsmite: 'shiningsmite', shiningsmite: 'brandingsmite',
+}
+
+/** The id of a spell by any of its names, or undefined. */
+export function spellIdByName(byName: Map<string, string>, name: string): string | undefined {
+  const n = norm(name)
+  return byName.get(n) ?? byName.get(ALIASES[n] ?? '') ?? byName.get(norm(name.replace(/^[^']+'s\s+/, '')))
+}
+
 /**
  * Spell access for each spellcasting class the character has. Homebrew classes the library has no table for
  * use their own casting rules (ClassDef.spellcasting). `scores` are final ability scores; `halfCasters` the class ids that halve
@@ -105,7 +120,7 @@ export function spellAccess(
     if (!def) {
       const own = classById(cl.classId, rulesEdition(c))
       const access = own && homebrewAccess(own, Math.min(cl.level, 20), scores)
-      if (access) out.push({ ...access, ...(cl.subclassId ? { subclassId: cl.subclassId } : {}), alwaysPrepared: [...new Set(subclassSpellNames(c, cl.classId).flatMap(n => byName.get(norm(n)) ?? []))] })
+      if (access) out.push({ ...access, ...(cl.subclassId ? { subclassId: cl.subclassId } : {}), alwaysPrepared: [...new Set(subclassSpellNames(c, cl.classId).flatMap(n => spellIdByName(byName, n) ?? []))] })
       continue
     }
     const row = def.levels.find(l => l.level === Math.min(cl.level, 20))
@@ -132,7 +147,7 @@ export function spellAccess(
       ...magicalSecrets(cl, def.edition),
       alwaysPrepared: [...new Set([
         ...(sub?.spells ?? []).filter(s => s.level <= cl.level).map(s => s.spell.id),
-        ...subclassSpellNames(c, cl.classId).flatMap(n => byName.get(norm(n)) ?? []),
+        ...subclassSpellNames(c, cl.classId).flatMap(n => spellIdByName(byName, n) ?? []),
       ])],
     })
   }

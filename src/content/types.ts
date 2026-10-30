@@ -98,6 +98,10 @@ export interface Spell extends EntryBase {
   /** Slot level → healing, "MOD" is the spellcasting modifier. */
   healBySlotLevel?: Record<number, string>
   area?: { shape: string; size: number }
+  /** Book spells (`src/content/books`): the book's code, e.g. XGE. */
+  book?: string
+  /** Book spells: our own Hebrew summary next to the English one in `description`. */
+  descriptionHe?: string
 }
 
 export type EquipmentType = 'weapon' | 'armor' | 'gear' | 'tool' | 'mount' | 'vehicle'

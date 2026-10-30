@@ -1,6 +1,6 @@
 // Combat's Spells tab: spell slots, the character's spells by level, and every spell their class can take from the library.
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { loadKind, searchEntries, type CharacterClass, type Edition, type SourceInfo, type Spell, type Subclass, BUNDLED } from '../content'
+import { BOOK_SOURCES, BOOK_TITLES, loadKind, searchEntries, type CharacterClass, type Edition, type SourceInfo, type Spell, type Subclass, BUNDLED } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
@@ -9,7 +9,7 @@ import { Markdown } from '../rulesqa/Markdown'
 import { SearchField } from '../rulesqa/SearchField'
 import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlots'
 import type { Apply } from '../sheet/types'
-import { availableSpells, editionOf, sourceFor, spellAccess, type SpellAccess } from './access'
+import { availableSpells, editionOf, spellAccess, spellSourcesFor, type SpellAccess } from './access'
 import { grantedSpells, isExtraSpell } from './extra'
 import { addSpell, isPinned, pinnedSpells, removeSpell, setEdition, spellsOf, toggleSpellPin } from './spellbook'
 import './spellbook.css'
@@ -18,7 +18,8 @@ interface Library {
   spells: Spell[]
   classes: CharacterClass[]
   subclasses: Subclass[]
-  source?: SourceInfo
+  /** The SRD source, then the book spells' source. */
+  sources: SourceInfo[]
 }
 
 /** Loads one edition's spells and class tables. Each file is fetched once per page load. */
@@ -26,10 +27,11 @@ function useLibrary(edition: Edition): Library | 'error' | null {
   const [lib, setLib] = useState<{ edition: Edition; data: Library | 'error' } | null>(null)
   useEffect(() => {
     let live = true
-    const sources = [sourceFor(edition)]
+    const sources = spellSourcesFor(edition)
+    const shown = [...BUNDLED.map(m => m.source), ...BOOK_SOURCES].filter(s => sources.includes(s.id))
     Promise.all([loadKind('spells', { sources }), loadKind('classes', { sources }), loadKind('subclasses', { sources })])
       .then(([spells, classes, subclasses]) => {
-        if (live) setLib({ edition, data: { spells, classes, subclasses, source: BUNDLED.find(m => m.source.id === sources[0])?.source } })
+        if (live) setLib({ edition, data: { spells, classes, subclasses, sources: shown } })
       })
       .catch(() => live && setLib({ edition, data: 'error' }))
     return () => { live = false }
@@ -89,12 +91,12 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
           {tab === 'mine'
             ? <Mine character={character} apply={apply} access={current} spells={lib.spells} onBrowse={() => setTab('browse')} />
             : <Browse character={character} apply={apply} access={current} spells={lib.spells} />}
-          {lib.source && (
-            <details className="sb-source">
-              <summary>{t('spells.source', { title: lib.source.title })}</summary>
-              <p lang="en" dir="ltr">{lib.source.attribution}</p>
+          {lib.sources.map(source => (
+            <details key={source.id} className="sb-source">
+              <summary>{t('spells.source', { title: source.title })}</summary>
+              <p lang="en" dir="ltr">{source.attribution}</p>
             </details>
-          )}
+          ))}
         </>
       )}
     </section>
@@ -334,7 +336,8 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
 
 /** One spell: name and stat line; tapping the name opens the full text. Actions go in children. */
 export function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: string; children: ReactNode }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const he = locale === 'he' && !!s.descriptionHe
   const [open, setOpen] = useState(false)
   const comps = [s.components.v && 'V', s.components.s && 'S', s.components.m && 'M'].filter(Boolean).join(', ')
   return (
@@ -345,6 +348,7 @@ export function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: 
           {s.concentration && <abbr className="sb-tag" title={t('spells.concentration')}>C</abbr>}
           {s.ritual && <abbr className="sb-tag" title={t('spells.ritual')}>R</abbr>}
           {badge && <span className="sb-badge">{badge}</span>}
+          {s.book && <abbr className="sb-tag sb-book" title={BOOK_TITLES[s.book] ?? s.book} lang="en">{s.book}</abbr>}
           <small><bdi lang="en">{s.castingTime.split(',')[0]} · {s.range}</bdi></small>
         </button>
         <div className="sb-actions">{children}</div>
@@ -357,7 +361,10 @@ export function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: 
             <div><dt>{t('spells.components')}</dt><dd>{comps}{s.components.material ? ` (${s.components.material})` : ''}</dd></div>
             <div><dt>{t('spells.duration')}</dt><dd>{s.concentration ? `${t('spells.concentration')}, ` : ''}{s.duration}</dd></div>
           </dl>
-          <Markdown text={s.description} />
+          {he
+            ? <p className="sb-summary" lang="he" dir="rtl">{s.descriptionHe}</p>
+            : <Markdown text={s.description} />}
+          {s.book && <p className="hint sb-book-note">{t('spells.bookNote', { book: BOOK_TITLES[s.book] ?? s.book })}</p>}
           {s.higherLevels && <><h4>{t('spells.higher')}</h4><Markdown text={s.higherLevels} /></>}
         </div>
       )}
