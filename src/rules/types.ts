@@ -24,11 +24,67 @@ export type Size = 'Small' | 'Medium'
 /** Rules edition: '2014' is SRD 5.1, '2024' is SRD 5.2. */
 export type RulesEdition = '2014' | '2024'
 
-export interface Subrace {
+/** A racial trait with limited uses, tracked on the sheet's Resources (id `race:<slug>`). */
+export interface RaceUse {
+  /** The trait's name, as listed in `traits`. */
+  trait: string
+  count: UsesCount
+  recharge: RestType
+  /** Character level the trait starts at (Aasimar Celestial Revelation: 3). */
+  level?: number
+}
+
+/** An effect from character level `level` on (innate spells at 3rd and 5th). */
+export type RaceEffect = ItemEffect & { level?: number }
+
+/** A racial pick saved in Character.traitChoices[id]; the picked option's effects apply (Changeling Instincts, Simic Hybrid). */
+export interface TraitChoice {
+  id: string
+  name: string
+  /** Number of options to pick (default 1); several picks are saved comma-separated. */
+  count?: number
+  /** Character level the pick unlocks at (Simic Hybrid's second enhancement: 5). */
+  level?: number
+  options: { id: string; name: string; detail?: string; effects?: RaceEffect[] }[]
+}
+
+/** Rules a race or subrace adds to the sheet beyond its listed traits. */
+export interface RaceRules {
+  /** Book it comes from; missing for SRD and homebrew. */
+  source?: string
+  /** Sheet changes: senses, resistances, advantage, speeds, skill proficiencies, innate spells (kind 'spell'). */
+  effects?: RaceEffect[]
+  uses?: RaceUse[]
+  /** Picks beyond Dragonborn's `traitChoice`, each with effects. */
+  choices?: TraitChoice[]
+  /** Unarmored AC: base (+ DEX when `dex`); a shield still adds (Tortle 17, Lizardfolk/Locathah 13 + DEX). */
+  naturalArmor?: { base: number; dex: boolean }
+  /** Languages known on top of the race's (subraces: Mark of Hospitality adds none, half-elf variants none). */
+  languages?: string[]
+  skillProficiencies?: SkillId[]
+  /** Tools always known (Autognome, Mark of Making). Picks go in Race.toolChoices. */
+  tools?: string[]
+  armor?: ArmorCategory[]
+  weapons?: WeaponCategory[]
+  /** Specific weapon ids the race is trained with (Drow: rapier, shortsword, hand crossbow). */
+  weaponIds?: string[]
+}
+
+export interface Subrace extends RaceRules {
   id: string
   name: string
   abilityBonuses: Partial<Abilities>
   traits: string[]
+  /** The subrace's scores replace the race's fixed and free ones (dragonmarked humans, Variant Human). */
+  replacesBonuses?: boolean
+  /** Free +1s the subrace gives (Mark of Making human: one ability other than INT). */
+  freeAbilityBonuses?: { count: number; exclude: Ability[] }
+  /** Race traits this subrace swaps out (Mark of Finding half-orc loses Menacing). */
+  removesTraits?: string[]
+  /** Skills of the player's choice; replaces the race's count (half-elf variants: 0, Variant Human: 1). */
+  freeSkillChoices?: number
+  /** Variant Human: one feat of the player's choice (any 2014 feat), saved as originFeatId. */
+  featChoice?: boolean
   /** Extra max HP per character level (Hill Dwarf). */
   hpPerLevel?: number
   /** Extra languages of the player's choice (High Elf). */
@@ -39,12 +95,19 @@ export interface Subrace {
   speed?: number
 }
 
-export interface Race {
+export interface Race extends RaceRules {
   id: string
   name: string
   size: Size
+  /** Sizes the player picks from (Medium or Small); saved as Character.sizeChoice, `size` is the default. */
+  sizeOptions?: Size[]
   speed: number
   abilityBonuses: Partial<Abilities>
+  /**
+   * Monsters of the Multiverse style: +2 to one ability and +1 to another, or +1 to three, picked in
+   * `freeAbilityBonuses` (one entry per +1, at most +2 to one), like 2024 background bonuses.
+   */
+  flexibleAbilityBonuses?: boolean
   /** Number of +1 bonuses the player assigns freely (Half-Elf). */
   freeAbilityBonuses?: { count: number; exclude: Ability[] }
   skillProficiencies?: SkillId[]
@@ -59,11 +122,13 @@ export interface Race {
   /** Tool proficiency picks (Dwarf: one artisan's tool from a short list). */
   toolChoices?: { count: number; from: string[] }
   /** A trait with named options the player picks from (Dragonborn ancestry). */
-  traitChoice?: { id: string; name: string; options: { id: string; name: string; detail: string }[] }
+  traitChoice?: { id: string; name: string; options: { id: string; name: string; detail: string; effects?: RaceEffect[] }[] }
   traits: string[]
   /** Extra max HP per character level (homebrew races; SRD puts this on Hill Dwarf). */
   hpPerLevel?: number
   subraces?: Subrace[]
+  /** The race can be played without picking a subrace (Human with Variant Human, Tiefling bloodlines). */
+  subraceOptional?: boolean
 }
 
 export type ArmorCategory = 'light' | 'medium' | 'heavy' | 'shield'

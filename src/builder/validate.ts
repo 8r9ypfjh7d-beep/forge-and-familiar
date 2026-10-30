@@ -2,7 +2,7 @@ import { translate, type Translate } from '../i18n/translate'
 import {
   ABILITIES, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
-  raceById, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, SECRET_LANGUAGES, subclassOf, subclassesFor, toolPickGroups,
+  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, SECRET_LANGUAGES, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type SkillId,
 } from '../rules'
 
@@ -19,7 +19,7 @@ export function grantedSkills(d: CharacterDraft): Set<SkillId> {
 /** Skill picks: the first class's list, plus picks of any skill from the race and feats (2024 Skilled) as `raceCount`. */
 export function skillPicks(d: CharacterDraft) {
   const cls = classById(d.classes[0]?.classId ?? '', d.rulesEdition)
-  const free = (raceById(d.raceId, d.rulesEdition)?.freeSkillChoices ?? 0) + featSkillPicks(d)
+  const free = raceProfile(d).freeSkillChoices + featSkillPicks(d)
   return { classCount: cls?.skillChoices.count ?? 0, classFrom: cls?.skillChoices.from ?? [], raceCount: free }
 }
 
@@ -39,16 +39,22 @@ type Term = (kind: string, id: string, name: string) => string
 export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = english): string[] {
   const out: string[] = []
   const edition = rulesEdition(d)
-  const race = raceById(d.raceId, edition)
+  const profile = raceProfile(d)
+  const race = profile.race
   const className = (id: string) => classById(id, edition)?.name ?? id
   switch (step) {
     case 'race':
       if (!race) out.push(t('builder.issue.race'))
-      else if (race.subraces?.length && !race.subraces.some(s => s.id === d.subraceId)) out.push(t('builder.issue.subrace'))
+      else if (race.subraces?.length && !race.subraceOptional && !race.subraces.some(s => s.id === d.subraceId)) out.push(t('builder.issue.subrace'))
       if (race?.traitChoice && !race.traitChoice.options.some(o => o.id === d.traitChoices?.[race.traitChoice!.id])) {
         out.push(t('builder.issue.traitChoice', { trait: race.traitChoice.name }))
       }
-      if (race?.originFeatChoice && featById(d.originFeatId ?? '', edition)?.category !== 'origin') out.push(t('builder.issue.originFeat'))
+      for (const ch of profile.choices) {
+        const picked = pickedOptions(d, ch.id).filter(id => ch.options.some(o => o.id === id))
+        if (picked.length !== Math.min(ch.count ?? 1, ch.options.length)) out.push(t('builder.issue.traitChoice', { trait: ch.name }))
+      }
+      if (profile.featChoice === 'origin' && featById(d.originFeatId ?? '', edition)?.category !== 'origin') out.push(t('builder.issue.originFeat'))
+      if (profile.featChoice === 'any' && !featById(d.originFeatId ?? '', edition)) out.push(t('builder.issue.raceFeat'))
       break
     case 'class':
       if (!classById(d.classes[0]?.classId ?? '', edition)) out.push(t('builder.issue.class'))
@@ -78,8 +84,12 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       } else if (scores.some(s => s < 3 || s > 20)) {
         out.push(t('builder.issue.manualRange'))
       }
-      const free = edition === '2014' ? race?.freeAbilityBonuses : undefined
+      const free = edition === '2014' ? profile.freeAbilityBonuses : undefined
       if (free && d.freeAbilityBonuses.length !== free.count) out.push(t('builder.issue.freeBonus', { count: free.count }))
+      if (edition === '2014' && profile.flexibleAbilityBonuses) {
+        const sum = ABILITIES.reduce((n, a) => n + flexibleBonuses(d.freeAbilityBonuses)[a], 0)
+        if (sum !== 3 || d.freeAbilityBonuses.length !== 3) out.push(t('builder.issue.flexibleBonus'))
+      }
       if (edition === '2024') {
         // Any ability works (the background's three are a suggestion, see stepWarnings); only the +2/+1 shape is required.
         const n = (a: string) => d.freeAbilityBonuses.filter(x => x === a).length
@@ -147,7 +157,8 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
   const out: string[] = []
   const abbr = (list: Ability[]) => [...new Set(list)].map(a => term('abilityShort', a, a.toUpperCase())).join(', ')
   const edition = rulesEdition(d)
-  const race = raceById(d.raceId, edition)
+  const profile = raceProfile(d)
+  const race = profile.race
   switch (step) {
     case 'race': {
       const book = bookOrigin(d)
@@ -163,7 +174,7 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
         const off = d.freeAbilityBonuses.filter(a => !listed.includes(a))
         if (bg && off.length) out.push(t('builder.warn.bgBonus', { background: term('background', bg.id, bg.name), abilities: abbr(off) }))
       }
-      const free = edition === '2014' ? race?.freeAbilityBonuses : undefined
+      const free = edition === '2014' ? profile.freeAbilityBonuses : undefined
       const excluded = free ? d.freeAbilityBonuses.filter(a => free.exclude.includes(a)) : []
       if (race && excluded.length) out.push(t('builder.warn.freeExcluded', { race: term('race', race.id, race.name), abilities: abbr(excluded) }))
       if (fixedRacialBonuses(d).some(b => b.ability !== b.book)) out.push(t('builder.warn.racialMoved'))

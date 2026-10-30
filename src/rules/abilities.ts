@@ -1,8 +1,8 @@
 import type { Character } from '../model/character'
 import { featAbilityChoices, improvementBonuses, type FeatInput } from './choices'
-import { raceById } from './data/races'
 import { rulesEdition } from './edition'
 import { applyItemAbilities } from './itemEffects'
+import { raceProfile } from './race'
 import { ABILITIES, type Abilities, type Ability } from './types'
 
 export const abilityMod = (score: number) => Math.floor((score - 10) / 2)
@@ -59,16 +59,7 @@ type RacialInput = Pick<Character, 'raceId' | 'subraceId' | 'freeAbilityBonuses'
  * 2024 background bonuses: one +1 per `freeAbilityBonuses` entry, at most +2 to one and +3 in total
  * (so +2/+1 or +1/+1/+1). Any ability counts: the background's three are the book's suggestion.
  */
-export function backgroundBonuses(c: RacialInput): Abilities {
-  const out = emptyAbilities(0)
-  let total = 0
-  for (const a of c.freeAbilityBonuses) {
-    if (out[a] >= 2 || total >= 3) continue
-    out[a] += 1
-    total += 1
-  }
-  return out
-}
+export const backgroundBonuses = (c: RacialInput): Abilities => flexibleBonuses(c.freeAbilityBonuses)
 
 /** A 2014 race or subrace bonus: where the book puts it (`book`) and where it goes (`ability`, moved by `racialBonusTargets`). */
 export interface RacialBonus { source: string; sourceId: string; value: number; book: Ability; ability: Ability }
@@ -76,14 +67,26 @@ export interface RacialBonus { source: string; sourceId: string; value: number; 
 /** 2014 fixed race then subrace bonuses, in order; `racialBonusTargets[i]` moves the i-th one to another ability. */
 export function fixedRacialBonuses(c: RacialInput): RacialBonus[] {
   if (rulesEdition(c) === '2024') return []
-  const race = raceById(c.raceId)
-  if (!race) return []
-  const sub = race.subraces?.find(s => s.id === c.subraceId)
+  const { race, subrace: sub, flexibleAbilityBonuses } = raceProfile({ ...c, rulesEdition: undefined })
+  if (!race || flexibleAbilityBonuses) return []
   const out: RacialBonus[] = []
-  for (const [from, bonuses] of [[race, race.abilityBonuses], [sub, sub?.abilityBonuses ?? {}]] as const) {
+  // A subrace with replacesBonuses (dragonmarked human, Variant Human) drops the race's own scores.
+  for (const [from, bonuses] of [[race, sub?.replacesBonuses ? {} : race.abilityBonuses], [sub, sub?.abilityBonuses ?? {}]] as const) {
     for (const [a, v] of Object.entries(bonuses) as [Ability, number][]) {
       if (v) out.push({ source: from?.name ?? '', sourceId: from?.id ?? '', value: v, book: a, ability: c.racialBonusTargets?.[out.length] ?? a })
     }
+  }
+  return out
+}
+
+/** +1 per pick, at most +2 to one ability and +3 in total: +2/+1 or +1/+1/+1 (2024 backgrounds, flexible 2014 races). */
+export function flexibleBonuses(picks: Ability[]): Abilities {
+  const out = emptyAbilities(0)
+  let total = 0
+  for (const a of picks) {
+    if (out[a] >= 2 || total >= 3) continue
+    out[a] += 1
+    total += 1
   }
   return out
 }
@@ -94,12 +97,14 @@ export function fixedRacialBonuses(c: RacialInput): RacialBonus[] {
  */
 export function racialBonuses(c: RacialInput): Abilities {
   if (rulesEdition(c) === '2024') return backgroundBonuses(c)
+  const profile = raceProfile({ ...c, rulesEdition: undefined })
+  if (!profile.race) return emptyAbilities(0)
+  // Monsters of the Multiverse style: +2/+1 or +1/+1/+1 anywhere, the same rule as 2024 backgrounds.
+  if (profile.flexibleAbilityBonuses) return flexibleBonuses(c.freeAbilityBonuses)
   const out = emptyAbilities(0)
-  const race = raceById(c.raceId)
-  if (!race) return out
   for (const b of fixedRacialBonuses(c)) out[b.ability] += b.value
-  if (race.freeAbilityBonuses) {
-    for (const a of new Set(c.freeAbilityBonuses.slice(0, race.freeAbilityBonuses.count))) out[a] += 1
+  if (profile.freeAbilityBonuses) {
+    for (const a of new Set(c.freeAbilityBonuses.slice(0, profile.freeAbilityBonuses.count))) out[a] += 1
   }
   return out
 }

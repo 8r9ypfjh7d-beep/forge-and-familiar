@@ -2,8 +2,8 @@
 // each one swappable for another of the same kind (Character.originSwaps). Ability bonuses move with
 // racialBonusTargets (abilities.ts). Race tool picks already accept any tool.
 import type { Character } from '../model/character'
-import { raceById } from './data/races'
 import { rulesEdition } from './edition'
+import { raceProfile } from './race'
 import type { SkillId } from './types'
 
 type OriginInput = Pick<Character, 'raceId' | 'subraceId'> & Partial<Pick<Character, 'rulesEdition' | 'originSwaps'>>
@@ -17,14 +17,14 @@ const RACIAL_WEAPONS: Record<string, string[]> = {
 const swap = <T extends string>(list: T[], to: Partial<Record<string, T>> | undefined): T[] =>
   [...new Set(list.map(x => to?.[x] || x))]
 
-/** The race's own skills, languages and weapons, before any swap. 2024 species give no weapons. */
+/** The race's and subrace's own skills, languages and weapon ids (raceProfile), before any swap. SRD 2024 species give no weapons. */
 export function bookOrigin(c: OriginInput): { skills: SkillId[]; languages: string[]; weapons: string[] } {
   const edition = rulesEdition(c)
-  const race = raceById(c.raceId, edition)
+  const race = raceProfile(c)
   return {
-    skills: race?.skillProficiencies ?? [],
-    languages: race?.languages ?? [],
-    weapons: edition === '2024' ? [] : [...(RACIAL_WEAPONS[c.raceId] ?? []), ...(RACIAL_WEAPONS[c.subraceId ?? ''] ?? [])],
+    skills: race.skillProficiencies,
+    languages: race.languages,
+    weapons: [...(edition === '2024' ? [] : [...(RACIAL_WEAPONS[c.raceId] ?? []), ...(RACIAL_WEAPONS[c.subraceId ?? ''] ?? [])]), ...race.weaponIds],
   }
 }
 

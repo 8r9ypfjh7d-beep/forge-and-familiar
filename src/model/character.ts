@@ -2,7 +2,7 @@
 // Everything not stored here (max HP, AC, modifiers, slots, resource maxima) is derived by src/rules.
 import type { QuickCastEntry } from '../quickcast/types'
 import type { ClassOptionPick } from '../rules/classOptions'
-import type { Abilities, Ability, ConditionId, InventoryEntry, ItemEffect, SkillId, SubclassData } from '../rules/types'
+import type { Abilities, Ability, ConditionId, InventoryEntry, ItemEffect, Size, SkillId, SubclassData } from '../rules/types'
 
 export type AbilityMethod = 'standard' | 'pointBuy' | 'rolled' | 'manual'
 export type HitDie = 'd6' | 'd8' | 'd10' | 'd12'
@@ -165,8 +165,10 @@ export interface Character {
   chosenLanguages?: string[]
   /** Tools picked from race and class choices. */
   chosenTools?: string[]
-  /** Race.traitChoice id → chosen option id (Dragonborn ancestry). */
+  /** Race.traitChoice / Race.choices id → chosen option id, comma-separated when a choice takes several (Dragonborn ancestry). */
   traitChoices?: Record<string, string>
+  /** Size picked when the race offers more than one (Race.sizeOptions). */
+  sizeChoice?: Size
   /** Class choices, keyed `<classId>.<ClassChoice id>` → option id (2024 Fighting Style, Divine Order). */
   featureChoices?: Record<string, string>
   /** Picks from class option lists: invocations, pact boons, metamagic, maneuvers, fighting styles, infusions (rules/classOptions). */

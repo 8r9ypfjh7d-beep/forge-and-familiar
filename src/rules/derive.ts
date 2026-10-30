@@ -7,17 +7,17 @@ import { AURA_OF_PROTECTION_LEVEL, RADIANT_STRIKE_LEVEL } from './data/classFeat
 import { classById } from './data/classes'
 import { entryItem } from './data/items'
 import { NON_STACKING_RESOURCES } from './data/multiclass'
-import { raceById } from './data/races'
 import type { SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { rulesEdition, uses2024Spells } from './edition'
 import { effectsOf, itemBonus } from './itemEffects'
 import { racialSkills, racialWeapons } from './origin'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
+import { raceProfile, raceUseId } from './race'
 import { slug, subclassFeatures, subclassOf } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type ClassDef, type ConditionId, type InventoryEntry, type Item, type MoveMode, type Recharge,
-  type Sense, type SkillId, type SubclassFeature,
+  type Sense, type Size, type SkillId, type SubclassFeature,
 } from './types'
 
 type Weapon = Extract<Item, { kind: 'weapon' }>
@@ -47,8 +47,7 @@ export const xpForNextLevel = (level: number): number | undefined => XP_THRESHOL
 /** Max HP: max die at 1st level, fixed average after, plus CON and racial extras. */
 export function getMaxHp(c: Character): number {
   const con = getAbilityMods(getAbilityScores(c)).con
-  const race = raceById(c.raceId, rulesEdition(c))
-  const perLevelBonus = (race?.hpPerLevel ?? 0) + (race?.subraces?.find(s => s.id === c.subraceId)?.hpPerLevel ?? 0) + featBonus(c, 'hpPerLevel')
+  const perLevelBonus = raceProfile(c).hpPerLevel + featBonus(c, 'hpPerLevel')
   let hp = 0
   let first = true
   for (const { def, level, subclass } of classesOf(c)) {
@@ -156,6 +155,12 @@ export function getResources(c: Character): ResourceInfo[] {
     const max = usesMax(u, level, prof, mods)
     if (max > 0) out.push({ id: classOptionResourceId(option), label: option.name, max, recharge: u.recharge })
   }
+  // Racial traits with uses (Hexblood's Magic Token, Shifting): counted from the character level, PB or a modifier.
+  const charLevel = Math.max(1, totalLevel(c))
+  for (const u of raceProfile(c).uses) {
+    const max = usesMax(u, charLevel, prof, mods)
+    if (max > 0) out.push({ id: raceUseId(u.trait), label: u.trait, max, recharge: u.recharge })
+  }
   return [...out, ...getItemCharges(c)]
 }
 
@@ -168,12 +173,12 @@ export function getWeaponMasteryCount(c: Pick<Character, 'classes' | 'rulesEditi
 // ---------- Equipment ----------
 
 function isWeaponProficient(c: Character, w: Weapon) {
-  if (racialWeapons(c).includes(w.id)) return true
+  if (racialWeapons(c).includes(w.id) || raceProfile(c).weapons.includes(w.category)) return true
   const { weapons, weaponIds } = getProficiencies(c)
   return weapons.has(w.category) || weaponIds.has(w.id)
 }
 
-const isArmorProficient = (c: Character, a: Armor) => getProficiencies(c).armor.has(a.category)
+const isArmorProficient = (c: Character, a: Armor) => getProficiencies(c).armor.has(a.category) || raceProfile(c).armor.includes(a.category)
 
 function equippedEntries(c: Character): { entry: InventoryEntry; item: Item }[] {
   return c.inventory.filter(e => e.equipped).flatMap(entry => {
@@ -217,6 +222,12 @@ export function getArmorClass(c: Character): { value: number; source: string } {
         value = 10 + mods.dex + mods[extra]
         source = `Unarmored Defense (${def.name})`
       }
+    }
+    // Natural armor (Tortle, Lizardfolk, Locathah): a shield still adds.
+    const natural = raceProfile(c).naturalArmor
+    if (natural && natural.base + (natural.dex ? mods.dex : 0) > value) {
+      value = natural.base + (natural.dex ? mods.dex : 0)
+      source = 'Natural Armor'
     }
     for (const { subclass } of classesOf(c)) {
       const sub = subclass?.unarmoredAbility ? 10 + mods[subclass.unarmoredAbility] : (subclass?.unarmoredBase ?? 0)
@@ -397,6 +408,8 @@ export interface DerivedStats {
   /** `text` describes features the SRD library has no entry for (other books, custom subclasses). */
   /** `detail`: what the feature has grown to at this level ("d8", "CR 1", "3 attacks"). */
   features: { level: number; name: string; className: string; text?: string; subclassId?: string; detail?: string }[]
+  /** Size from the race, or the player's pick when the race offers two. */
+  size: Size
   traits: string[]
   languages: string[]
   tools: string[]
@@ -431,8 +444,8 @@ export function derive(c: Character): DerivedStats {
   const prof = proficiencyBonus(level)
   const classes = classesOf(c)
   const firstClass: ClassDef | undefined = classes[0]?.def
-  const race = raceById(c.raceId, rulesEdition(c))
-  const subrace = race?.subraces?.find(s => s.id === c.subraceId)
+  const raceInfo = raceProfile(c)
+  const race = raceInfo.race
   const bard = classes.find(x => x.def.id === 'bard')
   const jackOfAllTrades = bard && bard.level >= 2 ? Math.floor(prof / 2) : 0
   const warnings: string[] = []
@@ -483,7 +496,7 @@ export function derive(c: Character): DerivedStats {
   defenses.resistances = defenses.resistances.filter(d => !defenses.immunities.includes(d))
 
   const { armor, shield } = getEquippedArmor(c)
-  let speed = (subrace?.speed ?? race?.speed ?? 30) + featBonus(c, 'speed') + itemBonus(c, 'speed')
+  let speed = raceInfo.speed + featBonus(c, 'speed') + itemBonus(c, 'speed')
   if (armor?.category === 'heavy' && armor.strengthReq && abilities.str < armor.strengthReq) {
     speed -= 10
     warnings.push(`${armor.name} needs STR ${armor.strengthReq}: speed −10 ft.`)
@@ -545,7 +558,8 @@ export function derive(c: Character): DerivedStats {
         return { ...rest, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name, ...(detail ? { detail } : {}) }
       }),
     ),
-    traits: [...(race?.traits ?? []), ...(subrace?.traits ?? [])].map(t => {
+    size: raceInfo.size,
+    traits: raceInfo.traits.map(t => {
       const choice = race?.traitChoice
       const picked = choice?.name === t ? choice.options.find(o => o.id === c.traitChoices?.[choice.id]) : undefined
       return picked ? `${t} (${picked.name}: ${picked.detail})` : t
