@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { stepIssues } from '../builder/validate'
 import { he } from '../i18n/locales/he'
-import { spellAccess } from '../spellbook/access'
+import { loadKind } from '../content'
+import { spellAccess, spellIdByName, spellSourcesFor } from '../spellbook/access'
 import {
-  BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, CUSTOM_SUBCLASS, createCharacter, derive, getProficiencies, getResources, subclassById, subclassesFor,
+  BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, CUSTOM_SUBCLASS, SUBCLASSES, SUBCLASSES_2024, createCharacter, derive, getProficiencies, getResources, subclassById, subclassesFor,
   subclassSpellNames, type CharacterDraft,
 } from './index'
 
@@ -143,5 +144,39 @@ describe('book subclasses for every class', () => {
     expect([...getProficiencies(hero('bard', 3, 'valor')).armor]).toEqual(expect.arrayContaining(['medium', 'shield']))
     expect(derive(hero('cleric', 16, 'war')).defenses.resistances).toEqual([])
     expect(derive(hero('cleric', 17, 'war')).defenses.resistances).toEqual(expect.arrayContaining(['bludgeoning', 'piercing', 'slashing']))
+  })
+})
+
+describe('SRD subclass spells', () => {
+  const EDITIONS = ['2014', '2024'] as const
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+  // Circle of the Land's spells depend on the terrain, so they come from its terrain pick (classOptions) instead.
+  const PICKED = ['land', 'circle-of-the-land']
+
+  it.each(EDITIONS)('%s: every SRD subclass with a spell list has one, and the SRD\'s own list is included', async edition => {
+    const lib = await loadKind('subclasses', { sources: [edition === '2024' ? 'srd-5.2' : 'srd-5.1'] })
+    const own = edition === '2024' ? SUBCLASSES_2024 : SUBCLASSES
+    for (const s of own.filter(x => !PICKED.includes(x.id))) {
+      const fromLib = lib.find(x => x.id === s.id)?.spells ?? []
+      const named = s.features.some(f => /\b(Domain|Oath|Devotion|Circle|Land|Patron|Fiend|Draconic) Spells$/.test(f.name)) || fromLib.length > 0
+      if (!named) continue
+      expect(s.spells?.length ?? 0, s.id).toBeGreaterThan(0)
+      const ours = new Set(s.spells!.flatMap(x => x.names.map(norm)))
+      for (const x of fromLib) expect(ours.has(norm(x.spell.name)), `${s.id} ${x.spell.name}`).toBe(true)
+    }
+  })
+
+  it.each(EDITIONS)('%s: every SRD subclass spell is in the spell library', async edition => {
+    const spells = await loadKind('spells', { sources: spellSourcesFor(edition) })
+    const byName = new Map(spells.map(s => [norm(s.name), s.id]))
+    for (const s of edition === '2024' ? SUBCLASSES_2024 : SUBCLASSES) {
+      for (const n of (s.spells ?? []).flatMap(x => x.names)) expect(spellIdByName(byName, n), `${s.id} ${n}`).toBeTruthy()
+    }
+  })
+
+  it('gives 2024 Life Domain its spells as always prepared by cleric level', () => {
+    const c = warlock(5, 'life-domain', { rulesEdition: '2024', classes: [{ classId: 'cleric', level: 5, subclassId: 'life-domain' }] })
+    expect(subclassSpellNames(c, 'cleric')).toEqual(['Aid', 'Bless', 'Cure Wounds', 'Lesser Restoration', 'Mass Healing Word', 'Revivify'])
+    expect(subclassSpellNames({ ...c, classes: [{ classId: 'sorcerer', level: 3, subclassId: 'draconic-sorcery' }] }, 'sorcerer')).toContain("Dragon's Breath")
   })
 })
