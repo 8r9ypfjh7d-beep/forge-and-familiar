@@ -29,6 +29,8 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261028090000_party_shared.sql
 \ir ../migrations/20261028100000_party_dm.sql
 \ir ../migrations/20261030120000_homebrew_packs.sql
+\ir ../migrations/20261030150000_end_party.sql
+\ir ../migrations/20261030210000_npc_sheets.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -416,6 +418,39 @@ set test.uid = '00000000-0000-0000-0000-00000000000d';
 select pg_temp.check((select count(*) from homebrew_packs) = 2, 'admin reads every pack');
 set test.uid = '00000000-0000-0000-0000-00000000000e';
 select pg_temp.check((select count(*) from homebrew_packs) = 0, 'unlinked device reads no packs');
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+
+-- NPC sheets: only the DM who owns them (and the admin), never party members.
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+insert into npc_sheets (owner_id, id, data) values ('acct-noa', 'npc-goblin-boss', '{"name":"Goblin boss","hp":21}');
+update npc_sheets set data = '{"name":"Goblin boss","hp":15}', rev = 1 where owner_id = 'acct-noa' and id = 'npc-goblin-boss' and rev = 0;
+update npc_sheets set data = '{"name":"stale"}', rev = 1 where owner_id = 'acct-noa' and id = 'npc-goblin-boss' and rev = 0;
+select pg_temp.check((select data->>'hp' from npc_sheets where id = 'npc-goblin-boss') = '15', 'DM edits an NPC; a stale rev write is ignored');
+do $$ begin
+  insert into npc_sheets (owner_id, id, data) values ('acct-roy', 'npc-fake', '{}');
+  raise exception 'FAILED: wrote an NPC as someone else';
+exception when insufficient_privilege then raise notice 'ok: cannot write an NPC as someone else';
+end $$;
+do $$ begin
+  insert into npc_sheets (owner_id, id, data) values ('acct-noa', 'bad id!', '{}');
+  raise exception 'FAILED: bad NPC id accepted';
+exception when check_violation then raise notice 'ok: NPC ids are checked';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select count(*) from npc_sheets) = 0, 'a player in the DM''s party cannot read NPC sheets');
+update npc_sheets set data = '{"name":"Hijack"}' where owner_id = 'acct-noa';
+do $$ begin
+  delete from npc_sheets where owner_id = 'acct-noa';
+  raise exception 'FAILED: deleted an NPC row';
+exception when insufficient_privilege then raise notice 'ok: NPC rows are never deleted (tombstones sync deletes)';
+end $$;
+reset role;
+select pg_temp.check((select data->>'name' from npc_sheets where id = 'npc-goblin-boss') = 'Goblin boss', 'a player cannot change an NPC sheet');
+set role authenticated;
+set test.uid = '00000000-0000-0000-0000-00000000000d';
+select pg_temp.check((select count(*) from npc_sheets) = 1, 'admin reads every NPC sheet');
+set test.uid = '00000000-0000-0000-0000-00000000000e';
+select pg_temp.check((select count(*) from npc_sheets) = 0, 'unlinked device reads no NPC sheets');
 set test.uid = '00000000-0000-0000-0000-00000000000a';
 
 -- Signed out: nothing.

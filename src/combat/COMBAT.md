@@ -10,6 +10,7 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 | `types.ts` | `Encounter`, `Combatant`, `Effect`, `PendingCheck`, `CONDITIONS` |
 | `engine.ts` | Every encounter change, pure. Tested in `engine.test.ts` |
 | `storage.ts` | Encounters in localStorage (`ff.encounters.v1`), async API, filtered by `ownerId` |
+| `playerView.ts` | Pure: `playerView(encounter)`, what the party may see of a fight (`PlayerEncounter`); `healthLook`, `DM_ONLY_FIELDS`. Tested in `playerView.test.ts` |
 | `ui/useEncounter.ts` | Loads an encounter and its party characters, saves both, undo |
 | `ui/rolls.ts` | Initiative and concentration rolls through `src/dice`, recorded in the dice history |
 | `ui/CombatTracker.tsx` | Encounter list and the open encounter (`initialOpenId` opens one straight away, used by the DM screen) |
@@ -27,3 +28,4 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 - **Text.** UI strings are `combat.*` keys in `src/i18n/locales` (English and Hebrew). Log lines are stored as `{ key, vars }` and translated when shown; plain strings in older saves show as written.
 - **Look.** Cards are `.glass` (effects and log `.glass.thick`), one `.glass-btn.prominent` per surface (New encounter, Next turn, Roll save, Add). The active row wears the lens (accent tint, accent edge, accent initiative badge). Damage and heal are tinted glass. High contrast draws 2px edges where state is shown by fill. Phone controls are 44px tall.
 - **Undo** restores the encounter and any party characters the step changed.
+- **What players may see.** The tracker itself is the DM's. Anything that shows a fight to the party (a pushed battle map, a party-facing initiative list) must go through `playerView(encounter)` and never send the `Encounter`: `npc` rows lose AC, saves and bonuses, show under their `alias` when set, and show a `look` (healthy / bloodied at half HP / down) instead of HP numbers unless `revealHp` is on; `hidden` rows, the effects only they take part in, and their active turn are left out; pending checks and the log stay with the DM. `pc` rows keep `characterId`, since members already read each other's characters. Monster sheets themselves (src/npc) are DM pages (`canOpen('npc')`) with owner-only rows (`npc_sheets`).

@@ -24,6 +24,8 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `RollFeed.tsx` | "Party rolls" panel under the party table; `PartyRollRelay` (in App) sends each sheet roll to the cloud at once |
 | `PartyStash.tsx` | Stash panel under the party table: coins, items, change log |
 | `party.css` | Styles scoped to `.ff-party`, Liquid Glass (`src/design/DESIGN.md`): `.glass` cards, `.glass-btn`, `.glass-field`; secret rolls, polls and hand-outs on the page use the same utilities |
+| `visibility.ts` | Pure: `canViewCharacter(character, { userId, parties })` (owner, admin, or brought to a shared party; mirrors the server's rules), `broughtToSharedParty`, `isDmOf` |
+| `useCharacterAccess.ts` | App hook: a character screen for a character this profile may not see bounces home |
 | `party.test.ts` | Code and membership tests |
 | `active.test.ts` | Party in play and per-party DM |
 | `feed.test.ts` | Roll feed merge and filter tests |
@@ -62,6 +64,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 - Local profiles ("use this device only") and builds without the cloud keep parties in `ff.parties.v1`, same-device only, as before. Parties made on a device before the cloud stay local.
 - Server rules: only members read a party (codes can't be listed); creating, joining, leaving and ending go through `create_party`, `join_party`, `leave_party`, `end_party` (DM hand-off and deleting the empty party happen there); join times are the server's clock. Members may change the stash (`stash`, `rev` columns only) and their own character.
 - Stash writes are conditional on `rev`; if someone else wrote first, the change is re-applied to the fresh stash (up to 4 tries).
+- Who sees a sheet is one rule on both sides: `canViewCharacter` in `visibility.ts` on the device, `characters_read` + `characters_party_read` on the server. NPC sheets (src/npc) are not characters: they live in `npc_sheets`, owner-only, and players meet NPCs only through what the DM shows them (`playerView` in src/combat).
 - Members read the character each other member brings (`characters_party_read`) and its rolls made since joining (`rolls_party_read`); the party table fetches the ones not on this device and watches them live. Player names come from `accounts` when the profile isn't on the device.
 - A party's DM answers requests from that party's members (`can_answer_request`); the account-wide `dm` role no longer does (`20261028100000_party_dm.sql`).
 - Invite codes: 10 wrong codes per account in 15 minutes, then `join_party` refuses ("too many tries").

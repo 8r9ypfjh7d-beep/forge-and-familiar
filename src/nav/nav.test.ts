@@ -43,16 +43,16 @@ describe('navItems', () => {
 describe('canOpen', () => {
   const player = { isDm: false, partyDm: false }
   it('blocks the DM pages and the admin page for a player', () => {
-    for (const kind of ['dm', 'combat', 'admin', 'watch']) expect(canOpen(kind, player)).toBe(false)
+    for (const kind of ['dm', 'combat', 'admin', 'watch', 'npc']) expect(canOpen(kind, player)).toBe(false)
     for (const kind of ['list', 'party', 'requests', 'sheet', 'rules']) expect(canOpen(kind, player)).toBe(true)
   })
 
   it('opens the DM pages for the DM and the admin, the admin page only for the admin', () => {
     const dm = { isDm: true, partyDm: true }
     const admin = { isDm: true, partyDm: false, admin: true }
-    expect(canOpen('combat', dm) && canOpen('dm', dm) && canOpen('watch', dm)).toBe(true)
+    expect(canOpen('combat', dm) && canOpen('dm', dm) && canOpen('watch', dm) && canOpen('npc', dm)).toBe(true)
     expect(canOpen('admin', dm)).toBe(false)
-    for (const kind of ['dm', 'combat', 'admin']) expect(canOpen(kind, admin)).toBe(true)
+    for (const kind of ['dm', 'combat', 'admin', 'npc']) expect(canOpen(kind, admin)).toBe(true)
   })
 })
 
@@ -60,6 +60,10 @@ describe('navKeyFor', () => {
   it('maps top-level screens to their own tab', () => {
     expect(navKeyFor('party')).toBe('party')
     expect(navKeyFor('rules')).toBe('rules')
+  })
+
+  it('lights the DM screen for an NPC sheet', () => {
+    expect(navKeyFor('npc')).toBe('dm')
   })
 
   it('keeps character screens under Characters', () => {
@@ -73,7 +77,7 @@ describe('hash routes', () => {
     { kind: 'edit', id: 'x' }, { kind: 'levelup', id: 'x' }, { kind: 'levels', id: 'x' }, { kind: 'plan', id: 'x' }, { kind: 'print', id: 'x' }, { kind: 'watch', id: 'x' },
     { kind: 'combat' }, { kind: 'combat', encounterId: 'e1' }, { kind: 'dm' }, { kind: 'dm', tab: 'requests' }, { kind: 'dm', tab: 'rolls' }, { kind: 'requests' },
     { kind: 'party' }, { kind: 'party', partyId: 'p1' }, { kind: 'party', startWith: 'join' }, { kind: 'party', startWith: 'start' },
-    { kind: 'rules' }, { kind: 'homebrew' }, { kind: 'admin' },
+    { kind: 'rules' }, { kind: 'homebrew' }, { kind: 'admin' }, { kind: 'npc', id: 'npc-goblin-boss' },
   ]
   it('round-trips every screen through the address bar', () => {
     for (const v of views) expect(hashToView(viewToHash(v))).toEqual(v)
@@ -85,6 +89,8 @@ describe('hash routes', () => {
     expect(hashToView('')).toEqual({ kind: 'campaigns' })
     expect(hashToView('#/nope')).toEqual({ kind: 'campaigns' })
     expect(hashToView('#/sheet')).toEqual({ kind: 'list' })
+    expect(viewToHash({ kind: 'npc', id: 'n1' })).toBe('#/npc/n1')
+    expect(hashToView('#/npc')).toEqual({ kind: 'dm' })
     expect(hashToView('#/sheet/%E0%A4%A')).toEqual({ kind: 'campaigns' })
   })
 })
