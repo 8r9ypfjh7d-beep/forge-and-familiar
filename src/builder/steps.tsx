@@ -21,6 +21,7 @@ import { CustomSubclassForm } from './CustomSubclassForm'
 import { MetamagicPicker } from './MetamagicPicker'
 import { CustomFeatForm } from './FeatEditor'
 import { FeatDetails, FeatSelect } from './FeatPicker'
+import { InfusionPicker } from './InfusionPicker'
 import { MulticlassPicker } from './MulticlassPicker'
 import { SpellsStep } from './SpellsStep'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
@@ -340,6 +341,7 @@ function ClassStep({ draft, update }: StepProps) {
       {cls && <ClassChoices draft={draft} update={update} />}
       {cls && <MetamagicPicker draft={draft} update={update} />}
       {cls && <ClassOptionPicker draft={draft} update={update} />}
+      {cls && <InfusionPicker draft={draft} update={update} />}
       <MulticlassPicker draft={draft} update={update} />
     </>
   )

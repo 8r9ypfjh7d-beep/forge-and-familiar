@@ -18,6 +18,7 @@ import { effectsOf, itemBonus } from './itemEffects'
 import { racialSkills, racialWeapons } from './origin'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { pickedOptions, raceProfile, raceUseId } from './race'
+import { optionPickSlots } from './optionPicks'
 import { slug, subclassFeatures, subclassOf } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type ClassDef, type ConditionId, type InventoryEntry, type Item, type MoveMode, type Recharge,
@@ -324,6 +325,7 @@ export function getAttacks(c: Character): Attack[] {
   // Brutal Critical (2014): extra weapon dice on a melee critical hit.
   const barbarian = edition === '2024' ? 0 : levelOf('barbarian')
   const brutal = barbarian >= 17 ? 3 : barbarian >= 13 ? 2 : barbarian >= 9 ? 1 : 0
+  const magicWeaponAbility = classesOf(c).find(x => x.subclass?.magicWeaponAbility)?.subclass?.magicWeaponAbility
   const out: Attack[] = []
   const seen = new Set<string>()
 
@@ -341,6 +343,9 @@ export function getAttacks(c: Character): Attack[] {
     if (entry.pact && (uses2024Spells(c) || castingWeapon) && mods.cha > mods[ability]) ability = 'cha'
     const proficient = entry.pact || isWeaponProficient(c, item)
     const magic = entry.magicBonus ?? 0
+    // Battle Ready: magic weapons may use the subclass's ability (Intelligence).
+    const isMagic = magic > 0 || !!entry.extraDamage || !!entry.effects?.length || !!entry.pact
+    if (magicWeaponAbility && isMagic && mods[magicWeaponAbility] > mods[ability]) ability = magicWeaponAbility
     const reach = ranged ? 'ranged' : 'melee'
     const dmgMod = mods[ability] + magic + itemBonus(c, 'damage', true, reach)
     const notes: string[] = []
@@ -485,6 +490,7 @@ export function derive(c: Character): DerivedStats {
   const warnings: string[] = []
   const choices = classChoices(c)
   const pickLists = subclassPickLists(c)
+  const optionSlots = optionPickSlots(c)
 
   const itemSaves = itemBonus(c, 'saves')
   const itemChecks = itemBonus(c, 'checks')
@@ -596,7 +602,8 @@ export function derive(c: Character): DerivedStats {
           // Subclass picks (maneuvers, runes, a totem animal) follow the feature that grants them.
           const options = 'subclassId' in f
             ? pickLists.filter(p => p.classId === def.id && p.list.feature === f.name).flatMap(p => p.options.filter(o => p.picked.some(x => x.id === o.id)))
-            : []
+            // Class option lists (Artificer Infusions and plans) follow the feature that grants them too.
+            : optionSlots.filter(x => x.classId === def.id && x.name === f.name).flatMap(x => x.picked.map(p => p.option))
           return [
             { ...rest, name, className: def.name, ...(detail ? { detail } : {}) },
             ...options.map(o => ({ level: f.level, name: o.name, className: def.name, optionId: o.id, ...(o.text ? { text: o.text } : {}) })),

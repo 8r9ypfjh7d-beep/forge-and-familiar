@@ -8,6 +8,7 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 |------|---------|
 | `index.ts` | Public API |
 | `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells), `canTake`, `availableSpells`, `editionOf`, `sourceFor`, `spellSourcesFor` (SRD + books), `spellIdByName` (book and SRD names of the same spell) |
+| `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells; classes the library has no table for, like the Artificer, use the engine's `bookSpellcasting` list as `listed`), `canTake`, `availableSpells`, `editionOf`, `sourceFor` |
 | `extra.ts` | Pure: `grantedSpells` (race and lineage spells with the level they arrive), `extraSources` (High Elf cantrip, spell feats such as Magic Initiate from the 2024 background, a Human's origin feat or an ASI), `canPickExtra`, `extraKey`, `extraList`, `keepValidSpells` |
 | `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `pinnedSpells`, `toggleSpellPin`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
 | `Spellbook.tsx` | `Spellbook` (combat's Spells tab): spell slots, summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |

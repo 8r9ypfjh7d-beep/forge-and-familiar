@@ -1,5 +1,6 @@
 import type { ClassDef, RulesEdition } from '../types'
 import { FEATURES_2014 } from './classFeatures2014'
+import { ARTIFICER, ARTIFICER_2024 } from './books/artificer'
 import { CLASSES_2024 } from './srd52/classes'
 import { ARTISAN_TOOLS, MUSICAL_INSTRUMENTS } from './proficiencies'
 import { ALL_SKILLS } from './skills'
@@ -234,11 +235,14 @@ let homebrew: ClassDef[] = []
 
 /** Replace the registered homebrew classes. SRD ids always win. */
 export function registerHomebrewClasses(list: ClassDef[]): void {
-  const srd = new Set([...CLASSES, ...CLASSES_2024].map(c => c.id))
+  const srd = new Set([...WITH_BOOKS, ...WITH_BOOKS_2024].map(c => c.id))
   homebrew = list.filter(c => !srd.has(c.id))
 }
 
-/** Classes of an edition: CLASSES (2014) or CLASSES_2024, then homebrew ones. */
-export const classesFor = (edition: RulesEdition = '2014'): ClassDef[] => [...(edition === '2024' ? CLASSES_2024 : CLASSES), ...homebrew]
+const WITH_BOOKS = [...CLASSES, ARTIFICER]
+const WITH_BOOKS_2024 = [...CLASSES_2024, ARTIFICER_2024]
+
+/** Classes of an edition: the SRD ones (CLASSES or CLASSES_2024), the Artificer from the books, then homebrew ones. */
+export const classesFor = (edition: RulesEdition = '2014'): ClassDef[] => [...(edition === '2024' ? WITH_BOOKS_2024 : WITH_BOOKS), ...homebrew]
 
 export const classById = (id: string, edition: RulesEdition = '2014') => classesFor(edition).find(c => c.id === id)

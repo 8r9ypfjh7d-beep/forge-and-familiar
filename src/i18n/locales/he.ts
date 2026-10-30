@@ -3,6 +3,7 @@
 import type { Messages, Terms } from '../translate'
 import { backgroundTermsHe, explainBackgroundsHe } from './explain.backgrounds.he'
 import { backgroundTerms2014He, explainBackgrounds2014He } from './explain.backgrounds2014.he'
+import { artificerTermsHe, explainArtificerHe } from './explain.artificer.he'
 import { explainBooksHe } from './explain.books.he'
 import { explainClassesHe } from './explain.classes.he'
 import { explainPicksHe, pickTermsHe } from './explain.picks.he'
@@ -31,6 +32,7 @@ const messages: Messages = {
   ...explainInvocationsHe,
   ...explainFeatsHe,
   ...explainRaces2014He,
+  ...explainArtificerHe,
   ...itemsHe,
   ...picks2014He,
   'common.back': 'חזרה',
@@ -2519,6 +2521,7 @@ const terms: Terms = {
   ...featNamesHe,
   ...picks2014TermsHe,
   ...racesTerms2014He,
+  ...artificerTermsHe,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',

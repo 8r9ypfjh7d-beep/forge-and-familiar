@@ -2,6 +2,7 @@
 // Plural keys end in _one / _two / _other; pass the base key and a numeric `count`.
 import { explainBackgroundsEn } from './explain.backgrounds.en'
 import { explainBackgrounds2014En } from './explain.backgrounds2014.en'
+import { explainArtificerEn } from './explain.artificer.en'
 import { explainBooksEn } from './explain.books.en'
 import { explainClassesEn } from './explain.classes.en'
 import { explainPicksEn } from './explain.picks.en'
@@ -30,6 +31,7 @@ export const en = {
   ...explainInvocationsEn,
   ...explainFeatsEn,
   ...explainRaces2014En,
+  ...explainArtificerEn,
   ...itemsEn,
   ...picks2014En,
   // Shared

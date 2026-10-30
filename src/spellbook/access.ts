@@ -3,6 +3,7 @@
 import type { CharacterClass, Edition, Spell, Subclass } from '../content'
 import { bookSourceFor } from '../content/books/sources'
 import type { Character } from '../model/character'
+import { bookSpellcasting } from '../rules/data/books/artificer'
 import { classById } from '../rules/data/classes'
 import { rulesEdition } from '../rules/edition'
 import { subclassSpellNames } from '../rules/subclass'
@@ -33,6 +34,8 @@ export interface SpellAccess {
   alwaysPrepared: string[]
   /** Class whose spell list it learns from, when not its own (homebrew classes borrow one). */
   listClassId?: string
+  /** The class's own list as spell ids, for classes the library has no table for (Artificer). */
+  listed?: string[]
 }
 
 export const DEFAULT_EDITION: Edition = '2014'
@@ -119,6 +122,20 @@ export function spellAccess(
     const def = classes.find(k => k.id === cl.classId)
     if (!def) {
       const own = classById(cl.classId, rulesEdition(c))
+      const book = bookSpellcasting(cl.classId, rulesEdition(c))
+      if (own && book) {
+        const ability = own.spellAbility ?? 'int'
+        // Half caster from level 1 that rounds up: spell level 1 at 1, 2 at 5, 3 at 9, 4 at 13, 5 at 17.
+        const level = Math.min(cl.level, 20)
+        out.push({
+          classId: cl.classId, className: own.name, level, ...(cl.subclassId ? { subclassId: cl.subclassId } : {}),
+          ability, maxLevel: Math.min(5, Math.ceil(level / 4)), cantrips: book.cantrips.reduce((n, [from, v]) => (level >= from ? v : n), 0),
+          kind: 'prepared', limit: book.prepared(level, mod(scores[ability])),
+          alwaysPrepared: [...new Set(subclassSpellNames(c, cl.classId).flatMap(n => spellIdByName(byName, n) ?? []))],
+          listed: book.list.flatMap(names => names.flatMap(n => spellIdByName(byName, n) ?? [])),
+        })
+        continue
+      }
       const access = own && homebrewAccess(own, Math.min(cl.level, 20), scores)
       if (access) out.push({ ...access, ...(cl.subclassId ? { subclassId: cl.subclassId } : {}), alwaysPrepared: [...new Set(subclassSpellNames(c, cl.classId).flatMap(n => spellIdByName(byName, n) ?? []))] })
       continue
@@ -156,7 +173,7 @@ export function spellAccess(
 
 /** Whether a class can take this spell now: on its list (or its subclass's), and of a level it can cast. */
 export function canTake(spell: Spell, a: SpellAccess): boolean {
-  const onList = spell.classes.includes(a.listClassId ?? a.classId) || (!!a.subclassId && spell.subclasses.includes(a.subclassId)) || a.alwaysPrepared.includes(spell.id)
+  const onList = spell.classes.includes(a.listClassId ?? a.classId) || !!a.listed?.includes(spell.id) || (!!a.subclassId && spell.subclasses.includes(a.subclassId)) || a.alwaysPrepared.includes(spell.id)
     || !!a.secrets?.lists?.some(l => spell.classes.includes(l)) || (!!a.secrets?.count && spell.classes.length > 0)
   if (!onList) return false
   return spell.level === 0 ? a.cantrips > 0 : spell.level <= a.maxLevel

@@ -1,3 +1,4 @@
+import { ARTIFICER_SUBCLASSES, ARTIFICER_SUBCLASSES_2024 } from './artificer'
 import { CASTERS, CASTERS_2024, CASTERS_REWRITTEN } from './casters'
 import { MARTIAL, MARTIAL_2024, MARTIAL_REWRITTEN } from './martial'
 import { PHB, PHB24, SCAG, TCE, VRGR, XGE, f, fullSpells as pactSpells, legacy, long, short, spells, type Def } from './helpers'
@@ -120,8 +121,8 @@ const OTHERS = [...MARTIAL, ...CASTERS]
 const byClass = (a: Def, b: Def) => a.classId.localeCompare(b.classId)
 
 /** Every book subclass for 2014 rules, grouped by class. */
-export const BOOK_SUBCLASSES: Def[] = [...OTHERS, ...PATRONS].sort(byClass)
+export const BOOK_SUBCLASSES: Def[] = [...OTHERS, ...PATRONS, ...ARTIFICER_SUBCLASSES].sort(byClass)
 /** 2024 rules: the 2024 book's subclasses, then 2014 ones it didn't rewrite (features move to level 3). */
 export const BOOK_SUBCLASSES_2024: Def[] = [
-  ...MARTIAL_2024, ...CASTERS_2024, ...OTHERS.filter(d => !REWRITTEN.has(d.id)).map(d => legacy(d)), ...PATRONS_2024, ...LEGACY_PATRONS,
+  ...MARTIAL_2024, ...CASTERS_2024, ...OTHERS.filter(d => !REWRITTEN.has(d.id)).map(d => legacy(d)), ...PATRONS_2024, ...LEGACY_PATRONS, ...ARTIFICER_SUBCLASSES_2024,
 ].sort(byClass)

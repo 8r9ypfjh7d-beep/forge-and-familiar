@@ -278,6 +278,12 @@ export interface ClassDef {
   multiclass?: { prereq: Partial<Abilities>; armor: ArmorCategory[]; weapons: WeaponCategory[] }
   /** Homebrew pack classes: the author's description. */
   description?: string
+  /** A half caster that always rounds its level up and casts from level 1, also when multiclassed (Artificer). */
+  roundsUp?: boolean
+  /** Lists the class learns several options from, with [class level, how many] steps (Artificer Infusions and plans). */
+  optionPicks?: { kind: string; name: string; counts: [number, number][] }[]
+  /** Book a class outside the SRD comes from. */
+  source?: string
 }
 
 /** How a homebrew class picks spells. Steps are [class level, count]: the last step reached counts. */
@@ -359,6 +365,8 @@ export interface SubclassData {
   spells?: { level: number; names: string[] }[]
   /** Pact weapon attacks may use Charisma under 2014 rules too (Hex Warrior). */
   castingWeapon?: boolean
+  /** Magic weapon attacks may use this ability when it is higher (Battle Smith: Intelligence). */
+  magicWeaponAbility?: Ability
   /** Book it comes from, shown in the builder ("Xanathar's Guide"). SRD subclasses have none. */
   source?: string
   /** Player's own description (custom subclasses). */
