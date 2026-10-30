@@ -58,6 +58,14 @@ describe('warlock patrons from every book', () => {
     expect(getResources(warlock(14, 'fiend')).map(r => r.label)).toEqual(expect.arrayContaining(["Dark One's Own Luck", 'Hurl Through Hell']))
   })
 
+  it('offers the Heroes of Faerûn subclasses under 2024 rules in place of the ones they rewrote', () => {
+    const ids = BOOK_SUBCLASSES_2024.map(s => s.id)
+    expect(ids).toEqual(expect.arrayContaining(['college-of-the-moon', 'knowledge-domain', 'banneret', 'oath-of-the-noble-genies', 'winter-walker', 'scion-of-the-three', 'spellfire-sorcery', 'bladesinger']))
+    expect(ids.filter(id => ['knowledge', 'purple-dragon-knight', 'bladesinging'].includes(id))).toEqual([])
+    expect(BOOK_SUBCLASSES.map(s => s.id)).not.toContain('spellfire-sorcery')
+    expect(subclassById('spellfire-sorcery', '2024')!.spells!.find(s => s.level === 6)!.names).toEqual(['Counterspell'])
+  })
+
   it('gives the Hexblade martial weapons, medium armor, shields and Charisma pact attacks', () => {
     const c = warlock(1, 'hexblade')
     const p = getProficiencies(c)
