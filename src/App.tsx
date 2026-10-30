@@ -107,7 +107,8 @@ export default function App() {
     else { playing.choose(null); setView({ kind: 'list' }) }
   }
   // A screen this account may not open (a shortcut, a link, a switched profile) falls back to its home screen.
-  const allowed = canOpen(view.kind, nav)
+  // The DM role is known once the parties have loaded, so a refresh on a DM page waits instead of bouncing.
+  const allowed = canOpen(view.kind, nav) || playing.parties === null
   useEffect(() => {
     if (!allowed) setView({ kind: 'campaigns' }, true)
   }, [allowed, setView])
