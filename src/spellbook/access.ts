@@ -30,11 +30,11 @@ export interface SpellAccess {
    * College of Lore at 6); they count as bard spells known. 2024: the cleric, druid and wizard lists join the bard's at 10.
    */
   secrets?: { count?: number; lists?: string[] }
-  /** Subclass spells that are always prepared and don't count against the limit. */
+  /** Subclass spells that are always prepared and don't count against the limit (not a 2014 warlock's: see `listed`). */
   alwaysPrepared: string[]
   /** Class whose spell list it learns from, when not its own (homebrew classes borrow one). */
   listClassId?: string
-  /** The class's own list as spell ids, for classes the library has no table for (Artificer). */
+  /** Extra spell ids on the class's list: its own list for classes the library has no table for (Artificer), or a 2014 patron's expanded spells. */
   listed?: string[]
 }
 
@@ -150,6 +150,12 @@ export function spellAccess(
     const prepared2014 = Math.max(1, mod(scores[ability]) + (halfCasters.includes(cl.classId) ? Math.floor(cl.level / 2) : cl.level))
     const limit = sc.spellsKnown ?? sc.preparedSpells ?? prepared2014
     const sub = subclasses.find(s => s.id === cl.subclassId && s.classId === cl.classId)
+    const granted = [...new Set([
+      ...(sub?.spells ?? []).filter(s => s.level <= cl.level).map(s => s.spell.id),
+      ...subclassSpellNames(c, cl.classId).flatMap(n => spellIdByName(byName, n) ?? []),
+    ])]
+    // A 2014 patron's expanded spells only join the warlock's list; they still cost a spell known. 2024's are always prepared.
+    const expandedOnly = cl.classId === 'warlock' && (def.edition ?? rulesEdition(c)) === '2014'
     out.push({
       classId: cl.classId,
       className: def.name,
@@ -162,10 +168,7 @@ export function spellAccess(
       limit,
       ...(cl.classId === 'wizard' ? { spellbook: wizardSpellbook(cl.level) } : {}),
       ...magicalSecrets(cl, def.edition),
-      alwaysPrepared: [...new Set([
-        ...(sub?.spells ?? []).filter(s => s.level <= cl.level).map(s => s.spell.id),
-        ...subclassSpellNames(c, cl.classId).flatMap(n => spellIdByName(byName, n) ?? []),
-      ])],
+      ...(expandedOnly ? { alwaysPrepared: [], listed: granted } : { alwaysPrepared: granted }),
     })
   }
   return out

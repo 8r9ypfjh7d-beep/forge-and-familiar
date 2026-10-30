@@ -1,10 +1,10 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction, LiveEffect } from '../../model/character'
-import { classChoices, featureEffectId, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
+import { cantripDamageBonus, classChoices, featureEffectId, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
-import { slotChoices, spellDamage } from '../../quickcast/quickcast'
+import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
 import type { SlotChoice } from '../../quickcast/types'
 import type { SpellEntry } from '../../quickcast/types'
 import { editionOf } from '../../spellbook/access'
@@ -88,8 +88,10 @@ export interface SpellAttackRow {
   /** Spell attack bonus, or the save DC. */
   value: number
   save?: Ability
-  /** Damage or healing at the base level, cantrips scaled to the character. */
+  /** Damage or healing at the base level, cantrips scaled to the character; per beam when it makes several attacks. */
   damage?: string
+  /** Separate attacks it makes (Eldritch Blast's beams, Scorching Ray's rays), when more than one. */
+  beams?: number
   damageType?: string
   entry: Omit<SpellEntry, 'id' | 'kind'>
 }
@@ -111,7 +113,8 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
     const key = entry.name.toLowerCase()
     if (seen.has(key) || entry.roll === 'none') return
     seen.add(key)
-    let damage = spellDamage({ ...entry, id: '', kind: 'spell' }, entry.level, stats.level, stats.mods[sc.ability])
+    const beams = spellBeams(entry, entry.level, stats.level)
+    let damage = spellDamage({ ...entry, id: '', kind: 'spell' }, entry.level, stats.level, stats.mods[sc.ability], cantripDamageBonus(c, entry.name, stats.mods.cha))
     const wis = stats.mods.wis
     if (damage && entry.level === 0 && classId && potent.has(classId) && wis) damage = formatNotation(parseNotation(`${damage}${wis > 0 ? '+' : ''}${wis}`))
     out.push({
@@ -119,6 +122,7 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
       value: entry.roll === 'attack' ? sc.attackBonus : sc.saveDc,
       ...(entry.save ? { save: entry.save } : {}),
       ...(damage ? { damage } : {}),
+      ...(beams > 1 ? { beams } : {}),
       ...(entry.damageType ? { damageType: entry.damageType } : {}),
       entry,
     })

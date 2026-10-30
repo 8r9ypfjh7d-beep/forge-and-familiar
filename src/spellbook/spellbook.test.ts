@@ -50,6 +50,13 @@ describe('spell access', () => {
     expect((await access('2014', [{ classId: 'paladin', level: 1 }])).list).toEqual([])
   })
 
+  it('puts 2014 Fiend expanded spells on the warlock list, not known for free', async () => {
+    const { list, spells } = await access('2014', [{ classId: 'warlock', level: 5, subclassId: 'fiend' }])
+    expect(list[0].alwaysPrepared).toEqual([])
+    expect(list[0].listed).toEqual(expect.arrayContaining(['burning-hands', 'scorching-ray', 'fireball']))
+    expect(availableSpells(spells, list[0]).map(s => s.id)).toEqual(expect.arrayContaining(['burning-hands', 'command', 'fireball']))
+  })
+
   it('lists each spellcasting class of a multiclass character, with subclass spells always prepared', async () => {
     const { list, spells } = await access('2014', [{ classId: 'cleric', level: 3, subclassId: 'life' }, { classId: 'rogue', level: 2 }, { classId: 'wizard', level: 2 }])
     expect(list.map(a => a.classId)).toEqual(['cleric', 'wizard'])

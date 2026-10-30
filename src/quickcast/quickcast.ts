@@ -57,19 +57,33 @@ function multiply(notation: string, times: number, withFlat = false): string {
     t.kind === 'dice' ? { ...t, count: t.count * times } : withFlat ? { ...t, value: t.value * times } : t))
 }
 
+/** Spells that grow by making more separate attacks instead of rolling more dice. */
+const BEAMS: Record<string, (castLevel: number, charLevel: number) => number> = {
+  'eldritch blast': (_, charLevel) => 1 + [5, 11, 17].filter(l => charLevel >= l).length,
+  'scorching ray': castLevel => 3 + Math.max(0, castLevel - 2),
+}
+
+/** Separate attack rolls a spell makes: Eldritch Blast's beams (2 at level 5, 3 at 11, 4 at 17), Scorching Ray's rays (3, +1 per slot level above 2nd). */
+export const spellBeams = (spell: Pick<SpellEntry, 'name'>, castLevel: number, charLevel: number): number =>
+  BEAMS[spell.name.trim().toLowerCase()]?.(castLevel, charLevel) ?? 1
+
+const signed = (n: number) => (n > 0 ? `+${n}` : `-${-n}`)
+
 /**
- * The damage or healing notation for a spell cast at castLevel.
- * charLevel scales cantrips; spellMod is added when the spell says so (Cure Wounds).
+ * The damage or healing notation for a spell cast at castLevel, for one hit when it makes several (see spellBeams).
+ * charLevel scales cantrips; spellMod is added when the spell says so (Cure Wounds); perHit is added to every hit (Agonizing Blast).
  */
-export function spellDamage(spell: SpellEntry, castLevel: number, charLevel: number, spellMod = 0): string | undefined {
+export function spellDamage(spell: SpellEntry, castLevel: number, charLevel: number, spellMod = 0, perHit = 0): string | undefined {
   if (!spell.damage) return undefined
   let notation = spell.damage
-  if (spell.level === 0 && spell.cantripScaling) {
+  const beams = !!BEAMS[spell.name.trim().toLowerCase()]
+  if (spell.level === 0 && spell.cantripScaling && !beams) {
     notation = multiply(notation, 1 + [5, 11, 17].filter(l => charLevel >= l).length)
   }
   const extra = castLevel - spell.level
-  if (spell.level > 0 && spell.upcast && extra > 0) notation += `+${multiply(spell.upcast, extra, true)}`
-  if (spell.addMod && spellMod) notation += spellMod > 0 ? `+${spellMod}` : `-${-spellMod}`
+  if (spell.level > 0 && spell.upcast && extra > 0 && !beams) notation += `+${multiply(spell.upcast, extra, true)}`
+  if (spell.addMod && spellMod) notation += signed(spellMod)
+  if (perHit) notation += signed(perHit)
   return formatNotation(parseNotation(notation))
 }
 

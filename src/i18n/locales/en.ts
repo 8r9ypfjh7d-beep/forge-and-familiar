@@ -1324,6 +1324,7 @@ export const en = {
   'cs.roll.crit': 'Critical hit! Damage dice doubled',
   'cs.roll.fumble': 'Natural 1: a miss, no damage',
   'cs.roll.damage': 'Damage ({type})',
+  'cs.roll.beam': '{what}, beam {n}',
   'cs.roll.damagePlain': 'Damage',
   'cs.roll.healing': 'Healing',
   'cs.roll.initiative': 'Initiative',

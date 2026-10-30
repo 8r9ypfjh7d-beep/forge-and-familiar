@@ -4,9 +4,9 @@ import { useState } from 'react'
 import type { Spell } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
-import { slotChoices, spellDamage } from '../quickcast/quickcast'
+import { slotChoices, spellBeams, spellDamage } from '../quickcast/quickcast'
 import type { SlotChoice } from '../quickcast'
-import { derive, getResources } from '../rules'
+import { cantripDamageBonus, derive, getResources } from '../rules'
 import { withRollFromText } from '../sheet/combat/combat'
 import { LastRoll, type Shown } from '../sheet/combat/LastRoll'
 import { useSheetRolls } from '../sheet/dice'
@@ -46,19 +46,25 @@ export function useCast(character: Character, apply: Apply) {
     // Attack, save and damage or healing, as the attacks table rolls them.
     const entry = toQuickCast(withRollFromText(spell))
     const sc = d.spellcasting
-    const dice = spellDamage({ ...entry, id: '', kind: 'spell' }, level, d.level, sc ? d.mods[sc.ability] : 0)
+    const perHit = spell.level === 0 ? cantripDamageBonus(character, spell.name, d.mods.cha) : 0
+    const dice = spellDamage({ ...entry, id: '', kind: 'spell' }, level, d.level, sc ? d.mods[sc.ability] : 0, perHit)
     const healing = entry.damageType === 'healing'
     const riders = entry.roll === 'attack' && !healing
       ? (character.state.effects ?? []).filter(e => e.on && e.damage && !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage! }))
       : []
     let healMe: number | undefined
     if (entry.roll !== 'none' || dice) {
-      const res = rolls.spell(spell.name, { attackBonus: entry.roll === 'attack' ? sc?.attackBonus : undefined, damage: dice, damageType: entry.damageType, riders })
-      if ('attack' in res && res.attack) shown.push({ roll: res.attack, what: t('cs.roll.toHit') })
-      if (res.damage) {
-        const type = entry.damageType && !healing ? term('damage', entry.damageType, entry.damageType) : ''
-        shown.push({ roll: res.damage, what: healing ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) })
-        if (healing) healMe = res.damage.total
+      // Each beam (Eldritch Blast, Scorching Ray) rolls to hit and for damage on its own.
+      const beams = entry.roll === 'attack' ? spellBeams(entry, level, d.level) : 1
+      for (let i = 1; i <= beams; i++) {
+        const what = (s: string) => (beams > 1 ? t('cs.roll.beam', { what: s, n: i }) : s)
+        const res = rolls.spell(spell.name, { attackBonus: entry.roll === 'attack' ? sc?.attackBonus : undefined, damage: dice, damageType: entry.damageType, riders })
+        if ('attack' in res && res.attack) shown.push({ roll: res.attack, what: what(t('cs.roll.toHit')) })
+        if (res.damage) {
+          const type = entry.damageType && !healing ? term('damage', entry.damageType, entry.damageType) : ''
+          shown.push({ roll: res.damage, what: what(healing ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })) })
+          if (healing) healMe = res.damage.total
+        }
       }
     }
     if (entry.roll === 'save' && entry.save && sc) notes.push(t('cs.saveNote', { dc: sc.saveDc, ability: abilityShort(entry.save) }))

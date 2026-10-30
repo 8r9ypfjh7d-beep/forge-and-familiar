@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { makeCharacter } from '../sheet/fixtures'
 import { setSlotUsed } from '../sheet/engine'
 import { SPELL_PRESETS } from './presets'
-import { addEntry, entriesOf, moveEntry, removeEntry, resourceUse, slotChoices, spellDamage, spendResource, spendSlot } from './quickcast'
+import { addEntry, entriesOf, moveEntry, removeEntry, resourceUse, slotChoices, spellBeams, spellDamage, spendResource, spendSlot } from './quickcast'
 import type { SpellEntry } from './types'
 
 // Fighter 5 / Wizard 2: caster level 2, so three 1st-level slots and nothing higher.
@@ -63,6 +63,17 @@ describe('spell damage', () => {
   it('adds the spellcasting modifier when asked', () => {
     expect(spellDamage(spell('Cure Wounds'), 2, 3, 3)).toBe('1d8+1d8+3')
     expect(spellDamage(spell('Cure Wounds'), 1, 3, -1)).toBe('1d8-1')
+  })
+
+  it('splits Eldritch Blast and Scorching Ray into separate beams, each with its own damage', () => {
+    const blast = { id: '', kind: 'spell' as const, name: 'Eldritch Blast', level: 0, roll: 'attack' as const, damage: '1d10', damageType: 'force', cantripScaling: true }
+    expect([1, 4, 5, 10, 11, 17, 20].map(l => spellBeams(blast, 0, l))).toEqual([1, 1, 2, 2, 3, 4, 4])
+    expect(spellDamage(blast, 0, 11)).toBe('1d10')
+    expect(spellDamage(blast, 0, 11, 0, 4)).toBe('1d10+4')
+    const ray = { id: '', kind: 'spell' as const, name: 'Scorching Ray', level: 2, roll: 'attack' as const, damage: '2d6', upcast: '1d6' }
+    expect([2, 3, 5].map(l => spellBeams(ray, l, 9))).toEqual([3, 4, 6])
+    expect(spellDamage(ray, 4, 9)).toBe('2d6')
+    expect(spellBeams(spell('Fire Bolt'), 0, 17)).toBe(1)
   })
 
   it('has nothing to roll for spells without damage', () => {
