@@ -32,7 +32,8 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
   - `traitChoices`: race trait options, e.g. `{ draconicAncestry: 'red' }`.
   - `featureChoices`: 2024 class picks keyed `<classId>.<choiceId>`, e.g. `{ 'fighter.fightingStyle': 'archery' }`.
   - `originFeatId`: a 2024 Human's Origin feat.
-  - `freeAbilityBonuses`: 2014 racial +1 picks, or in 2024 the background's three +1s (an ability twice is +2).
+  - `freeAbilityBonuses`: 2014 racial +1 picks, or in 2024 the background's three +1s (an ability twice is +2). Any ability is allowed; the builder warns when a pick is off the book.
+  - `racialBonusTargets`: 2014 only, the player moved their race and subrace bonuses (a common table rule). Entry i is where the i-th fixed bonus goes, in `fixedRacialBonuses()` order; missing entries stay where the book puts them.
   - `improvements`: one per Ability Score Improvement the class levels grant: ability bonuses or a `featId` (SRD or homebrew), plus `featAbility` for feats with a +1 choice.
   - `equipmentPicks`: per class equipment choice, the option taken and the items picked for its "any weapon" slots.
   - `classes[].subclassId`: SRD, book or homebrew subclass id, or `'custom'` for the player's own one.

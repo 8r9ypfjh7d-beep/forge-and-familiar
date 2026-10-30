@@ -63,11 +63,11 @@ describe('2024 origin', () => {
     expect(scores.dex).toBe(14)
   })
 
-  it('ignores bonuses outside the background or past +2/+3', () => {
+  it('takes bonuses on any ability but ignores ones past +2/+3', () => {
     const scores = getAbilityScores(draft({ freeAbilityBonuses: ['wis', 'str', 'str', 'str', 'dex'] }))
-    expect(scores.wis).toBe(10)
+    expect(scores.wis).toBe(11)
     expect(scores.str).toBe(17)
-    expect(scores.dex).toBe(15)
+    expect(scores.dex).toBe(14)
   })
 
   it('applies the background Origin feat: Criminal gives Alert', () => {

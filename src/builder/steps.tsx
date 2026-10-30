@@ -5,7 +5,7 @@ import type { CustomBackground, Improvement } from '../model/character'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
   STANDARD_ARRAY, abilityMod, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
-  featById, fixedLanguages, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
+  featById, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   languagePickCount, pointBuyCost, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type RulesEdition, type SkillId,
 } from '../rules'
@@ -85,7 +85,7 @@ function RaceStep({ draft, update }: StepProps) {
           <button
             key={r.id}
             className={`choice ${draft.raceId === r.id ? 'selected' : ''}`}
-            onClick={() => update({ raceId: r.id, subraceId: r.subraces?.[0]?.id, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined })}
+            onClick={() => update({ raceId: r.id, subraceId: r.subraces?.[0]?.id, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined })}
           >
             <strong>{term('race', r.id, r.name)}</strong>
             <span className="muted small">
@@ -101,7 +101,7 @@ function RaceStep({ draft, update }: StepProps) {
           <label>{t(edition === '2024' ? 'builder.lineage' : 'builder.subrace')} <Why id="subrace" /></label>
           <div className="row">
             {race.subraces.map(s => (
-              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [] })}>
+              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [], racialBonusTargets: undefined })}>
                 {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}
               </button>
             ))}
@@ -331,7 +331,11 @@ function AbilitiesStep({ draft, update }: StepProps) {
     update({ abilityMethod: m, baseAbilities: { str: value, dex: value, con: value, int: value, wis: value, cha: value } })
   }
   const setScore = (a: Ability, v: number) => update({ baseAbilities: { ...draft.baseAbilities, [a]: v } })
-  const used = ABILITIES.map(a => draft.baseAbilities[a])
+  // Standard array: picking a value another ability holds swaps the two, so nothing has to be cleared first.
+  const setStandard = (a: Ability, v: number) => {
+    const other = ABILITIES.find(x => x !== a && v && draft.baseAbilities[x] === v)
+    update({ baseAbilities: { ...draft.baseAbilities, [a]: v, ...(other ? { [other]: draft.baseAbilities[a] } : {}) } })
+  }
 
   const free = edition === '2014' ? race?.freeAbilityBonuses : undefined
   const toggleFree = (a: Ability) => {
@@ -368,11 +372,9 @@ function AbilitiesStep({ draft, update }: StepProps) {
               <th scope="row">{ability(a)}<Why title={ability(a)} text={t(`why.ability.${a}`)} compact /></th>
               <td>
                 {draft.abilityMethod === 'standard' && (
-                  <select value={draft.baseAbilities[a]} onChange={e => setScore(a, Number(e.target.value))} aria-label={t('builder.baseOf', { ability: ability(a) })}>
+                  <select value={draft.baseAbilities[a]} onChange={e => setStandard(a, Number(e.target.value))} aria-label={t('builder.baseOf', { ability: ability(a) })}>
                     <option value={0}>—</option>
-                    {STANDARD_ARRAY.filter(v => v === draft.baseAbilities[a] || !used.includes(v)).map(v => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
+                    {STANDARD_ARRAY.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 )}
                 {draft.abilityMethod === 'pointBuy' && (
@@ -386,7 +388,11 @@ function AbilitiesStep({ draft, update }: StepProps) {
                   <input type="number" min={3} max={20} value={draft.baseAbilities[a]} onChange={e => setScore(a, Number(e.target.value))} aria-label={t('builder.baseOf', { ability: ability(a) })} />
                 )}
               </td>
-              <td className="muted">{bonus[a] ? formatMod(bonus[a]) : ''}</td>
+              <td className="muted">
+                {edition === '2024'
+                  ? <BackgroundBonusPick draft={draft} update={update} a={a} />
+                  : bonus[a] ? formatMod(bonus[a]) : ''}
+              </td>
               {hasAsi && <td className="muted">{asi[a] ? formatMod(asi[a]) : ''}</td>}
               <td className="num strong">{draft.baseAbilities[a] ? final[a] : '—'}</td>
               <td className="num">{draft.baseAbilities[a] ? formatMod(abilityMod(final[a])) : ''}</td>
@@ -394,7 +400,6 @@ function AbilitiesStep({ draft, update }: StepProps) {
                 <td>
                   <input
                     type="checkbox"
-                    disabled={free.exclude.includes(a)}
                     checked={draft.freeAbilityBonuses.includes(a)}
                     onChange={() => toggleFree(a)}
                     aria-label={t('builder.racialPlusOne', { ability: ability(a) })}
@@ -405,40 +410,101 @@ function AbilitiesStep({ draft, update }: StepProps) {
           ))}
         </tbody>
       </table>
+      {edition === '2014' && <MoveRacialBonuses draft={draft} update={update} />}
       <Improvements draft={draft} update={update} />
     </>
   )
 }
 
-/** 2024: pick the background here (it sets the bonuses), then +2/+1 or +1/+1/+1 among its three abilities. */
+/** 2024: a new background keeps bonuses the player placed off its list, and clears ones that followed the old list. */
+function bonusesAfterBackground(draft: CharacterDraft): Ability[] {
+  const listed = getBackground(draft)?.abilityScores ?? []
+  return draft.freeAbilityBonuses.some(a => !listed.includes(a)) ? draft.freeAbilityBonuses : []
+}
+
+/** 2024 suggestion: +2 and +1 to the background's two listed abilities with the best base scores. */
+function suggestedBonuses(draft: CharacterDraft): Ability[] {
+  const listed = [...(getBackground(draft)?.abilityScores ?? [])]
+  const [first, second] = listed.sort((a, b) => draft.baseAbilities[b] - draft.baseAbilities[a])
+  return first && second ? [first, first, second] : []
+}
+
+/**
+ * 2024: pick the background here (it suggests the bonuses), then +2/+1 or +1/+1/+1 to any abilities
+ * in the table's Background column. Off-list picks only warn.
+ */
 function BackgroundBonuses({ draft, update }: StepProps) {
   const { t, term, ability } = useI18n()
   const bg = getBackground(draft)
-  const allowed = bg?.abilityScores ?? []
-  const count = (a: Ability) => draft.freeAbilityBonuses.filter(x => x === a).length
-  const set = (a: Ability, n: number) => {
-    const rest = draft.freeAbilityBonuses.filter(x => x !== a && allowed.includes(x))
-    update({ freeAbilityBonuses: [...rest, ...Array<Ability>(n).fill(a)].slice(0, 3) })
-  }
+  const listed = bg?.abilityScores ?? []
   const total = draft.freeAbilityBonuses.length
+  const suggestion = suggestedBonuses(draft)
+  const onSuggestion = suggestion.length > 0 && [...suggestion].sort().join() === [...draft.freeAbilityBonuses].sort().join()
   return (
     <div className="field bg-bonus">
       <label htmlFor="bg-abilities">{t('builder.background')} <Why id="background" /></label>
-      <select id="bg-abilities" value={draft.backgroundId} onChange={e => update({ backgroundId: e.target.value, freeAbilityBonuses: [], chosenSkills: [], chosenLanguages: [], chosenTools: [] })}>
+      <select id="bg-abilities" value={draft.backgroundId} onChange={e => update({ backgroundId: e.target.value, freeAbilityBonuses: bonusesAfterBackground(draft), chosenSkills: [], chosenLanguages: [], chosenTools: [] })}>
         {backgroundsFor('2024').map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)}
       </select>
       <Explain kind="bg2024" id={draft.backgroundId} />
-      <p className="small">{t('builder.bgBonus.intro', { total })}</p>
-      <div className="row">
-        {allowed.map(a => (
-          <span key={a} className="bg-bonus-pick">
-            <span className="small">{ability(a)}</span>
-            <select value={count(a)} aria-label={t('builder.bgBonus.of', { ability: ability(a) })} onChange={e => set(a, Number(e.target.value))}>
-              {[0, 1, 2].map(n => <option key={n} value={n} disabled={n > 0 && total - count(a) + n > 3}>{n ? `+${n}` : '—'}</option>)}
-            </select>
-          </span>
-        ))}
-      </div>
+      <p className="small">
+        {t('builder.bgBonus.intro', { total, background: bg ? term('background', bg.id, bg.name) : '', abilities: listed.map(a => ability(a)).join(', ') })}
+        {' '}<Why id="bgBonus" />
+      </p>
+      {!onSuggestion && suggestion.length > 0 && (
+        <button className="glass-btn small" onClick={() => update({ freeAbilityBonuses: suggestion })}>{t('builder.bgBonus.suggest')}</button>
+      )}
+    </div>
+  )
+}
+
+/** 2024: one ability's background bonus (—, +1 or +2) in the ability table. Options that would pass +3 in total are off. */
+function BackgroundBonusPick({ draft, update, a }: StepProps & { a: Ability }) {
+  const { t, ability } = useI18n()
+  const listed = getBackground(draft)?.abilityScores ?? []
+  const count = draft.freeAbilityBonuses.filter(x => x === a).length
+  const total = draft.freeAbilityBonuses.length
+  const set = (n: number) => {
+    const rest = draft.freeAbilityBonuses.filter(x => x !== a)
+    update({ freeAbilityBonuses: [...rest, ...Array<Ability>(n).fill(a)] })
+  }
+  return (
+    <select className={`bg-bonus-pick ${listed.includes(a) ? 'listed' : ''}`} value={count} aria-label={t('builder.bgBonus.of', { ability: ability(a) })} onChange={e => set(Number(e.target.value))}>
+      {[0, 1, 2].map(n => <option key={n} value={n} disabled={n > 0 && total - count + n > 3}>{n ? `+${n}` : '—'}</option>)}
+    </select>
+  )
+}
+
+/** 2014: put the race's and subrace's fixed bonuses on other abilities (a common table rule). Only warns. */
+function MoveRacialBonuses({ draft, update }: StepProps) {
+  const { t, term, ability } = useI18n()
+  const bonuses = fixedRacialBonuses(draft)
+  if (bonuses.length === 0) return null
+  const on = draft.racialBonusTargets !== undefined
+  const setTarget = (i: number, a: Ability) => {
+    const next = bonuses.map(b => b.ability)
+    next[i] = a
+    update({ racialBonusTargets: next })
+  }
+  return (
+    <div className="field move-racial">
+      <label className="small">
+        <input type="checkbox" checked={on} onChange={e => update({ racialBonusTargets: e.target.checked ? bonuses.map(b => b.book) : undefined })} />
+        {' '}{t('builder.racialMove.toggle')} <Why id="racial" />
+      </label>
+      {on && <p className="muted small">{t('builder.racialMove.intro')}</p>}
+      {on && (
+        <div className="row">
+          {bonuses.map((b, i) => (
+            <span key={i} className="bg-bonus-pick-row">
+              <span className="small">{t('builder.racialMove.of', { value: b.value, source: term('race', b.sourceId, b.source) })}</span>
+              <select value={b.ability} aria-label={t('builder.racialMove.of', { value: b.value, source: b.source })} onChange={e => setTarget(i, e.target.value as Ability)}>
+                {ABILITIES.map(x => <option key={x} value={x}>{ability(x)}</option>)}
+              </select>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -490,7 +556,10 @@ function Improvements({ draft, update }: StepProps) {
             {isFeat && (
               <select value={imp.featId} aria-label={t('builder.asi.feat')} onChange={e => save({ classId, level, featId: e.target.value })}>
                 <option value="">{t('builder.asi.pickFeat')}</option>
-                {feats.filter(f => (f.minLevel ?? 0) <= level || f.id === imp.featId).map(f => <option key={f.id} value={f.id}>{term('feat', f.id, f.name)}</option>)}
+                {feats.map(f => {
+                  const name = term('feat', f.id, f.name)
+                  return <option key={f.id} value={f.id}>{(f.minLevel ?? 0) > level ? t('builder.asi.featLevel', { feat: name, level: f.minLevel! }) : name}</option>
+                })}
               </select>
             )}
             {choice?.kind === 'abilityChoice' && (
@@ -533,7 +602,7 @@ function SkillsStep({ draft, update }: StepProps) {
     chosenSkills: [],
     chosenLanguages: [],
     chosenTools: [],
-    ...(edition === '2024' ? { freeAbilityBonuses: [] } : {}),
+    ...(edition === '2024' ? { freeAbilityBonuses: bonusesAfterBackground(draft) } : {}),
     customBackground: id === CUSTOM_BACKGROUND ? draft.customBackground ?? { name: '', feature: '', skills: [], tools: [], languages: [] } : draft.customBackground,
   })
   return (
@@ -563,11 +632,12 @@ function SkillsStep({ draft, update }: StepProps) {
       <div className="skill-grid">
         {ALL_SKILLS.map(s => {
           const isGranted = granted.has(s)
-          const allowed = raceCount > 0 || classFrom.includes(s)
+          // Any skill can be picked; ones off the class list are dimmed and only warn.
+          const suggested = raceCount > 0 || classFrom.includes(s)
           const checked = isGranted || draft.chosenSkills.includes(s)
           return (
-            <label key={s} className={`skill ${isGranted ? 'granted' : ''} ${!allowed && !isGranted ? 'dim' : ''}`}>
-              <input type="checkbox" checked={checked} disabled={isGranted || (!allowed && !checked)} onChange={() => toggle(s)} />
+            <label key={s} className={`skill ${isGranted ? 'granted' : ''} ${!suggested && !isGranted ? 'dim' : ''}`}>
+              <input type="checkbox" checked={checked} disabled={isGranted} onChange={() => toggle(s)} />
               {skill(s)} <span className="muted small">{abilityShort(SKILLS[s].ability)}</span>
               <Why title={skill(s)} text={t(`why.skill.${s}`)} compact />
               {isGranted && <span className="tag">{t('builder.tag.granted')}</span>}
@@ -691,6 +761,11 @@ function LanguagesAndTools({ draft, update }: StepProps) {
                 <select key={i} value={tools[i] ?? ''} aria-label={t('builder.pickTool', { n: i + 1 })} onChange={e => setTool(i, e.target.value)}>
                   <option value="">—</option>
                   {g.from.filter(x => !known.includes(x) && (tools[i] === x || !tools.includes(x))).map(x => <option key={x} value={x}>{term('tool', x, x)}</option>)}
+                  {g.from.length < TOOLS.length && (
+                    <optgroup label={t('builder.otherTools')}>
+                      {TOOLS.filter(x => !g.from.includes(x) && !known.includes(x) && (tools[i] === x || !tools.includes(x))).map(x => <option key={x} value={x}>{term('tool', x, x)}</option>)}
+                    </optgroup>
+                  )}
                 </select>
               )
             })}

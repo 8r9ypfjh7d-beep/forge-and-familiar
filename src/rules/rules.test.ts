@@ -43,8 +43,11 @@ describe('abilities', () => {
   it('applies race, subrace and half-elf free bonuses', () => {
     expect(getAbilityScores(make({ raceId: 'dwarf', subraceId: 'hill-dwarf' }))).toMatchObject({ con: 15, wis: 11 })
     const he = make({ raceId: 'half-elf', freeAbilityBonuses: ['str', 'cha', 'dex'] })
-    // CHA is excluded and only two picks count.
-    expect(getAbilityScores(he)).toMatchObject({ str: 16, dex: 14, cha: 10 })
+    // Only two picks count; CHA is off the book's list but allowed (the builder warns).
+    expect(getAbilityScores(he)).toMatchObject({ str: 16, dex: 14, cha: 11 })
+    // Moved racial bonuses: the hill dwarf's +2 CON goes to STR, the +1 WIS stays.
+    const moved = make({ raceId: 'dwarf', subraceId: 'hill-dwarf', racialBonusTargets: ['str'] })
+    expect(getAbilityScores(moved)).toMatchObject({ str: 17, con: 13, wis: 11 })
   })
 })
 

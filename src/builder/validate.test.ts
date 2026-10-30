@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { emptyDraft } from './Builder'
-import { stepIssues } from './validate'
+import { stepIssues, stepWarnings } from './validate'
 import { createCharacter, derive } from '../rules'
 
 const base = () => ({ ...emptyDraft('u1'), raceId: 'half-elf', classes: [{ classId: 'rogue', level: 1 }], chosenLanguages: ['Dwarvish', 'Giant', 'Orc'] })
@@ -59,7 +59,29 @@ describe('builder validation', () => {
     const d = { ...base(), raceId: 'dwarf', subraceId: 'hill-dwarf', classes: [{ classId: 'bard', level: 1 }], chosenSkills: ['stealth', 'arcana', 'history'] as ('stealth' | 'arcana' | 'history')[], chosenLanguages: ['Elvish', 'Giant'] }
     expect(stepIssues('skills', d)).toEqual(['Pick your tool proficiencies.'])
     expect(stepIssues('skills', { ...d, chosenTools: ["Mason's tools", 'Lute', 'Drum', 'Viol'] })).toEqual([])
-    expect(stepIssues('skills', { ...d, chosenTools: ['Lute', "Mason's tools", 'Drum', 'Viol'] })).toHaveLength(1)
+    // A tool off a pick's usual list fills it and only warns.
+    const swapped = { ...d, chosenTools: ['Lute', "Mason's tools", 'Drum', 'Viol'] }
+    expect(stepIssues('skills', swapped)).toEqual([])
+    expect(stepWarnings('skills', swapped)).toEqual(['Some tools are not on the usual list. Fine if your DM agrees.'])
+    expect(stepWarnings('skills', { ...d, chosenTools: ["Mason's tools", 'Lute', 'Drum', 'Viol'] })).toEqual([])
+  })
+
+  it('lets skills come from outside the class list with a warning', () => {
+    const d = { ...base(), raceId: 'dwarf', subraceId: 'hill-dwarf', classes: [{ classId: 'fighter', level: 1 }], chosenLanguages: ['Elvish', 'Giant'], chosenTools: ["Mason's tools"] }
+    const offList = { ...d, chosenSkills: ['athletics', 'arcana'] as ('athletics' | 'arcana')[] }
+    expect(stepIssues('skills', offList)).toEqual([])
+    expect(stepWarnings('skills', offList)).toEqual(['Some skills are not on your class list. Fine if your DM agrees.'])
+    expect(stepWarnings('skills', { ...d, chosenSkills: ['athletics', 'perception'] })).toEqual([])
+    expect(stepIssues('skills', { ...d, chosenSkills: ['athletics'] })).toHaveLength(1)
+  })
+
+  it('warns, never blocks, for off-book ability choices', () => {
+    const he = { ...base(), baseAbilities: { str: 8, dex: 15, con: 14, int: 12, wis: 10, cha: 13 }, freeAbilityBonuses: ['cha', 'dex'] as ('cha' | 'dex')[] }
+    expect(stepIssues('abilities', he)).toEqual([])
+    expect(stepWarnings('abilities', he)).toEqual(["A Half-Elf doesn't usually take a +1 in CHA. Fine if your DM agrees."])
+    const dwarf = { ...base(), raceId: 'dwarf', subraceId: 'hill-dwarf', baseAbilities: he.baseAbilities, freeAbilityBonuses: [], racialBonusTargets: ['dex' as const] }
+    expect(stepIssues('abilities', dwarf)).toEqual([])
+    expect(stepWarnings('abilities', dwarf)).toEqual(['You moved your racial bonuses. Many tables allow it; check with your DM.'])
   })
 
   it('requires a subclass at the right level and dragonborn ancestry', () => {
@@ -80,6 +102,8 @@ describe('builder validation', () => {
     const improvements = [{ classId: 'fighter', level: 4, abilities: { str: 2 } }, { classId: 'fighter', level: 6, featId: 'grappler' }]
     expect(stepIssues('abilities', { ...d, improvements })).toEqual([])
     expect(stepIssues('abilities', { ...d, improvements: [improvements[0], { classId: 'fighter', level: 6, abilities: { str: 1 } }] })).toHaveLength(1)
-    expect(stepIssues('abilities', { ...d, baseAbilities: { ...d.baseAbilities, str: 18 }, improvements })).toEqual(["An Ability Score Improvement can't raise STR above 20."])
+    const capped = { ...d, baseAbilities: { ...d.baseAbilities, str: 18 }, improvements }
+    expect(stepIssues('abilities', capped)).toEqual([])
+    expect(stepWarnings('abilities', capped)).toEqual(['Scores stop at 20, so part of your STR increase is lost.'])
   })
 })
