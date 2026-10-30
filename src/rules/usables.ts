@@ -65,7 +65,7 @@ export const SPELL_TEMPLATES: Record<string, Template> = {
   heroism: (_l, { mod }) => ({ tempHp: String(Math.max(0, mod)), stats: [{ kind: 'conditionImmunity', condition: 'frightened' }] }),
   'tensers-transformation': () => ({
     tempHp: '50', damage: '2d12', damageType: 'force', weaponOnly: true,
-    stats: [{ kind: 'advantage', on: 'attacks', when: 'weapon attacks' }, { kind: 'saveProficiency', ability: 'str' }, { kind: 'saveProficiency', ability: 'con' }],
+    stats: [{ kind: 'advantage', on: 'attacks', when: 'with weapons' }, { kind: 'saveProficiency', ability: 'str' }, { kind: 'saveProficiency', ability: 'con' }],
   }),
   aid: level => ({ heal: String(5 * above(level, 1)), stats: [{ kind: 'hp', value: 5 * above(level, 1) }] }),
   // Armor class
@@ -104,13 +104,13 @@ export const SPELL_TEMPLATES: Record<string, Template> = {
   'crusaders-mantle': () => ({ damage: '1d4', damageType: 'radiant', weaponOnly: true }),
   'spirit-shroud': level => ({ damage: dice(1 + Math.floor(above(level, 3) / 2), 8) }),
   'flame-arrows': () => ({ damage: '1d6', damageType: 'fire', weaponOnly: true }),
-  'enlarge-reduce': () => ({ damage: '1d4', weaponOnly: true, stats: [{ kind: 'advantage', on: 'save:str' }, { kind: 'advantage', on: 'checks', when: 'Strength checks' }] }),
+  'enlarge-reduce': () => ({ damage: '1d4', weaponOnly: true, stats: [{ kind: 'advantage', on: 'save:str' }, { kind: 'advantage', on: 'checks', when: 'with Strength' }] }),
   'absorb-elements': () => ({ damage: '1d6', weaponOnly: true, once: true }),
   // Resistances, advantage, movement and senses
   stoneskin: () => ({ stats: BPS }),
   'blade-ward': (_l, { edition }) => (edition === '2024' ? {} : { stats: BPS }),
   foresight: () => ({ stats: [{ kind: 'advantage', on: 'attacks' }, { kind: 'advantage', on: 'checks' }, { kind: 'advantage', on: 'saves' }] }),
-  'beacon-of-hope': () => ({ stats: [{ kind: 'advantage', on: 'save:wis' }, { kind: 'advantage', on: 'saves', when: 'death saves' }] }),
+  'beacon-of-hope': () => ({ stats: [{ kind: 'advantage', on: 'save:wis' }, { kind: 'advantage', on: 'saves', when: 'for death saves' }] }),
   'holy-aura': () => ({ stats: [{ kind: 'advantage', on: 'saves' }] }),
   'greater-invisibility': () => ({ stats: [{ kind: 'advantage', on: 'attacks' }] }),
   'circle-of-power': () => ({ stats: [{ kind: 'advantage', on: 'saves', when: 'against spells and magical effects' }] }),
@@ -175,4 +175,67 @@ export function hasRunningNumbers(spell: SpellInfo, ctx: CastContext): boolean {
   if (!tpl) return false
   const { tempHp: _t, heal: _h, hit: _d, ...running } = tpl
   return Object.keys(running).length > 0
+}
+
+// ---- Features ----
+
+export interface UseContext {
+  edition: '2014' | '2024'
+  /** Level in the class the resource belongs to (Second Wind heals 1d10 + fighter level). */
+  classLevel: number
+}
+
+/** What using a feature does besides spending one use. */
+export interface UsePlan {
+  heal?: string
+  tempHp?: string
+  effect?: Omit<LiveEffect, 'on'>
+}
+
+type FeatureTemplate = (ctx: UseContext) => UsePlan & { effectAs?: Omit<LiveEffect, 'on' | 'id' | 'name' | 'from'> }
+
+/** Features with numbers, by resource id. Everything else still gets Use: it spends one and logs it. */
+export const FEATURE_TEMPLATES: Record<string, FeatureTemplate> = {
+  'second-wind': ({ classLevel }) => ({ heal: `1d10+${classLevel}` }),
+  rage: ({ edition }) => ({
+    effectAs: {
+      duration: edition === '2024' ? '10 minutes' : '1 minute', ends: 'short',
+      stats: [...BPS, { kind: 'advantage', on: 'save:str' }, { kind: 'advantage', on: 'checks', when: 'with Strength' }],
+    },
+  }),
+  'wild-shape': ({ classLevel }) => ({ effectAs: { duration: `${Math.max(1, Math.floor(classLevel / 2))} hours`, ends: 'long' } }),
+  'innate-sorcery': () => ({
+    effectAs: { duration: '1 minute', ends: 'short', stats: [{ kind: 'spellDc', value: 1 }, { kind: 'advantage', on: 'attacks', when: 'with spells' }] },
+  }),
+}
+
+export const featureEffectId = (resourceId: string) => `feature:${resourceId}`
+
+/** What one use of a feature's resource does: healing, temp HP, and the effect it starts (Rage). */
+export function planUse(resourceId: string, name: string, ctx: UseContext): UsePlan {
+  const tpl = FEATURE_TEMPLATES[resourceId]?.(ctx)
+  if (!tpl) return {}
+  const { effectAs, ...rest } = tpl
+  return effectAs ? { ...rest, effect: { id: featureEffectId(resourceId), name, from: 'feature', ...effectAs } } : rest
+}
+
+// ---- Items ----
+
+/** Healing potions by item id or name: what drinking one heals. */
+const POTIONS: Record<string, string> = {
+  'potion-healing': '2d4+2', 'potion-of-healing': '2d4+2', 'potion-of-healing-common': '2d4+2', 'potion of healing': '2d4+2',
+  'potion-of-healing-greater': '4d4+4', 'potion of greater healing': '4d4+4',
+  'potion-of-healing-superior': '8d4+8', 'potion of superior healing': '8d4+8',
+  'potion-of-healing-supreme': '10d4+20', 'potion of supreme healing': '10d4+20',
+}
+
+/** The healing a potion gives when drunk, by its item id or name; undefined for anything else. */
+export function potionHealing(itemId: string, name = ''): string | undefined {
+  return POTIONS[itemId] ?? POTIONS[name.trim().toLowerCase()]
+}
+
+/** "Hellish Rebuke (as 2nd level)" → the spell's name and the level it is cast at. */
+export function itemSpellCast(text: string): { name: string; level?: number } {
+  const m = /^(.*?)\s*\((?:as\s+)?(\d)(?:st|nd|rd|th)[- ]level\)\s*$/i.exec(text)
+  return m ? { name: m[1].trim(), level: Number(m[2]) } : { name: text.replace(/\s*\(.*\)\s*$/, '').trim() }
 }

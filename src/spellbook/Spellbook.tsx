@@ -4,10 +4,10 @@ import { BOOK_SOURCES, BOOK_TITLES, loadKind, searchEntries, type CharacterClass
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
-import { derive, formatMod, spellEffectId } from '../rules'
+import { derive, formatMod, itemSpellCast, spellEffectId } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import { SearchField } from '../rulesqa/SearchField'
-import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlots'
+import { SpellSlots, hasSlots, itemSpellsOf, type ItemSpellCaster } from '../sheet/components/SpellSlots'
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, spellAccess, spellSourcesFor, type SpellAccess } from './access'
 import { grantedSpells, isExtraSpell } from './extra'
@@ -49,6 +49,7 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
   const [classId, setClassId] = useState<string | null>(null)
   const [tab, setTab] = useState<'mine' | 'browse'>('mine')
   const current = access.find(a => a.classId === classId) ?? access[0]
+  const itemCasting = useCast(character, apply)
 
   // Non-casters (and casters below their first spell level) get no card at all.
   // Items can still give them slots or spells.
@@ -66,7 +67,8 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
           </select>
         </label>
       </div>
-      <SpellSlots character={character} apply={apply} />
+      <SpellSlots character={character} apply={apply} onCastItemSpell={lib && lib !== 'error' ? itemSpellCaster(lib.spells, itemCasting.cast) : undefined} />
+      <CastResult out={itemCasting.out} outKey={itemCasting.outKey} onDone={itemCasting.clear} character={character} apply={apply} />
       {lib === null && <p className="hint">{t('spells.loading')}</p>}
       {lib === 'error' && <p className="hint">{t('spells.failed')}</p>}
       {lib && lib !== 'error' && current && (
@@ -148,7 +150,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
           </button>
         )}
       </div>
-      <SpellSlots character={character} apply={apply} />
+      <SpellSlots character={character} apply={apply} onCastItemSpell={lib && lib !== 'error' ? itemSpellCaster(lib.spells, casting.cast) : undefined} />
       {lib === null && <p className="hint">{t('spells.loading')}</p>}
       {lib === 'error' && <p className="hint">{t('spells.failed')}</p>}
       {lib && lib !== 'error' && !noSpells && (
@@ -338,6 +340,12 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
         )}
     </div>
   )
+}
+
+/** Item and race spells ("Hellish Rebuke (as 2nd level)") cast from the library without a slot. */
+function itemSpellCaster(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number }) => unknown): ItemSpellCaster {
+  const find = (text: string) => { const { name, level } = itemSpellCast(text); const s = spells.find(x => x.name.toLowerCase() === name.toLowerCase()); return s && { s, level } }
+  return { can: text => !!find(text), cast: text => { const f = find(text); if (f) cast(f.s, undefined, { level: f.level }) } }
 }
 
 const isRunning = (c: Character, spellId: string) => (c.state.effects ?? []).some(e => e.id === spellEffectId(spellId))

@@ -39,6 +39,11 @@ const classesOf = (c: Pick<Character, 'classes' | 'rulesEdition' | 'customSubcla
 
 export const totalLevel = (c: Character) => c.classes.reduce((n, cl) => n + cl.level, 0)
 
+/** Level in the class a resource belongs to (Second Wind: fighter level); the character level when no class has it. */
+export function resourceClassLevel(c: Character, id: string): number {
+  return classesOf(c).find(x => x.def.resources.some(r => r.id === id))?.level ?? totalLevel(c)
+}
+
 export const proficiencyBonus = (level: number) => 2 + Math.floor((Math.max(1, level) - 1) / 4)
 
 /** SRD experience points needed to reach each level (index 0 = level 1). */

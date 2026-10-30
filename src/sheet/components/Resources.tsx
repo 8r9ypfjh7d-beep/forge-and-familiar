@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { isValidNotation } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
-import { getResources } from '../../rules'
+import { getResources, planUse, resourceClassLevel, rulesEdition, type ResourceInfo } from '../../rules'
+import { LastRoll, type Shown } from '../combat/LastRoll'
+import { spendResource } from '../uses'
 import { DAWN_ITEMS } from '../../rules/data/dawnItems'
 import { dawn, dawnCounters, removeCounter, setResourceUsed, upsertCounter, type Counter } from '../engine'
 import { useSheetRolls } from '../dice'
@@ -24,6 +26,23 @@ export function Resources({ character, apply }: { character: Character; apply: A
   // Item charges (from an item's effects) that come back at dawn, with what is spent.
   const dawnItems = resources.filter(r => r.recharge === 'dawn').map(r => ({ ...r, used: character.state.resources[r.id]?.used ?? 0 }))
 
+  const [out, setOut] = useState<{ key: number; name: string; rolls: Shown[]; note?: string } | null>(null)
+
+  /** One tap: spends a use, rolls its healing (Second Wind) and starts its effect (Rage shows under Effects). */
+  const use = (r: ResourceInfo, label: string) => {
+    const plan = planUse(r.id, label, { edition: rulesEdition(character), classLevel: resourceClassLevel(character, r.id) })
+    const shown: Shown[] = []
+    let healed: number | undefined
+    if (plan.heal) {
+      const roll = rolls.spell(label, { damage: plan.heal, damageType: 'healing' }).damage
+      if (roll) { shown.push({ roll, what: t('cs.roll.healing') }); healed = roll.total }
+    }
+    const left = r.max - (character.state.resources[r.id]?.used ?? 0)
+    const notes = [left <= 0 ? t('use.noneLeft') : t('use.left', { n: left - 1, max: r.max }), plan.effect ? t('cast.inEffect') : '', healed ? t('cast.healed', { n: healed }) : ''].filter(Boolean)
+    apply(t('use.log', { label }), c => spendResource(c, r.id, plan, { heal: healed }))
+    setOut(o => ({ key: (o?.key ?? 0) + 1, name: label, rolls: shown, note: notes.join(' · ') }))
+  }
+
   const onDawn = () => {
     const rolled: Record<string, number> = {}
     for (const k of atDawn) if (k.used > 0 && k.regain?.trim()) rolled[k.id] = rolls.total(k.regain, t('sheet.atDawn', { label: k.label }))
@@ -35,6 +54,12 @@ export function Resources({ character, apply }: { character: Character; apply: A
     <section className="card" aria-labelledby="res-title">
       <h2 id="res-title">{t('sheet.resources')}</h2>
       {resources.length === 0 && counters.length === 0 && <p className="hint">{t('sheet.resources.empty')}</p>}
+      {out && (
+        <div className="use-out" key={out.key}>
+          <strong>{out.name}</strong>
+          <LastRoll rolls={out.rolls} note={out.note} onDone={() => setOut(null)} />
+        </div>
+      )}
       <ul className="track-list">
         {resources.map(r => {
           const used = character.state.resources[r.id]?.used ?? 0
@@ -47,6 +72,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
                 ? <Pips total={r.max} used={used} label={label} onChange={set} />
                 : <Stepper value={r.max - used} max={r.max} label={label} onChange={v => set(r.max - v)} />}
               {r.max <= PIP_LIMIT && <span className="track-count">{r.max - used}/{r.max}</span>}
+              <button type="button" className="glass-btn small prominent track-use" aria-label={t('use.useName', { label })} onClick={() => use(r, label)}>{t('use.use')}</button>
             </li>
           )
         })}

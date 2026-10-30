@@ -261,3 +261,9 @@ form.inline input { width: 84px; }
 .metamagic .mm-head { display: flex; align-items: center; gap: var(--sp-1); }
 .metamagic .mm-name small { color: var(--s-muted); font-size: .75rem; }
 .metamagic .mm-level { display: flex; align-items: center; gap: var(--sp-1); font-size: .8125rem; color: var(--s-muted); }
+
+/* Use: one tap spends a use and starts the feature's effect (Resources card). */
+.track-use { margin-inline-start: auto; }
+.track-count + .track-use { margin-inline-start: 0; }
+.use-out { display: grid; gap: var(--sp-1); margin-block-end: var(--sp-2); }
+.use-out > .glass-btn { justify-self: start; }

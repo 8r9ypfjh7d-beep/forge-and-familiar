@@ -1,7 +1,7 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction, LiveEffect } from '../../model/character'
-import { classChoices, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
+import { classChoices, featureEffectId, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { spellDamage } from '../../quickcast/quickcast'
@@ -200,7 +200,10 @@ export function effectToggles(c: Character, stats: DerivedStats, spells: Spell[]
   const out: EffectToggle[] = []
   for (const a of stats.attacks) {
     for (const r of getDamageRiders(c, a)) {
-      if (!out.some(e => e.id === r.id)) out.push({ id: r.id, name: r.name, damage: r.damage, feature: true, weaponOnly: true, ...(r.oncePerTurn ? { oncePerTurn: true } : {}) })
+      if (out.some(e => e.id === r.id)) continue
+      // Rage used from Resources is a running effect; its switch follows it.
+      const live = (c.state.effects ?? []).find(e => e.id === featureEffectId(r.id))
+      out.push({ id: r.id, name: r.name, damage: r.damage, feature: true, weaponOnly: true, ...(r.oncePerTurn ? { oncePerTurn: true } : {}), ...(live ? { live, stats: live.stats } : {}) })
     }
   }
   const running = c.state.effects ?? []
@@ -220,7 +223,7 @@ export function effectToggles(c: Character, stats: DerivedStats, spells: Spell[]
     out.push({ id: start.id, name: s.name, ...fromLive(live ?? start), ...(live ? { live } : { start }) })
   }
   // Running effects from anything else: spells cast from an item or pinned under another name, features, items.
-  for (const live of running) if (!out.some(e => e.id === live.id)) out.push({ id: live.id, name: live.name, ...fromLive(live), live })
+  for (const live of running) if (!out.some(e => e.id === live.id || e.live?.id === live.id)) out.push({ id: live.id, name: live.name, ...fromLive(live), live })
   // The player's own actions that carry an effect (a curse, a blessing, a stance): extra damage, stat changes or both.
   for (const a of c.customActions ?? []) {
     const damage = a.effect && resolveDice(a.effect.damage, stats)

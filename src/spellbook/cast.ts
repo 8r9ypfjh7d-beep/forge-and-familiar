@@ -17,7 +17,7 @@ export function castContext(c: Character, d: DerivedStats): CastContext {
 export const defaultSlot = (c: Character, spell: Pick<Spell, 'level'>): SlotChoice | undefined => slotChoices(c, spell.level)[0]
 
 /** What casting at this slot would do. */
-export const castPlan = (c: Character, d: DerivedStats, spell: Spell, slot?: SlotChoice): CastPlan => planCast(spell, slot?.level ?? spell.level, castContext(c, d))
+export const castPlan = (c: Character, d: DerivedStats, spell: Spell, slot?: SlotChoice, level?: number): CastPlan => planCast(spell, slot?.level ?? level ?? spell.level, castContext(c, d))
 
 /** A plain number ("10"), or undefined when it needs a roll ("1d4+4"). */
 export const fixedAmount = (notation: string) => (/^\d+$/.test(notation) ? Number(notation) : undefined)
