@@ -319,7 +319,13 @@ export interface Condition extends EntryBase {
 export interface MonsterAction {
   name: string
   description: string
+  /** Book monsters: our own Hebrew summary next to the English one in `description`. */
+  descriptionHe?: string
   attackBonus?: number
+  /** Melee reach in feet, when the text says so. */
+  reach?: number
+  /** Ranged attack range in feet. */
+  range?: { normal: number; long?: number }
   damage: { dice: string; type: string }[]
   /** Alternatives, e.g. lightning or thunder: pick one group. */
   damageChoice?: { dice: string; type: string }[]
@@ -328,6 +334,17 @@ export interface MonsterAction {
     | { type: 'per day'; times: number; timesInLair?: number }
     | { type: 'recharge'; dice: string; minimum: number }
     | { type: 'per rest'; rests: string[] }
+}
+
+/** A stat block's spellcasting, structured so a sheet can offer Cast buttons; the trait text stays for display. */
+export interface MonsterSpellcasting {
+  ability: Ability
+  saveDc?: number
+  attackBonus?: number
+  /** "At Will", "1/Day Each", "3rd level (3 slots)"… with library spell ids, or names when the library lacks them. */
+  groups: { label: string; spells: string[] }[]
+  /** "requires no material components", caster level, or the class whose list it uses. */
+  note?: string
 }
 
 export interface Monster extends EntryBase {
@@ -364,6 +381,30 @@ export interface Monster extends EntryBase {
   /** Other stat blocks of the same creature (vampire bat form). */
   forms: Ref[]
   description?: string
+  // ---- Optional fields, filled by book monsters (src/content/books/monsters), homebrew packs and NPC sheets ----
+  /** Book monsters: the book's code, e.g. MM, XMM, MPMM (`BOOK_TITLES`). */
+  book?: string
+  /** Book and pack monsters: Hebrew name. SRD names live in src/i18n/locales/monsters.he.ts instead. */
+  nameHe?: string
+  /** Book monsters: our own Hebrew lore summary. */
+  descriptionHe?: string
+  /** 2024 stat blocks print an initiative bonus; absent means the DEX modifier. */
+  initiative?: number
+  /** 2024 "Gear" line: item names. */
+  gear?: string[]
+  /** 2024 stat block lines. */
+  habitat?: string[]
+  treasure?: string[]
+  /** 2014 Monster Manual environment tags (arctic, underdark…). */
+  environments?: string[]
+  /** Descriptive tags: shapechanger, titan, any race, npc… */
+  tags?: string[]
+  /** Legendary action count per round and Legendary Resistance uses, so a tracker can count them. */
+  legendary?: { actions: number; resistance?: number; description?: string }
+  lairActions?: MonsterAction[]
+  /** Regional effects as a short summary. */
+  regionalEffects?: string
+  spellcasting?: MonsterSpellcasting
 }
 
 export interface Language extends EntryBase {

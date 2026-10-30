@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BOOK_SOURCES, BOOK_TITLES, loadKind, sanitizePack, type Edition, type Spell } from '..'
+import { BOOK_SOURCES, BOOK_TITLES, bookMonsterPaths, loadKind, sanitizePack, type Edition, type Spell } from '..'
 import { subclassesFor } from '../../rules/data/subclasses'
 import { spellIdByName, spellSourcesFor } from '../../spellbook/access'
 
@@ -58,5 +58,71 @@ describe('book spells', () => {
   it('cannot be posed as by an imported pack', () => {
     expect(BOOK_SOURCES.map(s => s.id)).toEqual(['books-2014', 'books-2024'])
     expect(sanitizePack({ format: 'ff-content', version: 1, source: { id: 'books-2014', title: 'Fake' }, entries: {} })).toBeNull()
+  })
+})
+
+// ---------- Book monsters (src/content/books/monsters/<edition>/<BOOK>.json, one file per book) ----------
+
+const SIZES = ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan']
+const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha']
+const hebrew = /[֐-׿]/
+const bookMonsters = (edition: Edition) => loadKind('monsters', { sources: [`books-${edition}`] })
+const srdMonsters = (edition: Edition) => loadKind('monsters', { sources: [edition === '2024' ? 'srd-5.2' : 'srd-5.1'] })
+
+describe('book monsters', () => {
+  it('ships one file per book, named by its code', () => {
+    for (const edition of EDITIONS) {
+      for (const path of bookMonsterPaths(edition)) {
+        const code = path.split('/').pop()!.replace(/\.json$/, '')
+        expect(BOOK_TITLES[code], path).toBeTruthy()
+      }
+    }
+  })
+
+  it.each(EDITIONS)('%s entries are complete: numbers, both summaries, a known book', async edition => {
+    const list = await bookMonsters(edition)
+    const ids = new Set<string>()
+    for (const m of list) {
+      expect(ids.has(m.id), m.id).toBe(false)
+      ids.add(m.id)
+      expect(m.id, m.name).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+      expect(m).toMatchObject({ source: `books-${edition}`, edition })
+      expect(BOOK_TITLES[m.book!], m.id).toBeTruthy()
+      expect(m.nameHe, m.id).toMatch(hebrew)
+      for (const s of m.sizes) expect(SIZES, m.id).toContain(s)
+      expect(m.type, m.id).toBeTruthy()
+      expect(m.armorClass.length, m.id).toBeGreaterThan(0)
+      expect(m.hitPoints, m.id).toBeGreaterThan(0)
+      expect(m.hitPointsRoll, m.id).toMatch(/^\d+d\d+([+-]\d+)?$/)
+      for (const a of ABILITIES) expect((m.abilities as Record<string, number>)[a], `${m.id} ${a}`).toBeGreaterThan(0)
+      expect(m.challengeRating, m.id).toBeGreaterThanOrEqual(0)
+      expect(m.xp, m.id).toBeGreaterThanOrEqual(0)
+      expect(m.proficiencyBonus, m.id).toBeGreaterThanOrEqual(2)
+      if (m.description) expect(m.descriptionHe, m.id).toMatch(hebrew)
+      // Every trait and action: our own short summary in both languages, never the book's text.
+      for (const a of [...m.traits, ...m.actions, ...m.bonusActions, ...m.reactions, ...m.legendaryActions, ...(m.lairActions ?? [])]) {
+        expect(a.name, m.id).toBeTruthy()
+        expect(a.description.length, `${m.id} ${a.name}`).toBeGreaterThan(8)
+        expect(a.description.length, `${m.id} ${a.name}`).toBeLessThan(400)
+        expect(a.descriptionHe, `${m.id} ${a.name}`).toMatch(hebrew)
+        for (const d of [...a.damage, ...(a.damageChoice ?? [])]) expect(d.dice, `${m.id} ${a.name}`).toMatch(/^\d+d\d+([+-]\d+)?$/)
+      }
+      if (m.spellcasting) {
+        expect(ABILITIES, m.id).toContain(m.spellcasting.ability)
+        for (const g of m.spellcasting.groups) expect(g.spells.length, `${m.id} ${g.label}`).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it.each(EDITIONS)('%s never repeats an SRD monster of the same edition', async edition => {
+    const names = new Set((await srdMonsters(edition)).map(m => norm(m.name)))
+    for (const m of await bookMonsters(edition)) expect(names.has(norm(m.name)), m.name).toBe(false)
+  })
+
+  it('starts with the 2014 Monster Manual classics', async () => {
+    const list = await bookMonsters('2014')
+    const beholder = list.find(m => m.id === 'beholder')!
+    expect(beholder).toMatchObject({ book: 'MM', challengeRating: 13, legendary: { actions: 3 } })
+    expect(list.find(m => m.id === 'mind-flayer')?.spellcasting?.groups[0]).toEqual({ label: 'At will', spells: ['detect-thoughts', 'levitate'] })
   })
 })

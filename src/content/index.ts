@@ -1,6 +1,7 @@
 // Public API of the content library: every SRD spell, item, class, race, feat, background, condition and monster.
 export * from './types.ts'
-export { BUNDLED, getEntry, listSources, loadKind, onContentChanged, registerContentPack, sourceById, unregisterContentPack, type LoadOptions } from './library.ts'
+export { BUNDLED, bookMonsterPaths, getEntry, listSources, loadKind, onContentChanged, registerContentPack, sourceById, unregisterContentPack, type LoadOptions } from './library.ts'
+export { loadMonsters, monsterKey, monsterName, monsterSourcesFor, monsterSourceNote, type LoadedMonster } from './monsters.ts'
 export * from './query.ts'
 export { BOOK_SOURCES, BOOK_TITLES, bookSourceFor } from './books/sources.ts'
 export { checkContent, sanitizePack } from './validate.ts'

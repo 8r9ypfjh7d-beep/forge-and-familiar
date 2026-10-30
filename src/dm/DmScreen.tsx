@@ -2,7 +2,7 @@
 // Uses the sheet's card style (.ff-sheet) so it reads like the rest of the app.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createEncounter, addCombatant, saveEncounter } from '../combat'
-import { BUNDLED, loadKind, type Monster } from '../content'
+import { BOOK_TITLES, loadMonsters, monsterKey, onContentChanged, sourceById, type Edition, type LoadedMonster, type Monster } from '../content'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { DmRequestsTab, inbox, StoryReminders, useRequests } from '../requests'
@@ -12,7 +12,7 @@ import { StatBlock } from '../monsters'
 import { totalLevel } from '../rules'
 import { getCharacter } from '../storage'
 import {
-  activePlan, addMonster, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterTypes,
+  activePlan, addMonster, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterGroups, monsterTypes,
   groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
@@ -25,7 +25,9 @@ import '../sheet/combat/combat.css'
 import './dm.css'
 
 const newId = () => crypto.randomUUID()
-const SOURCE = 'srd-5.1'
+/** Which rules the Monsters tab shows, remembered on the device. Campaigns do not carry an edition yet. */
+const EDITION_KEY = 'ff.dm.edition.v1'
+const readEdition = (): Edition => { try { return localStorage.getItem(EDITION_KEY) === '2024' ? '2024' : '2014' } catch { return '2014' } }
 
 export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'reference' | 'npcs' | 'requests'
 type Tab = DmTab
@@ -50,7 +52,9 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
 }) {
   const { t } = useI18n()
   const [state, setState] = useState<DmState | null>(null)
-  const [monsters, setMonsters] = useState<Monster[]>([])
+  const [monsters, setMonsters] = useState<LoadedMonster[]>([])
+  const [edition, setEditionState] = useState<Edition>(readEdition)
+  const setEdition = (e: Edition) => { setEditionState(e); try { localStorage.setItem(EDITION_KEY, e) } catch { /* private mode */ } }
   const [tab, setTab] = useState<Tab>(initialTab ?? 'encounters')
   const requests = useRequests()
   // Opened straight on a later tab (from a request link): bring it into view on narrow screens.
@@ -68,11 +72,14 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
     const off = onDmChanged(userId, s => { if (live) setState(s) })
     return () => { live = false; off() }
   }, [userId])
+  // Every monster source for the chosen rules (SRD, books, legacy older books, homebrew packs); packs can register later.
   useEffect(() => {
     let live = true
-    loadKind('monsters', { sources: [SOURCE] }).then(list => { if (live) setMonsters(list) }).catch(() => {})
-    return () => { live = false }
-  }, [])
+    const load = () => loadMonsters(edition).then(list => { if (live) setMonsters(list) }).catch(() => {})
+    load()
+    const off = onContentChanged(load)
+    return () => { live = false; off() }
+  }, [edition])
 
   const update = useCallback<Update>(fn => {
     setState(prev => {
@@ -106,7 +113,8 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
     onRunEncounter(saved.id)
   }
 
-  const showMonster = (id: string) => { setOpenMonster(id); setTab('monsters') }
+  const showMonster = (key: string) => { setOpenMonster(key); setTab('monsters') }
+  const credits = [...new Set(monsters.map(m => sourceById(m.source)?.attribution).filter((x): x is string => !!x))]
 
   const move = (e: React.KeyboardEvent, i: number) => {
     const by = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
@@ -136,14 +144,14 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
           {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
           {tab === 'encounters' && <EncountersTab state={state} update={update} monsters={monsters} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
-          {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} />}
+          {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition} />}
           {tab === 'reference' && <ReferenceTab />}
           {tab === 'npcs' && <NpcsTab state={state} update={update} />}
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} />}
         </div>
       </div>
       <p className="hint dm-credit">{t('dm.credit')}</p>
-      <p className="hint dm-credit" dir="ltr" lang="en">{BUNDLED.find(m => m.source.id === SOURCE)?.source.attribution}</p>
+      {credits.map(c => <p key={c} className="hint dm-credit" dir="ltr" lang="en">{c}</p>)}
     </div>
   )
 }
@@ -298,7 +306,7 @@ function EncountersTab({ state, update, monsters, onAdd, onRun, onOpenMonster }:
               <ul className="plain dm-plan-list">
                 {plan.monsters.map(m => (
                   <li key={`${m.source}:${m.monsterId}`}>
-                    <button className="link-btn" onClick={() => onOpenMonster(m.monsterId)}>{m.name}</button>
+                    <button className="link-btn" onClick={() => onOpenMonster(monsterKey({ source: m.source, id: m.monsterId }))}>{m.name}</button>
                     <span className="muted small">{t('dm.crXp', { cr: crLabel(m.cr), xp: (m.xp * m.count).toLocaleString() })}</span>
                     <span className="dm-count">
                       <button className="btn small" aria-label={t('dm.fewer', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, -1)))}>−</button>
@@ -346,23 +354,40 @@ function Meter({ xp, budget }: { xp: number; budget: { low: number; moderate: nu
 
 // ---------- Monsters ----------
 
-function MonsterBrowser({ monsters, onAdd, onOpen, openId }: {
-  monsters: Monster[]
+function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }: {
+  monsters: LoadedMonster[]
   onAdd: (m: Monster) => void
-  onOpen: (id: string) => void
+  onOpen: (key: string) => void
   openId?: string | null
+  edition?: Edition
+  onEdition?: (e: Edition) => void
 }) {
-  const { t } = useI18n()
-  const [q, setQ] = useState<MonsterQuery>({ text: '', minCr: null, maxCr: null, type: '' })
+  const { t, monsterName } = useI18n()
+  const [q, setQ] = useState<MonsterQuery>({ text: '', minCr: null, maxCr: null, type: '', book: '' })
   const crs = useMemo(() => crSteps(monsters), [monsters])
   const types = useMemo(() => monsterTypes(monsters), [monsters])
-  const found = useMemo(() => findMonsters(monsters, q), [monsters, q])
+  const groups = useMemo(() => monsterGroups(monsters), [monsters])
+  const found = useMemo(() => findMonsters(monsters, q, 60, monsterName) as LoadedMonster[], [monsters, q, monsterName])
   const cr = (v: string) => (v === '' ? null : Number(v))
+  const groupName = (g: string) => (g === 'srd' ? t('dm.srdSource') : g === 'hb' ? t('dm.homebrewSource') : BOOK_TITLES[g] ?? g)
   if (!monsters.length) return <p className="hint">{t('common.loading')}</p>
   return (
     <div className="dm-browser">
+      {edition && onEdition && (
+        <div className="dm-edition" role="group" aria-label={t('dm.rulesEdition')}>
+          {(['2014', '2024'] as Edition[]).map(e => (
+            <button key={e} type="button" className={`btn small${edition === e ? ' primary' : ''}`} aria-pressed={edition === e} onClick={() => onEdition(e)}>{t(e === '2024' ? 'dm.edition2024' : 'dm.edition2014')}</button>
+          ))}
+        </div>
+      )}
       <div className="dm-filters">
         <input type="search" value={q.text} onChange={e => setQ({ ...q, text: e.target.value })} placeholder={t('dm.searchMonsters')} aria-label={t('dm.searchMonsters')} />
+        {groups.length > 1 && (
+          <select className="dm-source" aria-label={t('dm.source')} value={q.book ?? ''} onChange={e => setQ({ ...q, book: e.target.value })}>
+            <option value="">{t('dm.anySource')}</option>
+            {groups.map(g => <option key={g} value={g}>{groupName(g)}</option>)}
+          </select>
+        )}
         <select aria-label={t('dm.minCr')} value={q.minCr ?? ''} onChange={e => setQ({ ...q, minCr: cr(e.target.value) })}>
           <option value="">{t('dm.minCr')}</option>
           {crs.map(c => <option key={c} value={c}>{t('dm.cr', { cr: crLabel(c) })}</option>)}
@@ -379,8 +404,10 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId }: {
       {found.length === 0 ? <p className="hint">{t('dm.noMonsters')}</p> : (
         <ul className="plain dm-monster-list">
           {found.map(m => (
-            <li key={m.id} className={openId === m.id ? 'on' : ''}>
-              <button className="link-btn" onClick={() => onOpen(m.id)} aria-current={openId === m.id ? 'true' : undefined}>{m.name}</button>
+            <li key={monsterKey(m)} className={openId === monsterKey(m) ? 'on' : ''}>
+              <button className="link-btn" onClick={() => onOpen(monsterKey(m))} aria-current={openId === monsterKey(m) ? 'true' : undefined}>
+                {monsterName(m)}{m.legacy && <small className="dm-legacy"> · {t('dm.legacy')}</small>}
+              </button>
               <span className="muted small">{t('dm.crXp', { cr: crLabel(m.challengeRating), xp: m.xp.toLocaleString() })}</span>
               <button className="btn small" onClick={() => onAdd(m)} aria-label={t('dm.addNamed', { name: m.name })}>{t('dm.add')}</button>
             </li>
@@ -391,23 +418,26 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId }: {
   )
 }
 
-function MonstersTab({ monsters, openId, onOpen, onAdd, planName }: {
-  monsters: Monster[]
+function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdition }: {
+  monsters: LoadedMonster[]
   openId: string | null
-  onOpen: (id: string) => void
+  onOpen: (key: string) => void
   onAdd: (m: Monster) => void
   planName?: string
+  edition: Edition
+  onEdition: (e: Edition) => void
 }) {
   const { t } = useI18n()
-  const open = monsters.find(m => m.id === openId)
+  // A plan may name a monster by id only (older plans) or by source and id.
+  const open = monsters.find(m => monsterKey(m) === openId) ?? monsters.find(m => m.id === openId)
   return (
     <div className="dm-two">
       <section className="card" aria-labelledby="dm-mon-title">
         <h2 id="dm-mon-title">{t('dm.tab.monsters')}</h2>
-        <MonsterBrowser monsters={monsters} onAdd={onAdd} onOpen={onOpen} openId={openId} />
+        <MonsterBrowser monsters={monsters} onAdd={onAdd} onOpen={onOpen} openId={openId} edition={edition} onEdition={onEdition} />
       </section>
       {open
-        ? <StatBlock key={open.id} m={open} actions={<button className="btn small primary" onClick={() => onAdd(open)} title={planName}>{t('dm.addToPlan')}</button>} />
+        ? <StatBlock key={monsterKey(open)} m={open} legacy={open.legacy} actions={<button className="btn small primary" onClick={() => onAdd(open)} title={planName}>{t('dm.addToPlan')}</button>} />
         : <section className="card"><p className="hint">{t('dm.pickMonster')}</p></section>}
     </div>
   )

@@ -5,6 +5,8 @@ import { BOOK_SOURCES } from './books/sources.ts'
 
 const manifests = import.meta.glob<ContentManifest>('./data/*/manifest.json', { eager: true, import: 'default' })
 const files = import.meta.glob<ContentFile>(['./data/*/*.json', '!./data/*/manifest.json', './books/*.json'], { import: 'default' })
+/** Book monsters: one file per book under `books/monsters/<edition>/`, so each book can be written on its own. */
+const bookMonsterFiles = import.meta.glob<ContentFile>('./books/monsters/*/*.json', { import: 'default' })
 
 /** The bundled sources, with upstream version and counts. */
 export const BUNDLED: ContentManifest[] = Object.values(manifests).sort((a, b) => a.source.id.localeCompare(b.source.id))
@@ -13,7 +15,7 @@ const cache = new Map<string, Promise<unknown[]>>()
 const packs = new Map<string, ContentPack>()
 const listeners = new Set<() => void>()
 
-/** Every source that ships with the app: the SRD files, then the book spells (`books/`, spells only). */
+/** Every source that ships with the app: the SRD files, then the book spells and monsters (`books/`). */
 const SHIPPED: SourceInfo[] = [...BUNDLED.map(m => m.source), ...BOOK_SOURCES]
 
 /** All sources: bundled SRD first, then book spells, then registered packs. */
@@ -25,8 +27,12 @@ export const sourceById = (id: string) => listSources().find(s => s.id === id)
 
 /** Entries of one kind from one bundled source. Each file is fetched once per page load. */
 function loadBundled<K extends ContentKind>(source: SourceInfo, kind: K): Promise<ContentEntryByKind[K][]> {
+  if (source.id.startsWith('books-') && kind === 'monsters') return loadBookMonsters(source) as Promise<ContentEntryByKind[K][]>
   const path = source.id.startsWith('books-') ? `./books/${kind}-${source.edition}.json` : `./data/${source.id}/${kind}.json`
-  const load = files[path]
+  return loadFile(path, files[path]) as Promise<ContentEntryByKind[K][]>
+}
+
+function loadFile(path: string, load?: () => Promise<ContentFile>): Promise<unknown[]> {
   if (!load) return Promise.resolve([])
   let pending = cache.get(path)
   if (!pending) {
@@ -34,7 +40,14 @@ function loadBundled<K extends ContentKind>(source: SourceInfo, kind: K): Promis
     pending.catch(() => cache.delete(path))
     cache.set(path, pending)
   }
-  return pending as Promise<ContentEntryByKind[K][]>
+  return pending
+}
+
+/** Paths of the book monster files of one edition, in file-name order (one per book code). */
+export const bookMonsterPaths = (edition: Edition) => Object.keys(bookMonsterFiles).filter(p => p.startsWith(`./books/monsters/${edition}/`)).sort()
+
+function loadBookMonsters(source: SourceInfo): Promise<unknown[]> {
+  return Promise.all(bookMonsterPaths(source.edition).map(p => loadFile(p, bookMonsterFiles[p]))).then(lists => lists.flat())
 }
 
 export interface LoadOptions {

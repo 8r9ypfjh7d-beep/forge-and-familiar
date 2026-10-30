@@ -93,6 +93,14 @@ describe('Hebrew coverage', () => {
     expect([...new Set(spells.map(sp => `spell.${sp.id}`))].filter(k => !(k in he.terms))).toEqual([])
   })
 
+  // Every SRD monster (both editions) has a Hebrew name by id. Book and pack monsters carry their own `nameHe`.
+  it('names every SRD monster', async () => {
+    const monsters = await loadKind('monsters', { sources: ['srd-5.1', 'srd-5.2'] })
+    expect(monsters.length).toBeGreaterThan(600)
+    expect([...new Set(monsters.map(m => `monster.${m.id}`))].filter(k => !(k in he.terms))).toEqual([])
+    for (const k of Object.keys(he.terms)) if (k.startsWith('monster.')) expect(he.terms[k], k).toMatch(/[֐-׿]/)
+  })
+
   it('translates every spell casting time, range and duration', async () => {
     const spells = await loadKind('spells')
     const texts = [...new Set(spells.flatMap(sp => [sp.castingTime, sp.range, sp.duration]))]

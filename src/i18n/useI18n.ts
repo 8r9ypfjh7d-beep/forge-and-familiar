@@ -76,6 +76,9 @@ export function useI18n() {
       item: (id: string, fallback: string) => tr('item', id, fallback),
       /** A spell's name in the current language, from its id or English name; homebrew keeps its own name. */
       spellName: (nameOrId: string, fallback = nameOrId) => tr('spell', spellTermId(nameOrId), fallback),
+      /** A monster's name in the current language: SRD names from `monster.<id>` terms, book and pack monsters from their own `nameHe`. */
+      monsterName: (m: { id: string; name: string; nameHe?: string; source: string }) =>
+        locale === 'he' ? (m.source.startsWith('srd-') ? tr('monster', m.id, m.nameHe ?? m.name) : m.nameHe ?? tr('monster', m.id, m.name)) : m.name,
       /** Casting time, range or duration in the current language ("1 action" → "פעולה"). */
       spellMeasure: (text: string) => (locale === 'he' ? spellMeasureHe(text) : text),
       /**

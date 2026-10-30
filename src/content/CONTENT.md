@@ -1,6 +1,6 @@
 # Content library
 
-Every SRD spell, item, magic item, class, class feature, subclass, race, subrace, trait, feat, background, condition, monster, language and proficiency, for both rules editions, as typed JSON the app loads on demand. `scripts/content/ingest.ts` generates `data/` from an upstream source. `books/` adds the official spells beyond the SRD, with our own summaries.
+Every SRD spell, item, magic item, class, class feature, subclass, race, subrace, trait, feat, background, condition, monster, language and proficiency, for both rules editions, as typed JSON the app loads on demand. `scripts/content/ingest.ts` generates `data/` from an upstream source. `books/` adds the official spells and monsters beyond the SRD, with our own summaries.
 
 ## Files Covered
 
@@ -8,7 +8,8 @@ Every SRD spell, item, magic item, class, class feature, subclass, race, subrace
 |------|---------|
 | `index.ts` | Public API |
 | `types.ts` | The data model: one interface per kind, `Choice` for "pick N", `ContentFile`, `ContentManifest`, `ContentPack` |
-| `library.ts` | `loadKind`, `getEntry`, `listSources`, `BUNDLED`; `registerContentPack` / `unregisterContentPack` / `onContentChanged` for packs |
+| `library.ts` | `loadKind`, `getEntry`, `listSources`, `BUNDLED`, `bookMonsterPaths`; `registerContentPack` / `unregisterContentPack` / `onContentChanged` for packs |
+| `monsters.ts` | `loadMonsters(edition)`: every monster a campaign can use (SRD, books, legacy older books, packs); `monsterKey`, `monsterName`, `monsterSourceNote` |
 | `query.ts` | `searchEntries`, `filterSpells`, `filterMonsters`, `filterEquipment`, `filterMagicItems`, `entryKey` |
 | `validate.ts` | `checkContent` (duplicate ids, broken links), `sanitizePack` (packs from files or other devices) |
 | `bridge.ts` | `toRulesItem` (library equipment → rules `Item`), `fromHomebrewPack`, `LIBRARY_ID_FOR_RULES_ITEM` |
@@ -18,7 +19,9 @@ Every SRD spell, item, magic item, class, class feature, subclass, race, subrace
 | `data/<source>/manifest.json` | Generated. Upstream repo and commit, counts |
 | `books/sources.ts` | `BOOK_SOURCES` (`books-2014`, `books-2024`), `bookSourceFor`, `BOOK_TITLES` (book code → title) |
 | `books/spells-<edition>.json` | Official non-SRD spells for that edition's rules, one per line |
-| `books/books.test.ts` | Book spell completeness, no SRD overlap, subclass spell names resolve |
+| `books/monsters/<edition>/<BOOK>.json` | Official non-SRD monsters of one book, one per line; the file name is the book code |
+| `books/books.test.ts` | Book spell completeness, no SRD overlap, subclass spell names resolve; book monster shape, both summaries, no SRD overlap |
+| `monsters.test.ts` | `loadMonsters` per edition, legacy fallback, packs, names and source notes |
 | `content.test.ts` | Normalizer fixtures, bundled data integrity, rules engine agreement, packs, search |
 
 `scripts/content/ingest.ts` is the CLI (`npm run content:ingest`).
@@ -43,6 +46,19 @@ Every SRD spell, item, magic item, class, class feature, subclass, race, subrace
 - `books-2024`: 2024 PHB spells missing from SRD 5.2, the 2024-era books, then older-book spells with no 2024 reprint, so they stay usable with 2024 rules.
 - `Spell.book` is the book code (`XGE`); `BOOK_TITLES` names it. Dunamancy spells (Wildemount) are on the wizard list; Encode Thoughts has no class list in its book.
 - Hand-edited. To add a spell: append a line to the matching file with a new `id` (a slug of the name) and both summaries; `books.test.ts` checks the shape.
+
+## Book monsters
+
+`books/monsters/<edition>/<BOOK>.json` holds the official monsters the SRD leaves out, one file per book so each book can be written by its own thread without merge conflicts. The loader globs the folder: a new file is live with no code change, and its name must be a code in `BOOK_TITLES`.
+
+- Same licence rule as book spells: names and game numbers only (size, type, AC, HP, speeds, abilities, saves, skills, senses, CR, XP, attack bonuses, reach and range, damage dice, DCs, uses). Every trait and action has `description` (our own short English summary) and `descriptionHe`; `nameHe` is required; `description`/`descriptionHe` on the monster is a one-line lore summary. Never the book's text. `books.test.ts` checks all of this.
+- `book` is the book code. `spellcasting` lists spell groups with library spell ids. `legendary` counts legendary actions and resistances; `lairActions`, `regionalEffects`, `environments` (2014), `initiative`, `gear`, `habitat`, `treasure` (2024) and `tags` are optional.
+- A monster in the SRD of the same edition is never repeated (tested by name). A 2014 book monster reprinted in the 2025 Monster Manual gets its own entry under `2024/XMM.json`; one never reprinted is written once under 2014 and `loadMonsters('2024')` shows it as `legacy`.
+- Plan and source inventory: `/mnt/project-files/monsters/plan.md` (project files).
+
+### `loadMonsters(edition)`
+
+Every screen that lists monsters (DM screen, combat tracker, NPC sheets, custom monsters) calls `loadMonsters(edition)` from `monsters.ts` rather than `loadKind`, so they agree: the edition's SRD, its book monsters, older-book monsters with no same-name entry (flagged `legacy: true`, not saved), then every registered pack (`hb:<packId>` homebrew, imports) whatever its edition. The same id exists in both editions, so lists and saved references use `monsterKey(m)` = `${source}:${id}`. `monsterName(m, lang, terms)` gives the Hebrew name: SRD monsters from `monster.<id>` terms (`src/i18n/locales/monsters.he.ts`, coverage tested), book and pack monsters from their own `nameHe`; `useI18n().monsterName(m)` wraps it. `monsterSourceNote(m)` is the line to show under a stat block (CC-BY attribution, book title plus the summary note, or the pack's title).
 
 ## Data model
 
@@ -71,4 +87,5 @@ SRD 5.1 and 5.2 are CC-BY-4.0. Any screen that shows library text must show `sou
 - **Upstream changed a field**: add a fixture case to `content.test.ts`, then handle it in `ingest/fiveEBits.ts`. Both editions go through the same functions.
 - **Add a field to a kind**: add it to `types.ts`, fill it in `ingest/fiveEBits.ts`, regenerate.
 - **Add a kind**: add it to `CONTENT_KINDS` and `ContentEntryByKind`, map upstream files in `ingest/sources.ts`, add a normalizer, add links to `checkContent`.
+- **Add a book's monsters**: add the book code to `BOOK_TITLES` if missing, create `books/monsters/<edition>/<CODE>.json` with the `books-<edition>` source header (copy it from `2014/MM.json`), one entry per line following the rules above, run the tests.
 - **Add another source**: write a normalizer next to `fiveEBits.ts` that returns `NormalizedContent` with its own `SourceInfo` (licence and attribution), and a flag in the CLI to pick it.
