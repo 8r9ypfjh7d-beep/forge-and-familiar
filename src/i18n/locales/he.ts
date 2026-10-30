@@ -2,6 +2,7 @@
 // Arrows point the way the page reads: "back" points right, "next" points left.
 import type { Messages, Terms } from '../translate'
 import { backgroundTermsHe, explainBackgroundsHe } from './explain.backgrounds.he'
+import { backgroundTerms2014He, explainBackgrounds2014He } from './explain.backgrounds2014.he'
 import { explainBooksHe } from './explain.books.he'
 import { explainClassesHe } from './explain.classes.he'
 import { explainPicksHe, pickTermsHe } from './explain.picks.he'
@@ -16,6 +17,7 @@ const messages: Messages = {
   ...explainHe,
   ...explainBooksHe,
   ...explainBackgroundsHe,
+  ...explainBackgrounds2014He,
   ...explainClassesHe,
   ...explainProficienciesHe,
   ...explainMetamagicHe,
@@ -240,7 +242,9 @@ const messages: Messages = {
   'builder.raise': 'העלאת {ability}',
   'builder.racialPlusOne': '+1 גזעי ל{ability}',
   'builder.background': 'רקע',
-  'builder.bgFeature': 'יכולת: {feature}. לכל רקע אחר, בחרו "רקע מותאם".',
+  'builder.bgFeature': 'יכולת: {feature}. לא ברשימה? בחרו "רקע מותאם".',
+  'builder.bgSkills': 'הרקע שלכם מאפשר לבחור עוד {count} מתוך: {skills}.',
+  'builder.tag.background': 'רקע',
   'builder.bgFeat': 'הישג מוצא: {feat}.',
   'builder.bgFeat.bonusNote': 'את התוספות ליכולות בוחרים בשלב היכולות.',
   'builder.chosenClass': 'נבחרו {chosen} מתוך {total}. המקצוע שלכם מציע את המסומנות "מקצוע".',
@@ -317,7 +321,7 @@ const messages: Messages = {
   'builder.warn.picks': '{feature} ({className}): בוחרים {max}, נבחרו עד עכשיו {picked}.',
   'builder.warn.picksOver': '{feature} ({className}): נבחרו {picked}, החוקים נותנים {max}. זה בסדר אם השה"מ מסכים.',
   'builder.warn.pickLevel': 'בדרך כלל לומדים את {option} מדרגה {level}. זה בסדר אם השה"מ מסכים.',
-  'builder.warn.skillsOffList': 'חלק מהמיומנויות אינן ברשימת המקצוע. זה בסדר אם השה"מ מסכים.',
+  'builder.warn.skillsOffList': 'חלק מהמיומנויות אינן ברשימת המקצוע או הרקע. זה בסדר אם השה"מ מסכים.',
   'builder.warn.toolsOffList': 'חלק מהכלים אינם ברשימה הרגילה. זה בסדר אם השה"מ מסכים.',
   'builder.warn.secretLanguage': 'בדרך כלל רק המקצוע שלה מלמד את {language} (דרואיד או נוכל). זה בסדר אם השה"מ מסכים.',
   'builder.warn.expertiseOffList': '{pick}: חלק מהבחירות הן מיומנויות שאין לכם בהן מקצועיות (או מחוץ לרשימה). מומחיות דורשת בדרך כלל מקצועיות קודם; זה בסדר אם השה"מ מסכים.',
@@ -327,6 +331,7 @@ const messages: Messages = {
   'builder.pick.skill': 'בחרו {count} מיומנות נוספת (נבחרו {chosen}). רשימת המעמד מודגשת.',
   'builder.pick.mastery': 'בחרו {count} סוגי נשק שאת תכונת השליטה שלהם תוכלו להפעיל (נבחרו {chosen}). אפשר להחליף אותם אחרי כל מנוחה ארוכה.',
   'builder.issue.skillsClass': 'בחרו {classCount} מיומנויות מקצוע.',
+  'builder.issue.skillsBackground': 'בחרו {count} מיומנויות מרשימת הרקע.',
   'builder.mc.open': '+ שילוב מקצועות (רשות)',
   'builder.mc.title': 'שילוב מקצועות',
   'builder.mc.intro': 'כל מקצוע דורש ערכי תכונה מינימליים, וגם {className} ({prereq}).',
@@ -2288,6 +2293,7 @@ const terms: Terms = {
   ...backgroundTermsHe,
   ...pickTermsHe,
   ...racesTermsHe,
+  ...backgroundTerms2014He,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',

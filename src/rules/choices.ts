@@ -52,7 +52,7 @@ export function activeImprovements(c: Classes & Pick<Character, 'improvements'>)
 }
 
 /**
- * Every feat the character has: ones taken in place of an ASI and, in 2024, the background's Origin feat,
+ * Every feat the character has: ones taken in place of an ASI, the background's feat and, in 2024,
  * a Human's Origin feat and Fighting Style feats. Unknown ids (a homebrew pack not on this device) are skipped.
  */
 export function getFeats(c: FeatInput): Feat[] {
@@ -67,9 +67,10 @@ export function getFeats(c: FeatInput): Feat[] {
     ? [{ id: `bg:${background.id}`, name: `${background.name} (${background.feature})`, description: background.feature, effects: background.effects }]
     : []
   const fromAsi = [...fromBackground, ...activeImprovements(c).flatMap(i => byId(i.featId))]
-  // 2014: a race's feat pick (Variant Human, Custom Lineage); the builder only sets originFeatId for those.
-  if (edition !== '2024') return [...byId(c.originFeatId), ...fromAsi]
   const bg = background?.feat
+  // 2014: a book background's feat (Strixhaven students, Wildspacer) and a race's feat pick (Variant Human,
+  // Custom Lineage); the builder only sets originFeatId for those.
+  if (edition !== '2024') return [...fromBackground, ...byId(bg?.id, bg?.note), ...byId(c.originFeatId), ...activeImprovements(c).flatMap(i => byId(i.featId))]
   return [
     ...byId(bg?.id, bg?.note),
     ...byId(c.originFeatId),

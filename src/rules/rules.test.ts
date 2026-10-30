@@ -299,3 +299,38 @@ describe('starting wealth', () => {
     expect(startingCoins(d)).toEqual({ coins: { gp: 0, sp: 0, cp: 0 }, leftCp: 1500 - 150000 })
   })
 })
+
+describe('2014 book backgrounds', () => {
+  it('offers every PHB background and variant, plus other books', async () => {
+    const { BACKGROUNDS, TOOLS } = await import('./index')
+    const ids = BACKGROUNDS.map(b => b.id)
+    for (const id of ['charlatan', 'criminal', 'spy', 'entertainer', 'gladiator', 'folk-hero', 'guild-artisan', 'guild-merchant', 'hermit', 'noble',
+      'knight', 'outlander', 'sage', 'sailor', 'pirate', 'soldier', 'urchin', 'city-watch', 'haunted-one', 'lorehold-student', 'wildspacer']) {
+      expect(ids, id).toContain(id)
+    }
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const b of BACKGROUNDS) {
+      for (const t of [...(b.toolProficiencies ?? []), ...(b.toolChoices?.from ?? [])]) expect(TOOLS, `${b.id}: ${t}`).toContain(t)
+      expect(b.skillProficiencies.length + (b.skillChoices?.count ?? 0), b.id).toBe(2)
+    }
+  })
+
+  it('applies a book background: skills, tools, gear and gold', async () => {
+    const { fixedTools, startingGold } = await import('./index')
+    const c = make({ backgroundId: 'urchin', chosenSkills: ['athletics', 'perception'] })
+    expect(derive(c).skills.stealth.proficient).toBe(true)
+    expect(fixedTools(c)).toContain("Thieves' tools")
+    expect(c.inventory.some(e => e.itemId === 'small-knife')).toBe(true)
+    expect(startingGold(draft({ backgroundId: 'noble' }))).toBe(25)
+    expect(startingGold(draft({ backgroundId: 'custom', customBackground: { name: 'X', feature: '', skills: [], tools: [], languages: [] } }))).toBe(15)
+  })
+
+  it('counts background skill picks (Haunted One) and its picked skills', async () => {
+    const { stepIssues } = await import('../builder/validate')
+    const base = draft({ backgroundId: 'haunted-one', chosenLanguages: ['Elvish', 'Abyssal', 'Giant'], chosenTools: [] })
+    expect(stepIssues('skills', { ...base, chosenSkills: ['athletics', 'perception'] })).toContain('Pick 2 skills from your background list.')
+    const ok = { ...base, chosenSkills: ['athletics', 'perception', 'arcana', 'religion'] as CharacterDraft['chosenSkills'] }
+    expect(stepIssues('skills', ok)).toEqual([])
+    expect(derive(createCharacter(ok)).skills.arcana.proficient).toBe(true)
+  })
+})

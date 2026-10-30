@@ -794,8 +794,8 @@ function Improvements({ draft, update }: StepProps) {
 
 function SkillsStep({ draft, update }: StepProps) {
   const granted = grantedSkills(draft)
-  const { classCount, classFrom, raceCount } = skillPicks(draft)
-  const total = classCount + raceCount
+  const { classCount, classFrom, raceCount, bgCount, bgFrom } = skillPicks(draft)
+  const total = classCount + raceCount + bgCount
   const toggle = (s: SkillId) => {
     const has = draft.chosenSkills.includes(s)
     if (has) update({ chosenSkills: draft.chosenSkills.filter(x => x !== s) })
@@ -824,7 +824,7 @@ function SkillsStep({ draft, update }: StepProps) {
         {!custom && <BackgroundExplain kind={edition === '2024' ? 'bg2024' : 'bg'} bg={bg} id={draft.backgroundId} />}
         {!custom && <BackgroundSource id={draft.backgroundId} edition={edition} />}
         {bg && !custom && edition === '2014' && <p className="muted small">{t('builder.bgFeature', { feature: term('bgFeature', bg.feature, bg.feature) })}</p>}
-        {bg?.feat && (
+        {bg?.feat && (edition === '2024' || featById(bg.feat.id, edition)) && (
           <p className="muted small">
             {t('builder.bgFeat', { feat: `${term('feat', bg.feat.id, featById(bg.feat.id, edition)?.name ?? bg.feat.name ?? bg.feat.id)}${bg.feat.note ? ` (${bg.feat.note})` : ''}` })}
             {edition === '2024' && <> {t('builder.bgFeat.bonusNote')}</>}
@@ -838,11 +838,12 @@ function SkillsStep({ draft, update }: StepProps) {
           : t('builder.chosenClass', { chosen: draft.chosenSkills.length, total })}
         <Why id="skills" />
       </p>
+      {bgCount > 0 && <p className="small">{t('builder.bgSkills', { count: bgCount, skills: bgFrom.map(s => skill(s)).join(', ') })}</p>}
       <div className="skill-grid">
         {ALL_SKILLS.map(s => {
           const isGranted = granted.has(s)
-          // Any skill can be picked; ones off the class list are dimmed and only warn.
-          const suggested = raceCount > 0 || classFrom.includes(s)
+          // Any skill can be picked; ones off the class and background lists are dimmed and only warn.
+          const suggested = raceCount > 0 || classFrom.includes(s) || bgFrom.includes(s)
           const checked = isGranted || draft.chosenSkills.includes(s)
           return (
             <label key={s} className={`skill ${isGranted ? 'granted' : ''} ${!suggested && !isGranted ? 'dim' : ''}`}>
@@ -851,6 +852,7 @@ function SkillsStep({ draft, update }: StepProps) {
               <Why title={skill(s)} text={t(`why.skill.${s}`)} compact />
               {isGranted && <span className="tag">{t('builder.tag.granted')}</span>}
               {!isGranted && classFrom.includes(s) && <span className="tag class">{t('builder.tag.class')}</span>}
+              {!isGranted && bgFrom.includes(s) && <span className="tag class">{t('builder.tag.background')}</span>}
             </label>
           )
         })}
