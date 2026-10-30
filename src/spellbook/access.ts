@@ -19,6 +19,8 @@ export interface SpellAccess {
   kind: 'known' | 'prepared'
   /** Spells of level 1+ known or prepared. */
   limit: number
+  /** Wizards: spells in the spellbook (6 at 1st level, +2 each level). They prepare `limit` of them each day. */
+  spellbook?: number
   /** Subclass spells that are always prepared and don't count against the limit. */
   alwaysPrepared: string[]
 }
@@ -30,6 +32,9 @@ export const sourceFor = (edition: Edition) => (edition === '2024' ? 'srd-5.2' :
 
 /** Mystic Arcanum: one spell each of levels 6–9 at warlock levels 11, 13, 15, 17 (both editions). */
 const ARCANUM: [number, number][] = [[17, 9], [15, 8], [13, 7], [11, 6]]
+
+/** Spells in a wizard's spellbook from leveling alone: six at 1st level and two more each level (both editions). */
+export const wizardSpellbook = (level: number) => 6 + 2 * (Math.min(level, 20) - 1)
 
 const mod = (score: number) => Math.floor((score - 10) / 2)
 
@@ -73,6 +78,7 @@ export function spellAccess(
       cantrips: sc.cantripsKnown ?? 0,
       kind,
       limit,
+      ...(cl.classId === 'wizard' ? { spellbook: wizardSpellbook(cl.level) } : {}),
       alwaysPrepared: [...new Set([
         ...(sub?.spells ?? []).filter(s => s.level <= cl.level).map(s => s.spell.id),
         ...subclassSpellNames(c, cl.classId).flatMap(n => byName.get(norm(n)) ?? []),

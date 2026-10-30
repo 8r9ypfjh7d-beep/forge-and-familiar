@@ -7,7 +7,7 @@ import {
   type Ability, type CharacterDraft, type ClassPick, type SkillId,
 } from '../rules'
 
-export type StepId = 'race' | 'class' | 'abilities' | 'skills' | 'equipment' | 'details'
+export type StepId = 'race' | 'class' | 'abilities' | 'skills' | 'spells' | 'equipment' | 'details'
 
 /** Skills granted automatically by race and background (not choosable). */
 export function grantedSkills(d: CharacterDraft): Set<SkillId> {
@@ -167,6 +167,9 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       }
       break
     }
+    case 'spells':
+      // Spell counts are guidance only: the Spells step shows how many are picked of the usual number.
+      break
     case 'equipment': {
       const count = getWeaponMasteryCount(d)
       if (count && (d.weaponMasteries ?? []).slice(0, count).length !== count) out.push(t('builder.issue.mastery', { count }))

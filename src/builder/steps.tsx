@@ -19,6 +19,7 @@ import { Shop } from './Shop'
 import { CustomSubclassForm } from './CustomSubclassForm'
 import { MetamagicPicker } from './MetamagicPicker'
 import { MulticlassPicker } from './MulticlassPicker'
+import { SpellsStep } from './SpellsStep'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
 import { explainKey, featureKey, pitchKey, type WhyId } from './why'
@@ -1209,6 +1210,7 @@ export const STEPS: { id: StepId; title: string; blurb: string; Component: Compo
   { id: 'class', title: 'Class', blurb: 'Your class sets hit points, proficiencies and features.', Component: ClassStep },
   { id: 'abilities', title: 'Abilities', blurb: 'Set your six ability scores. Racial bonuses are added for you.', Component: AbilitiesStep },
   { id: 'skills', title: 'Background & skills', blurb: 'Pick a background and your skill proficiencies.', Component: SkillsStep },
+  { id: 'spells', title: 'Spells', blurb: 'Pick your cantrips and spells.', Component: SpellsStep },
   { id: 'equipment', title: 'Equipment', blurb: 'Pick your starting gear or gold, then shop.', Component: EquipmentStep },
   { id: 'details', title: 'Details', blurb: 'Name your character and add art.', Component: DetailsStep },
 ]

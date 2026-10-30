@@ -3,7 +3,7 @@ import { stepIssues, type StepId } from '../builder/validate'
 import { derive } from '../rules'
 import { STARTER_HEROES, createStarter } from './heroes'
 
-const STEPS: StepId[] = ['race', 'class', 'abilities', 'skills', 'equipment', 'details']
+const STEPS: StepId[] = ['race', 'class', 'abilities', 'skills', 'spells', 'equipment', 'details']
 
 describe('starter heroes', () => {
   it('have unique ids and classes', () => {

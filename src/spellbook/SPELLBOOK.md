@@ -8,6 +8,7 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 |------|---------|
 | `index.ts` | Public API |
 | `access.ts` | Pure: `spellAccess` (per spellcasting class: highest spell level, cantrips, known or prepared, how many, always-prepared subclass spells), `canTake`, `availableSpells`, `editionOf`, `sourceFor` |
+| `extra.ts` | Pure: `grantedSpells` (race and lineage spells with the level they arrive), `extraSources` (High Elf cantrip, spell feats such as Magic Initiate from the 2024 background, a Human's origin feat or an ASI), `canPickExtra`, `extraKey`, `extraList`, `keepValidSpells` |
 | `spellbook.ts` | Pure: `addSpell`, `removeSpell`, `spellsOf`, `pinnedSpells`, `toggleSpellPin`, `setEdition`, `toQuickCast` (library spell → quick-cast entry), `upcastStep`, `isPinned` |
 | `Spellbook.tsx` | `Spellbook` (combat's Spells tab): spell slots, summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
 | `spellbook.css` | Liquid Glass styles for the card's insides (the card frame is the sheet's): `.glass-segmented` tabs, `.glass-chip` filters, `SearchField`, inset spell list on thin glass, tinted Add/Pin buttons |
@@ -18,6 +19,8 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 - Numbers come from the edition's class table in the library: slots give the highest spell level, `cantripsKnown` the cantrips, `spellsKnown` (2014 bard, ranger, sorcerer, warlock) or `preparedSpells` (2024) the limit. 2014 prepared casters use ability modifier + class level (half for Paladin), at least 1.
 - Warlocks also reach 6th–9th level at 11, 13, 15, 17 (Mystic Arcanum).
 - A spell is available when it is on the class list or the subclass list, and of a level the class can cast. Subclass spells the class level has unlocked (Life Domain, Oath of Devotion, the Fiend, Circle of the Land) show as always prepared and don't count against the limit.
+- Wizards also get `spellbook` (6 at 1st level, +2 per level); the summary counts their spells against it and shows the prepared number beside it.
+- Race spells and spells picked through feats or the High Elf trait show in story mode's pin picker.
 - Limits are shown, not enforced: going over turns the counter red.
 - Multiclass characters get a chip per spellcasting class, each with its own list.
 
