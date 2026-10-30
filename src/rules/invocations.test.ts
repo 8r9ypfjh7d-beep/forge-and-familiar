@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { en } from '../i18n/locales/en'
 import { he } from '../i18n/locales/he'
 import {
-  INVOCATIONS, INVOCATIONS_2024, PACT_BOONS, classOptionById, classOptions, createCharacter, derive, getFeats, optionKindsFor, optionSlots,
+  INVOCATIONS, INVOCATIONS_2024, PACT_BOONS, cantripDamageBonus, classOptionById, classOptions, createCharacter, derive, getFeats, optionKindsFor, optionSlots,
   type CharacterDraft, type ClassOptionPick,
 } from './index'
 
@@ -79,6 +79,17 @@ describe('eldritch invocations and pact boons', () => {
     expect(d.senses.truesight).toBe(30)
     expect(derive(warlock(5, [pick('gift-of-the-depths')])).speeds.swim).toBe(30)
     expect(d.warnings).toContain('Witch Sight needs class level 15.')
+  })
+
+  it('adds Agonizing Blast to Eldritch Blast (2014) or to each picked cantrip (2024)', () => {
+    expect(cantripDamageBonus(warlock(2, [pick('agonizing-blast')]), 'Eldritch Blast', 3)).toBe(3)
+    expect(cantripDamageBonus(warlock(2, [pick('agonizing-blast')]), 'Toll the Dead', 3)).toBe(0)
+    expect(cantripDamageBonus(warlock(2, [pick('devils-sight')]), 'Eldritch Blast', 3)).toBe(0)
+    const c = warlock(5, [pick('agonizing-blast-2024', { choice: 'toll the dead' })], { rulesEdition: '2024' })
+    expect(cantripDamageBonus(c, 'Toll the Dead', 3)).toBe(3)
+    expect(cantripDamageBonus(c, 'Eldritch Blast', 3)).toBe(0)
+    expect(cantripDamageBonus(warlock(5, [pick('agonizing-blast-2024')], { rulesEdition: '2024' }), 'Eldritch Blast', 3)).toBe(3)
+    expect(cantripDamageBonus(warlock(2, [pick('agonizing-blast')], { classes: [{ classId: 'fighter', level: 2 }] }), 'Eldritch Blast', 3)).toBe(0)
   })
 
   it('drops picks made through a class the character no longer has', () => {

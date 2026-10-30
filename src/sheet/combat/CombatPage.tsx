@@ -10,7 +10,7 @@ import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
-import { slotChoices, spellDamage } from '../../quickcast/quickcast'
+import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
 import { castPlan, castSpell } from '../../spellbook/cast'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
@@ -308,18 +308,25 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     for (const name of plan.effect ? startEffect(character, plan.effect).ended : []) notes.push(t('cast.concEnded', { name }))
     if (r.kind === 'save' && r.save) notes.push(t('cs.saveNote', { dc: r.value, ability: abilityShort(r.save) }))
     const sc = d.spellcasting
-    const damage = spellDamage({ ...r.entry, id: '', kind: 'spell' }, choice?.level ?? r.level, d.level, sc ? d.mods[sc.ability] : 0)
+    // A cantrip's row already has its damage with Agonizing Blast and Potent Spellcasting; a leveled spell may be upcast.
+    const damage = r.level === 0 ? r.damage : spellDamage({ ...r.entry, id: '', kind: 'spell' }, choice?.level ?? r.level, d.level, sc ? d.mods[sc.ability] : 0)
     const used = r.kind === 'attack' && r.damageType !== 'healing' ? damaging.filter(e => !e.weaponOnly) : []
-    const riders = used.map(e => ({ name: e.name, damage: e.damage }))
-    const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders })
     const type = r.damageType ? term('damage', r.damageType, r.damageType) : ''
-    const list: Shown[] = [
-      ...('attack' in res && res.attack ? [{ roll: res.attack, what: t('cs.roll.toHit') }] : []),
-      ...(res.damage ? [{ roll: res.damage, what: r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type }) }] : []),
-    ]
+    // Each beam (Eldritch Blast, Scorching Ray) rolls to hit and for damage on its own, with the riders on every hit.
+    const beams = r.kind === 'attack' ? spellBeams(r.entry, choice?.level ?? r.level, d.level) : 1
+    const list: Shown[] = []
+    let hit = false
+    for (let i = 1; i <= beams; i++) {
+      const riders = used.filter(e => !(hit && e.oncePerTurn)).map(e => ({ name: e.name, damage: e.damage }))
+      const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders })
+      const what = (s: string) => (beams > 1 ? t('cs.roll.beam', { what: s, n: i }) : s)
+      if ('attack' in res && res.attack) list.push({ roll: res.attack, what: what(t('cs.roll.toHit')) })
+      if (res.damage) list.push({ roll: res.damage, what: what(r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })) })
+      hit ||= !!res.damage
+    }
     show({
       name: r.name, rolls: list, note: notes.join(' · ') || undefined,
-      effects: effectsUsed(active, res.damage ? used.map(e => e.id) : [], f =>
+      effects: effectsUsed(active, hit ? used.map(e => e.id) : [], f =>
         (r.kind === 'attack' ? f.kind === 'spellAttack' : f.kind === 'spellDc') || ((f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === sc?.ability)),
     })
   }
@@ -395,7 +402,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
               <span className="name">{r.name}<small>{t(r.kind === 'attack' ? 'cs.spellAttack' : 'cs.spellSave')}{r.level === 0 ? ` · ${t('cs.cantrip')}` : ''}</small></span>
               <span className="range">{r.range}</span>
               <span className="hit" dir="ltr">{r.kind === 'attack' ? formatMod(r.value) : `${r.save ? abilityShort(r.save) : ''} ${r.value}`}</span>
-              <span className="dmg">{r.damage ? <><span dir="ltr">{r.damage}</span> {r.damageType ? term('damage', r.damageType, r.damageType) : ''}</> : '—'}</span>
+              <span className="dmg">{r.damage ? <><span dir="ltr">{r.beams ? `${r.beams}× ` : ''}{r.damage}</span> {r.damageType ? term('damage', r.damageType, r.damageType) : ''}</> : '—'}</span>
             </button>
           </li>
         ))}

@@ -66,3 +66,17 @@ export const classOptionFeats = (c: Owner): Feat[] =>
     const f = option.choiceKind === 'originFeat' && pick.choice ? featById(pick.choice, rulesEdition(c)) : undefined
     return f ? [f] : []
   })
+
+const sameSpell = (a: string, b: string) => a.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ') === b.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ')
+
+/**
+ * Agonizing Blast's damage on each hit of a cantrip: the Charisma modifier.
+ * 2014: Eldritch Blast only. 2024: the cantrip named on each pick, Eldritch Blast when none is named.
+ */
+export function cantripDamageBonus(c: Parameters<typeof pickedClassOptions>[0], spellName: string, chaMod: number): number {
+  const hit = pickedClassOptions(c).some(({ pick, option }) =>
+    option.id === 'agonizing-blast' ? sameSpell(spellName, 'Eldritch Blast')
+      : option.id === 'agonizing-blast-2024' ? sameSpell(spellName, pick.choice?.trim() || 'Eldritch Blast')
+        : false)
+  return hit ? chaMod : 0
+}

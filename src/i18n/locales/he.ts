@@ -1326,6 +1326,7 @@ const messages: Messages = {
   'cs.roll.crit': 'פגיעה קריטית! קוביות הנזק מוכפלות',
   'cs.roll.fumble': '1 טבעי: החטאה, אין נזק',
   'cs.roll.damage': 'נזק ({type})',
+  'cs.roll.beam': '{what}, קרן {n}',
   'cs.roll.damagePlain': 'נזק',
   'cs.roll.healing': 'ריפוי',
   'cs.roll.initiative': 'יוזמה',

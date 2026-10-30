@@ -22,7 +22,7 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 
 - Numbers come from the edition's class table in the library: slots give the highest spell level, `cantripsKnown` the cantrips, `spellsKnown` (2014 bard, ranger, sorcerer, warlock) or `preparedSpells` (2024) the limit. 2014 prepared casters use ability modifier + class level (half for Paladin), at least 1.
 - Warlocks also reach 6th–9th level at 11, 13, 15, 17 (Mystic Arcanum).
-- A spell is available when it is on the class list or the subclass list, and of a level the class can cast. Subclass spells the class level has unlocked (Life Domain, Oath of Devotion, the Fiend, Circle of the Land) show as always prepared and don't count against the limit.
+- A spell is available when it is on the class list or the subclass list, and of a level the class can cast. Subclass spells the class level has unlocked (Life Domain, Oath of Devotion, Circle of the Land, any 2024 patron) show as always prepared and don't count against the limit. A 2014 warlock patron's expanded spells (the Fiend) only join the list (`listed`) and are learned as normal spells known.
 - Wizards also get `spellbook` (6 at 1st level, +2 per level); the summary counts their spells against it and shows the prepared number beside it.
 - Bard Magical Secrets (`secrets`): 2014 bards may take 2 spells from any list at 10, 14 and 18 (College of Lore 2 more at 6), counted as spells known; 2024 bards add the cleric, druid and wizard lists at 10.
 - Race spells and spells picked through feats or the High Elf trait show in story mode's pin picker.

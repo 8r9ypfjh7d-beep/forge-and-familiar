@@ -29,7 +29,10 @@ describe('combat page helpers', () => {
     const blast = rows.find(r => r.name === 'Eldritch Blast')
     expect(blast).toMatchObject({ kind: 'attack', value: derive(c).spellcasting?.attackBonus, level: 0 })
     expect(blast?.range).toMatch(/120/)
-    expect(blast?.damage).toBe('2d10')
+    expect(blast).toMatchObject({ damage: '1d10', beams: 2 })
+    // Agonizing Blast adds CHA to each beam.
+    const ag = warlock({ classOptions: [{ kind: 'invocation', id: 'agonizing-blast', classId: 'warlock' }] })
+    expect(spellAttackRows(ag, derive(ag), spells).find(r => r.name === 'Eldritch Blast')).toMatchObject({ damage: `1d10+${derive(ag).mods.cha}`, beams: 2 })
     expect(rows.find(r => r.name === 'Charm Person')).toMatchObject({ kind: 'save', save: 'wis', value: derive(c).spellcasting?.saveDc })
   })
 

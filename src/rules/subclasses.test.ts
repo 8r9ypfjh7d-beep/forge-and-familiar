@@ -110,13 +110,16 @@ describe('warlock patrons from every book', () => {
     expect(sword.bonus).toBe(3 + 2)
   })
 
-  it('adds patron spells as always prepared, by level, resolving names in the spell library', () => {
+  it('adds patron spells by level, resolving names in the spell library: 2014 to the list, 2024 always prepared', () => {
     expect(subclassSpellNames(warlock(3, 'archfey'), 'warlock')).toEqual(['Faerie Fire', 'Sleep', 'Calm Emotions', 'Phantasmal Force'])
     const c = warlock(1, 'celestial')
     const classes = [{ id: 'warlock', name: 'Warlock', spellcasting: { ability: 'cha', fromLevel: 1 }, levels: [{ level: 1, spellcasting: { slots: [1], cantripsKnown: 2, spellsKnown: 2 } }] }]
     const spells = [{ id: 'cure-wounds', name: 'Cure Wounds' }, { id: 'light', name: 'Light' }]
-    const [a] = spellAccess(c, classes as never, [], derive(c).abilities, undefined, spells)
-    expect(a.alwaysPrepared.sort()).toEqual(['cure-wounds', 'light'])
+    const [old] = spellAccess(c, classes as never, [], derive(c).abilities, undefined, spells)
+    expect(old.alwaysPrepared).toEqual([])
+    expect(old.listed?.sort()).toEqual(['cure-wounds', 'light'])
+    const [now] = spellAccess(c, classes.map(k => ({ ...k, edition: '2024' })) as never, [], derive(c).abilities, undefined, spells)
+    expect(now.alwaysPrepared.sort()).toEqual(['cure-wounds', 'light'])
   })
 })
 
