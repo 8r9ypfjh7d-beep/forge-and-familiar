@@ -137,6 +137,7 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 .ff-roll__source { font-weight: 600; color: var(--ff-dice-fg, var(--ink)); }
 .ff-roll__dice { min-width: 0; overflow-wrap: anywhere; }
 .ff-roll__subtotal { margin-inline-start: auto; font-weight: 600; color: var(--ff-dice-fg, var(--ink)); }
+.ff-roll__type { font-size: 0.85em; color: var(--ff-dice-muted, var(--muted)); }
 .ff-die--dropped { text-decoration: line-through; opacity: 0.55; }
 .ff-die--max { font-weight: 700; }
 

@@ -90,27 +90,46 @@ function total(terms: TermResult[]) {
 
 /**
  * Rolls several named parts as one roll, e.g. a weapon's "2d6+4" plus Hex's "1d6", and tags each term with
- * its part's `source`. `crit` doubles every die (flat modifiers stay).
+ * its part's `source` and `damageType`. `crit` doubles every die (flat modifiers stay).
  */
 export function rollParts(
-  parts: { notation: string; source?: string; lowDice?: 'reroll' | 'min3' }[], opts: RollOptions = {}, type: RollType = 'custom', crit = false,
+  parts: { notation: string; source?: string; damageType?: string; lowDice?: 'reroll' | 'min3' }[], opts: RollOptions = {}, type: RollType = 'custom', crit = false,
 ): RollResult {
-  const meta: { source?: string; lowDice?: 'reroll' | 'min3' }[] = []
+  const meta: { source?: string; damageType?: string; lowDice?: 'reroll' | 'min3' }[] = []
   const terms = parts.flatMap(p => parseNotation(p.notation).map((t): Term => {
     meta.push(p)
     return crit && t.kind === 'dice' ? { ...t, count: t.count * 2 } : t
   }))
   const result = build(terms, type, opts)
   result.terms = result.terms.map((t, i) => {
-    const { source, lowDice } = meta[i]
+    const { source, damageType, lowDice } = meta[i]
     const done = lowDice ? lowDiceUp(t, lowDice, opts.rng) : t
-    return source ? { ...done, source } : done
+    return { ...done, ...(source ? { source } : {}), ...(damageType ? { damageType } : {}) }
   })
   if (parts.some(p => p.lowDice)) {
     result.total = total(result.terms)
     result.breakdown = breakdownOf(result.terms)
   }
   return result
+}
+
+/** One named part of a damage roll with its own type and subtotal: "Divine Smite [5, 8] = 13 radiant". */
+export interface SourcePart { source?: string; damageType?: string; terms: TermResult[]; total: number; breakdown: string }
+
+/** Two or more named parts (weapon, Hex, a smite): worth one line each. */
+export const hasSources = (r: RollResult) => new Set(r.terms.map(t => t.source).filter(Boolean)).size > 1
+
+/** Consecutive terms from the same source, with their subtotal. */
+export function bySource(terms: TermResult[]): SourcePart[] {
+  const out: SourcePart[] = []
+  for (const t of terms) {
+    const value = t.sign * (t.kind === 'const' ? t.value : t.subtotal)
+    const last = out[out.length - 1]
+    if (last && last.source === t.source) { last.terms.push(t); last.total += value }
+    else out.push({ source: t.source, damageType: t.damageType, terms: [t], total: value, breakdown: '' })
+  }
+  for (const g of out) g.breakdown = breakdownOf(g.terms)
+  return out
 }
 
 /** A d20 roll plus a flat bonus, with advantage or disadvantage. Flags natural 20s and 1s. */

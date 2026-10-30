@@ -1,6 +1,7 @@
 // One polite live region for the whole app, so screen readers hear what a click did.
 
 let region: HTMLElement | null = null
+let clearTimer: ReturnType<typeof setTimeout> | undefined
 
 function ensureRegion() {
   if (region?.isConnected) return region
@@ -20,4 +21,7 @@ export function announce(message: string) {
   // Clear first so the same message twice in a row is still read.
   el.textContent = ''
   setTimeout(() => { el.textContent = message }, 50)
+  // Cleared once read, so an old "Equipped Shortbow" doesn't linger in the page text on the next screen.
+  clearTimeout(clearTimer)
+  clearTimer = setTimeout(() => { el.textContent = '' }, 5000)
 }

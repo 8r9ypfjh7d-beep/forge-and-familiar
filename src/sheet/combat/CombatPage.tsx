@@ -30,6 +30,7 @@ import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
 import { RockSenseButton } from '../../rocksense'
+import { ammoForAttack, spendAmmo } from '../../supplies/supplies'
 import { useSheetRolls } from '../dice'
 import { effectiveMaxHp } from '../engine'
 import type { CombatTab, SheetSection } from '../mode'
@@ -377,14 +378,21 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const weapon = (a: DerivedStats['attacks'][number]) => {
     const own = getDamageRiders(character, a).map(r => r.id as string)
     const used = damaging.filter(e => (!e.feature || own.includes(e.id)) && (!e.pactOnly || a.pact))
-    const riders = used.map(e => ({ name: e.name, damage: e.damage }))
+    const riders = used.map(e => ({ name: e.name, damage: e.damage, damageType: e.damageType }))
     const extra = a.extraDamage ? /^(\S+)\s*(.*)$/.exec(a.extraDamage) : null
-    const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1] }] : riders
+    const all = extra ? [...riders, { name: extra[2] || a.name, damage: extra[1], damageType: extra[2] || undefined }] : riders
     const r = rolls.attack(a, { mode, critRange, riders: all, twoHanded: twoHanded[a.name] })
     const type = term('damage', a.damageType, a.damageType)
+    // A smite's radiant on a slashing hit: the parts list each type, so the heading doesn't name one.
+    const mixed = new Set(r.damage?.terms.map(x => x.damageType ?? a.damageType)).size > 1
+    // A bow or crossbow shot uses a piece of ammunition, the same as Shoot on the Ammo and rations card.
+    const ammo = ammoForAttack(character, a)
+    const ammoName = ammo && term('item', ammo.ammoId, ammo.ammoName)
+    if (ammo?.left) apply(t('supplies.log.shot', { weapon: attackName(a.name), ammo: ammoName! }), c => spendAmmo(c, ammo.ammoId))
     show({
       name: attackName(a.name),
-      rolls: [{ roll: r.attack, what: t('cs.roll.toHit') }, ...(r.damage ? [{ roll: r.damage, what: t('cs.roll.damage', { type }) }] : [])],
+      ...(ammo && !ammo.left ? { note: t('supplies.out', { ammo: ammoName! }) } : {}),
+      rolls: [{ roll: r.attack, what: t('cs.roll.toHit') }, ...(r.damage ? [{ roll: r.damage, what: mixed ? t('cs.roll.damagePlain') : t('cs.roll.damage', { type }) }] : [])],
       effects: effectsUsed(active, r.damage ? used.map(e => e.id) : [], f =>
         f.kind === 'attack' || (f.kind === 'damage' && !!r.damage) || ((f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === a.ability)),
     })
@@ -415,14 +423,16 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const type = r.damageType ? term('damage', r.damageType, r.damageType) : ''
     // Each beam (Eldritch Blast, Scorching Ray) rolls to hit and for damage on its own, with the riders on every hit.
     const beams = r.kind !== 'save' ? spellBeams(r.entry, choice?.level ?? r.level, d.level) : 1
+    // Fireball: a successful save still takes half.
+    const half = r.kind === 'save' && spell?.save?.onSuccess === 'half'
     const list: Shown[] = []
     let hit = false
     for (let i = 1; i <= beams; i++) {
-      const riders = used.filter(e => !(hit && e.oncePerTurn)).map(e => ({ name: e.name, damage: e.damage }))
+      const riders = used.filter(e => !(hit && e.oncePerTurn)).map(e => ({ name: e.name, damage: e.damage, damageType: e.damageType }))
       const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders })
       const what = (s: string) => (beams > 1 ? t(r.kind === 'auto' ? 'cs.roll.dart' : 'cs.roll.beam', { what: s, n: i }) : s)
       if ('attack' in res && res.attack) list.push({ roll: res.attack, what: what(t('cs.roll.toHit')) })
-      if (res.damage) list.push({ roll: res.damage, what: what(r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })) })
+      if (res.damage) list.push({ roll: res.damage, what: what(r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })), half })
       hit ||= !!res.damage
     }
     show({
@@ -437,7 +447,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const r = actionRoll(a, d)
     const healing = isHealing(a.roll?.type)
     const used = r.attackBonus !== undefined && !healing ? damaging.filter(e => !e.weaponOnly && e.id !== `act:${a.id}`) : []
-    const riders = used.map(e => ({ name: e.name, damage: e.damage }))
+    const riders = used.map(e => ({ name: e.name, damage: e.damage, damageType: e.damageType }))
     const res = rolls.spell(a.name, { attackBonus: r.attackBonus, damage: r.dice, damageType: a.roll?.type, mode, riders })
     const type = a.roll?.type ? term('damage', a.roll.type, a.roll.type) : ''
     show({

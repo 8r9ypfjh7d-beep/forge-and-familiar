@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createCharacter, derive, type CharacterDraft } from '../rules'
 import {
   critNotation, DiceNotationError, parseNotation, roll, rollAttack, rollD20, rollAttackWithDamage, rollDamage, rollDeathSave,
-  rollHitDie, rollParts, rollSave, rollSkill, RollHistory, groupByAction, actionName, sameAction, type HistoryStorage, type RollResult, type Rng,
+  rollHitDie, rollParts, bySource, hasSources, rollSave, rollSkill, RollHistory, groupByAction, actionName, sameAction, type HistoryStorage, type RollResult, type Rng,
 } from './index'
 
 /** Returns the given values in order, then repeats the last one. */
@@ -216,6 +216,17 @@ describe('grouping rolls by action', () => {
     expect(damage?.action).toEqual(attack.action)
     expect(damage?.damageType).toBe('slashing')
     expect(damage?.terms.map(t => t.source)).toEqual(['Greatsword', 'Greatsword', 'Hex', 'Eldritch Smite'])
+  })
+
+  it('splits a smite on a hit into parts with their own type and subtotal', () => {
+    const riders = [{ name: 'Divine Smite', damage: '2d8', damageType: 'radiant' }, { name: 'Sneak Attack', damage: '1d6' }]
+    const { damage } = rollAttackWithDamage({ ...sword, damage: '1d8+4' }, { riders, rng: seq(15, 2, 5, 8, 3) })
+    expect(bySource(damage!.terms).map(g => [g.source, g.damageType, g.total, g.breakdown])).toEqual([
+      ['Greatsword', 'slashing', 6, '[2] + 4'],
+      ['Divine Smite', 'radiant', 13, '[5, 8]'],
+      ['Sneak Attack', 'slashing', 3, '[3]'],
+    ])
+    expect(hasSources(damage!)).toBe(true)
   })
 
   it('shows an attack and its damage as one history entry, attack first', () => {
