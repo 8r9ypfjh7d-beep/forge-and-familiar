@@ -2,30 +2,16 @@
 // Pure: reads the rules engine's race, background and feat data and the content library's spells.
 import type { Spell, SpellSchool } from '../content'
 import type { Character, KnownSpell } from '../model/character'
-import { activeImprovements, getBackground, raceById, rulesEdition } from '../rules'
+import { activeImprovements, getBackground, itemSpellCast, raceProfile, rulesEdition } from '../rules'
 
 type Input = Pick<Character, 'raceId' | 'classes' | 'backgroundId'> &
-  Partial<Pick<Character, 'subraceId' | 'rulesEdition' | 'customBackground' | 'originFeatId' | 'improvements' | 'spells'>>
+  Partial<Pick<Character, 'subraceId' | 'traitChoices' | 'rulesEdition' | 'customBackground' | 'originFeatId' | 'improvements' | 'spells'>>
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
-const level = (c: Pick<Character, 'classes'>) => Math.max(1, c.classes.reduce((n, cl) => n + cl.level, 0))
-
-/** 2014 traits that name a set of spells rather than one spell: [spell id, character level]. */
-const TRAIT_SPELLS: Record<string, [string, number][]> = {
-  'Infernal Legacy': [['thaumaturgy', 1], ['hellish-rebuke', 3], ['darkness', 5]],
-  'Drow Magic': [['dancing-lights', 1], ['faerie-fire', 3], ['darkness', 5]],
-  'Natural Illusionist': [['minor-illusion', 1]],
-  'Duergar Magic': [['enlarge-reduce', 3], ['invisibility', 5]],
-  'Firbolg Magic': [['detect-magic', 1], ['disguise-self', 1]],
-  'Githyanki Psionics': [['mage-hand', 1], ['jump', 3], ['misty-step', 5]],
-  'Githzerai Psionics': [['mage-hand', 1], ['shield', 3], ['detect-thoughts', 5]],
-  'Light Bearer': [['light', 1]],
-  'Celestial Legacy': [['light', 1], ['lesser-restoration', 3], ['daylight', 5]],
-}
 
 export interface GrantedSpell {
   spell: Spell
-  /** The trait that grants it. */
+  /** The trait that grants it (or the race, subrace or picked option when the trait isn't named). */
   from: string
   /** Character level it arrives at. */
   atLevel: number
@@ -33,28 +19,15 @@ export interface GrantedSpell {
 }
 
 /**
- * Spells a race, subrace or lineage gives for free. 2024 lineages name the spells as traits
- * ("Faerie Fire (3rd level)"); 2014 traits like Infernal Legacy are looked up in a table.
- * Names the library lacks are skipped.
+ * Spells a race, subrace, lineage or trait pick gives for free: the same spell effects the sheet casts from
+ * "From your items" (raceProfile().spells), so the builder and the sheet always agree. Names the library lacks are skipped.
  */
 export function grantedSpells(c: Input, spells: Spell[]): GrantedSpell[] {
-  const race = raceById(c.raceId, rulesEdition(c))
-  const sub = race?.subraces?.find(s => s.id === c.subraceId)
-  const byId = new Map(spells.map(s => [s.id, s]))
   const byName = new Map(spells.map(s => [norm(s.name), s]))
-  const lvl = level(c)
   const out: GrantedSpell[] = []
-  // Only lineage (subrace) traits are read as spell names: a race's own "Darkvision" trait is not the spell.
-  const traits = [...(race?.traits ?? []).map(name => ({ name, lineage: false })), ...(sub?.traits ?? []).map(name => ({ name, lineage: true }))]
-  for (const { name: trait, lineage } of traits) {
-    const table = TRAIT_SPELLS[trait]
-    const m = /^(.*?)\s*\((\d+)(?:st|nd|rd|th) level\)$/.exec(trait)
-    const found: [Spell | undefined, number][] = table
-      ? table.map(([id, at]) => [byId.get(id), at])
-      : lineage && norm(trait) !== 'darkvision' ? [[byName.get(norm(m ? m[1] : trait)), m ? Number(m[2]) : 1]] : []
-    for (const [spell, atLevel] of found) {
-      if (spell && !out.some(g => g.spell.id === spell.id)) out.push({ spell, from: m && !table ? spell.name : trait, atLevel, unlocked: lvl >= atLevel })
-    }
+  for (const g of raceProfile(c).spells) {
+    const spell = byName.get(norm(itemSpellCast(g.spell).name))
+    if (spell && !out.some(x => x.spell.id === spell.id)) out.push({ spell, from: g.trait ?? g.source, atLevel: g.atLevel, unlocked: g.unlocked })
   }
   return out
 }

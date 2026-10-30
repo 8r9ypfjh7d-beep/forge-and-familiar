@@ -347,7 +347,8 @@ export type SpellLimit = { max: number; recharge: 'short' | 'long' | 'dawn' } | 
 
 const COUNT_WORDS: Record<string, number> = { once: 1, twice: 2, 'three times': 3, 'four times': 4, 'five times': 5 }
 
-export function spellLimit(note = ''): SpellLimit | undefined {
+/** `prof`: the proficiency bonus, for spells usable that many times ("proficiency bonus times per long rest"). */
+export function spellLimit(note = '', prof = 2): SpellLimit | undefined {
   const n = note.toLowerCase()
   if (!n.trim() || /at will/.test(n)) return undefined
   const charges = /(\d+)\s*charges?\b/.exec(n) ?? (/\bcharge\b/.test(n) ? ['', '1'] : null)
@@ -356,5 +357,6 @@ export function spellLimit(note = ''): SpellLimit | undefined {
   if (!recharge) return undefined
   const word = Object.keys(COUNT_WORDS).find(w => n.includes(w))
   const digits = /(\d+)\s*(?:\/|times|per|uses?|x\b)/.exec(n)
-  return { max: word ? COUNT_WORDS[word] : digits ? Number(digits[1]) : 1, recharge }
+  const pb = /proficiency bonus|\bpb\b/.test(n)
+  return { max: pb ? prof : word ? COUNT_WORDS[word] : digits ? Number(digits[1]) : 1, recharge }
 }

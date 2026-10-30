@@ -37,6 +37,8 @@ export interface RaceProfile {
   choices: TraitChoice[]
   /** Sheet effects in play, labelled with the race, subrace or picked option. */
   effects: { source: string; effect: ItemEffect }[]
+  /** Innate spells from the race, subrace and trait picks, including ones a higher character level unlocks. */
+  spells: { source: string; trait?: string; spell: string; note?: string; atLevel: number; unlocked: boolean }[]
   /** Limited-use traits in play. */
   uses: RaceUse[]
   naturalArmor?: { base: number; dex: boolean; ability?: Ability }
@@ -60,9 +62,13 @@ export function raceProfile(c: RaceInput): RaceProfile {
   const removed = new Set(subrace?.removesTraits ?? [])
   const choices = parts.flatMap(p => p.choices ?? []).filter(ch => (ch.level ?? 1) <= level)
   const effects: RaceProfile['effects'] = []
+  const spells: RaceProfile['spells'] = []
   const add = (source: string, list: RaceEffect[] | undefined) => {
     for (const { level: from, trait, ...effect } of list ?? []) {
-      if ((from ?? 1) <= level && !(trait && removed.has(trait))) effects.push({ source, effect: effect as ItemEffect })
+      if (trait && removed.has(trait)) continue
+      const atLevel = from ?? 1
+      if (effect.kind === 'spell') spells.push({ source, ...(trait ? { trait } : {}), spell: effect.spell, ...(effect.note ? { note: effect.note } : {}), atLevel, unlocked: atLevel <= level })
+      if (atLevel <= level) effects.push({ source, effect: effect as ItemEffect })
     }
   }
   for (const p of parts) add(p.name, p.effects)
@@ -100,6 +106,7 @@ export function raceProfile(c: RaceInput): RaceProfile {
     ...(subrace?.featChoice || race?.featChoice ? { featChoice: 'any' as const } : race?.originFeatChoice ? { featChoice: 'origin' as const } : {}),
     choices,
     effects,
+    spells,
     uses: parts.flatMap(p => p.uses ?? []).filter(u => (u.level ?? 1) <= level && !removed.has(u.trait)),
     ...((subrace?.naturalArmor ?? race?.naturalArmor) ? { naturalArmor: subrace?.naturalArmor ?? race?.naturalArmor } : {}),
     naturalWeapons: parts.flatMap(p => p.naturalWeapons ?? []),
