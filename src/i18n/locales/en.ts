@@ -376,7 +376,7 @@ export const en = {
   'builder.mc.grant.none': 'no new proficiencies',
   'builder.issue.name': 'Give your character a name.',
   'builder.issue.traitChoice': 'Choose your {trait}.',
-  'builder.issue.subclass': 'Choose a {title} for your {className}.',
+  'builder.issue.subclass': 'Choose the {title} for your {className}.',
   'builder.issue.asi': 'Finish the {className} {level} Ability Score Improvement: two +1s or a feat.',
   'builder.issue.customName': 'Name your custom background.',
   'builder.issue.customSkills': 'Pick two skills for your custom background.',
