@@ -750,7 +750,8 @@ export function derive(c: Character): DerivedStats {
 
   const { armor, shield } = getEquippedArmor(c)
   let speed = raceInfo.speed + featBonus(c, 'speed') + itemBonus(c, 'speed')
-  if (armor?.category === 'heavy' && armor.strengthReq && abilities.str < armor.strengthReq) {
+  // 2014 dwarves aren't slowed by heavy armor.
+  if (armor?.category === 'heavy' && armor.strengthReq && abilities.str < armor.strengthReq && !(rulesEdition(c) === '2014' && c.raceId === 'dwarf')) {
     speed -= 10
     warnings.push(`${armor.name} needs STR ${armor.strengthReq}: speed −10 ft.`)
   }

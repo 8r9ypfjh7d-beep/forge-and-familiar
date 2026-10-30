@@ -81,3 +81,11 @@ describe('2024 species spell ability', () => {
     expect(getItemSpells(make({ raceId: 'tiefling' })).every(s => !s.ability)).toBe(true)
   })
 })
+
+describe('heavy armor speed', () => {
+  it('slows a weak wearer, but not a 2014 dwarf', () => {
+    const weak = { baseAbilities: { str: 8, dex: 14, con: 13, int: 12, wis: 10, cha: 15 } }
+    expect(derive(make(weak, ['chain-mail'])).speed).toBe(20)
+    expect(derive(make({ ...weak, raceId: 'dwarf', subraceId: 'hill-dwarf' }, ['chain-mail'])).speed).toBe(25)
+  })
+})
