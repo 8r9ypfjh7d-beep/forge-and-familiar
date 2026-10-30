@@ -1,0 +1,31 @@
+// Hebrew for taking damage and conditions, one per key in hurt.en.ts.
+import type { Messages } from '../translate'
+
+export const hurtHe: Messages = {
+  'hurt.type': 'סוג נזק',
+  'hurt.anyType': 'כל סוג',
+  'hurt.resistantMark': '{type} (½)',
+  'hurt.immuneMark': '{type} (חסין)',
+  'hurt.resistant': 'עמיד',
+  'hurt.immune': 'חסין',
+  'hurt.typed': '{n} {type} ← {taken} ({why})',
+  'hurt.plain': '{n} {type}',
+  'hurt.log.typed': 'ספג {taken} נזק {type} ({n}, {why})',
+  'hurt.log.type': 'ספג {n} נזק {type}',
+  'hurt.dismiss': 'סגירה',
+  'hurt.conc': 'הצלת ריכוז דרגת קושי {dc} ({name})',
+  'hurt.conc.roll': 'הטלת הצלת חוסן',
+  'hurt.conc.lost': 'הריכוז אבד',
+  'hurt.conc.kept': 'הריכוז ב-{name} נשמר',
+  'hurt.conc.broke': 'הריכוז ב-{name} אבד',
+  'hurt.log.lostConc': 'הריכוז ב-{name} אבד',
+  'hurt.reprisal': 'פגיעת תגרה? {name} גורם {dice}{type} לתוקף',
+  'hurt.reaction': 'תגובה: {name}',
+  'cond.title': 'מצבים',
+  'cond.add': '+ מצב',
+  'cond.remove': 'הסרת {name}',
+  'cond.immune': '{name} (חסין)',
+  'cond.log.add': 'נהיה {name}',
+  'cond.log.remove': 'כבר לא {name}',
+  'cond.rulesOf': 'החוקים של {name}',
+}

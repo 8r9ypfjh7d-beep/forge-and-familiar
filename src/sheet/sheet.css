@@ -121,6 +121,24 @@
   .hp-controls { grid-template-columns: 1fr 1fr 1fr; }
   .hp-controls input { grid-column: 1 / -1; }
 }
+.hp-type { display: flex; align-items: center; gap: var(--sp-2); margin-block-start: var(--sp-2); font-size: .875rem; color: var(--s-muted); }
+.hp-type select { flex: 1; min-width: 0; min-height: 36px; font-size: .9rem; }
+.hp-said { margin: var(--sp-2) 0 0; font-weight: 600; }
+.hp-after { position: relative; display: grid; gap: var(--sp-2); margin-block-start: var(--sp-2); padding: var(--sp-2) var(--sp-3); padding-inline-end: 44px; border-radius: var(--r-md); background: var(--glass-thin); border: 1px solid var(--glass-hairline); font-size: .9rem; }
+.hp-after-close { position: absolute; inset-block-start: 6px; inset-inline-end: 6px; }
+.hp-after-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); margin: 0; }
+.hp-after-actions { display: inline-flex; gap: var(--sp-2); }
+.hp-after-outcome { margin: 0; font-weight: 600; }
+.hp-after-outcome.kept { color: var(--s-good); }
+.hp-after-outcome.lost { color: var(--s-bad); }
+.conditions { margin-block-start: var(--sp-3); }
+.cond-row, .cond-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.cond-picker { margin-block-start: var(--sp-2); }
+.cond-chip { display: inline-flex; align-items: center; gap: 2px; padding-inline-end: 4px; }
+.cond-chip button { font: inherit; color: inherit; background: none; border: 0; padding: 0; min-height: 0; cursor: pointer; }
+.cond-chip .cond-x { inline-size: 24px; block-size: 24px; border-radius: var(--r-pill); }
+.cond-chip .cond-x:hover { background: var(--glass-regular); }
+.cond-rules { margin: var(--sp-2) 0 0; }
 .check { display: flex; align-items: center; gap: var(--sp-2); margin-block-start: 10px; font-size: .875rem; }
 .check input { min-height: 0; }
 .status { margin: var(--sp-2) 0 0; font-weight: 600; }

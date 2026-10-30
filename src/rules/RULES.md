@@ -15,6 +15,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `factory.ts` | `createCharacter(draft)`, `freshState(maxHp)`, starting kit, `startingGold`, `startingCoins` (after purchases) |
 | `wealth.ts` | Starting wealth: 2014 class gold dice (`ClassDef.startingWealth`, `wealthDice`, `averageWealth`), 2024 background 50 gp, purchase totals, `coinsFromCp` |
 | `rollMode.ts` | Advantage/disadvantage from own conditions |
+| `damage.ts` | `DAMAGE_TYPES`, `damageDefense`/`damageAfterDefenses` (resistance halves, immunity zeroes, petrified resists all), `concentrationDc` (2024 caps at 30), `meleeReprisals` (Armor of Agathys), `DAMAGE_REACTION_SPELLS`. `DerivedStats.concentrationAdvantage` (War Caster) |
 | `attackRiders.ts` | `getDamageRiders` (Rage, Sneak Attack, 2024 Divine Strike / Primal Strike) and `getCritRange` (Champion) for one-tap attacks |
 | `classPicks.ts` | Class multi-picks (`ClassDef.picks`: Expertise, Primal Knowledge, class languages) as skill effects, and Weapon Mastery weapons (`MASTERY_WEAPONS`, `weaponMastery`; table in `data/masteries.ts`) |
 | `choices.ts` | ASI slots and feats, languages, tools, starting-gear choices (`classKit`) |

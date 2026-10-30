@@ -17,6 +17,7 @@ import { explainRaces2014En } from './explain.races2014.en'
 import { explainSettingsEn } from './explain.settings.en'
 import { itemsEn } from './items.en'
 import { useEn } from './use.en'
+import { hurtEn } from './hurt.en'
 import { picks2014En } from './picks2014.en'
 
 export const en = {
@@ -37,6 +38,7 @@ export const en = {
   ...explainSettingsEn,
   ...itemsEn,
   ...useEn,
+  ...hurtEn,
   ...picks2014En,
   // Shared
   'common.back': 'Back',

@@ -4,6 +4,7 @@
 // Rules follow SRD 5.1: Initiative, Concentration, Durations (1 round = 6 seconds).
 import type { Character } from '../model/character'
 import type { ConditionId } from '../rules/types'
+import { concentrationDc } from '../rules/damage'
 import type { MessageKey } from '../i18n/locales/en'
 import { CONDITIONS, ENCOUNTER_SCHEMA_VERSION, type Combatant, type Effect, type Encounter, type LogLine } from './types'
 
@@ -206,7 +207,7 @@ export const concentrationOf = (enc: Encounter, id: string): Effect | undefined 
 // ---- Damage and concentration ----
 
 /** Constitution save DC to keep concentrating after taking damage: 10 or half the damage, whichever is higher. */
-export const concentrationDc = (damage: number) => Math.max(10, Math.floor(damage / 2))
+export { concentrationDc }
 
 /** Queues a concentration save when a concentrating combatant takes damage. Call it for every damage source. */
 export function noteDamage(enc: Encounter, id: string, amount: number, checkId: string): Encounter {

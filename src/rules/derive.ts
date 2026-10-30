@@ -475,6 +475,8 @@ export interface DerivedStats {
   passivePerception: number
   initiative: number
   initiativeAdvantage?: boolean
+  /** Concentration saves with advantage (War Caster, an item). */
+  concentrationAdvantage?: boolean
   /** Ability checks with advantage from items (skills and initiative already include it). */
   checkAdvantage: Partial<Record<Ability, boolean>>
   speed: number
@@ -581,6 +583,7 @@ export function derive(c: Character): DerivedStats {
   const allChecks = hasAdv('checks')
   const checkAdvantage: DerivedStats['checkAdvantage'] = allChecks ? Object.fromEntries(ABILITIES.map(a => [a, true])) : {}
   const initiativeAdvantage = hasAdv('checks', 'initiative')
+  const concentrationAdvantage = hasAdv('concentration')
   const speeds: DerivedStats['speeds'] = {}
   const senses: DerivedStats['senses'] = {}
   for (const { effect: f } of effectsOf(c, 'sense')) senses[f.sense] = Math.max(senses[f.sense] ?? 0, f.value)
@@ -628,6 +631,7 @@ export function derive(c: Character): DerivedStats {
     // 2024 Alert adds the proficiency bonus instead of Jack of All Trades' half.
     initiative: mods.dex + (featEffects(c, 'initiativeProficiency').length || raceProfile(c).initiativeProficiency ? prof : jackOfAllTrades) + featBonus(c, 'initiative') + itemChecks + itemBonus(c, 'initiative'),
     ...(initiativeAdvantage ? { initiativeAdvantage } : {}),
+    ...(concentrationAdvantage ? { concentrationAdvantage } : {}),
     checkAdvantage,
     speed,
     speeds,

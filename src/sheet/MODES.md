@@ -11,7 +11,10 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 | `components/Story.tsx` | `Notes` |
 | `uses.ts` | Pure: `spendResource` (one use of a feature: spent, its effect started, healing), `drinkPotion` |
 | `components/Effects.tsx` | `EffectRows` (Effects switches with running spells and features), `EffectsCard` (story mode), `toggleEffect` |
-| `effects.ts` | Pure: running effects (`state.effects`): `startEffect` (one concentration at a time), `endEffect`, `setEffectOn`, `spendOnceEffects`, `dropSpentTempHp`, `effectsAfterRest` |
+| `effects.ts` | Pure: running effects (`state.effects`): `startEffect` (one concentration at a time), `endEffect`, `setEffectOn`, `spendOnceEffects`, `dropSpentTempHp`, `effectsAfterRest`, `loseConcentration` (taking damage to 0 HP or `setCondition` with an incapacitating condition ends it) |
+| `components/HitPoints.tsx` | HP card: amount with Damage/Heal/Temp, an optional damage type (remembered per device in `ff.damageType.v1`) that applies resistances and immunities, then `AfterDamage` and `Conditions` |
+| `components/AfterDamage.tsx` | After a hit: concentration save DC with one-tap CON save (a fail ends the spell, undoable), Armor of Agathys reprisal text, Cast for damage reactions (Hellish Rebuke, Absorb Elements; class or race/item spell) |
+| `components/Conditions.tsx` | The player's conditions under HP in both modes (`state.conditions`, shared with the DM tracker and read by rollMode): add, ✕, tap for rules text. Exhaustion stays out (removed in PR #19) |
 | `components/SpellSlots.tsx` | Slot pips, shown in story's Spells card (`SpellsCard`) and combat's Spells tab (`Spellbook`), both in src/spellbook |
 | `combat/` | The combat page (see `combat/COMBAT_PAGE.md`) |
 | `../powerup/` | Tamir's Super Saiyan strip card, under the character card on his characters only (see `src/powerup/POWERUP.md`) |

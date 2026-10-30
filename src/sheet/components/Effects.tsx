@@ -82,7 +82,7 @@ export function EffectRows({ effects, isOn, onToggle, apply }: {
 }
 
 /** The edition's spells (SRD and books), for knowing which of the character's spells have a switch. */
-function useSpells(character: Character): Spell[] {
+export function useSpells(character: Character): Spell[] {
   const edition = editionOf(character)
   const [spells, setSpells] = useState<{ edition: string; list: Spell[] }>({ edition, list: [] })
   useEffect(() => {
