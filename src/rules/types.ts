@@ -258,6 +258,10 @@ export interface Background {
   feat?: { id: string; note?: string }
   /** Gold that comes with the background's gear (2024). */
   gold?: number
+  /** Homebrew: rule effects the background grants in either edition, applied like a feat's. */
+  effects?: FeatEffect[]
+  /** Homebrew: the author's own text, shown in the builder in place of an SRD explanation. */
+  description?: string
 }
 
 export type Item =

@@ -1,9 +1,12 @@
 // Homebrew pack library. Async like src/storage so a backend can replace localStorage later.
 // Every pack on this device is active: its items are registered with the rules engine so
 // characters holding them keep their attacks, AC and weight.
-import { registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses, type Race, type Subrace } from '../rules'
+import {
+  TOOLS, registerHomebrewBackgrounds, registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses,
+  type HomebrewBackgroundDef, type Race, type Subrace,
+} from '../rules'
 import { sanitizePack } from './pack'
-import type { HomebrewPack, HomebrewRace } from './types'
+import type { HomebrewBackground, HomebrewPack, HomebrewRace } from './types'
 
 const KEY = 'ff.homebrew.v1'
 const CHANGED = 'ff:homebrew-changed'
@@ -37,6 +40,18 @@ const toSubrace = (r: HomebrewRace): Subrace => ({
   hpPerLevel: r.hpPerLevel || undefined, languageChoices: r.languageChoices || undefined,
 })
 
+export const toBackground = (b: HomebrewBackground): HomebrewBackgroundDef => ({
+  id: b.id, name: b.name, editions: b.editions === 'both' ? ['2014', '2024'] : [b.editions],
+  skillProficiencies: b.skillProficiencies, toolProficiencies: b.tools,
+  toolChoices: b.toolChoices ? { count: b.toolChoices, from: b.toolChoiceFrom.length ? b.toolChoiceFrom : [...TOOLS] } : undefined,
+  languages: b.languages, languageChoices: b.languageChoices || undefined,
+  feature: b.feature.trim() || b.name, equipment: b.equipment, gold: b.gold || undefined,
+  abilityScores: b.abilityScores.length ? b.abilityScores : undefined,
+  feat: b.originFeatId ? { id: b.originFeatId, note: b.originFeatNote } : undefined,
+  effects: b.effects.length ? b.effects : undefined,
+  description: [b.featureText && `${b.feature}: ${b.featureText}`, b.description].filter(Boolean).join('\n\n') || undefined,
+})
+
 /** Hands every pack's content to the rules engine. */
 function register(packs: HomebrewPack[]) {
   registerHomebrewItems(packs.flatMap(p => p.items))
@@ -44,6 +59,7 @@ function register(packs: HomebrewPack[]) {
   const races = packs.flatMap(p => p.races)
   registerHomebrewRaces(races.filter(r => !r.parentRaceId).map(toRace), races.filter(r => r.parentRaceId).map(toSubrace))
   registerHomebrewSubclasses(packs.flatMap(p => p.subclasses))
+  registerHomebrewBackgrounds(packs.flatMap(p => p.backgrounds).map(toBackground))
 }
 
 function writePacks(packs: HomebrewPack[]) {

@@ -1,11 +1,12 @@
-// Entry editors for homebrew spells, items, feats, races and subclasses. Each edits a copy and hands it back on save.
+// Entry editors for homebrew spells, items, feats, races, subclasses and backgrounds. Each edits a copy and hands it back on save.
 import { useState, type ReactNode } from 'react'
 import { useI18n } from '../../i18n'
-import { ABILITIES, ALL_SKILLS, CLASSES, allRaces, type Ability, type ArmorCategory, type SkillId, type WeaponProperty } from '../../rules'
-import { featIssues, itemIssues, raceIssues, spellIssues, subclassIssues } from '../pack'
+import { Why } from '../../builder/Why'
+import { ABILITIES, ALL_SKILLS, CLASSES, ITEMS, allFeats, allRaces, itemById, type Ability, type ArmorCategory, type SkillId, type WeaponProperty } from '../../rules'
+import { backgroundIssues, featIssues, itemIssues, raceIssues, spellIssues, subclassIssues } from '../pack'
 import {
-  RARITIES, SPELL_SCHOOLS,
-  type FeatEffect, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type Rarity, type SpellSchool,
+  BACKGROUND_EDITIONS, RARITIES, SPELL_SCHOOLS,
+  type BackgroundEditions, type FeatEffect, type HomebrewBackground, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type Rarity, type SpellSchool,
 } from '../types'
 
 const WEAPON_PROPS: WeaponProperty[] = ['finesse', 'light', 'heavy', 'reach', 'thrown', 'two-handed', 'versatile', 'ammunition', 'loading', 'ranged']
@@ -33,7 +34,7 @@ const opt = (s: string) => (s.trim() ? s : undefined)
 
 function FormShell<T>({ kind, name, value, issues, onSave, onCancel, children }: {
   /** Which entry this edits, for the title. */
-  kind: 'spells' | 'items' | 'feats' | 'races' | 'subclasses'
+  kind: 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds'
   /** The saved name, or empty for a new entry. */
   name: string
   value: T
@@ -226,6 +227,8 @@ export function ItemForm({ initial, onSave, onCancel }: { initial: HomebrewItem;
 
 /** Effects a homebrew feat can have; labels are `hb.effect.<kind>`. */
 const EFFECT_KINDS = ['ability', 'skill', 'hpPerLevel', 'speed', 'initiative', 'ac', 'armoredAc', 'rangedAttack', 'initiativeProficiency'] as const
+/** Backgrounds can also hand out free skill picks. */
+const BG_EFFECT_KINDS = [...EFFECT_KINDS, 'skillPicks'] as const
 
 function newEffect(kind: FeatEffect['kind']): FeatEffect {
   if (kind === 'ability') return { kind, ability: 'str', amount: 1 }
@@ -236,41 +239,57 @@ function newEffect(kind: FeatEffect['kind']): FeatEffect {
   return { kind, amount: kind === 'speed' ? 5 : 1 }
 }
 
-export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat; onSave: (f: HomebrewFeat) => void; onCancel: () => void }) {
+/** Edits a list of rule effects (feats and backgrounds). */
+function EffectsField({ effects, onChange, hint, kinds = EFFECT_KINDS, why }: {
+  effects: FeatEffect[]
+  onChange: (effects: FeatEffect[]) => void
+  hint: string
+  kinds?: readonly FeatEffect['kind'][]
+  why?: ReactNode
+}) {
   const { t, ability, skill } = useI18n()
+  const setEffect = (i: number, e: FeatEffect) => onChange(effects.map((x, j) => (j === i ? e : x)))
+  return (
+    <div className="hb-field wide">
+      <span>{t('hb.f.effects')} {why}</span>
+      <p className="muted small">{hint}</p>
+      {effects.map((e, i) => (
+        <div key={i} className="row hb-effect">
+          <select value={e.kind} aria-label={t('hb.f.effect')} onChange={ev => setEffect(i, newEffect(ev.target.value as FeatEffect['kind']))}>
+            {kinds.map(k => <option key={k} value={k}>{t(`hb.effect.${k as (typeof BG_EFFECT_KINDS)[number]}`)}</option>)}
+          </select>
+          {e.kind === 'ability' && (
+            <select value={e.ability} aria-label={t('hb.f.ability')} onChange={ev => setEffect(i, { ...e, ability: ev.target.value as Ability })}>
+              {ABILITIES.map(a => <option key={a} value={a}>{ability(a)}</option>)}
+            </select>
+          )}
+          {e.kind === 'skill' ? (
+            <select value={e.skill} aria-label={t('hb.f.skill')} onChange={ev => setEffect(i, { ...e, skill: ev.target.value as SkillId })}>
+              {ALL_SKILLS.map(s => <option key={s} value={s}>{skill(s)}</option>)}
+            </select>
+          ) : e.kind === 'skillPicks' ? (
+            <input type="number" min={1} max={6} aria-label={t('hb.f.amount')} className="hb-amount" value={e.count} onChange={ev => setEffect(i, { ...e, count: numOr(ev.target.value, 1) })} />
+          ) : 'amount' in e && (
+            <input type="number" aria-label={t('hb.f.amount')} className="hb-amount" value={e.amount} onChange={ev => setEffect(i, { ...e, amount: numOr(ev.target.value, 0) })} />
+          )}
+          <button type="button" className="glass-btn small icon hb-ghost" onClick={() => onChange(effects.filter((_, j) => j !== i))} aria-label={t('hb.f.removeEffect')}>✕</button>
+        </div>
+      ))}
+      <div><button type="button" className="glass-btn small" onClick={() => onChange([...effects, newEffect('ability')])}>{t('hb.f.addEffect')}</button></div>
+    </div>
+  )
+}
+
+export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat; onSave: (f: HomebrewFeat) => void; onCancel: () => void }) {
+  const { t } = useI18n()
   const [f, setF] = useState(initial)
   const set = (patch: Partial<HomebrewFeat>) => setF(prev => ({ ...prev, ...patch }))
-  const setEffect = (i: number, e: FeatEffect) => set({ effects: f.effects.map((x, j) => (j === i ? e : x)) })
   return (
     <FormShell kind="feats" name={initial.name} value={f} issues={featIssues(f)} onSave={onSave} onCancel={onCancel}>
       <Field label={t('hb.f.name')} wide><input value={f.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
       <Field label={t('hb.f.prereq')} wide><input value={f.prerequisite ?? ''} onChange={e => set({ prerequisite: opt(e.target.value) })} placeholder={t('hb.f.prereqPlaceholder')} /></Field>
       <Field label={t('hb.f.description')} wide><textarea rows={5} value={f.description} onChange={e => set({ description: e.target.value })} /></Field>
-      <div className="hb-field wide">
-        <span>{t('hb.f.effects')}</span>
-        <p className="muted small">{t('hb.f.effectsHint')}</p>
-        {f.effects.map((e, i) => (
-          <div key={i} className="row hb-effect">
-            <select value={e.kind} aria-label={t('hb.f.effect')} onChange={ev => setEffect(i, newEffect(ev.target.value as FeatEffect['kind']))}>
-              {EFFECT_KINDS.map(k => <option key={k} value={k}>{t(`hb.effect.${k}`)}</option>)}
-            </select>
-            {e.kind === 'ability' && (
-              <select value={e.ability} aria-label={t('hb.f.ability')} onChange={ev => setEffect(i, { ...e, ability: ev.target.value as Ability })}>
-                {ABILITIES.map(a => <option key={a} value={a}>{ability(a)}</option>)}
-              </select>
-            )}
-            {e.kind === 'skill' ? (
-              <select value={e.skill} aria-label={t('hb.f.skill')} onChange={ev => setEffect(i, { ...e, skill: ev.target.value as SkillId })}>
-                {ALL_SKILLS.map(s => <option key={s} value={s}>{skill(s)}</option>)}
-              </select>
-            ) : 'amount' in e && (
-              <input type="number" aria-label={t('hb.f.amount')} className="hb-amount" value={e.amount} onChange={ev => setEffect(i, { ...e, amount: numOr(ev.target.value, 0) })} />
-            )}
-            <button type="button" className="glass-btn small icon hb-ghost" onClick={() => set({ effects: f.effects.filter((_, j) => j !== i) })} aria-label={t('hb.f.removeEffect')}>✕</button>
-          </div>
-        ))}
-        <div><button type="button" className="glass-btn small" onClick={() => set({ effects: [...f.effects, newEffect('ability')] })}>{t('hb.f.addEffect')}</button></div>
-      </div>
+      <EffectsField effects={f.effects} onChange={effects => set({ effects })} hint={t('hb.f.effectsHint')} />
     </FormShell>
   )
 }
@@ -405,3 +424,92 @@ export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewS
 }
 
 const classLevel = (classId: string) => CLASSES.find(c => c.id === classId)?.subclassLevel ?? 3
+
+export function BackgroundForm({ initial, pack, onSave, onCancel }: { initial: HomebrewBackground; pack: HomebrewPack; onSave: (b: HomebrewBackground) => void; onCancel: () => void }) {
+  const { t, abilityShort, skill, term } = useI18n()
+  const [b, setB] = useState(initial)
+  const set = (patch: Partial<HomebrewBackground>) => setB(prev => ({ ...prev, ...patch }))
+  const uses2024 = b.editions !== '2014'
+  const whyOf = (id: 'hbBgEditions' | 'hbBgFeature' | 'hbBgAbilities' | 'hbBgFeat' | 'hbBgProfs' | 'hbBgGear' | 'hbBgEffects') => <Why title={t(`why.${id}.title`)} text={t(`why.${id}.text`)} compact />
+  // This pack's feats and items first (they may not be saved yet), then every registered one.
+  const homebrewFeats = [...pack.feats, ...allFeats('2024').filter(f => f.id.startsWith('hb:') && !pack.feats.some(p => p.id === f.id))]
+  const bookFeats = allFeats('2024').filter(f => !f.id.startsWith('hb:')).sort((x, y) => (x.category === 'origin' ? 0 : 1) - (y.category === 'origin' ? 0 : 1))
+  const items = [...pack.items, ...ITEMS]
+  const itemName = (id: string) => items.find(i => i.id === id)?.name ?? itemById(id)?.name ?? id
+  const toggleAbility = (a: Ability, on: boolean) => {
+    if (on && b.abilityScores.length >= 3) return
+    set({ abilityScores: on ? [...b.abilityScores, a] : b.abilityScores.filter(x => x !== a) })
+  }
+  return (
+    <FormShell kind="backgrounds" name={initial.name} value={b} issues={backgroundIssues(b)} onSave={onSave} onCancel={onCancel}>
+      <Field label={t('hb.f.name')} wide><input value={b.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.bgNamePlaceholder')} /></Field>
+      <div className="hb-field">
+        <span>{t('hb.f.editions')} {whyOf('hbBgEditions')}</span>
+        <select value={b.editions} onChange={e => set({ editions: e.target.value as BackgroundEditions })}>
+          {BACKGROUND_EDITIONS.map(x => <option key={x} value={x}>{t(`hb.bg.editions.${x}`)}</option>)}
+        </select>
+      </div>
+      <div className="hb-field">
+        <span>{t('hb.f.feature')} {whyOf('hbBgFeature')}</span>
+        <input value={b.feature} onChange={e => set({ feature: e.target.value })} placeholder={t('hb.f.featurePlaceholderBg')} />
+      </div>
+      <Field label={t('hb.f.featureText')} wide><textarea rows={3} value={b.featureText ?? ''} onChange={e => set({ featureText: opt(e.target.value) })} /></Field>
+      <div className="hb-field wide">
+        <span>{t('hb.f.skills')} {whyOf('hbBgProfs')}</span>
+        <div className="row">
+          {ALL_SKILLS.map(sk => (
+            <Check
+              key={sk}
+              label={skill(sk)}
+              checked={b.skillProficiencies.includes(sk)}
+              onChange={on => set({ skillProficiencies: on ? [...b.skillProficiencies, sk] : b.skillProficiencies.filter(x => x !== sk) })}
+            />
+          ))}
+        </div>
+      </div>
+      <LinesField label={t('hb.f.tools')} value={b.tools} onChange={tools => set({ tools })} placeholder={t('hb.f.toolsPlaceholder')} />
+      <Field label={t('hb.f.toolChoices')}><input type="number" min={0} max={6} value={b.toolChoices} onChange={e => set({ toolChoices: numOr(e.target.value, 0) })} /></Field>
+      {b.toolChoices > 0 && <LinesField label={t('hb.f.toolChoiceFrom')} value={b.toolChoiceFrom} onChange={toolChoiceFrom => set({ toolChoiceFrom })} />}
+      <LinesField label={t('hb.f.bgLanguages')} value={b.languages} onChange={languages => set({ languages })} />
+      <Field label={t('hb.f.languageChoices')}><input type="number" min={0} max={6} value={b.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} /></Field>
+      <div className="hb-field wide">
+        <span>{t('hb.f.equipment')} {whyOf('hbBgGear')}</span>
+        {b.equipment.length > 0 && (
+          <div className="row">
+            {b.equipment.map((id, i) => (
+              <button key={`${id}-${i}`} type="button" className="glass-chip on" aria-label={t('hb.f.removeItem', { item: itemName(id) })} onClick={() => set({ equipment: b.equipment.filter((_, j) => j !== i) })}>
+                {term('item', id, itemName(id))} ✕
+              </button>
+            ))}
+          </div>
+        )}
+        <select value="" aria-label={t('hb.f.addItem')} onChange={e => e.target.value && set({ equipment: [...b.equipment, e.target.value] })}>
+          <option value="">{t('hb.f.addItem')}</option>
+          {items.map(i => <option key={i.id} value={i.id}>{term('item', i.id, i.name)}</option>)}
+        </select>
+      </div>
+      <Field label={t('hb.f.gold')}><input type="number" min={0} value={b.gold} onChange={e => set({ gold: numOr(e.target.value, 0) })} /></Field>
+      {uses2024 && (
+        <>
+          <div className="hb-field wide">
+            <span>{t('hb.f.bgAbilities', { chosen: b.abilityScores.length })} {whyOf('hbBgAbilities')}</span>
+            <div className="row">
+              {ABILITIES.map(a => <Check key={a} label={abilityShort(a)} checked={b.abilityScores.includes(a)} onChange={on => toggleAbility(a, on)} />)}
+            </div>
+          </div>
+          <div className="hb-field">
+            <span>{t('hb.f.originFeat')} {whyOf('hbBgFeat')}</span>
+            <select value={b.originFeatId ?? ''} onChange={e => set({ originFeatId: e.target.value || undefined })}>
+              <option value="">{t('hb.f.none')}</option>
+              {homebrewFeats.length > 0 && <optgroup label={t('hb.f.homebrewFeats')}>{homebrewFeats.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</optgroup>}
+              <optgroup label={t('hb.f.bookFeats')}>{bookFeats.map(f => <option key={f.id} value={f.id}>{term('feat', f.id, f.name)}</option>)}</optgroup>
+            </select>
+          </div>
+          {b.originFeatId && <Field label={t('hb.f.originFeatNote')}><input value={b.originFeatNote ?? ''} onChange={e => set({ originFeatNote: opt(e.target.value) })} placeholder={t('hb.f.originFeatNotePlaceholder')} /></Field>}
+        </>
+      )}
+      <EffectsField effects={b.effects} onChange={effects => set({ effects })} hint={t('hb.f.bgEffectsHint')} kinds={BG_EFFECT_KINDS} why={whyOf('hbBgEffects')} />
+      <Field label={t('hb.f.description')} wide><textarea rows={4} value={b.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+    </FormShell>
+  )
+}

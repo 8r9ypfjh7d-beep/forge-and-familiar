@@ -36,6 +36,23 @@ export const explainEn = {
   'why.kitList.text': 'Weapons show their damage dice and type, like 1d8 slashing: you roll that die and add your modifier. Armor shows its Armor Class; a shield adds +2.',
   'why.homebrew': 'Homebrew content from your group: ask your DM what it does.',
 
+  'why.hbBackground.title': 'Homebrew background',
+  'why.hbBackground.text': 'A background your group wrote, shared in a homebrew pack. Everyone who imports the pack can pick it in the builder, in the editions you choose. Its skills, tools, languages, gear and effects work like a book background.',
+  'why.hbBgEditions.title': 'Editions',
+  'why.hbBgEditions.text': 'Pick which rules the background is for. In 2014 the background gives skills, tools, languages, gear and a story feature. In 2024 it also suggests three abilities to raise and grants an Origin feat. "Both" lists it in either builder and uses only the parts that edition reads.',
+  'why.hbBgFeature.title': 'Background feature',
+  'why.hbBgFeature.text': 'A story perk, like free passage on ships or a contact in the city guard. It has no numbers: it tells the DM what doors your past opens. Write a short line on what it lets the character do.',
+  'why.hbBgAbilities.title': 'Ability scores (2024)',
+  'why.hbBgAbilities.text': 'A 2024 background lists three abilities. The player puts +2 on one and +1 on another, or +1 on all three. Pick abilities that fit the story: a sailor might list Strength, Dexterity and Wisdom. Players may still choose others; the builder only warns.',
+  'why.hbBgFeat.title': 'Origin feat (2024)',
+  'why.hbBgFeat.text': 'Every 2024 background grants one Origin feat at level 1, like Alert or Skilled. Pick a book feat or a homebrew feat from any pack. The note shows next to it, for example which class list Magic Initiate uses.',
+  'why.hbBgProfs.title': 'Proficiencies',
+  'why.hbBgProfs.text': 'Book backgrounds give two skills and two tools or languages in total. Fixed ones are always granted; "of your choice" lets the player pick in the builder. Leave the tool list empty to allow any tool.',
+  'why.hbBgGear.title': 'Starting gear',
+  'why.hbBgGear.text': 'Items the character starts with, from the book or any homebrew pack, plus gold. They are added to the inventory when the character is created.',
+  'why.hbBgEffects.title': 'Rule effects',
+  'why.hbBgEffects.text': 'Bonuses the sheet applies by itself in both editions, like +1 to an ability, a skill, extra speed or "pick 2 skills of your choice". Use them for anything the background changes in the numbers.',
+
   // Classes: what the class is and how it plays (the "pick this if" pitch is why.class.<id>)
   'why.about.barbarian': 'A fierce warrior powered by rage. Strength is your main ability and Constitution keeps you standing; the d12 hit die makes you the toughest class. Rage gives extra damage and halves weapon damage you take. Easy to learn.',
   'why.about.bard': 'A performer whose music and words are magic. Charisma powers your spells and Bardic Inspiration gives friends a bonus die. You can learn any skills, heal and support. Medium difficulty.',

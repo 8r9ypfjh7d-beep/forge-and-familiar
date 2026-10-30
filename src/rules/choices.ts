@@ -54,9 +54,14 @@ export function getFeats(c: FeatInput): Feat[] {
     const f = id ? featById(id, edition) : undefined
     return f ? [note ? { ...f, name: `${f.name} (${note})` } : f] : []
   }
-  const fromAsi = activeImprovements(c).flatMap(i => byId(i.featId))
+  const background = c.backgroundId ? getBackground({ backgroundId: c.backgroundId, customBackground: c.customBackground, rulesEdition: c.rulesEdition }) : undefined
+  // A homebrew background's own effects count as one feat-like entry, in both editions.
+  const fromBackground: Feat[] = background?.effects?.length
+    ? [{ id: `bg:${background.id}`, name: `${background.name} (${background.feature})`, description: background.feature, effects: background.effects }]
+    : []
+  const fromAsi = [...fromBackground, ...activeImprovements(c).flatMap(i => byId(i.featId))]
   if (edition !== '2024') return fromAsi
-  const bg = c.backgroundId ? getBackground({ backgroundId: c.backgroundId, customBackground: c.customBackground, rulesEdition: c.rulesEdition })?.feat : undefined
+  const bg = background?.feat
   return [
     ...byId(bg?.id, bg?.note),
     ...byId(c.originFeatId),

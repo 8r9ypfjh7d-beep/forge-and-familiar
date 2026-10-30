@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { createCharacter, getArmorClass, getAttacks, itemById, registerHomebrewItems } from '../rules'
-import { decodePack, encodeShareCode, entryId, featIssues, itemIssues, newPack, PackError, sanitizeEntry, sanitizePack, spellIssues } from './pack'
+import {
+  backgroundsFor, createCharacter, derive, featSkillPicks, fixedLanguages, fixedTools, getAbilityScores, getArmorClass, getAttacks, getBackground,
+  getFeats, getSkillProficiencies, itemById, registerHomebrewBackgrounds, registerHomebrewFeats, registerHomebrewItems, startingGold, toolPickGroups,
+} from '../rules'
+import { toBackground } from './store'
+import { backgroundIssues, decodePack, encodeShareCode, entryId, featIssues, itemIssues, newPack, PackError, sanitizeEntry, sanitizePack, spellIssues } from './pack'
 import type { HomebrewItem, HomebrewPack, HomebrewSpell } from './types'
 
 const author = { id: 'u1', displayName: 'Ziv' }
@@ -135,5 +139,65 @@ describe('homebrew races and subclasses', () => {
     expect(pack.races[1]).toMatchObject({ size: 'Medium', skillProficiencies: ['perception'], languageChoices: 1 })
     expect(pack.subclasses[0]).toMatchObject({ id: 'hb:abcd1234:battle-master', features: [{ level: 3, name: 'Combat Superiority' }, { level: 20, name: 'Feature' }], armor: ['heavy'] })
     expect(sanitizePack({ format: 'ff-homebrew', version: 1, id: 'abcd1234' }).races).toEqual([])
+  })
+})
+
+describe('homebrew backgrounds', () => {
+  const raw = {
+    format: 'ff-homebrew', version: 1, id: 'abcd1234', name: 'Sea', updatedAt: '2026-10-30T00:00:00Z',
+    feats: [{ id: 'hb:abcd1234:sea-legs', name: 'Sea Legs', description: 'Steady.', effects: [{ kind: 'speed', amount: 5 }] }],
+    backgrounds: [{
+      name: 'Sea Wanderer', editions: 'both', feature: "Ship's Passage", featureText: 'Free passage on ships.',
+      skillProficiencies: ['athletics', 'perception', 'flying'], tools: ["Navigator's tools"], toolChoices: 1, toolChoiceFrom: [],
+      languages: ['Aquan'], languageChoices: 1, equipment: ['dagger', 'hb:abcd1234:x', '<bad>'], gold: 12,
+      abilityScores: ['str', 'dex', 'wis', 'cha'], originFeatId: 'hb:abcd1234:sea-legs',
+      effects: [{ kind: 'ability', ability: 'con', amount: 1 }, { kind: 'skillPicks', count: 2 }, { kind: 'initiativeProficiency' }, { kind: 'fly' }],
+    }],
+  }
+
+  const draft = (rulesEdition: '2014' | '2024') => ({
+    name: 'T', ownerId: 'u1', playerName: '', alignment: 'True Neutral', raceId: 'human', backgroundId: 'hb:abcd1234:sea-wanderer',
+    classes: [{ classId: 'fighter', level: 1 }], abilityMethod: 'standard' as const, ...(rulesEdition === '2024' ? { rulesEdition } : {}),
+    baseAbilities: { str: 10, dex: 14, con: 13, int: 12, wis: 15, cha: 8 }, freeAbilityBonuses: [], chosenSkills: [],
+  })
+
+  it('sanitizes every background field', () => {
+    const b = sanitizePack(raw).backgrounds[0]
+    expect(b).toMatchObject({
+      id: 'hb:abcd1234:sea-wanderer', editions: 'both', skillProficiencies: ['athletics', 'perception'],
+      equipment: ['dagger', 'hb:abcd1234:x'], abilityScores: ['str', 'dex', 'wis'], gold: 12,
+    })
+    expect(b.effects.map(e => e.kind)).toEqual(['ability', 'skillPicks', 'initiativeProficiency'])
+    expect(sanitizePack({ format: 'ff-homebrew', version: 1, id: 'abcd1234' }).backgrounds).toEqual([])
+    expect(backgroundIssues({ ...b, abilityScores: ['str'] })).toHaveLength(1)
+    expect(backgroundIssues({ ...b, editions: '2014', abilityScores: [] })).toEqual([])
+  })
+
+  it('lists the background in the editions it is for and applies it to characters', () => {
+    const p = sanitizePack(raw)
+    registerHomebrewFeats(p.feats)
+    registerHomebrewBackgrounds(p.backgrounds.map(toBackground))
+    expect(backgroundsFor('2014').map(b => b.id)).toContain('hb:abcd1234:sea-wanderer')
+    expect(backgroundsFor('2024').map(b => b.id)).toContain('hb:abcd1234:sea-wanderer')
+
+    const old = createCharacter(draft('2014'))
+    expect(getBackground(old)?.feat).toBeUndefined()
+    expect(getSkillProficiencies(old).has('athletics')).toBe(true)
+    expect(fixedTools(old)).toContain("Navigator's tools")
+    expect(toolPickGroups(old)[0]).toMatchObject({ count: 1 })
+    expect(fixedLanguages(old)).toContain('Aquan')
+    expect(featSkillPicks(old)).toBe(2)
+    expect(getAbilityScores(old).con).toBe(13 + 1 + 1) // human +1, background effect +1
+    expect(old.inventory.some(i => i.itemId === 'dagger')).toBe(true)
+    expect(startingGold(draft('2014'))).toBe(27)
+
+    const now = createCharacter(draft('2024'))
+    expect(getFeats(now).map(f => f.id)).toContain('hb:abcd1234:sea-legs')
+    expect(derive(now).speed).toBe(derive(old).speed + 5)
+
+    registerHomebrewBackgrounds(p.backgrounds.map(b => toBackground({ ...b, editions: '2014' })))
+    expect(backgroundsFor('2024').map(b => b.id)).not.toContain('hb:abcd1234:sea-wanderer')
+    registerHomebrewBackgrounds([])
+    registerHomebrewFeats([])
   })
 })

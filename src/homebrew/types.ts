@@ -1,4 +1,4 @@
-// Homebrew content: spells, items and feats a group writes themselves, grouped into shareable packs.
+// Homebrew content: spells, items, feats, races, subclasses and backgrounds a group writes themselves, grouped into shareable packs.
 import type { Abilities, Ability, ArmorCategory, FeatEffect, Item, Size, SkillId } from '../rules/types'
 
 export type { FeatEffect }
@@ -71,6 +71,39 @@ export interface HomebrewSubclass {
   description?: string
 }
 
+export const BACKGROUND_EDITIONS = ['both', '2014', '2024'] as const
+export type BackgroundEditions = (typeof BACKGROUND_EDITIONS)[number]
+
+/** A background in either edition: proficiencies, gear, a story feature, 2024 ability options and Origin feat, and effects. */
+export interface HomebrewBackground {
+  id: string
+  name: string
+  /** Which rules editions list it in the builder. */
+  editions: BackgroundEditions
+  skillProficiencies: SkillId[]
+  /** Fixed tool proficiencies. */
+  tools: string[]
+  /** Tools the player picks; from an empty list means any tool. */
+  toolChoices: number
+  toolChoiceFrom: string[]
+  languages: string[]
+  languageChoices: number
+  /** Item ids (SRD or homebrew) the character starts with. */
+  equipment: string[]
+  gold: number
+  /** Feature name, e.g. "Ship's Passage". */
+  feature: string
+  featureText?: string
+  /** 2024: the three abilities the background suggests for +2/+1 or +1/+1/+1. */
+  abilityScores: Ability[]
+  /** 2024: Origin feat id (SRD or homebrew) and an optional note such as "Wizard". */
+  originFeatId?: string
+  originFeatNote?: string
+  /** Rule effects in both editions (an ability score, a skill, speed, AC...). */
+  effects: FeatEffect[]
+  description?: string
+}
+
 /** A rules-engine Item plus flavour. Weapons and armor work in derive() once registered. */
 export type HomebrewItem = Item & { description?: string; rarity?: Rarity }
 
@@ -93,10 +126,11 @@ export interface HomebrewPack {
   feats: HomebrewFeat[]
   races: HomebrewRace[]
   subclasses: HomebrewSubclass[]
+  backgrounds: HomebrewBackground[]
   /** Author's change history, only in downloaded pack files. Validated by src/history, never stored in the library. */
   history?: unknown[]
 }
 
-export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses'
+export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds'
 
-export type HomebrewEntry = HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass
+export type HomebrewEntry = HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass | HomebrewBackground

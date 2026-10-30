@@ -33,9 +33,9 @@ export function startingItemIds(draft: Pick<CharacterDraft, 'classes' | 'backgro
   return [...(cls ? classKit(cls, draft.equipmentPicks) : []), ...(bg?.equipment ?? [])]
 }
 
-/** Starting gold: 15 gp in 2014; in 2024 the class kit's and the background's coins. */
+/** Starting gold: 15 gp in 2014 (plus a homebrew background's coins); in 2024 the class kit's and the background's coins. */
 export function startingGold(draft: Pick<CharacterDraft, 'classes' | 'backgroundId' | 'customBackground' | 'equipmentPicks' | 'rulesEdition'>): number {
-  if (rulesEdition(draft) !== '2024') return 15
+  if (rulesEdition(draft) !== '2024') return 15 + (getBackground(draft)?.gold ?? 0)
   const cls = classById(draft.classes[0]?.classId ?? '', '2024')
   return (cls ? kitGold(cls, draft.equipmentPicks) : 0) + (getBackground(draft)?.gold ?? 0)
 }
