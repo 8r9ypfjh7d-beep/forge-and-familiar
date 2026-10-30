@@ -11,6 +11,18 @@ describe('builder validation', () => {
     expect(stepIssues('race', { ...base(), raceId: 'dwarf', subraceId: 'hill-dwarf' })).toEqual([])
   })
 
+  it('names 2024 steps the 2024 way: species, lineage and "<Class> Subclass"', () => {
+    const d = { ...base(), rulesEdition: '2024' as const }
+    expect(stepIssues('race', { ...d, raceId: '' })).toEqual(['Choose a species.'])
+    expect(stepIssues('race', { ...d, raceId: 'elf' })).toContain('Choose a lineage.')
+    expect(stepIssues('class', { ...d, classes: [{ classId: 'ranger', level: 3 }] })).toContain('Choose the Ranger Subclass for your Ranger.')
+  })
+
+  it('starts a character at its level\'s XP', () => {
+    expect(createCharacter({ ...base(), classes: [{ classId: 'rogue', level: 3, subclassId: 'thief' }] }).xp).toBe(900)
+    expect(createCharacter(base()).xp).toBe(0)
+  })
+
   it('checks the standard array and half-elf picks', () => {
     const d = { ...base(), baseAbilities: { str: 8, dex: 15, con: 14, int: 12, wis: 10, cha: 13 } }
     expect(stepIssues('abilities', d)).toEqual(['Pick 2 abilities for your racial +1.'])

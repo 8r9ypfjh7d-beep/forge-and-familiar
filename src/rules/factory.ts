@@ -4,7 +4,7 @@ import { BACKGROUNDS, getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { itemById } from './data/items'
 import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS } from './data/proficiencies'
-import { getMaxHp } from './derive'
+import { getMaxHp, totalLevel, xpAtLevel } from './derive'
 import type { Item } from './types'
 import { rulesEdition } from './edition'
 import { BACKGROUND_GOLD_2024, coinsFromCp, purchasesCp, takesBackgroundGold, takesClassGold } from './wealth'
@@ -104,5 +104,7 @@ export function createCharacter(draft: CharacterDraft, now = new Date()): Charac
     updatedAt: now.toISOString(),
   }
   base.state = freshState(getMaxHp(base))
+  // Starting above level 1 begins at that level's XP, so XP keeps counting toward the next one.
+  base.xp = xpAtLevel(totalLevel(base))
   return base
 }

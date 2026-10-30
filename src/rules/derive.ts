@@ -71,6 +71,9 @@ export const proficiencyBonus = (level: number) => 2 + Math.floor((Math.max(1, l
 /** SRD experience points needed to reach each level (index 0 = level 1). */
 export const XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000]
 
+/** XP a character starts a level with: that level's threshold (900 at level 3). */
+export const xpAtLevel = (level: number): number => XP_THRESHOLDS[Math.min(20, Math.max(1, level)) - 1]
+
 /** XP needed for the next level, or undefined at level 20. */
 export const xpForNextLevel = (level: number): number | undefined => XP_THRESHOLDS[Math.max(1, level)]
 

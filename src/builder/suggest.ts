@@ -16,7 +16,7 @@ export function suggestedArray(draft: CharacterDraft): CharacterDraft['baseAbili
   return out
 }
 
-/** Fills every empty ASI slot: +2 to the first class ability under 20, split +1/+1 when it sits at 19. Picked slots stay. */
+/** Fills every empty ASI slot: +2 to the first class ability under 20, split +1/+1 when it is odd. Picked slots stay. */
 export function suggestedImprovements(draft: CharacterDraft): Improvement[] {
   const kept = draft.improvements ?? []
   const filled = (s: { classId: string; level: number }) => kept.some(i => i.classId === s.classId && i.level === s.level && (i.featId || Object.values(i.abilities ?? {}).some(v => v)))
@@ -26,8 +26,11 @@ export function suggestedImprovements(draft: CharacterDraft): Improvement[] {
     const scores = getAbilityScores({ ...draft, improvements })
     const open = abilityOrder(draft).filter(a => scores[a] < 20)
     if (!open.length) continue
-    const [first, second] = open
-    const abilities: Partial<Record<Ability, number>> = scores[first] <= 18 || !second ? { [first]: scores[first] <= 18 ? 2 : 1 } : { [first]: 1, [second]: 1 }
+    // An odd score wastes a point on +2, so it takes +1 and the other +1 goes to one of the next two abilities, an odd one first.
+    const [first, ...rest] = open
+    const second = rest.slice(0, 2).find(a => scores[a] % 2 === 1) ?? rest[0]
+    const split = second && (scores[first] >= 19 || scores[first] % 2 === 1)
+    const abilities: Partial<Record<Ability, number>> = split ? { [first]: 1, [second]: 1 } : { [first]: scores[first] <= 18 ? 2 : 1 }
     improvements = [...improvements, { classId: slot.classId, level: slot.level, abilities }]
   }
   return improvements

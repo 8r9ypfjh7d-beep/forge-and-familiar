@@ -8,9 +8,10 @@ import { followPlan } from '../planner/plan'
 import { getCharacter, saveCharacter } from '../storage'
 import type { MessageKey } from '../i18n'
 import { applyEdit, draftFrom, startingGearChanged } from './edit'
+import { ConfirmDialog } from './ConfirmDialog'
 import { clearDraft, loadDraft, saveDraft } from './draftStore'
 import { STEPS } from './steps'
-import { stepIssues, stepWarnings } from './validate'
+import { stepIssues, stepWarnings, type StepId } from './validate'
 import { Summary } from './Summary'
 import { Why } from './Why'
 import './builder.css'
@@ -56,6 +57,8 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
     return editing && patch.classes ? followPlan(editing, d, next) : next
   })
   const { t, term } = useI18n()
+  // 2024 calls the first step Species.
+  const stepName = (id: StepId) => t(id === 'race' && draft.rulesEdition === '2024' ? 'builder.step.race2024' : `builder.step.${id}`)
   const stepsRef = useRef<HTMLElement>(null)
   // On phones the step bar is one swipeable row: keep the current step in view.
   useEffect(() => {
@@ -76,8 +79,8 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
     if (dirty) saveDraft({ draft, step, hookKey, savedAt: new Date().toISOString() })
     else clearDraft(ownerId)
   }, [editing, dirty, draft, step, hookKey, ownerId])
+  const [asking, setAsking] = useState<'startOver' | 'discard'>()
   const startOver = () => {
-    if (!confirm(t('builder.draft.startOverConfirm'))) return
     clearDraft(ownerId)
     setResumed(undefined)
     setDraft(initial)
@@ -108,11 +111,19 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
     [editing, draft, firstBlocked, gearChanged, replaceGear],
   )
   const cancel = () => {
-    if (!editing || !dirty || confirm(t('builder.edit.discard'))) onCancel()
+    if (!editing || !dirty) onCancel()
+    else setAsking('discard')
   }
 
   return (
     <div className="builder">
+      <ConfirmDialog
+        open={!!asking}
+        title={t(asking === 'discard' ? 'builder.edit.discard' : 'builder.draft.startOverConfirm')}
+        yes={t(asking === 'discard' ? 'builder.draft.discard' : 'builder.draft.startOver')}
+        onYes={asking === 'discard' ? onCancel : startOver}
+        onClose={() => setAsking(undefined)}
+      />
       {editing && (
         <div className="edit-banner" role="note">
           <h2>{t('builder.edit.title', { name: editing.name })}</h2>
@@ -122,7 +133,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
       {resumed && dirty && (
         <p className="draft-resumed small" role="status">
           {t('builder.draft.resumed')}{' '}
-          <button className="glass-btn small" onClick={startOver}>{t('builder.draft.startOver')}</button>
+          <button className="glass-btn small" onClick={() => setAsking('startOver')}>{t('builder.draft.startOver')}</button>
         </p>
       )}
       {!editing && <RandomCharacter onRoll={rollRandom} ask={hasPicks(draft) && draft !== rolled} busy={rolling} />}
@@ -136,7 +147,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
               aria-current={i === step ? 'step' : undefined}
               onClick={() => setStep(i)}
             >
-              <span className="step-num">{i + 1}</span> {t(`builder.step.${s.id}`)}
+              <span className="step-num">{i + 1}</span> {stepName(s.id)}
             </button>
           )
         })}
@@ -144,7 +155,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
 
       <div className="builder-body">
         <section className="glass builder-step">
-          <h2>{t(`builder.step.${STEPS[step].id}`)}</h2>
+          <h2>{stepName(STEPS[step].id)}</h2>
           <p className="muted">{t(draft.rulesEdition === '2024' && (STEPS[step].id === 'race' || STEPS[step].id === 'abilities') ? `builder.step.${STEPS[step].id as 'race' | 'abilities'}.blurb2024` : `builder.step.${STEPS[step].id}.blurb`)} <Why id={`step.${STEPS[step].id}`} /></p>
           <Current draft={draft} update={update} editing={!!editing} />
           {!editing && STEPS[step].id === 'details' && <BackstoryHook hookKey={hookKey} setHookKey={setHookKey} />}
@@ -166,7 +177,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
           )}
           {(editing || isLast) && firstBlocked !== -1 && firstBlocked !== step && (
             <p className="edit-blocked small">
-              {t(editing ? 'builder.edit.blocked' : 'builder.blocked', { step: t(`builder.step.${STEPS[firstBlocked].id}`) })}{' '}
+              {t(editing ? 'builder.edit.blocked' : 'builder.blocked', { step: stepName(STEPS[firstBlocked].id) })}{' '}
               <button className="glass-btn small" onClick={() => setStep(firstBlocked)}>{t('builder.edit.goFix')}</button>
             </p>
           )}
@@ -241,9 +252,9 @@ export function EditCharacter({ characterId, onSaved, onCancel }: {
 export function UnfinishedDraft({ ownerId, onContinue }: { ownerId: string; onContinue: () => void }) {
   const { t } = useI18n()
   const [saved, setSaved] = useState(() => loadDraft(ownerId))
+  const [asking, setAsking] = useState(false)
   if (!saved) return null
   const discard = () => {
-    if (!confirm(t('builder.draft.discardConfirm'))) return
     clearDraft(ownerId)
     setSaved(undefined)
   }
@@ -252,8 +263,9 @@ export function UnfinishedDraft({ ownerId, onContinue }: { ownerId: string; onCo
       <span>{saved.draft.name.trim() ? t('builder.draft.unfinishedNamed', { name: saved.draft.name.trim() }) : t('builder.draft.unfinished')}</span>
       <span className="row">
         <button className="glass-btn small prominent" onClick={onContinue}>{t('builder.draft.continue')}</button>
-        <button className="glass-btn small" onClick={discard}>{t('builder.draft.discard')}</button>
+        <button className="glass-btn small" onClick={() => setAsking(true)}>{t('builder.draft.discard')}</button>
       </span>
+      <ConfirmDialog open={asking} title={t('builder.draft.discardConfirm')} yes={t('builder.draft.discard')} onYes={discard} onClose={() => setAsking(false)} />
     </div>
   )
 }

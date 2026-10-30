@@ -49,7 +49,7 @@ export const ARTIFICER: ClassDef = {
 }
 
 export const ARTIFICER_2024: ClassDef = {
-  ...ARTIFICER, source: EFA,
+  ...ARTIFICER, source: EFA, subclassTitle: 'Artificer Subclass',
   resources: [
     { id: 'tinkers-magic', name: "Tinker's Magic", recharge: 'long', max: intUses(1) },
     { id: 'flash-of-genius', name: 'Flash of Genius', recharge: 'long', max: intUses(7) },

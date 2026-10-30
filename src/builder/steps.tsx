@@ -84,6 +84,8 @@ function EditionPicker({ draft, update }: StepProps) {
 function RaceStep({ draft, update }: StepProps) {
   const edition = rulesEdition(draft)
   const race = raceById(draft.raceId, edition)
+  // Only the race's own picks: background and class languages are picked on their steps.
+  const raceLanguagePicks = languagePickCount({ ...draft, backgroundId: '', classes: [] })
   const i18n = useI18n()
   const { t, term, abilityShort, skill } = i18n
   // Legacy (2014) races under 2024 rules keep their 2014 pitch and subrace explanations.
@@ -116,10 +118,10 @@ function RaceStep({ draft, update }: StepProps) {
         <Why id="speed" label={t('builder.legend.speed')} />
       </p>
       <ChoicePicker
-        label={t('builder.step.race')}
+        label={t(edition === '2024' ? 'builder.step.race2024' : 'builder.step.race')}
         firstGroup={t('builder.compact.srd')}
         value={draft.raceId}
-        onPick={id => update({ raceId: id, subraceId: (() => { const r = raceById(id, edition); return r?.subraceOptional ? undefined : r?.subraces?.[0]?.id })(), freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined, sizeChoice: undefined })}
+        onPick={id => update({ raceId: id, subraceId: undefined, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined, sizeChoice: undefined })}
         items={allRaces(edition).map(r => ({
           id: r.id,
           name: term('race', r.id, r.name),
@@ -228,7 +230,7 @@ function RaceStep({ draft, update }: StepProps) {
           {race.source && <span className="muted">{t('builder.raceSource', { source: race.source })}<br /></span>}
           <strong>{t('builder.languages')}</strong><Why id="languages" />{' '}
           {edition === '2024' ? t('builder.languages2024') : racialLanguages(draft).map(x => term('language', x, x)).join(', ')}
-          {languagePickCount({ ...draft, backgroundId: '' }) > 0 && <> {t('builder.languagesPlus', { count: languagePickCount({ ...draft, backgroundId: '' }) })}</>}
+          {raceLanguagePicks > 0 && <> {t('builder.languagesPlus', { count: raceLanguagePicks })}</>}
           <br />
           <strong>{t('builder.traits')}</strong><Why id="traits" />{' '}
           {raceTraits.length === 0 && t('common.none')}
@@ -496,7 +498,8 @@ function SubclassPicker({ draft, update, classId }: StepProps & { classId: strin
         const spells = (picked?.spells ?? []).filter(s => s.level <= cl.level && s.names.length)
         return (
           <div className="field" key={cl.classId}>
-            <label>{t('builder.subclass', { title: term('feature', def.subclassTitle, def.subclassTitle), className: className(def.id) })} <Why id="subclassChoice" /></label>
+            {/* 2024 titles already name the class ("Warlock Subclass"); 2014 ones don't ("Otherworldly Patron (Warlock)"). */}
+            <label>{(() => { const title = term('feature', def.subclassTitle, def.subclassTitle); return / Subclass$/.test(def.subclassTitle) ? title : t('builder.subclass', { title, className: className(def.id) }) })()} <Why id="subclassChoice" /></label>
             <ChoicePicker
               variant="chip"
               label={term('feature', def.subclassTitle, def.subclassTitle)}
@@ -723,10 +726,8 @@ function BackgroundBonuses({ draft, update }: StepProps) {
   const onSuggestion = suggestion.length > 0 && [...suggestion].sort().join() === [...draft.freeAbilityBonuses].sort().join()
   return (
     <div className="field bg-bonus">
-      <label htmlFor="bg-abilities">{t('builder.background')} <Why id="background" /></label>
-      <select id="bg-abilities" value={draft.backgroundId} onChange={e => update({ backgroundId: e.target.value, freeAbilityBonuses: bonusesAfterBackground(draft), chosenSkills: [], chosenLanguages: [], chosenTools: [] })}>
-        <BackgroundOptions edition="2024" />
-      </select>
+      <label>{t('builder.background')} <Why id="background" /></label>
+      <BackgroundPicker edition="2024" value={draft.backgroundId} onPick={id => update({ backgroundId: id, freeAbilityBonuses: bonusesAfterBackground(draft), chosenSkills: [], chosenLanguages: [], chosenTools: [] })} />
       <BackgroundExplain kind="bg2024" bg={bg} id={draft.backgroundId} />
       <BackgroundSource id={draft.backgroundId} edition="2024" />
       <p className="small">
@@ -888,11 +889,9 @@ function SkillsStep({ draft, update }: StepProps) {
   return (
     <>
       <div className="field">
-        <label htmlFor="bg">{t('builder.background')} <Why id="background" /></label>
-        <select id="bg" value={draft.backgroundId} onChange={e => pickBackground(e.target.value)}>
-          <BackgroundOptions edition={edition} />
-          {edition === '2014' && <option value={CUSTOM_BACKGROUND}>{t('builder.customBackground')}</option>}
-        </select>
+        <label>{t('builder.background')} <Why id="background" /></label>
+        <BackgroundPicker edition={edition} value={draft.backgroundId} onPick={pickBackground}
+          custom={edition === '2014' ? { on: custom, onPick: () => pickBackground(CUSTOM_BACKGROUND) } : undefined} />
         {!custom && <BackgroundExplain kind={edition === '2024' ? 'bg2024' : 'bg'} bg={bg} id={draft.backgroundId} />}
         {!custom && <BackgroundSource id={draft.backgroundId} edition={edition} />}
         {bg && !custom && edition === '2014' && <p className="muted small">{t('builder.bgFeature', { feature: term('bgFeature', bg.feature, bg.feature) })}</p>}
@@ -950,14 +949,21 @@ function BackgroundExplain({ kind, bg, id }: { kind: 'bg' | 'bg2024'; bg?: Backg
   )
 }
 
-/** Background options: the SRD ones first, then one group per book. */
-function BackgroundOptions({ edition }: { edition: RulesEdition }) {
+/** Background pick with search: the SRD ones first, then one fold per book, homebrew last. No default: the step asks for it. */
+function BackgroundPicker({ edition, value, onPick, custom }: { edition: RulesEdition; value: string; onPick: (id: string) => void; custom?: { on: boolean; onPick: () => void } }) {
   const { t, term } = useI18n()
-  const groups = new Map<string, Background[]>()
-  for (const b of backgroundsFor(edition)) groups.set(b.source ?? '', [...(groups.get(b.source ?? '') ?? []), b])
-  const options = (list: Background[]) => list.map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)
-  // No default: an unpicked background shows "Choose a background…" and the step asks for it.
-  return <><option value="" disabled>{t('builder.chooseBackground')}</option>{[...groups].map(([source, list]) => (source ? <optgroup key={source} label={source}>{options(list)}</optgroup> : options(list)))}</>
+  return (
+    <ChoicePicker
+      variant="chip"
+      label={t('builder.background')}
+      firstGroup={t('builder.compact.srd')}
+      value={value}
+      onPick={onPick}
+      items={backgroundsFor(edition).map(b => ({ id: b.id, name: term('background', b.id, b.name), group: b.id.startsWith('hb:') ? t('builder.compact.homebrew') : b.source, search: [b.name] }))}
+      extra={custom && { name: t('builder.customBackground'), onPick: custom.onPick }}
+      extraOn={custom?.on}
+    />
+  )
 }
 
 /** Which book a background comes from, when it isn't in the SRD. */

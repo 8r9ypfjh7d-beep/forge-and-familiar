@@ -28,6 +28,14 @@ describe('suggest for my class', () => {
     expect(getAbilityScores({ ...d, improvements }).str).toBe(20)
   })
 
+  it('never leaves an odd main score: 17 takes +1 and the next ability +1', () => {
+    const d = { ...fighter(4), rulesEdition: '2024' as const, baseAbilities: { str: 15, dex: 14, con: 12, int: 8, wis: 10, cha: 13 }, freeAbilityBonuses: ['str', 'str', 'con'] as const }
+    const draft = { ...d, freeAbilityBonuses: [...d.freeAbilityBonuses] }
+    const scores = getAbilityScores({ ...draft, improvements: suggestedImprovements(draft) })
+    expect(scores.str).toBe(18)
+    expect(scores.con).toBe(14)
+  })
+
   it('splits the +2 once the main ability would pass 20, and keeps picked slots', () => {
     const d = fighter(12)
     const picked = { classId: 'fighter', level: 4, featId: 'alert' }
