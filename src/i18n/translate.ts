@@ -50,11 +50,27 @@ export function translate(locale: Locale, key: MessageKey, vars?: Vars): string 
   return vars ? text.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m)) : text
 }
 
-/** SRD name for `kind.id` in `locale`, or `fallback` (the English data name). */
+/**
+ * Where else a name may be translated: a resource is named after its feature or racial trait (Lucky, Large Form),
+ * and racial traits show up among features (Relentless Endurance) and the other way round. Looked up by English name.
+ */
+const ALSO: Record<string, string[]> = { resource: ['feature', 'trait'], feature: ['trait'], trait: ['feature'] }
+
 /** Term id of a spell from its id or English name ("Syluné's Viper" → "sylunes-viper"). */
 export const spellTermId = (nameOrId: string) =>
   nameOrId.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
+/** SRD name for `kind.id` in `locale`, or `fallback` (the English data name). */
 export function term(locale: Locale, kind: string, id: string, fallback: string): string {
-  return LOCALES[locale].terms[`${kind}.${id}`] ?? fallback
+  const terms = LOCALES[locale].terms
+  const own = terms[`${kind}.${id}`]
+  if (own !== undefined || locale === 'en') return own ?? fallback
+  // Features and traits are keyed by English name; a resource by id, so its name is the fallback.
+  const name = kind === 'resource' ? fallback : id
+  for (const k of ALSO[kind] ?? []) {
+    const other = terms[`${k}.${name}`]
+    if (other !== undefined) return other
+  }
+  // 2024 species list their spells as traits ("Speak with Animals").
+  return kind === 'trait' || kind === 'feature' ? terms[`spell.${spellTermId(name)}`] ?? fallback : fallback
 }

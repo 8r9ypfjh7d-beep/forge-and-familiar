@@ -153,7 +153,8 @@ function Row({ entry: e, apply, onEdit, onDrink }: { entry: InventoryEntry; appl
   const { t, term } = i18n
   const [open, setOpen] = useState(false)
   const item = itemOf(e)
-  const name = e.item || e.name ? item.name : term('item', item.id, item.name)
+  // Own names stay as written, except tool kits the builder adds by their tool name ("Painter's supplies").
+  const name = e.item || e.name ? term('tool', item.name, item.name) : term('item', item.id, item.name)
   const equippable = item.kind !== 'gear' || !!e.effects?.length
   const potion = potionHealing(e.itemId, item.name)
   const drinkable = !!potion || isPotion(item.name)

@@ -39,7 +39,7 @@ const ELEMENTS = ['acid', 'cold', 'fire', 'lightning', 'thunder']
 const answers = (id: string, type?: string) => id !== 'absorb-elements' || !type || ELEMENTS.includes(type)
 
 export function AfterDamage({ hit, character, apply, onClose }: { hit: Hit; character: Character; apply: Apply; onClose: () => void }) {
-  const { t, term } = useI18n()
+  const { t, term, spellName, sourceName } = useI18n()
   const rolls = useSheetRolls(character)
   const casting = useCast(character, apply)
   const spells = useSpells(character)
@@ -182,8 +182,8 @@ export function AfterDamage({ hit, character, apply, onClose }: { hit: Hit; char
       ))}
       {up && innate.map(s => (
         <div key={`${s.source}:${s.spell}`} className="hp-after-row">
-          <span>{t('hurt.reaction', { name: s.spell })} <small className="hint">{s.source}</small></span>
-          <button type="button" className="glass-btn small prominent" aria-label={t('cast.castName', { name: s.spell })} onClick={() => caster.cast(s)}>{t('cast.cast')}</button>
+          <span>{t('hurt.reaction', { name: spellName(s.spell) })} <small className="hint">{sourceName(s.source)}</small></span>
+          <button type="button" className="glass-btn small prominent" aria-label={t('cast.castName', { name: spellName(s.spell) })} onClick={() => caster.cast(s)}>{t('cast.cast')}</button>
         </div>
       ))}
       <CastResult out={casting.out} outKey={casting.outKey} onDone={casting.clear} character={character} apply={apply} />

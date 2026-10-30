@@ -18,6 +18,7 @@ import { explainSettingsEn } from './explain.settings.en'
 import { itemsEn } from './items.en'
 import { useEn } from './use.en'
 import { hurtEn } from './hurt.en'
+import { suppliesEn } from './supplies.en'
 import { picks2014En } from './picks2014.en'
 
 export const en = {
@@ -39,6 +40,7 @@ export const en = {
   ...itemsEn,
   ...useEn,
   ...hurtEn,
+  ...suppliesEn,
   ...picks2014En,
   // Shared
   'common.back': 'Back',
@@ -49,6 +51,7 @@ export const en = {
   'common.add': 'Add',
   'common.loading': 'Loading…',
   'common.none': 'None',
+  'common.levelN': 'level {n}',
   'common.noneLower': 'none',
   'common.notFound': 'This character could not be found.',
   'common.backToCharacters': 'Back to characters',
@@ -1127,6 +1130,7 @@ export const en = {
   'spells.mine': 'My spells',
   'spells.browse': 'Add spells',
   'spells.empty': 'No spells yet. Pick yours from the {className} spell list.',
+  'spells.booksNote': 'Spells from official Dungeons & Dragons books beyond the SRD. Names and game numbers only: each description is a short summary written for Forge & Familiar, not the book\'s text, so check the book for the full wording. Dungeons & Dragons and the book titles are trademarks of Wizards of the Coast LLC; this app is not affiliated with or endorsed by them.',
   'spells.level': '{ordinal} level',
   'spells.available': '{count} {className} spells up to {ordinal}',
   'spells.search': 'Search spells',

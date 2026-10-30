@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BUNDLED, loadKind, type CharacterClass, type Equipment, type Feat, type Feature, type Spell, type Subclass, type Trait } from '../../content'
 import type { RollMode } from '../../dice'
-import { featExplainKey, optionKey, optionName } from '../../builder/why'
+import { explainKey, featExplainKey, optionKey, optionName } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
@@ -687,6 +687,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
 function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]; character: Character; apply: Apply; features: Feature[]; onOut: (o: Outcome) => void }) {
   const i18n = useI18n()
   const { t, term, abilityShort } = i18n
+  const translated = i18n.locale !== 'en'
   const casting = useCast(character, apply)
   const uses = useResourceUse(character, apply, onOut)
   const rolls = useSheetRolls(character)
@@ -734,8 +735,9 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
       pool ? (pool.n < cost!.n ? t('use.noneLeft') : t('use.left', { n: pool.n - cost!.n, max: pool.max })) : '',
       tempHp ? t('cast.gotTempHp', { n: tempHp }) : '', healed ? t('cast.healed', { n: healed }) : '', plan.effect ? t('cast.inEffect') : '',
     ].filter(Boolean)
-    apply(t('use.log', { label: r.name }), c => cost ? spendResource(c, cost.id, plan, { tempHp, heal: healed }, cost.n) : applyUse(c, plan, { tempHp, heal: healed }))
-    onOut({ name: r.name, rolls: shown, note: notes.join(' · ') || undefined })
+    const name = term('feature', r.name, r.name)
+    apply(t('use.log', { label: name }), c => cost ? spendResource(c, cost.id, plan, { tempHp, heal: healed }, cost.n) : applyUse(c, plan, { tempHp, heal: healed }))
+    onOut({ name, rolls: shown, note: notes.join(' · ') || undefined })
   }
 
   return (
@@ -751,7 +753,7 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
               return (
                 <li key={r.key} className="cs-action">
                   <div className="cs-action-row">
-                    <FeatureName name={label} text={describe(features, d, res.label, t)} />
+                    <FeatureName name={label} text={describe(features, d, res.label, t, translated)} />
                     <span className="cs-action-tools">
                       {l && <span className="track-count" dir="ltr">{l.n}/{l.max}</span>}
                       <button type="button" className="glass-btn small prominent" aria-label={t('use.useName', { label })} aria-expanded={uses.pool === res.id || undefined}
@@ -766,20 +768,21 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
               )
             }
             const l = (r.spend ?? r.boost) && left((r.spend ?? r.boost)!.id)
+            const name = term('feature', r.name, r.name)
             const button = r.use === 'dark-ones-blessing' ? t('turn.droppedFoe') : t('use.use')
             return (
               <li key={r.key} className="cs-action">
                 <div className="cs-action-row">
-                  <FeatureName name={r.name} text={r.text ?? describe(features, d, r.name, t)} />
+                  <FeatureName name={name} text={r.text ?? describe(features, d, r.name, t, translated)} />
                   {(r.use || r.spend || r.boost || r.save) && (
                     <span className="cs-action-tools">
                       {r.save && <span className="sb-badge">{t('cs.saveNote', { dc: r.save.dc, ability: abilityShort(r.save.ability) })}</span>}
                       {l && <span className="track-count" dir="ltr">{l.n}/{l.max}</span>}
                       <button type="button" className="glass-btn small prominent" onClick={() => triggerFeature(r)}
-                        aria-label={r.use === 'dark-ones-blessing' ? t('turn.droppedFoeName', { name: r.name }) : t('use.useName', { label: r.name })}>{button}</button>
+                        aria-label={r.use === 'dark-ones-blessing' ? t('turn.droppedFoeName', { name }) : t('use.useName', { label: name })}>{button}</button>
                       {r.boost && l && (
                         <button type="button" className="glass-btn small" onClick={() => triggerFeature(r, true)}
-                          aria-label={t('turn.boostName', { name: r.name, n: r.boost.n, pool: l.label })}>{t('turn.boost', { n: r.boost.n })}</button>
+                          aria-label={t('turn.boostName', { name, n: r.boost.n, pool: l.label })}>{t('turn.boost', { n: r.boost.n })}</button>
                       )}
                     </span>
                   )}
@@ -796,10 +799,10 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
             const running = (character.state.effects ?? []).some(e => e.id === `spell:${r.spell.id}` && e.on)
             const l = r.free?.spend && left(r.free.spend.id)
             return (
-              <SpellRow key={r.key} spell={r.spell} badge={r.free ? `${badge} · ${t('turn.from', { source: r.free.source })}` : badge} running={running}>
+              <SpellRow key={r.key} spell={r.spell} badge={r.free ? `${badge} · ${t('turn.from', { source: i18n.sourceName(r.free.source) })}` : badge} running={running}>
                 {l && <span className="track-count" dir="ltr">{l.n}/{l.max}</span>}
                 {r.free
-                  ? <button type="button" className="glass-btn small prominent" aria-label={t('use.castFree', { name: r.spell.name, source: r.free.source })} onClick={() => castFree(r)}>{t('cast.cast')}</button>
+                  ? <button type="button" className="glass-btn small prominent" aria-label={t('use.castFree', { name: i18n.spellName(r.spell.id, r.spell.name), source: i18n.sourceName(r.free.source) })} onClick={() => castFree(r)}>{t('cast.cast')}</button>
                   : <CastButton character={character} spell={r.spell} onCast={(s, slot) => onOut(casting.cast(s, slot))} />}
               </SpellRow>
             )
@@ -817,16 +820,16 @@ const MONK_NOTES: Record<string, Record<'paid' | 'free' | 'boost', MessageKey>> 
 }
 
 /** A feature's text from the library or the builder's explanations, found by its name. */
-function describe(features: Feature[], d: DerivedStats, name: string, explain: (key: MessageKey) => string): string | undefined {
+function describe(features: Feature[], d: DerivedStats, name: string, explain: (key: MessageKey) => string, translated = false): string | undefined {
   const base = name.replace(/\s*\(.*\)\s*$/, '')
   const f = d.features.find(x => x.name === name || x.name === base)
-  return f ? featureDescription(features, f, explain) : undefined
+  return f ? featureDescription(features, f, explain, translated) : undefined
 }
 
 /** The feature's name; tapping it opens its text when there is any. */
 function FeatureName({ name, text }: { name: string; text?: string }) {
   return text
-    ? <details><summary><span>{name}</span></summary><div className="cs-desc-text"><Markdown text={text} /></div></details>
+    ? <details><summary><span>{name}</span></summary><div className="cs-desc-text" dir="auto"><Markdown text={text} /></div></details>
     : <span className="cs-action-name">{name}</span>
 }
 
@@ -1048,14 +1051,18 @@ function CunningStrike({ character, d }: { character: Character; d: DerivedStats
 }
 
 export function FeaturesTraits({ character }: { character: Character }) {
-  const { t, term } = useI18n()
+  const { t, term, locale } = useI18n()
+  const translated = locale !== 'en'
   const lib = useLibrary(character)
   const d = derive(character)
   const bg = getBackground(character)
   const source = BUNDLED.find(m => m.source.id === sourceFor(editionOf(character)))?.source
+  // In another language our translated summary comes first; the SRD text is English.
   const traitText = (name: string) => {
+    const own = explainKey('trait', name) ?? explainKey('trait', name.replace(/\s*\(.*$/, ''))
+    if (translated && own) return t(own)
     const base = name.replace(/\s*\(.*$/, '').toLowerCase()
-    return lib.traits.find(x => x.name.toLowerCase() === base)?.description
+    return lib.traits.find(x => x.name.toLowerCase() === base)?.description ?? (own ? t(own) : undefined)
   }
   // Our own summary (every official feat has one), then the player's text, then the SRD library.
   const feats = getFeats(character)
@@ -1076,7 +1083,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
       const k = optionKey(o)
       return f.text || (k ? t(k) : undefined)
     }
-    return featureDescription(lib.features, f, t)
+    return featureDescription(lib.features, f, t, translated)
   }
   const list = (kind: string, xs: string[]) => xs.map(x => term(kind, x, x)).join(', ') || t('common.none')
   return (
@@ -1084,7 +1091,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
       <h2 id="cs-features-title">{t('cs.classFeatures')}</h2>
       <ul className="cs-rows">
         {d.features.map(f => (
-          <Described key={`${f.className}-${f.level}-${f.optionId ?? f.name}`} name={featureName(f)} meta={t('cs.featureMeta', { cls: f.className, level: f.level }) + (f.detail ? ` · ${term('detail', f.detail, f.detail)}` : '')}
+          <Described key={`${f.className}-${f.level}-${f.optionId ?? f.name}`} name={featureName(f)} meta={t('cs.featureMeta', { cls: term('class', f.className.toLowerCase(), f.className), level: f.level }) + (f.detail ? ` · ${term('detail', f.detail, f.detail)}` : '')}
             text={featureText(f)} />
         ))}
       </ul>
@@ -1098,7 +1105,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
       </>}
       {bg?.feature && <>
         <h3 className="cs-sub">{t('sheet.story.bgFeature')}</h3>
-        <p>{term('feature', bg.feature, bg.feature)}</p>
+        <p>{bg.feat ? term('feat', bg.feat.id, bg.feature) : term('bgFeature', bg.feature, term('feature', bg.feature, bg.feature))}</p>
       </>}
       <h3 className="cs-sub">{t('cs.proficiencies')}</h3>
       <dl className="story-facts">
@@ -1114,7 +1121,7 @@ function Described({ name, meta, text }: { name: string; meta?: string; text?: s
   return (
     <li className="cs-action">
       {text
-        ? <details><summary><span>{name}</span>{meta && <small className="hint">{meta}</small>}</summary><div className="cs-desc" dir="ltr"><Markdown text={text} /></div></details>
+        ? <details><summary><span>{name}</span>{meta && <small className="hint">{meta}</small>}</summary><div className="cs-desc" dir="auto"><Markdown text={text} /></div></details>
         : <span>{name}{meta && <small className="hint"> {meta}</small>}</span>}
     </li>
   )

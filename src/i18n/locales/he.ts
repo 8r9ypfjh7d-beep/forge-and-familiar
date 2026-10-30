@@ -19,6 +19,8 @@ import { explainSettingsHe, settingTermsHe } from './explain.settings.he'
 import { itemsHe } from './items.he'
 import { useHe } from './use.he'
 import { hurtHe } from './hurt.he'
+import { sheetTermsHe } from './sheetnames.he'
+import { suppliesHe } from './supplies.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
 import { subfeatureTermsHe } from './subfeatures.he'
 import { spellNamesHe } from './spells.he'
@@ -43,6 +45,7 @@ const messages: Messages = {
   ...itemsHe,
   ...useHe,
   ...hurtHe,
+  ...suppliesHe,
   ...picks2014He,
   'common.back': 'חזרה',
   'common.backArrow': '→',
@@ -52,6 +55,7 @@ const messages: Messages = {
   'common.add': 'הוספה',
   'common.loading': 'טוען…',
   'common.none': 'אין',
+  'common.levelN': 'דרגה {n}',
   'common.noneLower': 'אין',
   'common.notFound': 'הדמות לא נמצאה.',
   'common.backToCharacters': 'חזרה לדמויות',
@@ -724,6 +728,7 @@ const messages: Messages = {
   'spells.mine': 'הלחשים שלי',
   'spells.browse': 'הוספת לחשים',
   'spells.empty': 'אין עדיין לחשים. בחרו מרשימת הלחשים של {className}.',
+  'spells.booksNote': 'לחשים מספרי מבוכים ודרקונים רשמיים מעבר ל־SRD. רק שמות ומספרי משחק: כל תיאור הוא סיכום קצר שנכתב עבור Forge & Familiar ולא הטקסט של הספר, אז בדקו בספר את הנוסח המלא. Dungeons & Dragons ושמות הספרים הם סימנים מסחריים של Wizards of the Coast LLC; האפליקציה אינה קשורה אליהם ואינה מאושרת על ידם.',
   'spells.level': '{ordinal}',
   'spells.available': '{count} לחשי {className} עד {ordinal}',
   'spells.search': 'חיפוש לחשים (עברית או אנגלית)',
@@ -2655,6 +2660,7 @@ const messages: Messages = {
 }
 
 const terms: Terms = {
+  ...sheetTermsHe,
   ...subfeatureTermsHe,
   ...itemNamesHe,
   ...whenTermsHe,
@@ -2672,6 +2678,8 @@ const terms: Terms = {
   ...picks2014TermsHe,
   ...racesTerms2014He,
   ...artificerTermsHe,
+  'source.books-2014': 'ספרים רשמיים (חוקי 2014)',
+  'source.books-2024': 'ספרים רשמיים (חוקי 2024)',
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',

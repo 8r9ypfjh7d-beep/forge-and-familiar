@@ -82,7 +82,7 @@ export function EffectRows({ character, effects, isOn, onToggle, apply }: {
           <li key={e.id} className={live ? 'running' : undefined}>
             <label className="cs-switch">
               <input type="checkbox" role="switch" checked={live ? true : isOn(e)} onChange={ev => flip(e, ev.target.checked)} />
-              <span>{e.feature ? term('feature', e.name, e.name) : <bdi>{e.spell ? spellName(e.spell.id, e.name) : e.name}</bdi>}</span>
+              <span>{e.feature ? term('feature', e.name, e.name) : <bdi>{e.spell ? spellName(e.spell.id, e.name) : term('feature', e.name, e.name)}</bdi>}</span>
             </label>
             {e.damage && <span className="dmg" dir="ltr">{e.damage}</span>}
             <span className="hint">{describe(e)}</span>
