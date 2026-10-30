@@ -12,6 +12,7 @@ import { fetchAccountNames, fetchPartyCharacters, watchPartyCharacters } from '.
 import { markPicked } from './active'
 import { formatCode } from './code'
 import { PartyStash } from './PartyStash'
+import { GiveXp } from './GiveXp'
 import { RollFeed } from './RollFeed'
 import { chooseCharacter, createParty, getParty, joinParty, leaveParty, listParties, onPartiesChanged } from './store'
 import type { Party, PartyMember } from './types'
@@ -250,6 +251,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
         ))}
       </div>
 
+      <GiveXp party={party} userId={userId} characters={characters} nameOf={nameOf} />
       <RollFeed party={party} nameOf={nameOf} />
       <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
       <PartyStash party={party} userId={userId} nameOf={nameOf} />

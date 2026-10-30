@@ -197,6 +197,10 @@ export interface Character {
   /** Subclasses the player built (subclassId 'custom'), one per class: features, spells, uses and effects. */
   customSubclasses?: SubclassData[]
   xp: number
+  /** Hit points rolled at level-up, keyed `<classId>.<class level>` (hpRollKey). Levels without a roll take the average. */
+  hpRolls?: Record<string, number>
+  /** Ids of the party XP awards (src/party/xp.ts) already added to `xp`, so each is added once. Newest 50. */
+  appliedAwards?: string[]
   abilityMethod: AbilityMethod
   /** The six totals rolled in the builder (4d6, drop the lowest), kept so going back or editing never rerolls them. */
   rolledScores?: number[]

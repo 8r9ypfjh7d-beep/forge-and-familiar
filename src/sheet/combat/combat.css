@@ -49,6 +49,12 @@
 :root[data-contrast="high"] .cs-perks li { border-width: 2px; }
 .cs-hero-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .cs-hero-actions .btn { flex: 1 1 120px; }
+/* XP opens a small add field; the Level Up button lights up once XP reaches the next level. */
+.cs-xp-btn { background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.cs-xp-ready { display: block; color: var(--accent); font-weight: 600; }
+.cs-xp-add { display: flex; gap: var(--sp-2); margin-block-start: var(--sp-1); }
+.cs-xp-add input { inline-size: 7em; }
+.cs-levelup.ready { box-shadow: 0 0 0 2px var(--accent); }
 .cs-init { font-size: 1rem; }
 .cs-hero .cs-last { grid-column: 1 / -1; }
 .cs-last { margin-block-start: var(--sp-2); display: grid; gap: 6px; }

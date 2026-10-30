@@ -89,7 +89,9 @@
 }
 
 /* Section cards below the members (roll feed, secret rolls, stash, polls). */
-.ff-party .roll-feed, .ff-party .stash { padding: var(--sp-4); }
+.ff-party .roll-feed, .ff-party .stash, .ff-party .give-xp { padding: var(--sp-4); }
+.ff-party .give-xp { display: grid; gap: var(--sp-3); }
+.ff-party .give-xp input.amount { width: 6.5em; }
 
 /* Shared stash */
 .ff-party .stash { display: grid; gap: var(--sp-4); }

@@ -40,10 +40,24 @@ export interface StashLogEntry {
   text: string
 }
 
+/** XP the DM gave: an amount, or a milestone level. Each player's device adds it to the named character once. */
+export interface XpAward {
+  id: string
+  at: string
+  /** The DM's UserProfile id. */
+  by: string
+  xp?: number
+  milestone?: boolean
+  /** Who gets it: the player and the character they brought when it was given. */
+  to: { userId: string; characterId: string }[]
+}
+
 /** Shared loot and gold. Anyone in the party can change it; every change is logged. */
 export interface PartyStash {
   items: StashItem[]
   coins: Coins
+  /** XP awards from the DM, newest first, capped at AWARD_LIMIT. Missing on older stashes. */
+  awards?: XpAward[]
   /** Newest first, capped at STASH_LOG_LIMIT. */
   log: StashLogEntry[]
 }

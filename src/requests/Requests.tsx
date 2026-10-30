@@ -636,8 +636,9 @@ export function DmRequestPopup({ onOpenAll }: { onOpenAll: () => void }) {
  * A player's Edit button opens this when they have no approved edit: say what to change and send
  * it to the DM. Once the DM approves, the player can edit that character once.
  */
-export function EditRequestDialog({ character, userId, userName, onClose }: {
-  character: Character | null; userId: string; userName: string; onClose: () => void
+/** Asks the DM to edit (or level up) a character. `note` says why the OK is needed (Level Up without the XP). */
+export function EditRequestDialog({ character, note, userId, userName, onClose }: {
+  character: Character | null; note?: string; userId: string; userName: string; onClose: () => void
 }) {
   const { t } = useI18n()
   const list = useRequests()
@@ -670,6 +671,7 @@ export function EditRequestDialog({ character, userId, userName, onClose }: {
             </>
           ) : (
             <form className="req-form" onSubmit={e => { e.preventDefault(); send() }}>
+              {note && <p dir="auto">{note}</p>}
               <p className="hint">{t('req.edit.intro')}</p>
               <label htmlFor={id} className="sub-title">{t('req.edit.what')}</label>
               <textarea id={id} rows={3} maxLength={DETAILS_MAX} value={details} onChange={e => setDetails(e.target.value)} placeholder={t('req.edit.placeholder')} autoFocus />

@@ -36,6 +36,8 @@ import { PickOrWrite, useLanguageGroups, useToolGroups } from './ProficiencyPick
 export interface StepProps {
   draft: CharacterDraft
   update: (patch: Partial<CharacterDraft>) => void
+  /** Editing a saved character (the level select then reads "Level", not "Starting level"). */
+  editing?: boolean
 }
 
 const bonusText = (b: Partial<Record<Ability, number>>, short: (a: Ability) => string) =>
@@ -284,7 +286,7 @@ function OriginSwapsPicker({ draft, update }: StepProps) {
 
 // ---------- Class ----------
 
-function ClassStep({ draft, update }: StepProps) {
+function ClassStep({ draft, update, editing }: StepProps) {
   const edition = rulesEdition(draft)
   const current = draft.classes[0]
   const cls = classById(current?.classId ?? '', edition)
@@ -322,7 +324,7 @@ function ClassStep({ draft, update }: StepProps) {
       />
       <p className="muted small">{t('builder.class.homebrewHint')}</p>
       <div className="field">
-        <label htmlFor="level">{t('builder.startLevel')} <Why id="level" /></label>
+        <label htmlFor="level">{t(editing ? 'builder.editLevel' : 'builder.startLevel')} <Why id="level" /></label>
         <select
           id="level"
           value={level}
@@ -355,7 +357,7 @@ function ClassStep({ draft, update }: StepProps) {
 }
 
 /** Everything one class asks to pick: subclass, class choices, Metamagic, option lists, infusions. Each multiclass row gets its own. */
-function ClassPicksFor({ draft, update, classId }: StepProps & { classId: string }) {
+export function ClassPicksFor({ draft, update, classId }: StepProps & { classId: string }) {
   return (
     <>
       <SubclassPicker draft={draft} update={update} classId={classId} />
@@ -790,10 +792,11 @@ function MoveRacialBonuses({ draft, update }: StepProps) {
 }
 
 /** Ability Score Improvements (or a feat) for starting above 3rd level. */
-function Improvements({ draft, update }: StepProps) {
+/** ASI or feat per slot; `only` limits it to some slots (Level Up shows just the new one). */
+export function Improvements({ draft, update, only }: StepProps & { only?: { classId: string; level: number }[] }) {
   const { t, term, ability, className } = useI18n()
   const edition = rulesEdition(draft)
-  const slots = improvementSlots(draft)
+  const slots = improvementSlots(draft).filter(s => !only || only.some(o => o.classId === s.classId && o.level === s.level))
   if (slots.length === 0) return null
   const feats = allFeats(edition)
   const find = (classId: string, level: number) => draft.improvements?.find(i => i.classId === classId && i.level === level)

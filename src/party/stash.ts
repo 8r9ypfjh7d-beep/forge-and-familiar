@@ -1,5 +1,6 @@
 // Shared party inventory and gold. Pure updates like code.ts, so a backend can run the same rules.
 import type { Coin, Coins, Party, PartyStash, StashItem } from './types'
+import { AWARD_LIMIT } from './xp'
 
 export const COINS: Coin[] = ['pp', 'gp', 'ep', 'sp', 'cp']
 /** Value of each coin in copper (SRD 5.1 exchange rates). */
@@ -46,6 +47,8 @@ export type StashAction =
   | { type: 'coins'; delta: Partial<Coins>; reason?: string }
   /** Hands out equal shares to `ways` members; the uneven copper stays behind. */
   | { type: 'split'; ways: number }
+  /** The DM gives XP (or a milestone level) to these players' characters; `names` is for the log. */
+  | { type: 'award'; xp?: number; milestone?: boolean; to: { userId: string; characterId: string }[]; names: string[] }
 
 export type StashResult = { ok: true; party: Party } | { ok: false; reason: string }
 
@@ -54,7 +57,7 @@ const fail = (reason: string): StashResult => ({ ok: false, reason })
 function commit(p: Party, userId: string, stash: Omit<PartyStash, 'log'>, text: string): StashResult {
   const now = new Date().toISOString()
   const log = [{ at: now, userId, text }, ...getStash(p).log].slice(0, STASH_LOG_LIMIT)
-  return { ok: true, party: { ...p, stash: { ...stash, log }, updatedAt: now } }
+  return { ok: true, party: { ...p, stash: { ...getStash(p), ...stash, log }, updatedAt: now } }
 }
 
 const label = (it: Pick<StashItem, 'name' | 'qty'>, qty = it.qty) => (qty === 1 ? it.name : `${qty} × ${it.name}`)
@@ -123,6 +126,17 @@ export function applyStash(p: Party, userId: string, action: StashAction): Stash
       if (toCp(share) === 0) return fail('Not enough coin to split.')
       return commit(p, userId, { items: s.items, coins: { ...noCoins(), cp: leftoverCp } },
         `split the coin ${ways} ways: ${formatCoins(share)} each`)
+    }
+    case 'award': {
+      if (userId !== p.dmId) return fail('Only the DM gives XP.')
+      const xp = Math.trunc(action.xp ?? 0)
+      if (!action.milestone && !(xp > 0)) return fail('Give at least 1 XP.')
+      const to = action.to.filter(x => p.members.some(m => m.userId === x.userId && m.characterId === x.characterId))
+      if (!to.length) return fail('Nobody to give XP to.')
+      const award = { id: crypto.randomUUID(), at: new Date().toISOString(), by: userId, ...(action.milestone ? { milestone: true } : { xp }), to }
+      const awards = [award, ...(s.awards ?? [])].slice(0, AWARD_LIMIT)
+      const who = action.names.join(', ')
+      return commit(p, userId, { items: s.items, coins: s.coins, awards }, action.milestone ? `gave a milestone level to ${who}` : `gave ${xp} XP to ${who}`)
     }
   }
 }

@@ -10,6 +10,10 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `code.ts` | Invite codes and pure membership updates (`addMember`, `removeMember`, `setMemberCharacter`) |
 | `store.ts` | Async party store: cloud parties for the signed-in account, localStorage for local profiles; `onPartiesChanged` |
 | `cloud.ts` | Supabase side: fetch and cache (`ff.parties.cloud.v1`), realtime, members' characters and rolls, `sendRoll` |
+| `xp.ts` | Pure: DM XP awards (`awardsFor`, `addAward`, `takeAwards`); a milestone lifts XP to the next level |
+| `GiveXp.tsx` | DM-only "Give XP" card on the party page: tick players, give XP or a milestone level |
+| `useXpAwards.ts` | App hook: adds awards to the characters this player brought, on their device, once (`Character.appliedAwards`) |
+| `xp.test.ts` | Award tests |
 | `stash.ts` | Shared inventory and gold: pure `applyStash(party, userId, action)`, coin maths, even split |
 | `PartyView.tsx` | Party list first, then one "New party" button that opens a panel to start (name + DM) or join with a code; read-only party table |
 | `active.ts` | The party in play: remembered pick per player (`ff.activeParty.v1.<id>`), `isPartyDm`, `campaignTarget` (where tapping a campaign leads) |
@@ -41,6 +45,8 @@ Join a party with an invite code and see everyone's character at a glance. First
 - Updates live via `onPartiesChanged` and `onCharactersChanged`, including other tabs.
 
 ## Shared stash
+
+- XP awards ride in the stash (`stash.awards`, newest 50; the `award` action): only the party's DM gives them, each names the player and the character they bring at that moment, and the log says "gave 300 XP to Vex". No server change was needed: the stash is the one shared jsonb members may write.
 
 - `Party.stash` is optional (`getStash()` fills in an empty one), so older saved parties keep working.
 - Every member can change it through `updateStash(partyId, userId, action)`; each change is logged as "who did what", newest first, capped at 50.

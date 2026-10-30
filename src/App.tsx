@@ -4,6 +4,7 @@ import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from '.
 import { AccountBadge, ActivateScreen, CloudLinkNotice, activate, activateErrorKey, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
 import { AdminPage } from './admin'
 import { Builder, EditCharacter, UnfinishedDraft } from './builder/Builder'
+import { LevelUp } from './builder/LevelUp'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { DmScreen } from './dm'
 import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
@@ -11,7 +12,8 @@ import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
-import { campaignTarget, CampaignsHome, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, type Party } from './party'
+import { campaignTarget, CampaignsHome, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, useXpAwards, type Party } from './party'
+import { xpForNextLevel, xpReady } from './rules'
 import { RulesQA } from './rulesqa'
 import { ShareButton } from './share'
 import { PlanView } from './planner'
@@ -29,7 +31,7 @@ import {
   setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'campaigns' } | { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party'; partyId?: string; startWith?: 'start' | 'join' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'plan'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
+type View = { kind: 'campaigns' } | { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'levelup'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party'; partyId?: string; startWith?: 'start' | 'join' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'plan'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
 
 const newId = () => crypto.randomUUID()
 
@@ -44,8 +46,9 @@ export default function App() {
   // Every visit opens on the campaigns home: pick a campaign, then play it.
   const [view, setView] = useState<View>({ kind: 'campaigns' })
   const [diceOpen, setDiceOpen] = useState(false)
-  const [askEdit, setAskEdit] = useState<Character | null>(null)
+  const [askEdit, setAskEdit] = useState<{ character: Character; note?: string } | null>(null)
   const requests = useRequests()
+  const { t } = useI18n()
   const mainRef = useFocusOnChange<HTMLElement>(JSON.stringify(view))
   const a11yDialog = useRef<HTMLDialogElement>(null)
   useShortcuts({
@@ -88,6 +91,7 @@ export default function App() {
   const admin = ownProfile && isAdmin(session.id)
   const partyDm = playing.isDm
   const isDm = partyDm || admin
+  useXpAwards(active?.id, playing.parties)
   const nav = { isDm, partyDm, admin }
   // Tapping a campaign on the home screen plays it: the DM screen for its DM, else the sheet the player brings.
   const playCampaign = (p: Party) => {
@@ -107,12 +111,22 @@ export default function App() {
     if (!allowed) setView({ kind: 'campaigns' })
   }, [allowed])
 
-  // Players edit a character only with the DM's OK (one edit per approval). The DM and the admin edit freely.
+  // Players edit a character only with the DM's OK (one edit per approval). The DM and the admin edit freely,
+  // and so does a player whose character has no DM (in no party run by someone else).
   const editsFreely = isDm
-  const editStateOf = (id: string): EditState => (editsFreely ? 'approved' : active ? editState(requests ?? [], active.id, id) : 'none')
+  const hasDm = (id: string) => !playing.parties || playing.parties.some(p => p.dmId !== active?.id && p.members.some(m => m.characterId === id))
+  const editStateOf = (id: string): EditState => (editsFreely || !hasDm(id) ? 'approved' : active ? editState(requests ?? [], active.id, id) : 'none')
   const startEdit = (id: string) => {
+    const character = characters.find(c => c.id === id)
     if (editStateOf(id) === 'approved') setView({ kind: 'edit', id })
-    else setAskEdit(characters.find(c => c.id === id) ?? null)
+    else if (character) setAskEdit({ character })
+  }
+  // Levelling up needs no OK once XP reaches the next level (the DM gives XP or a milestone on the party page).
+  const levelUpPass = (id: string) => editStateOf(id) === 'approved' && !editsFreely && hasDm(id)
+  const startLevelUp = (id: string) => {
+    const character = characters.find(c => c.id === id)
+    if (!character || xpReady(character) || editStateOf(id) === 'approved') setView({ kind: 'levelup', id })
+    else setAskEdit({ character, note: t('levelup.needXp', { name: character.name, xp: character.xp, next: xpForNextLevel(character.classes.reduce((n, cl) => n + cl.level, 0)) ?? 0 }) })
   }
 
   const addProfile = async (displayName: string) => {
@@ -145,7 +159,7 @@ export default function App() {
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <PartyRollRelay userId={active.id} />
     {isDm && <DmRequestPopup onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
-    <EditRequestDialog key={askEdit?.id} character={askEdit} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
+    <EditRequestDialog key={askEdit?.character.id} character={askEdit?.character ?? null} note={askEdit?.note} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
     <div className="app">
       <SkipLink />
       <AppNav
@@ -215,9 +229,21 @@ export default function App() {
           <EditCharacter
             key={view.id}
             characterId={view.id}
-            onCancel={() => setView({ kind: 'list' })}
+            onCancel={() => setView({ kind: 'sheet', id: view.id })}
             onSaved={id => {
               if (!editsFreely) updateRequests(l => spendEditPass(l, active.id, id))
+              refresh()
+              setView({ kind: 'sheet', id })
+            }}
+          />
+        )}
+        {view.kind === 'levelup' && (
+          <LevelUp
+            key={view.id}
+            characterId={view.id}
+            onDone={(id, saved) => {
+              // A level-up that only an approval allowed (XP short of the next level) uses that approval.
+              if (saved && levelUpPass(id) && !xpReady(characters.find(c => c.id === id) ?? { classes: [], xp: 0 })) updateRequests(l => spendEditPass(l, active.id, id))
               refresh()
               setView({ kind: 'sheet', id })
             }}
@@ -240,6 +266,7 @@ export default function App() {
           <CharacterSheet
             characterId={view.id}
             onEdit={() => startEdit(view.id)}
+            onLevelUp={() => startLevelUp(view.id)}
             onBack={() => {
               refresh()
               setView({ kind: 'list' })

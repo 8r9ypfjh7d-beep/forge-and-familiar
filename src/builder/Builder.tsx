@@ -137,7 +137,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
         <section className="glass builder-step">
           <h2>{t(`builder.step.${STEPS[step].id}`)}</h2>
           <p className="muted">{t(draft.rulesEdition === '2024' && (STEPS[step].id === 'race' || STEPS[step].id === 'abilities') ? `builder.step.${STEPS[step].id as 'race' | 'abilities'}.blurb2024` : `builder.step.${STEPS[step].id}.blurb`)} <Why id={`step.${STEPS[step].id}`} /></p>
-          <Current draft={draft} update={update} />
+          <Current draft={draft} update={update} editing={!!editing} />
           {!editing && STEPS[step].id === 'details' && <BackstoryHook hookKey={hookKey} setHookKey={setHookKey} />}
           {issues[step].length > 0 && (
             <ul className="issues">
