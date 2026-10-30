@@ -77,8 +77,8 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
   const subclassTitle = (id: string) => { const title = classById(id, edition)!.subclassTitle; return term('feature', title, title) }
   switch (step) {
     case 'race':
-      if (!race) out.push(t('builder.issue.race'))
-      else if (race.subraces?.length && !race.subraceOptional && !race.subraces.some(s => s.id === d.subraceId)) out.push(t('builder.issue.subrace'))
+      if (!race) out.push(t(edition === '2024' ? 'builder.issue.race2024' : 'builder.issue.race'))
+      else if (race.subraces?.length && !race.subraceOptional && !race.subraces.some(s => s.id === d.subraceId)) out.push(t(edition === '2024' ? 'builder.issue.lineage' : 'builder.issue.subrace'))
       if (race?.traitChoice && !race.traitChoice.options.some(o => o.id === d.traitChoices?.[race.traitChoice!.id])) {
         out.push(t('builder.issue.traitChoice', { trait: race.traitChoice.name }))
       }
@@ -88,7 +88,7 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       }
       if (profile.featChoice) {
         const ok = d.originFeatId === CUSTOM_FEAT ? !!d.customOriginFeat?.name.trim() : !!featById(d.originFeatId ?? '', edition)
-        if (!ok) out.push(t(profile.featChoice === 'origin' ? 'builder.issue.originFeat' : 'builder.issue.raceFeat'))
+        if (!ok) out.push(t(profile.featChoice === 'origin' ? 'builder.issue.originFeat' : edition === '2024' ? 'builder.issue.raceFeat2024' : 'builder.issue.raceFeat'))
       }
       break
     case 'class':

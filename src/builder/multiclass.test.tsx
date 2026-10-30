@@ -15,10 +15,10 @@ describe('multiclass picks', () => {
   it.each(['2014', '2024'] as const)('puts a second class subclass and options under its row (%s)', edition => {
     const { main, multiclass } = classStep(edition, [{ classId: 'artificer', level: 10 }, { classId: 'warlock', level: 10 }])
     expect(multiclass).toContain('multiclass-picks')
-    expect(multiclass).toContain('Otherworldly Patron (Warlock)')
+    expect(multiclass).toContain(edition === '2024' ? '>Warlock Subclass <' : 'Otherworldly Patron (Warlock)')
     expect(multiclass).toContain('Eldritch Invocations (Warlock)')
     expect(main).not.toContain('Warlock')
-    expect(main).toContain('Artificer Specialist (Artificer)')
+    expect(main).toContain(edition === '2024' ? '>Artificer Subclass <' : 'Artificer Specialist (Artificer)')
   })
 
   it('says when a low-level second class picks its subclass', () => {

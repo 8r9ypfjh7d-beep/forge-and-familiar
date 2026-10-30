@@ -1,7 +1,7 @@
 // Editing a saved character with the builder: turn it back into a draft, then put the
 // edited choices back on it without losing play state.
 import type { Character } from '../model/character'
-import { coinsFromCp, createCharacter, startingCoins, startingItemIds, type CharacterDraft } from '../rules'
+import { coinsFromCp, createCharacter, startingCoins, startingItemIds, totalLevel, xpAtLevel, type CharacterDraft } from '../rules'
 import { effectiveMaxHp, normalize } from '../sheet/engine'
 
 /** Fields a character has that the builder does not edit. */
@@ -76,6 +76,8 @@ export function applyEdit(original: Character, draft: CharacterDraft, opts: { re
     coins: opts.replaceGear ? swapStartingCoins(original, draft) : original.coins,
     state: { ...original.state },
   }
+  // A level gained without XP (Level Up, Edit) moves XP up to that level's threshold.
+  next.xp = Math.max(original.xp ?? 0, xpAtLevel(totalLevel(next)))
   const hp = original.state.currentHp
   if (hp > 0) next.state.currentHp = Math.max(1, hp + effectiveMaxHp(next) - effectiveMaxHp(original))
   return normalize(next)

@@ -157,7 +157,7 @@ export function SpellsStep({ draft, update }: StepProps) {
 
       {granted.length > 0 && (
         <section className="bs-section">
-          <h3 className="small">{t('builder.spells.granted')} <Why id="grantedSpells" /></h3>
+          <h3 className="small">{t(editionOf(draft) === '2024' ? 'builder.spells.granted2024' : 'builder.spells.granted')} <Why id="grantedSpells" /></h3>
           <ul className="bs-granted">
             {granted.map(g => (
               <li key={g.spell.id} className={g.unlocked ? '' : 'locked'}>

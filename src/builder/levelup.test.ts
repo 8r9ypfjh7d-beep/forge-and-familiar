@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { derive, getMaxHp, hpRollKey, levelForXp, xpReady } from '../rules'
+import { derive, getMaxHp, hpRollKey, levelForXp, totalLevel, xpAtLevel, xpReady } from '../rules'
 import { makeCharacter } from '../sheet/fixtures'
 import { gainedLevel, levelGain, levelUpDraft, newImprovementSlots, newIssues, nextClass, withHpRoll } from './levelup'
 
@@ -19,6 +19,15 @@ describe('XP', () => {
 })
 
 describe('level up', () => {
+  it('moves XP up to the new level\'s threshold, never down', () => {
+    const fresh = fighter(3, { xp: 0 })
+    const { after } = levelGain(fresh, levelUpDraft(fresh, 'fighter'))
+    expect(after.xp).toBe(xpAtLevel(totalLevel(after)))
+    expect(after.xp).toBeGreaterThan(0)
+    const rich = fighter(3, { xp: 999999 })
+    expect(levelGain(rich, levelUpDraft(rich, 'fighter')).after.xp).toBe(999999)
+  })
+
   it('adds one level to the planned class, else the first', () => {
     expect(nextClass(fighter(3))).toEqual({ classId: 'fighter', planned: false })
     const planned = fighter(3, { levelPlan: [{ level: 4, classId: 'wizard' }] })

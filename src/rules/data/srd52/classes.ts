@@ -46,7 +46,7 @@ export const CLASSES_2024: ClassDef[] = [
     armor: ['light', 'medium', 'shield'], weapons: ['simple', 'martial'], caster: 'none', unarmoredDefense: 'con',
     resources: [{ id: 'rage', name: 'Rage', recharge: 'long', max: scale([[1, 2], [3, 3], [6, 4], [12, 5], [17, 6]]) }],
     startingEquipment: [], equipmentChoices: kit(['greataxe', 'handaxe', 'handaxe', 'handaxe', 'handaxe', 'explorers-pack'], 15, 75),
-    subclassLevel: 3, subclassTitle: 'Primal Path', asiLevels: ASI, weaponMastery: [[1, 2], [4, 3], [10, 4]],
+    subclassLevel: 3, subclassTitle: 'Barbarian Subclass', asiLevels: ASI, weaponMastery: [[1, 2], [4, 3], [10, 4]],
     picks: [{ id: 'primalKnowledge', name: 'Primal Knowledge', level: 3, kind: 'skill', count: 1, from: BARBARIAN_SKILLS }],
     features: [
       ...f(1, 'Rage', 'Unarmored Defense', 'Weapon Mastery'), fx(2, 'Danger Sense', DANGER_SENSE), ...f(2, 'Reckless Attack'), ...f(3, 'Primal Knowledge'),
@@ -62,7 +62,7 @@ export const CLASSES_2024: ClassDef[] = [
     startingEquipment: [],
     equipmentChoices: [{ options: [{ items: ['leather', 'dagger', 'dagger', 'any:instrument', 'entertainers-pack'], gold: 19 }, { items: [], gold: 90 }] }],
     toolChoices: { count: 3, from: MUSICAL_INSTRUMENTS },
-    subclassLevel: 3, subclassTitle: 'Bard College', asiLevels: ASI,
+    subclassLevel: 3, subclassTitle: 'Bard Subclass', asiLevels: ASI,
     picks: [expertise('expertise', 2, 2), expertise('expertise9', 9, 2)],
     features: [
       ...f(1, 'Bardic Inspiration', 'Spellcasting'), ...f(2, 'Expertise', 'Jack of All Trades'), ...f(5, 'Font of Inspiration'), ...f(7, 'Countercharm'), ...f(9, 'Expertise'),
@@ -78,7 +78,7 @@ export const CLASSES_2024: ClassDef[] = [
       { id: 'divine-intervention', name: 'Divine Intervention', recharge: 'long', max: scale([[10, 1]]) },
     ],
     startingEquipment: [], equipmentChoices: kit(['chain-shirt', 'shield', 'mace', 'holy-symbol', 'priests-pack'], 7, 110),
-    subclassLevel: 3, subclassTitle: 'Divine Domain', asiLevels: ASI,
+    subclassLevel: 3, subclassTitle: 'Cleric Subclass', asiLevels: ASI,
     choices: [{
       id: 'divineOrder', name: 'Divine Order', level: 1,
       options: [
@@ -104,7 +104,7 @@ export const CLASSES_2024: ClassDef[] = [
     resources: [{ id: 'wild-shape', name: 'Wild Shape', recharge: 'short', max: scale([[2, 2], [6, 3], [17, 4]]) }],
     startingEquipment: [], equipmentChoices: kit(['leather', 'shield', 'sickle', 'quarterstaff', 'explorers-pack', 'herbalism-kit'], 9, 50),
     toolProficiencies: ['Herbalism kit'],
-    subclassLevel: 3, subclassTitle: 'Druid Circle', asiLevels: ASI,
+    subclassLevel: 3, subclassTitle: 'Druid Subclass', asiLevels: ASI,
     choices: [{
       id: 'primalOrder', name: 'Primal Order', level: 1,
       options: [
@@ -140,7 +140,7 @@ export const CLASSES_2024: ClassDef[] = [
         { items: [], gold: 155 },
       ],
     }],
-    subclassLevel: 3, subclassTitle: 'Martial Archetype', asiLevels: [4, 6, 8, 12, 14, 16, 19], weaponMastery: [[1, 3], [4, 4], [10, 5], [16, 6]],
+    subclassLevel: 3, subclassTitle: 'Fighter Subclass', asiLevels: [4, 6, 8, 12, 14, 16, 19], weaponMastery: [[1, 3], [4, 4], [10, 5], [16, 6]],
     choices: [fightingStyle(1)],
     features: [
       ...f(1, 'Fighting Style', 'Second Wind', 'Weapon Mastery'), ...f(2, 'Action Surge', 'Tactical Mind'), ...f(5, 'Extra Attack', 'Tactical Shift'),
@@ -155,7 +155,7 @@ export const CLASSES_2024: ClassDef[] = [
     resources: [{ id: 'focus', name: 'Focus Points', recharge: 'short', max: l => (l >= 2 ? l : 0) }],
     startingEquipment: [], equipmentChoices: kit(['spear', ...Array(5).fill('dagger'), 'explorers-pack'], 11, 50),
     toolChoices: { count: 1, from: [...ARTISAN_TOOLS, ...MUSICAL_INSTRUMENTS] },
-    subclassLevel: 3, subclassTitle: 'Monastic Tradition', asiLevels: ASI,
+    subclassLevel: 3, subclassTitle: 'Monk Subclass', asiLevels: ASI,
     features: [
       ...f(1, 'Martial Arts', 'Unarmored Defense'), ...f(2, "Monk's Focus", 'Unarmored Movement', 'Uncanny Metabolism'), ...f(3, 'Deflect Attacks'),
       ...f(4, 'Slow Fall'), ...f(5, 'Extra Attack', 'Stunning Strike'), ...f(6, 'Empowered Strikes'), ...f(7, 'Evasion'), ...f(9, 'Acrobatic Movement'),
@@ -172,7 +172,7 @@ export const CLASSES_2024: ClassDef[] = [
       { id: 'channel-divinity', name: 'Channel Divinity', recharge: 'short', max: scale([[3, 2], [11, 3]]) },
     ],
     startingEquipment: [], equipmentChoices: kit(['chain-mail', 'shield', 'longsword', ...Array(6).fill('javelin'), 'holy-symbol', 'priests-pack'], 9, 150),
-    subclassLevel: 3, subclassTitle: 'Sacred Oath', asiLevels: ASI, weaponMastery: [[1, 2]],
+    subclassLevel: 3, subclassTitle: 'Paladin Subclass', asiLevels: ASI, weaponMastery: [[1, 2]],
     choices: [fightingStyle(2, { id: 'blessed-warrior', name: 'Blessed Warrior', detail: 'Two cleric cantrips that count as paladin spells.' })],
     features: [
       ...f(1, 'Lay On Hands', 'Spellcasting', 'Weapon Mastery'), ...f(2, 'Fighting Style', "Paladin's Smite"), ...f(3, 'Channel Divinity'),
@@ -186,7 +186,7 @@ export const CLASSES_2024: ClassDef[] = [
     armor: ['light', 'medium', 'shield'], weapons: ['simple', 'martial'], caster: 'half', spellAbility: 'wis',
     resources: [{ id: 'favored-enemy', name: "Favored Enemy (free Hunter's Mark)", recharge: 'long', max: scale([[1, 2], [5, 3], [9, 4], [13, 5], [17, 6]]) }],
     startingEquipment: [], equipmentChoices: kit(['studded-leather', 'scimitar', 'shortsword', 'longbow', 'arrows', 'quiver', 'druidic-focus', 'explorers-pack'], 7, 150),
-    subclassLevel: 3, subclassTitle: 'Ranger Archetype', asiLevels: ASI, weaponMastery: [[1, 2]],
+    subclassLevel: 3, subclassTitle: 'Ranger Subclass', asiLevels: ASI, weaponMastery: [[1, 2]],
     picks: [expertise('deftExplorer', 2, 1, 'Deft Explorer'), { id: 'deftExplorerLanguages', name: 'Deft Explorer', level: 2, kind: 'language', count: 2 }, expertise('expertise9', 9, 2)],
     choices: [fightingStyle(2, { id: 'druidic-warrior', name: 'Druidic Warrior', detail: 'Two druid cantrips that count as ranger spells.' })],
     features: [
@@ -203,7 +203,7 @@ export const CLASSES_2024: ClassDef[] = [
     resources: [{ id: 'stroke-of-luck', name: 'Stroke of Luck', recharge: 'short', max: scale([[20, 1]]) }],
     startingEquipment: [], equipmentChoices: kit(['leather', 'dagger', 'dagger', 'shortsword', 'shortbow', 'arrows', 'quiver', 'thieves-tools', 'burglars-pack'], 8, 100),
     toolProficiencies: ["Thieves' tools"],
-    subclassLevel: 3, subclassTitle: 'Roguish Archetype', asiLevels: [4, 8, 10, 12, 16, 19], weaponMastery: [[1, 2]],
+    subclassLevel: 3, subclassTitle: 'Rogue Subclass', asiLevels: [4, 8, 10, 12, 16, 19], weaponMastery: [[1, 2]],
     picks: [expertise('expertise', 1, 2), expertise('expertise6', 6, 2), { id: 'thievesCant', name: "Thieves' Cant", level: 1, kind: 'language', count: 1 }],
     features: [
       ...f(1, 'Expertise', 'Sneak Attack', "Thieves' Cant", 'Weapon Mastery'), ...f(2, 'Cunning Action'), ...f(3, 'Steady Aim'),
@@ -220,7 +220,7 @@ export const CLASSES_2024: ClassDef[] = [
       { id: 'innate-sorcery', name: 'Innate Sorcery', recharge: 'long', max: () => 2 },
     ],
     startingEquipment: [], equipmentChoices: kit(['spear', 'dagger', 'dagger', 'arcane-focus', 'dungeoneers-pack'], 28, 50),
-    subclassLevel: 3, subclassTitle: 'Sorcerous Origin', asiLevels: ASI,
+    subclassLevel: 3, subclassTitle: 'Sorcerer Subclass', asiLevels: ASI,
     features: [
       ...f(1, 'Innate Sorcery', 'Spellcasting'), ...f(2, 'Font of Magic', 'Metamagic'), ...f(5, 'Sorcerous Restoration'), ...f(7, 'Sorcery Incarnate'),
       ...f(19, 'Epic Boon'), ...f(20, 'Arcane Apotheosis'),
@@ -235,7 +235,7 @@ export const CLASSES_2024: ClassDef[] = [
       { id: 'contact-patron', name: 'Contact Patron', recharge: 'long', max: scale([[9, 1]]) },
     ],
     startingEquipment: [], equipmentChoices: kit(['leather', 'sickle', 'dagger', 'dagger', 'arcane-focus', 'book', 'scholars-pack'], 15, 100),
-    subclassLevel: 3, subclassTitle: 'Otherworldly Patron', asiLevels: ASI,
+    subclassLevel: 3, subclassTitle: 'Warlock Subclass', asiLevels: ASI,
     features: [
       ...f(1, 'Eldritch Invocations', 'Pact Magic'), ...f(2, 'Magical Cunning'), ...f(9, 'Contact Patron'), ...f(11, 'Mystic Arcanum'),
       ...f(19, 'Epic Boon'), ...f(20, 'Eldritch Master'),
@@ -247,7 +247,7 @@ export const CLASSES_2024: ClassDef[] = [
     armor: [], weapons: ['simple'], caster: 'full', spellAbility: 'int',
     resources: [{ id: 'arcane-recovery', name: 'Arcane Recovery', recharge: 'long', max: () => 1 }],
     startingEquipment: [], equipmentChoices: kit(['dagger', 'dagger', 'quarterstaff', 'robe', 'spellbook', 'scholars-pack'], 5, 55),
-    subclassLevel: 3, subclassTitle: 'Arcane Tradition', asiLevels: ASI,
+    subclassLevel: 3, subclassTitle: 'Wizard Subclass', asiLevels: ASI,
     picks: [expertise('scholar', 2, 1, 'Scholar', ['arcana', 'history', 'investigation', 'medicine', 'nature', 'religion'])],
     features: [
       ...f(1, 'Arcane Recovery', 'Ritual Adept', 'Spellcasting'), ...f(2, 'Scholar'), ...f(5, 'Memorize Spell'), ...f(18, 'Spell Mastery'),
