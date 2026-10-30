@@ -595,12 +595,13 @@ export function ClassOptionForm({ initial, onSave, onCancel }: { initial: Homebr
       )}
       {o.kind === 'metamagic' && !!o.cost && (
         <div className="hb-field">
-          <Check label={t('hb.opt.perSpellLevel')} checked={!!o.costPerSpellLevel} onChange={v => set({ costPerSpellLevel: v || undefined })} />
+          <span>{t('hb.opt.cost.metamagic')}</span>
+          <label className="hb-check hb-plain"><input type="checkbox" checked={!!o.costPerSpellLevel} onChange={e => set({ costPerSpellLevel: e.target.checked || undefined })} />{t('hb.opt.perSpellLevel')}</label>
         </div>
       )}
       <div className="hb-field">
-        <Check label={t('hb.opt.repeatable')} checked={!!o.repeatable} onChange={v => set({ repeatable: v || undefined })} />
-        <Why compact title={t('hb.opt.repeatable')} text={t('hb.opt.why.repeatable')} />
+        <WhyLabel label={t('hb.opt.picks')} why={t('hb.opt.why.repeatable')} />
+        <label className="hb-check hb-plain"><input type="checkbox" checked={!!o.repeatable} onChange={e => set({ repeatable: e.target.checked || undefined })} />{t('hb.opt.repeatable')}</label>
       </div>
       <Field label={t('hb.f.description')} wide><textarea rows={4} value={o.text} onChange={e => set({ text: e.target.value })} placeholder={t('hb.opt.textPlaceholder')} /></Field>
       <div className="hb-field wide">

@@ -1994,6 +1994,7 @@ const messages: Messages = {
   'hb.opt.cost.fightingStyle': 'עלות (נקודות)',
   'hb.opt.cost.infusion': 'עלות (נקודות)',
   'hb.opt.perSpellLevel': 'העלות היא לכל דרגת לחש (לחש בסיס נחשב 1)',
+  'hb.opt.picks': 'בחירות',
   'hb.opt.repeatable': 'אפשר לבחור יותר מפעם אחת',
   'hb.opt.textPlaceholder': 'מה זה עושה ליד השולחן, במילים שלך.',
   'hb.opt.uses': 'שימושים',

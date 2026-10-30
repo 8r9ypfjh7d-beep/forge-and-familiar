@@ -1993,6 +1993,7 @@ export const en = {
   'hb.opt.cost.fightingStyle': 'Cost (points)',
   'hb.opt.cost.infusion': 'Cost (points)',
   'hb.opt.perSpellLevel': 'Costs that much per spell level (a cantrip counts as 1)',
+  'hb.opt.picks': 'Picks',
   'hb.opt.repeatable': 'Can be picked more than once',
   'hb.opt.textPlaceholder': 'What it does at the table, in your own words.',
   'hb.opt.uses': 'Uses',
