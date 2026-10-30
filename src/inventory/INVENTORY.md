@@ -30,4 +30,5 @@ The sheet's Inventory card: coins, carried weight, every item the character owns
 - Effects work while the item is equipped. The app has no attunement, so magic items that need it in the rules work as soon as they are worn.
 - Coins are `Character.coins` (gp, sp, cp).
 - Every change goes through the sheet's `apply()`, so it can be undone and is logged.
+- Delete item, and − on the last one of a stack, ask before removing the item.
 - **Drink** on healing potions (`potionHealing` in `rules/usables.ts`): rolls the healing, heals and takes one from the stack (`drinkPotion` in `sheet/uses.ts`).

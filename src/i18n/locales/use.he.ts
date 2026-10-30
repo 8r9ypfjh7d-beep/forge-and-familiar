@@ -44,6 +44,7 @@ export const useHe: Messages = {
   'fx.end': 'לסיים',
   'fx.endName': 'לסיים את {name}',
   'fx.log.end': '{name} הסתיים',
+  'fx.confirmEnd': 'לסיים את {name}? כדי להפעיל שוב צריך להטיל או להשתמש בו מחדש.',
   'fx.log.spent': '{name} נוצל בפגיעה',
   'fx.notOnMe': 'לא עליי',
   'fx.endFight': 'סוף הקרב',

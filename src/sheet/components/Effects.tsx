@@ -29,7 +29,7 @@ export type CastFn = (spell: Spell, slot?: SlotChoice) => unknown
 export function toggleEffect(e: EffectToggle, value: boolean, apply: Apply, t: T, local: () => void, cast: CastFn, slot?: SlotChoice) {
   const log = t(value ? 'cs.log.effectOn' : 'cs.log.effectOff', { name: e.name })
   if (e.id.startsWith('act:')) return apply(log, c => setActionActive(c, e.id.slice(4), value))
-  if (e.live) return value ? apply(log, c => setEffectOn(c, e.id, true)) : apply(t('fx.log.end', { name: e.name }), c => endEffect(c, e.id))
+  if (e.live) return value ? apply(log, c => setEffectOn(c, e.id, true)) : confirm(t('fx.confirmEnd', { name: e.name })) && apply(t('fx.log.end', { name: e.name }), c => endEffect(c, e.id))
   if (e.spell && value) return void cast(e.spell, slot ?? e.slot)
   if (e.start && value) return apply(log, c => startEffect(e.slot ? spendSlot(c, e.slot) : c, e.start!).character)
   local()

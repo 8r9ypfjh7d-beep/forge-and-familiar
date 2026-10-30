@@ -44,6 +44,7 @@ export const useEn = {
   'fx.end': 'End',
   'fx.endName': 'End {name}',
   'fx.log.end': 'Ended {name}',
+  'fx.confirmEnd': 'End {name}? Turning it back on means casting or using it again.',
   'fx.log.spent': 'Used up {name} on a hit',
   'fx.notOnMe': 'Not on me',
   'fx.endFight': 'End of fight',

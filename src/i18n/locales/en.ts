@@ -652,6 +652,7 @@ export const en = {
   'sheet.log.used': 'Used {label}',
   'sheet.log.regained': 'Regained {label}',
   'sheet.removeWhat': 'Remove {label}',
+  'sheet.confirmRemove': 'Remove {name} from your sheet?',
   'sheet.log.removedTracker': 'Removed tracker {label}',
   'sheet.log.addedTracker': 'Added tracker {label}',
   'sheet.regains': ', regains {dice}',

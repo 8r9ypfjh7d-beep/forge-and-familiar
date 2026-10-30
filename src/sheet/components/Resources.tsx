@@ -91,7 +91,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
             <Stepper value={k.max - k.used} max={k.max} label={k.label}
               onChange={v => apply(t(k.max - v > k.used ? 'sheet.log.used' : 'sheet.log.regained', { label: k.label }), c => upsertCounter(c, { ...k, used: k.max - v }))} />
             <button type="button" className="btn ghost small" aria-label={t('sheet.removeWhat', { label: k.label })}
-              onClick={() => apply(t('sheet.log.removedTracker', { label: k.label }), c => removeCounter(c, k.id))}>{t('common.remove')}</button>
+              onClick={() => confirm(t('sheet.confirmRemove', { name: k.label })) && apply(t('sheet.log.removedTracker', { label: k.label }), c => removeCounter(c, k.id))}>{t('common.remove')}</button>
           </li>
         ))}
       </ul>
