@@ -63,4 +63,6 @@ export interface RollOptions {
   label?: string
   roller?: RollResult['roller']
   rng?: Rng
+  /** Halfling Lucky: a natural 1 on the d20 is rerolled once and the new roll used (the 1 shows struck through). */
+  lucky?: boolean
 }

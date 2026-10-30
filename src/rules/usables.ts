@@ -5,6 +5,7 @@
 // Spells without known numbers still get a plan: cast, spend the slot, and track it while it lasts.
 import type { ActionKind, LiveEffect } from '../model/character'
 import type { Ability, ItemEffect } from './types'
+import { DAMAGE_TYPES } from './damage'
 
 /** The parts of a library spell the plans read (src/content's Spell has them all). */
 export interface SpellInfo {
@@ -47,6 +48,8 @@ const above = (level: number, base: number) => Math.max(0, level - base)
 const dice = (n: number, sides: number) => `${n}d${sides}`
 const plus = (expr: string, n: number) => (n ? `${expr}+${n}` : expr)
 const BPS = ['bludgeoning', 'piercing', 'slashing'].map((damage): ItemEffect => ({ kind: 'resistance', damage }))
+/** Bear Totem Spirit: every damage type except psychic. */
+const BEAR = DAMAGE_TYPES.filter(d => d !== 'psychic').map((damage): ItemEffect => ({ kind: 'resistance', damage }))
 
 /** A smite: in 2014 it rides on the next hit; in 2024 it is cast after the hit, so it rolls at once. */
 const smite = (n: number, sides: number, type: string, perLevel = 0, base = 1): Template => (level, { edition }) => {
@@ -197,6 +200,8 @@ export interface UseContext {
   pactSlots?: number
   /** Circle of the Moon: Wild Shape takes stronger beasts. */
   moon?: boolean
+  /** 2014 Totem Warrior with the Bear spirit: raging resists every damage type but psychic. */
+  bear?: boolean
 }
 
 /** What using a feature does besides spending one use. */
@@ -263,10 +268,10 @@ type FeatureTemplate = (ctx: UseContext) => UsePlan & { effectAs?: Omit<LiveEffe
 export const FEATURE_TEMPLATES: Record<string, FeatureTemplate> = {
   'second-wind': ({ classLevel }) => ({ heal: `1d10+${classLevel}` }),
   'lay-on-hands': () => ({ pool: 'heal' }),
-  rage: ({ edition }) => ({
+  rage: ({ edition, bear }) => ({
     effectAs: {
       duration: edition === '2024' ? '10 minutes' : '1 minute', ends: 'short',
-      stats: [...BPS, { kind: 'advantage', on: 'save:str' }, { kind: 'advantage', on: 'checks', when: 'with Strength' }],
+      stats: [...(bear ? BEAR : BPS), { kind: 'advantage', on: 'save:str' }, { kind: 'advantage', on: 'checks', when: 'with Strength' }],
     },
   }),
   // 2024: temp HP equal to the druid level. The beast form is picked when used.

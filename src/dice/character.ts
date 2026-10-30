@@ -12,7 +12,8 @@ import type { RollMode, RollOptions, RollResult } from './types'
 const SHORT: Record<Ability, string> = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' }
 
 /** Fills the default label and merges the character's condition mode with the situational one. */
-function prepare(opts: RollOptions, label: string, kind: ConditionRollKind, ability?: Ability, itemAdvantage?: boolean): RollOptions {
+function prepare(opts: RollOptions, label: string, kind: ConditionRollKind, ability?: Ability, itemAdvantage?: boolean, lucky?: boolean): RollOptions {
+  if (lucky && opts.lucky === undefined) opts = { ...opts, lucky }
   const modes: RollMode[] = opts.mode === undefined ? [] : Array.isArray(opts.mode) ? opts.mode : [opts.mode]
   if (opts.character && !opts.ignoreConditions) modes.push(getRollMode(opts.character, kind, ability))
   // Items that always give advantage (Boots of Elvenkind on Stealth); a disadvantage still cancels it out.
@@ -25,23 +26,23 @@ function prepare(opts: RollOptions, label: string, kind: ConditionRollKind, abil
 }
 
 export function rollCheck(stats: DerivedStats, ability: Ability, opts: RollOptions = {}): RollResult {
-  return rollD20(stats.mods[ability], prepare(opts, `${ABILITY_NAMES[ability]} check`, 'check', ability, stats.checkAdvantage?.[ability]), 'check')
+  return rollD20(stats.mods[ability], prepare(opts, `${ABILITY_NAMES[ability]} check`, 'check', ability, stats.checkAdvantage?.[ability], stats.lucky), 'check')
 }
 
 export function rollSave(stats: DerivedStats, ability: Ability, opts: RollOptions = {}): RollResult {
-  const r = rollD20(stats.saves[ability].bonus, prepare(opts, `${SHORT[ability]} save`, 'save', ability, stats.saves[ability].advantage), 'save')
+  const r = rollD20(stats.saves[ability].bonus, prepare(opts, `${SHORT[ability]} save`, 'save', ability, stats.saves[ability].advantage, stats.lucky), 'save')
   if (opts.character && !opts.ignoreConditions && autoFailsSave(opts.character, ability)) r.autoFail = true
   return r
 }
 
 export function rollSkill(stats: DerivedStats, skill: SkillId, opts: RollOptions = {}): RollResult {
   const { ability } = stats.skills[skill]
-  return rollD20(stats.skills[skill].bonus, prepare(opts, SKILLS[skill].name, 'check', ability, stats.skills[skill].advantage), 'skill')
+  return rollD20(stats.skills[skill].bonus, prepare(opts, SKILLS[skill].name, 'check', ability, stats.skills[skill].advantage, stats.lucky), 'skill')
 }
 
 /** Initiative is a DEX check, so check penalties apply. */
 export function rollInitiative(stats: DerivedStats, opts: RollOptions = {}): RollResult {
-  return rollD20(stats.initiative, prepare(opts, 'Initiative', 'check', 'dex', stats.initiativeAdvantage), 'initiative')
+  return rollD20(stats.initiative, prepare(opts, 'Initiative', 'check', 'dex', stats.initiativeAdvantage, stats.lucky), 'initiative')
 }
 
 /** critRange: lowest natural roll that crits (rules getCritRange, 19 for a Champion). */
@@ -73,19 +74,21 @@ export interface AttackOutcome {
  * A crit doubles all the damage dice (riders too); a natural 1 rolls no damage.
  */
 export function rollAttackWithDamage(
-  attack: Pick<Attack, 'name' | 'bonus' | 'damage' | 'damageType' | 'versatile'>,
+  attack: Pick<Attack, 'name' | 'bonus' | 'damage' | 'damageType' | 'versatile'> & Partial<Pick<Attack, 'greatWeapon' | 'properties'>>,
   opts: RollOptions & { critRange?: number; twoHanded?: boolean; riders?: Pick<DamageRider, 'name' | 'damage'>[] } = {},
 ): AttackOutcome {
   const { label, riders = [], twoHanded, critRange, ...rest } = opts
   const hit = rollAttack(attack, { ...rest, critRange, label })
   if (hit.d20?.fumble) return { attack: hit }
   const base = twoHanded && attack.versatile ? attack.versatile : attack.damage
+  // Great Weapon Fighting: the weapon's own dice only, two-handed weapons or a versatile one held in both hands.
+  const gwf = attack.greatWeapon && (attack.properties?.includes('two-handed') || (twoHanded && attack.versatile)) ? attack.greatWeapon : undefined
   const crit = !!hit.d20?.crit
   const extras = riders.length ? ` + ${riders.map(r => r.name).join(', ')}` : ''
   const action = { id: hit.id, name: attack.name }
   hit.action = action
   const damage = rollParts(
-    [{ notation: base, source: attack.name }, ...riders.map(r => ({ notation: r.damage, source: r.name }))],
+    [{ notation: base, source: attack.name, ...(gwf ? { lowDice: gwf } : {}) }, ...riders.map(r => ({ notation: r.damage, source: r.name }))],
     { ...rest, label: `${attack.name} ${attack.damageType}${extras}${crit ? ' (crit)' : ''}` }, 'damage', crit,
   )
   damage.action = action

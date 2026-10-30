@@ -132,6 +132,8 @@ export interface KnownSpell {
   id: string
   /** The class it was learned through; multiclass casters keep separate lists. */
   classId: string
+  /** Wizard spellbook spells: false while in the book but not prepared. Missing means prepared (older saves too). */
+  prepared?: boolean
 }
 
 /** One planned level: which class takes it and, when that class level allows, the subclass and ASI or feat. */

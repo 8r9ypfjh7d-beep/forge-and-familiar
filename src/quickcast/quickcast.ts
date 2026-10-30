@@ -61,9 +61,15 @@ function multiply(notation: string, times: number, withFlat = false): string {
 const BEAMS: Record<string, (castLevel: number, charLevel: number) => number> = {
   'eldritch blast': (_, charLevel) => 1 + [5, 11, 17].filter(l => charLevel >= l).length,
   'scorching ray': castLevel => 3 + Math.max(0, castLevel - 2),
+  'magic missile': castLevel => 2 + Math.max(1, castLevel),
 }
 
-/** Separate attack rolls a spell makes: Eldritch Blast's beams (2 at level 5, 3 at 11, 4 at 17), Scorching Ray's rays (3, +1 per slot level above 2nd). */
+/** Spells that hit without an attack roll or save, with each hit's damage (Magic Missile: 1d4+1 force per dart). */
+export const AUTO_HIT: Record<string, { damage: string; damageType: string }> = {
+  'magic missile': { damage: '1d4+1', damageType: 'force' },
+}
+
+/** Separate hits a spell makes: Eldritch Blast's beams (2 at level 5, 3 at 11, 4 at 17), Scorching Ray's rays (3, +1 per slot level above 2nd), Magic Missile's darts (3, +1 per slot level above 1st). */
 export const spellBeams = (spell: Pick<SpellEntry, 'name'>, castLevel: number, charLevel: number): number =>
   BEAMS[spell.name.trim().toLowerCase()]?.(castLevel, charLevel) ?? 1
 

@@ -143,8 +143,16 @@ export function SpellsStep({ draft, update }: StepProps) {
   const saved = draft.spells ?? []
   const byId = new Map(lib.spells.map(s => [s.id, s]))
   const setSpells = (spells: KnownSpell[]) => update({ spells: keepValidSpells({ ...draft, spells }) })
+  // A wizard's book holds more spells than they prepare: picks past the prepared number go in the book unprepared.
+  const bookFull = (key: string, id: string) => {
+    const a = access.find(x => x.classId === key)
+    if (a?.spellbook == null || !(byId.get(id)?.level)) return false
+    return saved.filter(k => k.classId === key && k.prepared !== false && (byId.get(k.id)?.level ?? 0) > 0 && !a.alwaysPrepared.includes(k.id)).length >= a.limit
+  }
   const toggle = (key: string, id: string) =>
-    setSpells(saved.some(k => k.classId === key && k.id === id) ? saved.filter(k => !(k.classId === key && k.id === id)) : [...saved, { id, classId: key }])
+    setSpells(saved.some(k => k.classId === key && k.id === id)
+      ? saved.filter(k => !(k.classId === key && k.id === id))
+      : [...saved, { id, classId: key, ...(bookFull(key, id) ? { prepared: false } : {}) }])
   const className = (id: string) => term('class', id, classById(id, draft.rulesEdition)?.name ?? lib.classes.find(c => c.id === id)?.name ?? id)
 
   if (!access.length && !granted.length && !extras.length) {

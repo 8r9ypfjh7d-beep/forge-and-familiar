@@ -5,7 +5,7 @@ import { getEntry, loadKind, type Edition } from '../content'
 import type { Character } from '../model/character'
 import type { Abilities } from '../rules/types'
 import { availableSpells, sourceFor, spellAccess } from './access'
-import { addSpell, removeSpell, spellsOf, isPinned, pinnedSpells, toQuickCast, toggleSpellPin, upcastStep } from './spellbook'
+import { addSpell, removeSpell, spellsOf, isPinned, isPrepared, pinnedSpells, setPrepared, toQuickCast, toggleSpellPin, unpreparedIds, upcastStep } from './spellbook'
 
 const scores: Abilities = { str: 10, dex: 14, con: 12, int: 16, wis: 14, cha: 16 }
 
@@ -110,5 +110,28 @@ describe('styles', () => {
   it('uses logical properties only, so RTL needs no overrides', () => {
     const css = readFileSync(new URL('./spellbook.css', import.meta.url), 'utf8')
     expect(css).not.toMatch(/(margin|padding|border)-(left|right|top|bottom)|\b(left|right):/)
+  })
+})
+
+describe('wizard prepared spells', () => {
+  it('book spells are prepared unless marked; unpreparing keeps them in the book', () => {
+    let c = addSpell(addSpell({ spells: [] } as unknown as Character, 'wizard', 'magic-missile'), 'wizard', 'shield')
+    expect(unpreparedIds(c).size).toBe(0)
+    c = setPrepared(c, 'wizard', 'shield', false)
+    expect([...unpreparedIds(c)]).toEqual(['shield'])
+    expect(spellsOf(c).map(k => k.id)).toEqual(['magic-missile', 'shield'])
+    expect(spellsOf(c).filter(isPrepared).map(k => k.id)).toEqual(['magic-missile'])
+    c = setPrepared(c, 'wizard', 'shield', true)
+    expect(spellsOf(c).find(k => k.id === 'shield')).toEqual({ id: 'shield', classId: 'wizard' })
+  })
+
+  it('a spell prepared through another class still counts as prepared', () => {
+    const c = { spells: [{ id: 'shield', classId: 'wizard', prepared: false }, { id: 'shield', classId: 'sorcerer' }] } as unknown as Character
+    expect(unpreparedIds(c).size).toBe(0)
+  })
+
+  it('Magic Missile pins as an always-hitting spell with one dart of damage', async () => {
+    const { spells } = await lib('2024')
+    expect(toQuickCast(spells.find(s => s.id === 'magic-missile')!)).toMatchObject({ roll: 'auto', damage: '1d4+1', damageType: 'force' })
   })
 })

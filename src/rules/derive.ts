@@ -56,6 +56,7 @@ export function featureUseContext(c: Character, id: string): UseContext {
     edition, classLevel: resourceClassLevel(c, id), level, prof: proficiencyBonus(level), mods: getAbilityMods(getAbilityScores(c)),
   }
   if (id === 'magical-cunning') ctx.pactSlots = getSpellSlots(c).pact?.count
+  if (id === 'rage') ctx.bear = subclassPickLists(c).some(l => l.list.kind === 'totemSpirit' && l.picked.some(p => p.id === 'totem-bear'))
   if (id === 'wild-shape') ctx.moon = classesOf(c).some(x => x.def.id === 'druid' && /moon/.test(x.subclass?.id ?? ''))
   if (id.startsWith('race:breath-weapon')) {
     const choice = raceById(c.raceId, edition)?.traitChoice
@@ -67,6 +68,9 @@ export function featureUseContext(c: Character, id: string): UseContext {
   }
   return ctx
 }
+
+/** Halfling Lucky (2014) and Luck (2024): the character rerolls a natural 1 on d20 tests. */
+export const hasLucky = (c: Character) => raceProfile(c).traits.some(t => t === 'Lucky' || t === 'Luck')
 
 export const proficiencyBonus = (level: number) => 2 + Math.floor((Math.max(1, level) - 1) / 4)
 
@@ -403,6 +407,11 @@ export interface Attack {
   pact?: boolean
   /** Attacks with this weapon in one Attack action, when more than one (Extra Attack, Thirsting Blade). */
   attacks?: number
+  /**
+   * Great Weapon Fighting on this weapon's own damage dice: 2014 rerolls 1s and 2s once, 2024 counts them as 3s.
+   * Two-handed weapons always; versatile ones only when rolled two-handed.
+   */
+  greatWeapon?: 'reroll' | 'min3'
 }
 
 /** Attacks in one Attack action: Extra Attack (any class or subclass), the fighter's two and three extra attacks. */
@@ -446,6 +455,12 @@ export function fightingStyles(c: Character): Set<string> {
 /** Dueling and Thrown Weapon Fighting both add +2 damage. */
 const STYLE_DAMAGE = 2
 
+/** The bigger of two single-die notations ("1d6" vs "1d8"); a Monk weapon uses the Martial Arts die when it is higher. */
+const biggerDie = (a: string, b: string) => {
+  const sides = (x: string) => Number(/^1d(\d+)$/.exec(x)?.[1] ?? 0)
+  return sides(b) > sides(a) ? b : a
+}
+
 const withMod = (dice: string, mod: number) => (mod === 0 ? dice : `${dice}${mod > 0 ? '+' : '−'}${Math.abs(mod)}`)
 
 /** Added to a weapon's name for its thrown attack line (Thrown Weapon Fighting). */
@@ -472,6 +487,7 @@ export function getAttacks(c: Character): Attack[] {
   const perAction = attacksPerAction(c)
   const perPact = pactAttacks(c)
   const styles = fightingStyles(c)
+  const martialDie = martialArts ? martialArtsDie(monk.level, edition) : undefined
 
   for (const { entry, item } of equippedEntries(c)) {
     // Two of the same plain weapon make one attack line; renamed or magic copies get their own.
@@ -499,8 +515,15 @@ export function getAttacks(c: Character): Attack[] {
     if (entry.pact) notes.push('pact weapon')
     if (magic || entry.pact) notes.push('magical')
     if (entry.extraDamage) notes.push(`+${entry.extraDamage}`)
+    // A Monk weapon rolls the Martial Arts die instead of its own when that is higher.
+    const die = monkWeapon && martialDie ? biggerDie(item.damage, martialDie) : item.damage
+    // A shield takes the other hand, so a versatile weapon is one-handed.
+    const twoHandDie = item.versatile && !shield ? (monkWeapon && martialDie ? biggerDie(item.versatile, martialDie) : item.versatile) : undefined
     if (item.range) notes.push(`range ${item.range}`)
-    if (item.versatile) notes.push(`two-handed ${withMod(item.versatile, dmgMod)}`)
+    if (twoHandDie) notes.push(`two-handed ${withMod(twoHandDie, dmgMod)}`)
+    if (die !== item.damage) notes.push(`Martial Arts ${die}`)
+    const greatWeapon = styles.has('great-weapon-fighting') && !ranged && (item.properties.includes('two-handed') || !!twoHandDie)
+    if (greatWeapon) notes.push(edition === '2024' ? 'Great Weapon Fighting: 1s and 2s count as 3' : 'Great Weapon Fighting: reroll 1s and 2s')
     if (!proficient) notes.push('not proficient')
     if (brutal && !ranged) notes.push(`crit +${brutal} ${brutal > 1 ? 'dice' : 'die'} (Brutal Critical)`)
     // The item's own extra damage keeps the roll; the radiant die is then a note.
@@ -510,7 +533,7 @@ export function getAttacks(c: Character): Attack[] {
     out.push({
       name: item.name,
       bonus: mods[ability] + magic + (proficient ? prof : 0) + itemBonus(c, 'attack', true, reach) + (ranged ? rangedBonus : 0),
-      damage: withMod(item.damage, dmgMod + dueling),
+      damage: withMod(die, dmgMod + dueling),
       // 2024 Pact of the Blade: the pact weapon may deal necrotic, psychic or radiant instead.
       damageType: (entry.pact && entry.damageType) || item.damageType,
       ...(entry.pact ? { pact: true } : {}),
@@ -518,7 +541,8 @@ export function getAttacks(c: Character): Attack[] {
       ability,
       proficient,
       notes,
-      versatile: item.versatile ? withMod(item.versatile, dmgMod) : undefined,
+      versatile: twoHandDie ? withMod(twoHandDie, dmgMod) : undefined,
+      ...(greatWeapon ? { greatWeapon: edition === '2024' ? 'min3' : 'reroll' } : {}),
       properties: item.properties,
       ...(extraDamage ? { extraDamage } : {}),
       itemId: item.id,
@@ -546,19 +570,26 @@ export function getAttacks(c: Character): Attack[] {
   }
 
   const unarmedAbility: Ability = martialArts && mods.dex > mods.str ? 'dex' : 'str'
+  const unarmedMod = mods[unarmedAbility] + itemBonus(c, 'damage', true, 'melee')
+  // Unarmed Fighting: 1d6, or 1d8 with no weapon or shield in hand. A monk keeps the bigger of it and the Martial Arts die.
+  const handsFree = !shield && !out.length
+  const styleDie = styles.has('unarmed-fighting') ? (handsFree ? '1d8' : '1d6') : undefined
+  const unarmedDie = styleDie && martialDie ? biggerDie(martialDie, styleDie) : styleDie ?? martialDie
+  const unarmedNotes: string[] = []
+  // Ki-Empowered Strikes (2014 monk 6): unarmed strikes count as magical.
+  if (martialArts && edition !== '2024' && monk.level >= 6) unarmedNotes.push('magical')
+  if (styleDie) unarmedNotes.push(handsFree ? 'Unarmed Fighting (hands free)' : 'Unarmed Fighting (1d8 with hands free)')
   out.push({
     name: 'Unarmed Strike',
     bonus: mods[unarmedAbility] + prof + itemBonus(c, 'attack', true, 'melee'),
-    damage: martialArts
-      ? withMod(martialArtsDie(monk.level, edition), mods[unarmedAbility] + itemBonus(c, 'damage', true, 'melee'))
-      : `${Math.max(0, 1 + mods.str + itemBonus(c, 'damage', true, 'melee'))}`,
+    damage: unarmedDie ? withMod(unarmedDie, unarmedMod) : `${Math.max(0, 1 + unarmedMod)}`,
     damageType: 'bludgeoning',
     ability: unarmedAbility,
     proficient: true,
-    // Ki-Empowered Strikes (2014 monk 6): unarmed strikes count as magical.
-    notes: martialArts && edition !== '2024' && monk.level >= 6 ? ['magical'] : [],
+    notes: unarmedNotes,
     properties: [],
     reach: 5,
+    ...(perAction > 1 ? { attacks: perAction } : {}),
   })
   // Natural weapons (Tabaxi claws, Minotaur horns): unarmed strikes with a damage die and type.
   for (const w of raceProfile(c).naturalWeapons) {
@@ -573,6 +604,7 @@ export function getAttacks(c: Character): Attack[] {
       notes: [],
       properties: [],
       reach: 5,
+      ...(perAction > 1 ? { attacks: perAction } : {}),
     })
   }
   return out
@@ -591,6 +623,8 @@ export interface DerivedStats {
   passivePerception: number
   initiative: number
   initiativeAdvantage?: boolean
+  /** Halfling Lucky (2024 Luck): a natural 1 on an attack, check or save is rerolled. */
+  lucky?: boolean
   /** Concentration saves with advantage (War Caster, an item). */
   concentrationAdvantage?: boolean
   /** Ability checks with advantage from items (skills and initiative already include it). */
@@ -749,6 +783,7 @@ export function derive(c: Character): DerivedStats {
     // 2024 Alert adds the proficiency bonus instead of Jack of All Trades' half.
     initiative: mods.dex + (featEffects(c, 'initiativeProficiency').length || raceProfile(c).initiativeProficiency ? prof : jackOfAllTrades) + featBonus(c, 'initiative') + itemChecks + itemBonus(c, 'initiative'),
     ...(initiativeAdvantage ? { initiativeAdvantage } : {}),
+    ...(hasLucky(c) ? { lucky: true } : {}),
     ...(concentrationAdvantage ? { concentrationAdvantage } : {}),
     checkAdvantage,
     speed,
