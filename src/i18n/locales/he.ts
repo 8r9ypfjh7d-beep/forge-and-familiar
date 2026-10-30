@@ -6,6 +6,7 @@ import { backgroundTerms2014He, explainBackgrounds2014He } from './explain.backg
 import { explainBooksHe } from './explain.books.he'
 import { explainClassesHe } from './explain.classes.he'
 import { explainPicksHe, pickTermsHe } from './explain.picks.he'
+import { explainInvocationsHe, invocationTermsHe } from './explain.invocations.he'
 import { explainHe } from './explain.he'
 import { explainProficienciesHe, proficiencyTermsHe } from './explain.proficiencies.he'
 import { explainMetamagicHe, metamagicTermsHe } from './explain.metamagic.he'
@@ -24,6 +25,7 @@ const messages: Messages = {
   ...explainSpeciesHe,
   ...explainPicksHe,
   ...explainRacesHe,
+  ...explainInvocationsHe,
   ...itemsHe,
   'common.back': 'חזרה',
   'common.backArrow': '→',
@@ -402,6 +404,18 @@ const messages: Messages = {
   'builder.subclassLater': 'את ה{title} בוחרים בדרגה {level}.',
   'builder.subclassHint': 'כל תתי־המקצוע הרשמיים כאן (קודם זה מה־SRD, אחר כך מהספרים האחרים). או בחרו מותאם ובנו משלכם.',
   'builder.customSubclass': '{title} מותאם',
+  'builder.opt.kind.invocation': 'השבעות מסתוריות',
+  'builder.opt.kind.pactBoon': 'מתת הברית',
+  'builder.opt.count': 'נבחרו {picked} מתוך {count}',
+  'builder.opt.over': 'יותר ממה שהרמה מאפשרת; בסדר אם ה־DM מסכים.',
+  'builder.opt.needsLevel': 'דורש רמת מקצוע {level}',
+  'builder.opt.needs': 'דורש {names}',
+  'builder.opt.source': 'מתוך {source}',
+  'builder.opt.feat': 'הישג מוצא',
+  'builder.opt.cantrip': 'לחש בסיס',
+  'builder.opt.cantripHint': 'איזה לחש בסיס, למשל פרץ על־טבעי',
+  'builder.opt.again': 'לקחת שוב',
+  'builder.opt.swap': 'סימון ⚠ אומר שחסרה דרישה מוקדמת: עדיין אפשר לבחור. כשעולים רמה אפשר להחליף בחירה אחת באחרת.',
   'builder.subSource': 'מתוך {source}. התיאורים כאן הם סיכום קצר שלנו; החוקים המלאים בספר.',
   'builder.subSpells': 'לחשים נוספים:',
   'builder.picks.count': 'נבחרו {picked} מתוך {max}',
@@ -2378,6 +2392,7 @@ const terms: Terms = {
   ...pickTermsHe,
   ...racesTermsHe,
   ...backgroundTerms2014He,
+  ...invocationTermsHe,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',

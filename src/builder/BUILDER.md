@@ -15,6 +15,7 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 | `validate.ts` | `stepIssues()` per step (missing picks; they block Create/Save only) and `stepWarnings()` (off-book choices, shown as ⚠ notes, never block) |
 | `ProficiencyPick.tsx` | `PickOrWrite` select with grouped options plus "✎ Write your own…" (opens a text box); `useLanguageGroups()` / `useToolGroups()` build the language and tool groups |
 | `Summary.tsx` | Live preview panel using `derive()` |
+| `ClassOptionPicker.tsx` | Eldritch Invocations and 2014 Pact Boon on the Class step: count by level, ⚠ on unmet prerequisites (pickable anyway), why? line per pick, Origin feat or cantrip for 2024 repeatables, "Take again" |
 | `MulticlassPicker.tsx` | Optional extra classes on the Class step: prerequisites, proficiencies gained, caster-level math |
 | `builder.css` | Builder-only styles, on the Liquid Glass standard (`src/design/DESIGN.md`) |
 | `Why.tsx`, `why.css` | "why?" button (topic or any title/text, optional capsule label), `Explain` (the picked option's line) and `ExplainList` (name + line per feature, trait, language, tool) |

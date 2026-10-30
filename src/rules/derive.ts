@@ -5,6 +5,7 @@ import { classChoices, featBonus, featEffects, getFeats, getLanguages, getTools 
 import { classOptionResourceId, pickedClassOptions } from './classOptions'
 // Also registers the subclass pick lists' options, so saved picks resolve wherever derive() runs.
 import { subclassPickLists } from './subclassPicks'
+import { classOptionWarnings } from './invocations'
 import { getBackground } from './data/backgrounds'
 import { AURA_OF_PROTECTION_LEVEL, RADIANT_STRIKE_LEVEL } from './data/classFeatures2014'
 import { classById } from './data/classes'
@@ -428,7 +429,7 @@ export interface DerivedStats {
   carryingCapacity: number
   carriedWeight: number
   /** `text` describes features the SRD library has no entry for (other books, custom subclasses). */
-  /** `detail`: what the feature has grown to at this level ("d8", "CR 1", "3 attacks"). `optionId`: a pick from a subclass list (a maneuver, a rune), listed right after its feature. */
+  /** `detail`: what the feature has grown to at this level ("d8", "CR 1", "3 attacks"). `optionId`: a pick from a subclass list (a maneuver, a rune), listed right after its feature, or a picked invocation or pact boon (after all class features). */
   features: { level: number; name: string; className: string; text?: string; subclassId?: string; detail?: string; optionId?: string }[]
   /** Size from the race, or the player's pick when the race offers two. */
   size: Size
@@ -540,7 +541,7 @@ export function derive(c: Character): DerivedStats {
   const carriedWeight = c.inventory.reduce((w, e) => w + (entryItem(e)?.weight ?? 0) * e.qty, 0)
   const carryingCapacity = abilities.str * 15
   if (carriedWeight > carryingCapacity) warnings.push('Carrying more than your capacity.')
-  warnings.push(...multiclassWarnings(c))
+  warnings.push(...multiclassWarnings(c), ...classOptionWarnings(c))
 
   return {
     level,
@@ -572,22 +573,32 @@ export function derive(c: Character): DerivedStats {
     attacks: getAttacks(c),
     carryingCapacity,
     carriedWeight: Math.round(carriedWeight * 100) / 100,
-    features: classes.flatMap(({ def, level: l, subclass }) =>
-      [...def.features, ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).flatMap(f => {
-        // A class choice shows its pick: "Divine Order (Protector)".
-        const picked = choices.find(x => x.classId === def.id && x.choice.name === f.name)?.picked
-        const { detail: steps, ...rest } = f as typeof f & { detail?: [number, string][] }
-        const detail = featureDetail({ detail: steps }, l)
-        // Subclass picks (maneuvers, runes, a totem animal) follow the feature that grants them.
-        const options = 'subclassId' in f
-          ? pickLists.filter(p => p.classId === def.id && p.list.feature === f.name).flatMap(p => p.options.filter(o => p.picked.some(x => x.id === o.id)))
-          : []
-        return [
-          { ...rest, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name, ...(detail ? { detail } : {}) },
-          ...options.map(o => ({ level: f.level, name: o.name, className: def.name, optionId: o.id, ...(o.text ? { text: o.text } : {}) })),
-        ]
-      }),
-    ),
+    features: [
+      ...classes.flatMap(({ def, level: l, subclass }) =>
+        [...def.features, ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).flatMap(f => {
+          // A class choice shows its pick: "Divine Order (Protector)".
+          const picked = choices.find(x => x.classId === def.id && x.choice.name === f.name)?.picked
+          const { detail: steps, ...rest } = f as typeof f & { detail?: [number, string][] }
+          const detail = featureDetail({ detail: steps }, l)
+          // Subclass picks (maneuvers, runes, a totem animal) follow the feature that grants them.
+          const options = 'subclassId' in f
+            ? pickLists.filter(p => p.classId === def.id && p.list.feature === f.name).flatMap(p => p.options.filter(o => p.picked.some(x => x.id === o.id)))
+            : []
+          return [
+            { ...rest, name: picked ? `${f.name} (${picked.name})` : f.name, className: def.name, ...(detail ? { detail } : {}) },
+            ...options.map(o => ({ level: f.level, name: o.name, className: def.name, optionId: o.id, ...(o.text ? { text: o.text } : {}) })),
+          ]
+        }),
+      ),
+      // Picked invocations and pact boons, after the class features. A repeated pick names its cantrip.
+      ...pickedClassOptions(c).filter(x => x.option.kind === 'invocation' || x.option.kind === 'pactBoon').map(({ pick, option }) => ({
+        level: pick.level ?? option.minLevel ?? 1,
+        name: option.choiceKind === 'cantrip' && pick.choice ? `${option.name} (${pick.choice})` : option.name,
+        className: classById(pick.classId ?? option.classIds?.[0] ?? '', rulesEdition(c))?.name ?? '',
+        optionId: option.id,
+        ...(option.text ? { text: option.text } : {}),
+      })),
+    ],
     size: raceInfo.size,
     traits: raceInfo.traits.map(t => {
       const choice = race?.traitChoice

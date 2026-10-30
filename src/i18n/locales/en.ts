@@ -5,6 +5,7 @@ import { explainBackgrounds2014En } from './explain.backgrounds2014.en'
 import { explainBooksEn } from './explain.books.en'
 import { explainClassesEn } from './explain.classes.en'
 import { explainPicksEn } from './explain.picks.en'
+import { explainInvocationsEn } from './explain.invocations.en'
 import { explainEn } from './explain.en'
 import { explainProficienciesEn } from './explain.proficiencies.en'
 import { explainMetamagicEn } from './explain.metamagic.en'
@@ -23,6 +24,7 @@ export const en = {
   ...explainSpeciesEn,
   ...explainPicksEn,
   ...explainRacesEn,
+  ...explainInvocationsEn,
   ...itemsEn,
   // Shared
   'common.back': 'Back',
@@ -403,6 +405,18 @@ export const en = {
   'builder.subclassLater': 'You choose your {title} at level {level}.',
   'builder.subclassHint': 'Every official subclass is here (the SRD one first, then the other books). Or pick Custom and build your own.',
   'builder.customSubclass': 'Custom {title}',
+  'builder.opt.kind.invocation': 'Eldritch Invocations',
+  'builder.opt.kind.pactBoon': 'Pact Boon',
+  'builder.opt.count': '{picked} of {count} picked',
+  'builder.opt.over': 'More than your level allows; fine if your DM agrees.',
+  'builder.opt.needsLevel': 'Needs class level {level}',
+  'builder.opt.needs': 'Needs {names}',
+  'builder.opt.source': 'From {source}',
+  'builder.opt.feat': 'Origin feat',
+  'builder.opt.cantrip': 'Cantrip',
+  'builder.opt.cantripHint': 'Which cantrip, e.g. Eldritch Blast',
+  'builder.opt.again': 'Take again',
+  'builder.opt.swap': 'Marked ⚠ means a prerequisite is missing: you can still take it. When you gain a level you may swap one pick for another.',
   'builder.subSource': 'From {source}. Feature text here is our own short summary; your book has the full rules.',
   'builder.subSpells': 'Bonus spells:',
   'builder.picks.count': '{picked} of {max} picked',

@@ -2,6 +2,7 @@
 // feats and starting-gear picks. Pure helpers shared by the builder and derive().
 import type { Character } from '../model/character'
 import { homebrewClassOptions } from './classOptions'
+import { classOptionFeats } from './invocations'
 import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { classLanguagePicks } from './classPicks'
@@ -17,7 +18,7 @@ type Classes = Pick<Character, 'classes'> & Edition
 type RaceBg = Pick<Character, 'raceId' | 'subraceId' | 'backgroundId' | 'customBackground'> & Partial<Pick<Character, 'originSwaps'>> & Edition
 
 /** What feat lookups read: ASI picks, and in 2024 the background's Origin feat, a Human's Origin feat and Fighting Styles. */
-export type FeatInput = Classes & Partial<Pick<Character, 'improvements' | 'backgroundId' | 'customBackground' | 'originFeatId' | 'featureChoices'>>
+export type FeatInput = Classes & Partial<Pick<Character, 'improvements' | 'backgroundId' | 'customBackground' | 'originFeatId' | 'featureChoices' | 'classOptions'>>
 
 // ---------- Ability Score Improvements and feats ----------
 
@@ -66,11 +67,11 @@ export function getFeats(c: FeatInput): Feat[] {
   const fromBackground: Feat[] = background?.effects?.length
     ? [{ id: `bg:${background.id}`, name: `${background.name} (${background.feature})`, description: background.feature, effects: background.effects }]
     : []
-  const fromAsi = [...fromBackground, ...activeImprovements(c).flatMap(i => byId(i.featId))]
+  const fromAsi = [...fromBackground, ...activeImprovements(c).flatMap(i => byId(i.featId)), ...classOptionFeats(c)]
   const bg = background?.feat
   // 2014: a book background's feat (Strixhaven students, Wildspacer) and a race's feat pick (Variant Human,
   // Custom Lineage); the builder only sets originFeatId for those.
-  if (edition !== '2024') return [...fromBackground, ...byId(bg?.id, bg?.note), ...byId(c.originFeatId), ...activeImprovements(c).flatMap(i => byId(i.featId))]
+  if (edition !== '2024') return [...fromBackground, ...byId(bg?.id, bg?.note), ...byId(c.originFeatId), ...activeImprovements(c).flatMap(i => byId(i.featId)), ...classOptionFeats(c)]
   return [
     ...byId(bg?.id, bg?.note),
     ...byId(c.originFeatId),
