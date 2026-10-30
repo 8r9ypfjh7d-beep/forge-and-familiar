@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import { useI18n } from '../i18n'
 import { ExportButton } from '../portability/ui'
 import type { Character } from '../model/character'
@@ -13,13 +14,24 @@ import { Inventory } from '../inventory'
 import { Supplies } from '../supplies/Supplies'
 import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
-import { sheetLayout, useNarrow, useSheetMode, type SheetMode, type SheetSection } from './mode'
+import { sheetLayout, useNarrow, useSheetMode, type CombatTab, type SheetMode, type SheetSection } from './mode'
+import { CombatStartedNotice, LiveMapTab, useLiveCombat } from './combat/LiveMap'
+import { bringsCharacter } from './combat/liveMap'
+import type { Party } from '../party/types'
 import { Notes } from './components/Story'
 import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, HpChip, SkillsPanel } from './combat/CombatPage'
 import { canPowerUp, PowerUpCard } from '../powerup'
 import './sheet.css'
 
-export function CharacterSheet({ characterId, onBack, onEdit, onLevelUp }: { characterId: string; onBack: () => void; onEdit?: () => void; onLevelUp?: () => void }) {
+export function CharacterSheet({ characterId, party, userId, onBack, onEdit, onLevelUp }: {
+  characterId: string
+  /** The campaign in play: its live combat (src/combat/live) puts a Map tab in combat mode. */
+  party?: Party
+  userId?: string
+  onBack: () => void
+  onEdit?: () => void
+  onLevelUp?: () => void
+}) {
   const { character, apply, undo, undoTo, redo, canRedo, log } = useLiveCharacter(characterId)
   const { t } = useI18n()
 
@@ -33,7 +45,7 @@ export function CharacterSheet({ characterId, onBack, onEdit, onLevelUp }: { cha
     )
   }
 
-  return <Sheet character={character} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} onLevelUp={onLevelUp} />
+  return <Sheet character={character} party={party} userId={userId} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} onLevelUp={onLevelUp} />
 }
 
 /** Someone else's sheet (the DM looking at a player's): nothing can be changed, and a tap that would says so. */
@@ -44,8 +56,10 @@ export interface ViewOnly {
   noticed: boolean
 }
 
-export function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit, onLevelUp, viewOnly }: {
+export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log, onBack, onEdit, onLevelUp, viewOnly }: {
   character: Character
+  party?: Party
+  userId?: string
   apply: Apply
   undo: () => void
   undoTo: (id: number) => void
@@ -59,7 +73,23 @@ export function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdi
   const [mode, setMode] = useSheetMode(character.id)
   const narrow = useNarrow()
   const { t } = useI18n()
-  const layout = sheetLayout(mode, { dying: character.state.currentHp === 0, powerUp: canPowerUp(character), narrow })
+  const live = useLiveCombat(party?.id)
+  const brings = bringsCharacter(party, userId ?? '', character.id)
+  // The Map tab is new until opened; a combat that starts while the player is elsewhere on the sheet shows a notice.
+  const [mapSeen, setMapSeen] = useState(false)
+  const [wantTab, setWantTab] = useState<CombatTab | null>(null)
+  const [notice, setNotice] = useState(false)
+  const [hadLive, setHadLive] = useState(false)
+  if (!!live !== hadLive) {
+    setHadLive(!!live)
+    setMapSeen(false)
+    setNotice(!!live)
+    if (!live) setWantTab(null)
+  }
+  const onPick = useCallback((tab: CombatTab) => { if (tab === 'map') { setMapSeen(true); setNotice(false) } }, [])
+  const closeNotice = useCallback(() => setNotice(false), [])
+  const openMap = useCallback(() => { setMode('combat'); setWantTab('map'); setNotice(false) }, [setMode])
+  const layout = sheetLayout(mode, { dying: character.state.currentHp === 0, powerUp: canPowerUp(character), narrow, liveMap: !!live })
   const p = { character, apply }
   const section = (s: SheetSection) => {
     switch (s) {
@@ -79,7 +109,8 @@ export function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdi
       case 'history': return viewOnly ? null : <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
       case 'summary': return <CharacterCard key={s} character={character} apply={apply} onLevelUp={onLevelUp} vitals={(layout.vitals ?? []).map(section)} />
       case 'skills': return <SkillsPanel key={s} character={character} />
-      case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} aside={narrow ? <HpChip character={character} /> : undefined} /> : null
+      case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} aside={narrow ? <HpChip character={character} /> : undefined} want={wantTab} onPick={onPick} badges={{ map: !!live && !mapSeen }} /> : null
+      case 'map': return live ? <LiveMapTab key={s} live={live} character={character} brings={brings} /> : null
       case 'fight': return <Fight key={s} {...p} />
       case 'features': return <FeaturesTraits key={s} character={character} />
       case 'powerUp': return <PowerUpCard key={s} {...p} />
@@ -94,6 +125,7 @@ export function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdi
         </p>
       )}
       <ModeSwitch mode={mode} onChange={setMode} />
+      {notice && live && (mode !== 'combat' || !mapSeen) && <CombatStartedNotice onOpen={openMap} onClose={closeNotice} />}
       {layout.top.map(section)}
       <div className="sheet-grid">
         {layout.columns.map((col, i) => col.length > 0 && <div key={i} className="col">{col.map(section)}</div>)}

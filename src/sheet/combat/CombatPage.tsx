@@ -270,13 +270,25 @@ const TAB_KEYS: Record<CombatTab, MessageKey> = {
  * The combat page's tab bar and panel. `aside` sits beside the tabs (phones: the HP chip); with it
  * the bar sticks to the top of the screen, and switching tabs while it is stuck shows the new tab from its start.
  */
-export function CombatTabs({ tabs, render, aside }: { tabs: Partial<Record<CombatTab, SheetSection[]>>; render: (s: SheetSection) => ReactNode; aside?: ReactNode }) {
+export function CombatTabs({ tabs, render, aside, want, onPick, badges }: {
+  tabs: Partial<Record<CombatTab, SheetSection[]>>
+  render: (s: SheetSection) => ReactNode
+  aside?: ReactNode
+  /** A tab the page asks to open (the combat-started notice opens Map); honoured when it changes. */
+  want?: CombatTab | null
+  onPick?: (tab: CombatTab) => void
+  /** Tabs with something new the player hasn't looked at (a dot on the tab). */
+  badges?: Partial<Record<CombatTab, boolean>>
+}) {
   const { t } = useI18n()
-  const [picked, setPicked] = useState<CombatTab>('combat')
+  const [picked, setPicked] = useState<CombatTab>(want ?? 'combat')
+  const [wanted, setWanted] = useState(want)
+  if (want !== wanted) { setWanted(want); if (want) setPicked(want) }
   const box = useRef<HTMLDivElement>(null)
   const ids = Object.keys(tabs) as CombatTab[]
-  // A tab that only exists on phones (Checks) falls back to Combat when the screen widens.
+  // A tab that only exists on phones (Checks) or during a live combat (Map) falls back to Combat when it goes.
   const tab = tabs[picked] ? picked : 'combat'
+  useEffect(() => { onPick?.(tab) }, [tab, onPick])
   const setTab = (id: CombatTab) => {
     setPicked(id)
     const el = box.current
@@ -296,7 +308,7 @@ export function CombatTabs({ tabs, render, aside }: { tabs: Partial<Record<Comba
       {ids.map((id, i) => (
         <button key={id} id={`cs-tab-${id}`} type="button" role="tab" aria-selected={tab === id} aria-controls="cs-tabpanel"
           tabIndex={tab === id ? 0 : -1} className={tab === id ? 'on' : ''} onClick={() => setTab(id)} onKeyDown={e => move(e, i)}>
-          {t(TAB_KEYS[id])}
+          {t(TAB_KEYS[id])}{badges?.[id] && <span className="cs-tab-badge" aria-label={t('cs.tab.new')} />}
         </button>
       ))}
     </div>
