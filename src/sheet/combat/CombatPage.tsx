@@ -414,13 +414,13 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const used = r.kind === 'attack' && r.damageType !== 'healing' ? damaging.filter(e => !e.weaponOnly) : []
     const type = r.damageType ? term('damage', r.damageType, r.damageType) : ''
     // Each beam (Eldritch Blast, Scorching Ray) rolls to hit and for damage on its own, with the riders on every hit.
-    const beams = r.kind === 'attack' ? spellBeams(r.entry, choice?.level ?? r.level, d.level) : 1
+    const beams = r.kind !== 'save' ? spellBeams(r.entry, choice?.level ?? r.level, d.level) : 1
     const list: Shown[] = []
     let hit = false
     for (let i = 1; i <= beams; i++) {
       const riders = used.filter(e => !(hit && e.oncePerTurn)).map(e => ({ name: e.name, damage: e.damage }))
       const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders })
-      const what = (s: string) => (beams > 1 ? t('cs.roll.beam', { what: s, n: i }) : s)
+      const what = (s: string) => (beams > 1 ? t(r.kind === 'auto' ? 'cs.roll.dart' : 'cs.roll.beam', { what: s, n: i }) : s)
       if ('attack' in res && res.attack) list.push({ roll: res.attack, what: what(t('cs.roll.toHit')) })
       if (res.damage) list.push({ roll: res.damage, what: what(r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })) })
       hit ||= !!res.damage
@@ -512,9 +512,9 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
           <li key={`spell-${r.name}`}>
             <button type="button" className="cs-attack spell" onClick={() => cast(r)}
               aria-label={t('cs.castLabel', { name: r.name })}>
-              <span className="name"><bdi>{i18n.spellName(r.name)}</bdi><small>{t(r.kind === 'attack' ? 'cs.spellAttack' : 'cs.spellSave')}{r.level === 0 ? ` · ${t('cs.cantrip')}` : ''}</small></span>
+              <span className="name"><bdi>{i18n.spellName(r.name)}</bdi><small>{t(r.kind === 'attack' ? 'cs.spellAttack' : r.kind === 'auto' ? 'cs.spellAuto' : 'cs.spellSave')}{r.level === 0 ? ` · ${t('cs.cantrip')}` : ''}</small></span>
               <span className="range">{i18n.spellMeasure(r.range)}</span>
-              <span className="hit" dir="ltr">{r.kind === 'attack' ? formatMod(r.value) : `${r.save ? abilityShort(r.save) : ''} ${r.value}`}</span>
+              <span className="hit" dir="ltr">{r.kind === 'attack' ? formatMod(r.value) : r.kind === 'auto' ? t('cs.autoHit') : `${r.save ? abilityShort(r.save) : ''} ${r.value}`}</span>
               <span className="dmg">{r.damage ? <><span dir="ltr">{r.beams ? `${r.beams}× ` : ''}{r.damage}</span> {r.damageType ? term('damage', r.damageType, r.damageType) : ''}</> : '—'}</span>
             </button>
           </li>

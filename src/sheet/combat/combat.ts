@@ -9,7 +9,7 @@ import type { SlotChoice } from '../../quickcast/types'
 import type { SpellEntry } from '../../quickcast/types'
 import { editionOf } from '../../spellbook/access'
 import { extraSpellAbility } from '../../spellbook/extra'
-import { toQuickCast } from '../../spellbook/spellbook'
+import { isPrepared, toQuickCast, unpreparedIds } from '../../spellbook/spellbook'
 import { explainKey, featureKey } from '../../builder/why'
 import { setResourceUsed } from '../engine'
 import type { MessageKey } from '../../i18n/locales/en'
@@ -109,7 +109,8 @@ export interface SpellAttackRow {
   level: number
   /** Library range text ("120 feet", "Touch"), or blank for a typed-in spell. */
   range: string
-  kind: 'attack' | 'save'
+  /** `auto`: hits without a roll (Magic Missile). */
+  kind: 'attack' | 'save' | 'auto'
   /** Spell attack bonus, or the save DC. */
   value: number
   save?: Ability
@@ -130,7 +131,9 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
   // A character without a casting class still attacks with a race's cantrip: its own ability, else the best of INT, WIS and CHA.
   const sc = stats.spellcasting ?? (innate.length ? innateCasting(stats, innate[0].ability) : undefined)
   const byId = new Map(library.map(s => [s.id, s]))
-  const known = (c.spells ?? []).flatMap(k => { const s = byId.get(k.id); return s ? [{ s, classId: k.classId }] : [] })
+  // A wizard's spellbook spells that aren't prepared today stay out of the table.
+  const known = (c.spells ?? []).filter(isPrepared).flatMap(k => { const s = byId.get(k.id); return s ? [{ s, classId: k.classId }] : [] })
+  const unprepared = unpreparedIds(c)
   const out: SpellAttackRow[] = []
   const seen = new Set<string>()
   // 2024 Potent Spellcasting (Cleric Blessed Strikes, Druid Elemental Fury): WIS on that class's cantrip damage.
@@ -145,7 +148,7 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
     if (damage && entry.level === 0 && classId && potent.has(classId) && wis) damage = formatNotation(parseNotation(`${damage}${wis > 0 ? '+' : ''}${wis}`))
     out.push({
       name: entry.name, level: entry.level, range, kind: entry.roll,
-      value: entry.roll === 'attack' ? own.attackBonus : own.saveDc,
+      value: entry.roll === 'attack' ? own.attackBonus : entry.roll === 'auto' ? 0 : own.saveDc,
       ...(entry.save ? { save: entry.save } : {}),
       ...(damage ? { damage } : {}),
       ...(beams > 1 ? { beams } : {}),
@@ -158,7 +161,10 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
     const own = extraSpellAbility(c, s.id)
     push(toQuickCast(withRollFromText(s)), s.range, classId, own ? castingWith(c, own) : sc)
   }
-  for (const q of c.quickCast ?? []) if (q.kind === 'spell') push(q, byName(library, q.name)?.range ?? '')
+  for (const q of c.quickCast ?? []) {
+    const s = q.kind === 'spell' ? byName(library, q.name) : undefined
+    if (q.kind === 'spell' && !(s && unprepared.has(s.id))) push(q, s?.range ?? '')
+  }
   // Cantrips from the race, a feat or an item (a Tiefling's Fire Bolt): at will, so they sit with the attacks.
   for (const { spell, ability } of innate) push(toQuickCast(withRollFromText(spell)), spell.range, undefined, ability ? innateCasting(stats, ability) : sc)
   return out.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))

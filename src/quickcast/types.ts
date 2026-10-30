@@ -10,7 +10,8 @@ export type QuickCastEntry =
       kind: 'spell'
       name: string
       level: number
-      roll: 'attack' | 'save' | 'none'
+      /** `auto`: hits without a roll (Magic Missile's darts). */
+      roll: 'attack' | 'save' | 'auto' | 'none'
       save?: Ability
       /** Damage or healing at the spell's base level, e.g. "8d6". */
       damage?: string

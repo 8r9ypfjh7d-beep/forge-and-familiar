@@ -4,6 +4,7 @@ import type { Spell } from '../../content'
 import type { ActionKind, Character } from '../../model/character'
 import { castingKind, featureAction, featureActionKind, castsAtMax, itemSpellCast, pickedClassOptions, rulesEdition, type DerivedStats, type ResourceInfo } from '../../rules'
 import { grantedSpells } from '../../spellbook/extra'
+import { isPrepared } from '../../spellbook/spellbook'
 import { ACTION_KINDS } from './combat'
 
 /** One row in a list: a spell to cast, a resource to use, a feature (its Use, or just its reminder), or the pact weapon. */
@@ -66,7 +67,7 @@ export function turnActions(c: Character, d: DerivedStats, { spells, alwaysPrepa
     spellRows.push({ type: 'spell', key: `free:${spell.id}:${s.source}`, spell, free: { source: s.source, ...(level ? { level } : {}), ...(spend ? { spend } : {}), ...(castsAtMax(s.note) ? { max: true } : {}) } })
   }
   // Class spells (known, prepared, always prepared) and race spells without a limit.
-  const own = [...(c.spells ?? []).map(k => k.id), ...alwaysPrepared, ...grantedSpells(c, spells).filter(g => g.unlocked).map(g => g.spell.id)]
+  const own = [...(c.spells ?? []).filter(isPrepared).map(k => k.id), ...alwaysPrepared, ...grantedSpells(c, spells).filter(g => g.unlocked).map(g => g.spell.id)]
   for (const id of new Set(own)) {
     const spell = byId.get(id)
     if (!spell || (free.has(id) && !(c.spells ?? []).some(k => k.id === id))) continue

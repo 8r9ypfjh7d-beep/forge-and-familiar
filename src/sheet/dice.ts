@@ -3,7 +3,7 @@ import {
   roll, rollAttack, rollAttackWithDamage, rollCheck, rollDeathSave, rollHitDie, rollInitiative, rollParts, rollSave, rollSkill,
   type AttackOutcome, type RollMode, type RollResult,
 } from '../dice'
-import type { DerivedStats } from '../rules'
+import { hasLucky, type DerivedStats } from '../rules'
 import type { Ability, SkillId } from '../rules/types'
 import { useDice } from '../dice/ui'
 
@@ -21,6 +21,8 @@ export function useSheetRolls(c: Character) {
     // Rendered outside <DiceProvider> (tests, standalone use): roll without history.
   }
   const character = { id: c.id, name: c.name, state: c.state }
+  // Halfling Lucky rerolls a natural 1 on attacks and death saves too (checks and saves read it from the stats).
+  const lucky = hasLucky(c)
   return {
     hitDie(die: HitDie, conMod: number): number {
       const r = record(rollHitDie(die, conMod, { character }))
@@ -28,11 +30,11 @@ export function useSheetRolls(c: Character) {
       return term?.kind === 'dice' ? term.rolls[0].value : 1
     },
     deathSave(): number {
-      return record(rollDeathSave({ character })).d20?.natural ?? 10
+      return record(rollDeathSave({ character, lucky })).d20?.natural ?? 10
     },
     /** One tap on an attack: to-hit and damage, both saved to the history. */
     attack(...[a, opts]: Parameters<typeof rollAttackWithDamage>): AttackOutcome {
-      const out = rollAttackWithDamage(a, { ...opts, character })
+      const out = rollAttackWithDamage(a, { ...opts, character, lucky })
       record(out.attack)
       if (out.damage) record(out.damage)
       return out
@@ -46,7 +48,7 @@ export function useSheetRolls(c: Character) {
      * A crit doubles the dice; a natural 1 on the attack rolls no damage.
      */
     spell(name: string, opts: { attackBonus?: number; damage?: string; damageType?: string; mode?: RollMode; riders?: { name: string; damage: string }[] }): AttackOutcome | { damage?: RollResult } {
-      const hit = opts.attackBonus === undefined ? undefined : rollAttack({ name, bonus: opts.attackBonus }, { character, mode: opts.mode })
+      const hit = opts.attackBonus === undefined ? undefined : rollAttack({ name, bonus: opts.attackBonus }, { character, mode: opts.mode, lucky })
       const action = hit && opts.damage && !hit.d20?.fumble ? { id: hit.id, name } : undefined
       if (hit) record(Object.assign(hit, action && { action }))
       if (hit?.d20?.fumble || !opts.damage) return hit ? { attack: hit } : {}

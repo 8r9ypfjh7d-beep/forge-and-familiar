@@ -23,9 +23,10 @@ export function Supplies({ character, apply }: { character: Character; apply: Ap
     .filter(r => r.n > 0)
 
   const shoot = (name: string, ammoId: string) => {
-    const attack = derive(character).attacks.find(a => a.name === name)
+    const d = derive(character)
+    const attack = d.attacks.find(a => a.name === name)
     if (!attack) return
-    const r = record(rollAttack(attack, { character }))
+    const r = record(rollAttack(attack, { character, lucky: d.lucky }))
     const nat = r.d20?.crit ? ' (natural 20)' : r.d20?.fumble ? ' (natural 1)' : ''
     const text = `Shot the ${name}: ${r.total} to hit${nat}`
     setLastShot(text)

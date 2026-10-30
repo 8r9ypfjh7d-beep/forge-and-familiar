@@ -21,7 +21,8 @@ describe('fighting style damage', () => {
   it('adds Dueling to one-handed melee damage, not to two-handed or ranged', () => {
     // 2014 Human: STR 16 (+3).
     const c = make({ featureChoices: { 'paladin.fightingStyle': 'dueling' } }, ['longsword', 'shield', 'greatsword', 'longbow'])
-    expect(attack(c, 'Longsword')).toMatchObject({ damage: '1d8+5', versatile: '1d10+3' })
+    // The shield takes the other hand, so no two-handed line.
+    expect(attack(c, 'Longsword')).toMatchObject({ damage: '1d8+5', versatile: undefined })
     expect(attack(c, 'Greatsword')?.damage).toBe('2d6+3')
     expect(attack(c, 'Longbow')?.damage).toBe('1d8+2')
     expect(attack(make({}, ['longsword']), 'Longsword')?.damage).toBe('1d8+3')

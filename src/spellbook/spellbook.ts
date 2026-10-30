@@ -1,7 +1,7 @@
 // Changes to a character's chosen spells, and turning a library spell into a quick-cast entry.
 import type { Spell } from '../content'
 import type { Character, KnownSpell } from '../model/character'
-import { addEntry, newEntryId } from '../quickcast/quickcast'
+import { addEntry, AUTO_HIT, newEntryId } from '../quickcast/quickcast'
 import type { SpellEntry } from '../quickcast/types'
 
 export const spellsOf = (c: Character, classId?: string): KnownSpell[] =>
@@ -16,6 +16,27 @@ export function addSpell(c: Character, classId: string, id: string): Character {
 
 export function removeSpell(c: Character, classId: string, id: string): Character {
   return { ...c, spells: spellsOf(c).filter(s => !(s.classId === classId && s.id === id)) }
+}
+
+/** A known spell counts as prepared unless it is a spellbook spell marked unprepared. */
+export const isPrepared = (k: KnownSpell) => k.prepared !== false
+
+/** Spells only in the wizard's book, not prepared through any class: they can't be cast except as rituals. */
+export function unpreparedIds(c: Character): Set<string> {
+  const known = spellsOf(c)
+  return new Set(known.filter(k => !isPrepared(k) && !known.some(o => o.id === k.id && isPrepared(o))).map(k => k.id))
+}
+
+/** Prepares or unprepares a spellbook spell. */
+export function setPrepared(c: Character, classId: string, id: string, on: boolean): Character {
+  return {
+    ...c,
+    spells: spellsOf(c).map(s => {
+      if (s.classId !== classId || s.id !== id) return s
+      const { prepared: _, ...rest } = s
+      return on ? rest : { ...rest, prepared: false }
+    }),
+  }
 }
 
 const DICE = /^(\d+)d(\d+)(.*)$/
@@ -34,6 +55,8 @@ export function upcastStep(base?: string, next?: string): string | undefined {
 
 /** The quick-cast fields for a library spell: how it rolls, its damage or healing, and upcasting. */
 export function toQuickCast(s: Spell): Omit<SpellEntry, 'id' | 'kind'> {
+  const auto = AUTO_HIT[s.name.trim().toLowerCase()]
+  if (auto) return { name: s.name, level: s.level, roll: 'auto', ...auto }
   const entry: Omit<SpellEntry, 'id' | 'kind'> = { name: s.name, level: s.level, roll: s.attack ? 'attack' : s.save ? 'save' : 'none' }
   if (s.save) entry.save = s.save.ability
   const bySlot = s.damage?.bySlotLevel

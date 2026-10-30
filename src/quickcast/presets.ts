@@ -11,7 +11,7 @@ export const SPELL_PRESETS: SpellPreset[] = [
   { name: 'Vicious Mockery', level: 0, roll: 'save', save: 'wis', damage: '1d4', damageType: 'psychic', cantripScaling: true },
   { name: 'Bless', level: 1, roll: 'none' },
   { name: 'Shield', level: 1, roll: 'none' },
-  { name: 'Magic Missile', level: 1, roll: 'none', damage: '3d4+3', damageType: 'force', upcast: '1d4+1' },
+  { name: 'Magic Missile', level: 1, roll: 'auto', damage: '1d4+1', damageType: 'force' },
   { name: 'Burning Hands', level: 1, roll: 'save', save: 'dex', damage: '3d6', damageType: 'fire', upcast: '1d6' },
   { name: 'Thunderwave', level: 1, roll: 'save', save: 'con', damage: '2d8', damageType: 'thunder', upcast: '1d8' },
   { name: 'Guiding Bolt', level: 1, roll: 'attack', damage: '4d6', damageType: 'radiant', upcast: '1d6' },

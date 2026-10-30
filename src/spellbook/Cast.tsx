@@ -73,9 +73,9 @@ export function useCast(character: Character, apply: Apply) {
     const rider = !!plan.effect?.damage
     if (!rider && (entry.roll !== 'none' || dice)) {
       // Each beam (Eldritch Blast, Scorching Ray) rolls to hit and for damage on its own.
-      const beams = entry.roll === 'attack' ? spellBeams(entry, level, d.level) : 1
+      const beams = entry.roll === 'attack' || entry.roll === 'auto' ? spellBeams(entry, level, d.level) : 1
       for (let i = 1; i <= beams; i++) {
-        const what = (s: string) => (beams > 1 ? t('cs.roll.beam', { what: s, n: i }) : s)
+        const what = (s: string) => (beams > 1 ? t(entry.roll === 'auto' ? 'cs.roll.dart' : 'cs.roll.beam', { what: s, n: i }) : s)
         const res = rolls.spell(spell.name, { attackBonus: entry.roll === 'attack' ? sc?.attackBonus : undefined, damage: dice, damageType: entry.damageType, riders })
         if ('attack' in res && res.attack) shown.push({ roll: res.attack, what: what(t('cs.roll.toHit')) })
         if (res.damage) {

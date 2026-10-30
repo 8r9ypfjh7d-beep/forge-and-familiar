@@ -50,8 +50,15 @@ describe('spell damage', () => {
     expect(spellDamage(spell('Fireball'), 5, 9)).toBe('8d6+2d6')
   })
 
-  it('scales flat bonuses in the upcast too (Magic Missile)', () => {
-    expect(spellDamage(spell('Magic Missile'), 3, 5)).toBe('3d4+3+2d4+2')
+  it('scales flat bonuses in the upcast too', () => {
+    expect(spellDamage({ ...spell('Fireball'), level: 1, damage: '3d4+3', upcast: '1d4+1' }, 3, 5)).toBe('3d4+3+2d4+2')
+  })
+
+  it('Magic Missile: one 1d4+1 force dart, three at 1st level and one more per slot level, always hitting', () => {
+    const mm = spell('Magic Missile')
+    expect(mm.roll).toBe('auto')
+    expect(spellDamage(mm, 3, 5)).toBe('1d4+1')
+    expect([1, 2, 3, 9].map(l => spellBeams(mm, l, 5))).toEqual([3, 4, 5, 11])
   })
 
   it('scales cantrips by character level', () => {

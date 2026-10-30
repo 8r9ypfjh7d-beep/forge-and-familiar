@@ -18,6 +18,7 @@
 .sb-summary dd { margin: 2px 0 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
 .sb-summary .over { background: color-mix(in srgb, var(--bad) 10%, var(--glass-thin)); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
 .sb-summary .over dd { color: var(--bad); }
+.sb-groups > .hint.over { color: var(--bad); }
 
 .spellbook .sb-tabs { display: flex; margin-block-end: var(--sp-3); }
 .spellbook .sb-tabs > button { flex: 1; }

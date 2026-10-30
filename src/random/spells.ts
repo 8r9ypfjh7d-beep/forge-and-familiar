@@ -44,7 +44,9 @@ export function randomSpells(d: CharacterDraft, lib: SpellLibrary, rng: Rng = Ma
     const taken = new Set<string>()
     const cantrips = mix(pool.filter(s => s.level === 0), a.cantrips, rng, taken)
     const leveled = a.maxLevel > 0 ? mix(pool.filter(s => s.level > 0), a.spellbook ?? a.limit, rng, taken) : []
-    out.push(...[...cantrips, ...leveled].map(s => ({ id: s.id, classId: a.classId })))
+    out.push(...cantrips.map(s => ({ id: s.id, classId: a.classId })))
+    // A wizard prepares `limit` of the book's spells; the rest stay in the book.
+    out.push(...leveled.map((s, i) => ({ id: s.id, classId: a.classId, ...(a.spellbook != null && i >= a.limit ? { prepared: false } : {}) })))
   }
   for (const source of extraSources(d)) {
     const list = source.fixedList ?? (source.lists.length ? pick(source.lists, rng) : extraList(source))

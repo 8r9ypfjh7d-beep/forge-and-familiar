@@ -244,3 +244,39 @@ describe('grouping rolls by action', () => {
     expect(groupByAction(feed, f => f.roll, (x, y) => x.userId === y.userId)).toHaveLength(2)
   })
 })
+
+describe('Halfling Lucky and Great Weapon Fighting', () => {
+  it('Lucky rerolls a natural 1 once and uses the new roll', () => {
+    const r = rollD20(3, { lucky: true, rng: seq(1, 14) })
+    expect(r.d20).toMatchObject({ natural: 14, fumble: false })
+    expect(r.total).toBe(17)
+    expect(r.breakdown).toBe('[~~1~~, 14] + 3')
+    expect(r.label).toBe('Lucky')
+    // A second 1 stands.
+    expect(rollD20(0, { lucky: true, rng: seq(1, 1) }).d20?.fumble).toBe(true)
+    // Without Lucky, or on any other roll, nothing changes.
+    expect(rollD20(0, { rng: seq(1, 14) }).total).toBe(1)
+    expect(rollD20(0, { lucky: true, rng: seq(2, 14) }).total).toBe(2)
+  })
+
+  it('Lucky with disadvantage rerolls the 1 and takes the lower again; with advantage only a double 1 rerolls', () => {
+    expect(rollD20(0, { mode: 'disadvantage', lucky: true, rng: seq(1, 15, 8) }).d20?.natural).toBe(8)
+    expect(rollD20(0, { mode: 'advantage', lucky: true, rng: seq(1, 15) }).d20?.natural).toBe(15)
+    expect(rollD20(0, { mode: 'advantage', lucky: true, rng: seq(1, 1, 12) }).d20?.natural).toBe(12)
+  })
+
+  it('Great Weapon Fighting rerolls 1s and 2s once (2014) or counts them as 3 (2024), weapon dice only', () => {
+    const reroll = rollParts([{ notation: '2d6+3', source: 'Greatsword', lowDice: 'reroll' }, { notation: '1d6', source: 'Hex' }], { rng: seq(1, 5, 1, 2) }, 'damage')
+    // Greatsword rolls 1, 5 and Hex 1; only the Greatsword's 1 is rerolled, once (the new 2 stands).
+    expect(reroll.total).toBe(2 + 5 + 3 + 1)
+    expect(reroll.breakdown).toBe('[~~1~~, 2, 5] + 3 + [1]')
+    const min3 = rollParts([{ notation: '2d6', source: 'Greatsword', lowDice: 'min3' }], { rng: seq(2, 6) }, 'damage')
+    expect(min3.total).toBe(9)
+  })
+
+  it('an attack applies it to two-handed weapons, and to versatile ones only held in two hands', () => {
+    const longsword = { name: 'Longsword', bonus: 5, damage: '1d8+3', damageType: 'slashing', versatile: '1d10+3', properties: ['versatile'], greatWeapon: 'reroll' as const }
+    expect(rollAttackWithDamage(longsword, { rng: seq(15, 1, 7) }).damage?.total).toBe(4)
+    expect(rollAttackWithDamage(longsword, { twoHanded: true, rng: seq(15, 1, 7) }).damage?.total).toBe(10)
+  })
+})
