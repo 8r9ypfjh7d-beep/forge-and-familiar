@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { en } from '../i18n/locales/en'
 import { loadKind } from '../content'
 import {
-  activePlan, addMonster, addPlan, changeCount, crLabel, difficulty, findMonsters, normalizeDm, NPC_TABLES,
+  activePlan, groupsFromLevels, sameGroups, addMonster, addPlan, changeCount, crLabel, difficulty, findMonsters, normalizeDm, NPC_TABLES,
   partyBudget, partySize, pickDm, planCombatants, planEntry, planXp, randomName, randomNpc, removePlan, XP_BUDGET,
 } from './logic'
 import { emptyDmState, type EncounterPlan } from './types'
@@ -116,5 +116,16 @@ describe('DM screen styles', () => {
   it('reads the glass tokens instead of hard-coding blur', () => {
     expect(css).not.toMatch(/backdrop-filter:\s*blur/)
     expect(css).toMatch(/var\(--glass-regular\)/)
+  })
+})
+
+describe('budget from the campaign', () => {
+  it('groups character levels, highest first', () => {
+    expect(groupsFromLevels([3, 5, 3, 0])).toEqual([{ level: 5, count: 1 }, { level: 3, count: 2 }, { level: 1, count: 1 }])
+    expect(groupsFromLevels([])).toEqual([])
+  })
+  it('compares players and levels however the groups are split', () => {
+    expect(sameGroups([{ count: 2, level: 3 }], [{ count: 1, level: 3 }, { count: 1, level: 3 }])).toBe(true)
+    expect(sameGroups([{ count: 4, level: 1 }], [{ count: 3, level: 1 }])).toBe(false)
   })
 })

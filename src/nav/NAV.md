@@ -1,14 +1,16 @@
 # Top bar (src/nav)
 
-The app's navigation. No brand header: the first tab, Home (your campaigns, `src/party/CampaignsHome.tsx`), is where every visit opens.
+The app's navigation. No brand header: the first tab, Home (your campaigns, `src/party/CampaignsHome.tsx`), is where a bare visit opens. The screen lives in the address bar as a hash route, so back, forward, refresh and links keep your place.
 
 | File | What |
 |------|------|
 | `items.ts` | Pure: `navItems({ isDm, partyDm, admin })` splits screens into tabs and the More menu; `canOpen(view.kind, ctx)` guards the DM pages (DM screen, Combat) and Admin so App bounces a blocked view home; `navKeyFor(view.kind)` picks the lit tab (character screens light Characters) |
+| `route.ts` | Pure: `View` (every screen App shows), `viewToHash`/`hashToView` (`#/`, `#/heroes`, `#/sheet/<id>`, `#/party/<id>`, `#/party/start`, `#/dm/requests`, `#/combat/<encounter>`...; unknown hashes open Home) |
+| `useHashView.ts` | `[view, go]` for App: `go(view)` pushes a history entry, `go(view, true)` replaces it (used when bouncing a blocked view home); back/forward update the view |
 | `AppNav.tsx` | The bar: tabs, More menu, player menu (children from App, language, accessibility). DM tab shows a badge with waiting requests |
 | `icons.tsx` | Line icons per tab |
 | `nav.css` | Reference example of the Liquid Glass standard (`src/design/DESIGN.md`). Wide: floating glass bar, sticky at the top, frostier as content scrolls under (`--glass-top`). At 640px and below: floating glass tab bar with short labels, frostier while content is below (`--glass-bottom`); lifts the dice button and PWA banner above it. Menus are `.glass-sheet` |
 
 Adding a screen: add its view kind to `NavKey` and `ITEM` in `items.ts`, put it in `main` (used every session) or `more` (reference, bookkeeping), add an icon path, and the label key in both locales. Removing one: drop it from the same places.
 
-Who sees what: the DM role comes from the party in play (picked on the Home screen, `src/party/active.ts`), not the account. Everyone gets Home first. Players then get Characters, Party, Ask the DM. The DM of the party in play gets DM screen, Combat and Party. A view the account may not open falls back to Home. The admin account (Ziv) also gets Admin first under More; the admin page has buttons to open the DM screen and the combat tracker (`canOpen` lets the admin in). Rules and Homebrew sit under More for everyone. Roles follow the open profile: the admin opened as a player (switcher or Admin → Open as) sees exactly that player's tabs; switching back to their own profile restores everything.
+Who sees what: the DM role comes from the party in play (picked on the Home screen, `src/party/active.ts`), not the account. Everyone gets Home and Characters first (a DM often plays in someone else's game too). Players then get Campaign and Ask the DM. The DM of the campaign in play gets DM screen and Campaign, with the Initiative tracker first under More (the DM screen's Run button opens it too); it is not called "Combat" so it can't be mixed up with the sheet's Combat mode. The group is called a campaign everywhere in the UI (EN and HE); "party" only means the characters in it. A view the account may not open falls back to Home. The admin account (Ziv) also gets Admin first under More; the admin page has buttons to open the DM screen and the combat tracker (`canOpen` lets the admin in). Rules and Homebrew sit under More for everyone. Roles follow the open profile: the admin opened as a player (switcher or Admin → Open as) sees exactly that player's tabs; switching back to their own profile restores everything.

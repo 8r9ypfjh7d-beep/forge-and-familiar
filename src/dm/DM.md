@@ -1,13 +1,13 @@
 # DM screen
 
-The Dungeon Master's own page: plan fights against the party's XP budget, look up and roll SRD monsters, a quick-rules screen, and an NPC list with a generator. It never reads players' characters; the DM types the party size and levels.
+The Dungeon Master's own page: plan fights against the party's XP budget, look up and roll SRD monsters, a quick-rules screen, and an NPC list with a generator. It reads only the levels of the characters in the campaign being run: the budget starts from them ("Fill from <campaign>" resets it), and the DM can still edit the groups.
 
 ## Files Covered
 
 | File | Purpose |
 |------|---------|
 | `types.ts` | `DmState` (party groups, encounter plans, NPCs), `emptyDmState` |
-| `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters`, NPC generator with an injected picker, `normalizeDm` |
+| `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `groupsFromLevels`/`sameGroups` (budget from the campaign's characters), `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters`, NPC generator with an injected picker, `normalizeDm` |
 | `store.ts` | `loadDm` / `syncDm` / `saveDm` / `onDmChanged`: device cache `ff.dm.v1.<userId>` synced with Supabase `dm_state` |
 | `DmScreen.tsx` | Top card (party and budget tiles), story reminders (src/requests), and tabs: Encounters, Monsters, Quick rules, NPCs, Requests |
 | `dm.css` | Liquid Glass styles (src/design/DESIGN.md), scoped to `.ff-sheet.ff-dm`: the page keeps the sheet's layout helpers but its cards, tabs, buttons, fields and the request cards on it use the `--glass-*` tokens |

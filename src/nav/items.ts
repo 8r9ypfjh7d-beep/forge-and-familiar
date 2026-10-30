@@ -24,7 +24,7 @@ const ITEM: Record<NavKey, NavItem> = {
   campaigns: { key: 'campaigns', label: 'nav.campaigns', short: 'nav.campaignsShort' },
   list: { key: 'list', label: 'nav.characters', short: 'nav.charactersShort' },
   party: { key: 'party', label: 'app.party' },
-  combat: { key: 'combat', label: 'app.combat' },
+  combat: { key: 'combat', label: 'app.combat', short: 'nav.combatShort' },
   requests: { key: 'requests', label: 'app.requests', short: 'nav.requestsShort' },
   dm: { key: 'dm', label: 'app.dm', short: 'nav.dmShort' },
   homebrew: { key: 'homebrew', label: 'app.homebrew' },
@@ -36,11 +36,12 @@ const ITEM: Record<NavKey, NavItem> = {
 const DM_ONLY: readonly string[] = ['dm', 'combat']
 
 /** Everyday screens get a tab; reference and bookkeeping screens sit under More.
- *  Everyone starts with Campaigns (the home screen). Players: Characters, Party, Ask the DM.
- *  The party's DM: DM screen, Combat, Party. The admin adds Admin. */
+ *  Everyone starts with Home (campaigns) and Characters, since a DM often plays in another game too.
+ *  Players then get Campaign and Ask the DM. The campaign's DM gets DM screen and Campaign, with the
+ *  initiative tracker under More (the DM screen's Run button opens it too). The admin adds Admin. */
 export function navItems({ partyDm, admin }: NavContext): { main: NavItem[]; more: NavItem[] } {
-  const main: NavKey[] = ['campaigns', ...(partyDm ? ['dm', 'combat', 'party'] as const : ['list', 'party', 'requests'] as const)]
-  const more: NavKey[] = ['rules', 'homebrew']
+  const main: NavKey[] = ['campaigns', 'list', ...(partyDm ? ['dm', 'party'] as const : ['party', 'requests'] as const)]
+  const more: NavKey[] = [...(partyDm ? ['combat'] as const : []), 'rules', 'homebrew']
   if (admin) more.unshift('admin')
   return { main: main.map(k => ITEM[k]), more: more.map(k => ITEM[k]) }
 }

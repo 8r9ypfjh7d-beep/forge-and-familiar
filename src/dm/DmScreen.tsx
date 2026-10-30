@@ -8,15 +8,18 @@ import { RollView, useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { DmRequestsTab, inbox, StoryReminders, useRequests } from '../requests'
-import { formatMod } from '../rules'
+import type { Party } from '../party'
+import { fetchPartyCharacters } from '../party/cloud'
+import { formatMod, totalLevel } from '../rules'
+import { getCharacter } from '../storage'
 import type { Ability } from '../rules'
 import {
   abilityMod, activePlan, addMonster, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterTypes,
-  NPC_TABLES, partyBudget, partySize, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
+  groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
 import { loadDm, onDmChanged, saveDm, syncDm } from './store'
-import type { DmState, EncounterPlan, Npc } from './types'
+import { emptyDmState, type DmState, type EncounterPlan, type Npc, type PartyGroup } from './types'
 import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
 import './dm.css'
@@ -37,8 +40,8 @@ const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
 
 type Update = (fn: (s: DmState) => DmState) => void
 
-/** The DM's own screen. Nothing here reads players' characters. */
-export function DmScreen({ userId, onRunEncounter, initialTab }: { userId: string; onRunEncounter: (encounterId: string) => void; initialTab?: DmTab }) {
+/** The DM's own screen. It reads only the levels of the characters in the campaign being run, for the XP budget. */
+export function DmScreen({ userId, onRunEncounter, initialTab, party }: { userId: string; onRunEncounter: (encounterId: string) => void; initialTab?: DmTab; party?: Party }) {
   const { t } = useI18n()
   const [state, setState] = useState<DmState | null>(null)
   const [monsters, setMonsters] = useState<Monster[]>([])
@@ -70,6 +73,12 @@ export function DmScreen({ userId, onRunEncounter, initialTab }: { userId: strin
     })
   }, [userId])
 
+  const fromParty = usePartyGroups(party)
+  // A budget never edited (the stock "4 players, level 1") follows the campaign's characters by itself.
+  useEffect(() => {
+    if (fromParty?.length && state && sameGroups(state.party, emptyDmState().party) && !sameGroups(fromParty, state.party)) update(s => ({ ...s, party: fromParty }))
+  }, [fromParty, state, update])
+
   if (!state) return null
   const plan = activePlan(state)
 
@@ -99,7 +108,7 @@ export function DmScreen({ userId, onRunEncounter, initialTab }: { userId: strin
 
   return (
     <div className="ff-sheet ff-dm">
-      <PartyCard state={state} update={update} plan={plan} />
+      <PartyCard state={state} update={update} plan={plan} fromParty={party && fromParty?.length ? { name: party.name, groups: fromParty } : undefined} />
       {requests && <StoryReminders list={requests} onOpen={() => setTab('requests')} />}
       <div className="cs-tabs">
         <div className="cs-tablist" role="tablist" aria-label={t('dm.tabs')}>
@@ -127,7 +136,27 @@ export function DmScreen({ userId, onRunEncounter, initialTab }: { userId: strin
 
 // ---------- Top card: the party and its XP budget ----------
 
-function PartyCard({ state, update, plan }: { state: DmState; update: Update; plan?: EncounterPlan }) {
+/** Level groups of the player characters in the campaign (the DM's own watching seat left out); null while loading. */
+function usePartyGroups(party?: Party): PartyGroup[] | null {
+  const [groups, setGroups] = useState<PartyGroup[] | null>(null)
+  const ids = party?.members.filter(m => m.userId !== party.dmId).flatMap(m => (m.characterId ? [m.characterId] : [])) ?? []
+  const key = ids.join(',')
+  useEffect(() => {
+    let live = true
+    const list = key ? key.split(',') : []
+    ;(async () => {
+      const local = await Promise.all(list.map(getCharacter))
+      const missing = list.filter((_, i) => !local[i])
+      const remote = new Map((missing.length ? await fetchPartyCharacters(missing).catch(() => []) : []).map(c => [c.id, c]))
+      const levels = list.flatMap((id, i) => { const c = local[i] ?? remote.get(id); return c ? [totalLevel(c)] : [] })
+      if (live) setGroups(groupsFromLevels(levels))
+    })()
+    return () => { live = false }
+  }, [key])
+  return groups
+}
+
+function PartyCard({ state, update, plan, fromParty }: { state: DmState; update: Update; plan?: EncounterPlan; fromParty?: { name: string; groups: PartyGroup[] } }) {
   const { t } = useI18n()
   const budget = partyBudget(state.party)
   const xp = plan ? planXp(plan) : 0
@@ -164,6 +193,11 @@ function PartyCard({ state, update, plan }: { state: DmState; update: Update; pl
         <button className="btn small" onClick={() => update(s => ({ ...s, party: [...s.party, { count: 1, level: s.party.at(-1)?.level ?? 1 }] }))}>
           {t('dm.addGroup')}
         </button>
+        {fromParty && !sameGroups(fromParty.groups, state.party) && (
+          <button className="btn small" onClick={() => update(s => ({ ...s, party: fromParty.groups }))}>
+            {t('dm.fromParty', { name: fromParty.name, count: partySize(fromParty.groups) })}
+          </button>
+        )}
       </div>
       <div className="dm-budget">
         <h2 className="sub-title">{t('dm.budget')}</h2>
