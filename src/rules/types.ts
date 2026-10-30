@@ -62,8 +62,8 @@ export interface RaceRules {
   uses?: RaceUse[]
   /** Picks beyond Dragonborn's `traitChoice`, each with effects. */
   choices?: TraitChoice[]
-  /** Unarmored AC: base (+ DEX when `dex`); a shield still adds (Tortle 17, Lizardfolk/Locathah 13 + DEX). */
-  naturalArmor?: { base: number; dex: boolean }
+  /** Unarmored AC: base (+ DEX when `dex`, + `ability` modifier); a shield still adds (Tortle 17, Locathah 12 + DEX, Loxodon 12 + CON). */
+  naturalArmor?: { base: number; dex: boolean; ability?: Ability }
   /** Languages known on top of the race's (subraces: Mark of Hospitality adds none, half-elf variants none). */
   languages?: string[]
   skillProficiencies?: SkillId[]
@@ -90,6 +90,10 @@ export interface Subrace extends RaceRules {
   freeAbilityBonuses?: { count: number; exclude: Ability[] }
   /** Race traits this subrace swaps out (Mark of Finding half-orc loses Menacing). */
   removesTraits?: string[]
+  /** The subrace's skills replace the race's (Mark of Finding half-orc loses Menacing's Intimidation). */
+  replacesSkills?: boolean
+  /** Tool picks the subrace adds (Mark of Making: one artisan's tool). */
+  toolChoices?: { count: number; from: string[] }
   /** Skills of the player's choice; replaces the race's count (half-elf variants: 0, Variant Human: 1). */
   freeSkillChoices?: number
   /** Variant Human: one feat of the player's choice (any 2014 feat), saved as originFeatId. */

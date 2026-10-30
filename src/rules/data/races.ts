@@ -117,11 +117,15 @@ export const RACES: Race[] = [
 export const BOOK_RACES: Record<RulesEdition, Race[]> = { '2014': [...BOOK_RACES_2014, ...MOTM_RACES, ...LEGACY_RACES, ...SETTING_RACES], '2024': [...BOOK_SPECIES_2024] }
 export const BOOK_SUBRACES: Record<RulesEdition, Subrace[]> = { '2014': [...BOOK_SUBRACES_2014, ...SETTING_SUBRACES], '2024': [] }
 
-/** Attach subraces to their race (by parentRaceId); unknown parents are dropped. */
+/**
+ * Attach subraces to their race (by parentRaceId); unknown parents are dropped. A race that had no subraces
+ * stays playable without one (Human with dragonmarks).
+ */
 const attach = (list: Race[], subraces: Subrace[]): Race[] =>
   list.map(r => {
     const extra = subraces.filter(s => s.parentRaceId === r.id)
-    return extra.length ? { ...r, subraces: [...(r.subraces ?? []), ...extra] } : r
+    if (!extra.length) return r
+    return { ...r, subraces: [...(r.subraces ?? []), ...extra], ...(r.subraces?.length ? {} : { subraceOptional: true }) }
   })
 
 /** SRD then book races of an edition, book subraces attached; 2024 then offers the legacy races. */

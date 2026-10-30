@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { stepIssues } from '../builder/validate'
 import { explain } from '../explain/math'
 import type { Character } from '../model/character'
+import { explainKey } from '../builder/why'
+import { SETTING_RACES, SETTING_SUBRACES } from './data/books/races.settings'
+import { he } from '../i18n/locales/he'
 import {
-  createCharacter, derive, getAbilityScores, getLanguages, getTools, raceProfile, raceUseId, racialBonuses, registerHomebrewRaces,
-  type CharacterDraft, type Race, type Subrace,
+  allRaces, createCharacter, derive, getAbilityScores, getLanguages, getTools, raceById, raceProfile, raceUseId, racialBonuses,
+  registerHomebrewRaces, type CharacterDraft, type Race, type Subrace,
 } from './index'
 
 // A made-up race that uses every race rule, registered like homebrew.
@@ -98,5 +101,63 @@ describe('race rules', () => {
   it('asks for every trait pick, and allows no subrace when optional', () => {
     expect(stepIssues('race', draft())).toEqual([])
     expect(stepIssues('race', draft({ traitChoices: { hide: 'swim', knack: 'insight' } }))).toHaveLength(1)
+  })
+})
+
+describe('setting races (Eberron, Ravnica, Theros, Spelljammer, Ravenloft and more)', () => {
+  const book = (over: Partial<CharacterDraft>) => draft({ freeAbilityBonuses: [], traitChoices: {}, chosenLanguages: [], ...over })
+  const all = SETTING_RACES
+  const subs = SETTING_SUBRACES
+
+  it('are offered in 2014 with their dragonmarks attached', () => {
+    const ids = allRaces('2014').map(r => r.id)
+    for (const id of ['warforged', 'kalashtar', 'loxodon', 'leonin', 'autognome', 'thri-kreen', 'dhampir', 'hexblood', 'kender', 'grung']) expect(ids).toContain(id)
+    expect(raceById('human')?.subraceOptional).toBe(true)
+    expect(raceById('human')?.subraces?.map(s => s.id)).toContain('mark-of-making')
+    expect(raceById('halfling')?.subraces?.map(s => s.id)).toEqual(expect.arrayContaining(['lightfoot', 'mark-of-healing', 'mark-of-hospitality']))
+  })
+
+  it('explains every race, subrace and trait in English and Hebrew', () => {
+    const traits = new Set([...all, ...subs, ...all.flatMap(r => r.subraces ?? [])].flatMap(r => [...r.traits, ...(r.choices ?? []).map(c => c.name)]))
+    expect(all.filter(r => !explainKey('race', r.id)).map(r => r.id)).toEqual([])
+    expect([...subs, ...all.flatMap(r => r.subraces ?? [])].filter(s => !explainKey('sub2014', s.id)).map(s => s.id)).toEqual([])
+    expect([...traits].filter(t => !explainKey('trait', t))).toEqual([])
+    const names = [...all, ...subs, ...all.flatMap(r => r.subraces ?? [])].map(r => `race.${r.id}`)
+    expect([...names, ...[...traits].map(t => `trait.${t}`)].filter(k => !(k in he.terms))).toEqual([])
+  })
+
+  it('applies traits on the sheet', () => {
+    const warforged = derive(make(book({ raceId: 'warforged', freeAbilityBonuses: ['str'], classes: [{ classId: 'wizard', level: 1 }] })))
+    expect(warforged.armorClass.value).toBe(10 + 2 + 1)
+    expect(warforged.defenses.resistances).toContain('poison')
+    const loxodon = make(book({ raceId: 'loxodon', classes: [{ classId: 'wizard', level: 1 }] }))
+    expect(derive(loxodon).armorClass).toMatchObject({ value: 12 + 2, source: 'Natural Armor' })
+    expect(explain(loxodon, 'ac')?.total).toBe(14)
+    expect(derive(make(book({ raceId: 'dhampir', freeAbilityBonuses: ['dex', 'dex', 'con'] }))).speeds.climb).toBe(35)
+    expect(derive(make(book({ raceId: 'hexblood', freeAbilityBonuses: ['cha', 'cha', 'con'] }))).itemSpells.map(s => s.spell)).toEqual(['Disguise Self', 'Hex'])
+    expect(derive(make(book({ raceId: 'vedalken' }))).saves.int.advantage).toBe(true)
+    expect(derive(make(book({ raceId: 'kender', freeAbilityBonuses: ['dex', 'dex', 'cha'], traitChoices: { kenderAptitude: 'stealth' } }))).skills.stealth.proficient).toBe(true)
+    expect(derive(make(book({ raceId: 'leonin' }))).attacks.some(a => a.name === 'Claws')).toBe(true)
+    expect(derive(make(book({ raceId: 'leonin' }))).resources.find(r => r.id === raceUseId('Daunting Roar'))).toMatchObject({ max: 1, recharge: 'short' })
+  })
+
+  it('handles dragonmarks that replace the race scores and traits', () => {
+    const making = book({ raceId: 'human', subraceId: 'mark-of-making', freeAbilityBonuses: ['dex'] })
+    expect(racialBonuses(making)).toMatchObject({ int: 2, dex: 1, str: 0, cha: 0 })
+    expect(derive(make(making)).itemSpells.map(s => s.spell)).toEqual(['Mending', 'Magic Weapon'])
+    const finding = raceProfile(book({ raceId: 'half-orc', subraceId: 'mark-of-finding' }))
+    expect(finding.traits).not.toContain('Menacing')
+    expect(finding.skillProficiencies).toEqual([])
+    expect(raceProfile(book({ raceId: 'half-elf', subraceId: 'mark-of-storm' })).freeSkillChoices).toBe(0)
+    expect(stepIssues('race', book({ raceId: 'human' }))).toEqual([])
+  })
+
+  it('opens Simic Hybrid\'s second enhancement at 5th level', () => {
+    const d = book({ raceId: 'simic-hybrid', traitChoices: { enhancement1: 'nimble-climber' } })
+    expect(stepIssues('race', d)).toEqual([])
+    expect(derive(make(d)).speeds.climb).toBe(30)
+    const five = { ...d, classes: [{ classId: 'fighter', level: 5 }] }
+    expect(stepIssues('race', five)).toHaveLength(1)
+    expect(derive(make({ ...five, traitChoices: { enhancement1: 'nimble-climber', enhancement5: 'carapace' } })).armorClass.value).toBe(derive(make(five)).armorClass.value + 1)
   })
 })

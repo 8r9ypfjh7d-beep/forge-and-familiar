@@ -15,6 +15,7 @@ import { explainMetamagicHe, metamagicTermsHe } from './explain.metamagic.he'
 import { explainSpeciesHe, speciesTermsHe } from './explain.species.he'
 import { explainRacesHe, racesTermsHe } from './explain.races.he'
 import { explainRaces2014He, racesTerms2014He } from './explain.races2014.he'
+import { explainSettingsHe, settingTermsHe } from './explain.settings.he'
 import { itemsHe } from './items.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
 
@@ -33,6 +34,7 @@ const messages: Messages = {
   ...explainFeatsHe,
   ...explainRaces2014He,
   ...explainArtificerHe,
+  ...explainSettingsHe,
   ...itemsHe,
   ...picks2014He,
   'common.back': 'חזרה',
@@ -2513,6 +2515,7 @@ const terms: Terms = {
   ...proficiencyTermsHe,
   ...metamagicTermsHe,
   ...speciesTermsHe,
+  ...settingTermsHe,
   ...backgroundTermsHe,
   ...pickTermsHe,
   ...racesTermsHe,

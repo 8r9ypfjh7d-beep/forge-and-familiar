@@ -39,7 +39,7 @@ export interface RaceProfile {
   effects: { source: string; effect: ItemEffect }[]
   /** Limited-use traits in play. */
   uses: RaceUse[]
-  naturalArmor?: { base: number; dex: boolean }
+  naturalArmor?: { base: number; dex: boolean; ability?: Ability }
   naturalWeapons: { name: string; damage: string; type: string }[]
   initiativeProficiency: boolean
   hpPerLevel: number
@@ -87,7 +87,7 @@ export function raceProfile(c: RaceInput): RaceProfile {
     size,
     speed: subrace?.speed ?? race?.speed ?? 30,
     traits: [...(race?.traits ?? []).filter(t => !removed.has(t)), ...(subrace?.traits ?? [])],
-    skillProficiencies: uniq(parts.flatMap(p => p.skillProficiencies ?? [])),
+    skillProficiencies: uniq((subrace?.replacesSkills ? [subrace] : parts).flatMap(p => p.skillProficiencies ?? [])),
     freeSkillChoices: subrace?.freeSkillChoices ?? race?.freeSkillChoices ?? 0,
     languages: uniq(parts.flatMap(p => p.languages ?? [])),
     languageChoices: (race?.languageChoices ?? 0) + (subrace?.languageChoices ?? 0),
@@ -111,6 +111,10 @@ export function raceProfile(c: RaceInput): RaceProfile {
 /** Sheet effects from the race, subrace and trait picks (for activeItemEffects). */
 export const raceEffects = (c: Partial<RaceInput>): { source: string; effect: ItemEffect }[] =>
   c.raceId ? raceProfile(c as RaceInput).effects : []
+
+/** Natural armor AC with these modifiers, or 0 without natural armor. */
+export const naturalArmorAc = (n: RaceProfile['naturalArmor'], mods: Record<Ability, number>) =>
+  n ? n.base + (n.dex ? mods.dex : 0) + (n.ability ? mods[n.ability] : 0) : 0
 
 /** Resource id for a limited-use racial trait. */
 export const raceUseId = (trait: string) => `race:${slug(trait)}`

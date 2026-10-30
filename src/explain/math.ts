@@ -5,7 +5,7 @@ import type { Character } from '../model/character'
 import {
   applyItemAbilities, auraOfProtection, effectsOf, entryItem, itemBonuses,
   ABILITY_NAMES, SKILLS, abilityMod, backgroundBonuses, getBackground, classById, derive, featBonus, featEffects, fixedRacialBonuses, getAbilityMods, getAbilityScores,
-  getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceProfile, rulesEdition, totalLevel, flexibleBonuses,
+  getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, naturalArmorAc, raceProfile, rulesEdition, totalLevel, flexibleBonuses,
   type Ability, type ClassDef, type SkillId,
 } from '../rules'
 
@@ -142,11 +142,12 @@ function armorClass(c: Character): StatMath {
       if (mods[extra] > best) { best = mods[extra]; from = def }
     }
     const natural = raceProfile(c).naturalArmor
-    const naturalAc = natural ? natural.base + (natural.dex ? mods.dex : 0) : 0
+    const naturalAc = naturalArmorAc(natural, mods)
     if (natural && naturalAc > 10 + mods.dex + best) {
       lines.length = 0
       lines.push({ label: 'Natural Armor', value: natural.base })
       if (natural.dex) lines.push({ label: 'DEX modifier', value: mods.dex })
+      if (natural.ability) lines.push({ label: `${ABBR(natural.ability)} modifier`, value: mods[natural.ability] })
     } else if (from) lines.push({ label: `${ABBR(from.unarmoredDefense!)} modifier (Unarmored Defense, ${from.name})`, value: best })
   }
   const featAc = featBonus(c, 'ac') + (armor ? featBonus(c, 'armoredAc') : 0)

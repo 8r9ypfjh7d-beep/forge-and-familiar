@@ -200,11 +200,12 @@ export function fixedTools(c: RaceBg & Classes): string[] {
 
 /** Tool pick groups from race, first class and background, e.g. Dwarf artisan's tools, Bard instruments, Soldier gaming set. */
 export function toolPickGroups(c: RaceBg & Classes): { source: string; count: number; from: string[] }[] {
-  const race = raceProfile(c).race
+  const { race, subrace: sub } = raceProfile(c)
   const first = classById(c.classes[0]?.classId ?? '', rulesEdition(c))
   const bg = getBackground(c)
   return [
     ...(race?.toolChoices ? [{ source: race.name, ...race.toolChoices }] : []),
+    ...(sub?.toolChoices ? [{ source: sub.name, ...sub.toolChoices }] : []),
     ...(first?.toolChoices ? [{ source: first.name, ...first.toolChoices }] : []),
     ...(bg?.toolChoices ? [{ source: bg.name, ...bg.toolChoices }] : []),
   ]

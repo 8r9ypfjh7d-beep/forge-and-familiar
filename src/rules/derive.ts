@@ -17,7 +17,7 @@ import { rulesEdition, uses2024Spells } from './edition'
 import { effectsOf, itemBonus } from './itemEffects'
 import { racialSkills, racialWeapons } from './origin'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
-import { pickedOptions, raceProfile, raceUseId } from './race'
+import { naturalArmorAc, pickedOptions, raceProfile, raceUseId } from './race'
 import { optionPickSlots } from './optionPicks'
 import { slug, subclassFeatures, subclassOf } from './subclass'
 import {
@@ -244,9 +244,9 @@ export function getArmorClass(c: Character): { value: number; source: string } {
       }
     }
     // Natural armor (Tortle, Lizardfolk, Locathah): a shield still adds.
-    const natural = raceProfile(c).naturalArmor
-    if (natural && natural.base + (natural.dex ? mods.dex : 0) > value) {
-      value = natural.base + (natural.dex ? mods.dex : 0)
+    const natural = naturalArmorAc(raceProfile(c).naturalArmor, mods)
+    if (natural > value) {
+      value = natural
       source = 'Natural Armor'
     }
     for (const { subclass } of classesOf(c)) {
