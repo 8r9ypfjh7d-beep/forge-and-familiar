@@ -4,6 +4,7 @@ import {
   abilityMod, createCharacter, derive, getCritRange, getDamageRiders, getAbilityScores, getArmorClass, getAttacks, getMaxHp,
   getResources, getSpellSlots, pointBuyCost, assignRolled, usesRolledPool, ROLLED_NOTATION, canSwapOrigin, racialLanguages, racialSkills, racialWeapons,
   type CharacterDraft,
+  LANGUAGES, TOOLS, TOOL_GROUPS, languageGroups, tableLanguages,
 } from './index'
 
 const draft = (over: Partial<CharacterDraft> = {}): CharacterDraft => ({
@@ -227,5 +228,25 @@ describe('homebrew items', () => {
     const c = make({}, ch => equipOnly(ch, 'hb:p1:frost-brand'))
     expect(getAttacks(c)[0]).toMatchObject({ name: 'Frost Brand', damage: '1d10+3', proficient: true })
     registerHomebrewItems([])
+  })
+})
+
+describe('languages and tools', () => {
+  it('lists every language once per edition, with the edition\'s own table first', () => {
+    for (const edition of ['2014', '2024'] as const) {
+      const listed = languageGroups(edition).flatMap(g => g.languages)
+      expect(new Set(listed).size).toBe(listed.length)
+      expect([...listed].sort()).toEqual([...LANGUAGES].sort())
+    }
+    expect(languageGroups('2014')[1]).toMatchObject({ id: 'exotic' })
+    expect(languageGroups('2024')[0].languages).toContain('Draconic')
+    expect(languageGroups('2024')[0].languages).toContain('Common Sign Language')
+    expect(tableLanguages('2024')).not.toContain('Druidic')
+    expect(LANGUAGES).toEqual(expect.arrayContaining(['Aquan', 'Gith', 'Leonin', 'Quori', 'Loxodon', 'Minotaur', 'Chondathan', 'Sahuagin']))
+  })
+
+  it('groups every tool, including air and space vehicles', () => {
+    expect(TOOL_GROUPS.flatMap(g => g.tools)).toEqual(TOOLS)
+    expect(TOOLS).toEqual(expect.arrayContaining(['Vehicles (air)', 'Vehicles (space)', 'Yarting']))
   })
 })

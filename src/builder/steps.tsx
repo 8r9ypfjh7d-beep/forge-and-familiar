@@ -19,6 +19,7 @@ import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validat
 import { Explain, ExplainList, Why } from './Why'
 import { explainKey, featureKey, pitchKey, type WhyId } from './why'
 import { groupKitItems } from './kit'
+import { PickOrWrite, useLanguageGroups, useToolGroups } from './ProficiencyPick'
 
 export interface StepProps {
   draft: CharacterDraft
@@ -761,7 +762,7 @@ function BackgroundExplain({ kind, bg, id }: { kind: 'bg' | 'bg2024'; bg?: Backg
 
 /** PHB "Customizing a Background": any two skills, two tools or languages in total, and a feature. */
 function CustomBackgroundForm({ draft, update }: StepProps) {
-  const { t, skill, term } = useI18n()
+  const { t, skill } = useI18n()
   const cb: CustomBackground = draft.customBackground ?? { name: '', feature: '', skills: [], tools: [], languages: [] }
   const set = (patch: Partial<CustomBackground>) => update({ customBackground: { ...cb, ...patch }, chosenSkills: patch.skills ? [] : draft.chosenSkills })
   const toggleSkill = (s: SkillId) => {
@@ -802,26 +803,67 @@ function CustomBackgroundForm({ draft, update }: StepProps) {
       </div>
       <p className="small strong">{t('builder.custom.profs')}</p>
       <div className="row">
-        {[0, 1].map(i => (
-          <select key={i} value={profs[i] ?? ''} aria-label={t('builder.custom.profN', { n: i + 1 })} onChange={e => setProf(i, e.target.value)}>
-            <option value="">—</option>
-            <optgroup label={t('builder.languagesTitle')}>
-              {LANGUAGES.filter(l => !known.includes(l) && (profs[i] === `lang:${l}` || !profs.includes(`lang:${l}`))).map(l => <option key={l} value={`lang:${l}`}>{term('language', l, l)}</option>)}
-            </optgroup>
-            <optgroup label={t('builder.toolsTitle')}>
-              {TOOLS.filter(x => profs[i] === `tool:${x}` || !profs.includes(`tool:${x}`)).map(x => <option key={x} value={`tool:${x}`}>{term('tool', x, x)}</option>)}
-            </optgroup>
-          </select>
-        ))}
+        {[0, 1].map(i => <CustomBackgroundProf key={i} i={i} profs={profs} known={known} edition={rulesEdition(draft)} onChange={v => setProf(i, v)} />)}
       </div>
       <p className="muted small">{t('builder.custom.gear')}</p>
     </div>
   )
 }
 
+/** One of the custom background's two picks: any language or tool, or one the player writes. */
+function CustomBackgroundProf({ i, profs, known, edition, onChange }: { i: number; profs: string[]; known: string[]; edition: RulesEdition; onChange: (v: string) => void }) {
+  const { t } = useI18n()
+  const taken = (v: string) => profs[i] !== v && profs.includes(v)
+  const langs = useLanguageGroups(edition, l => known.includes(l) || taken(`lang:${l}`), 'lang:')
+  const tools = useToolGroups(x => taken(`tool:${x}`), undefined, 'tool:')
+  return (
+    <PickOrWrite
+      value={profs[i] ?? ''}
+      onChange={onChange}
+      groups={[...langs, ...tools]}
+      write={[{ prefix: 'lang:', label: t('builder.writeLanguage') }, { prefix: 'tool:', label: t('builder.writeTool') }]}
+      placeholder="—"
+      ariaLabel={t('builder.custom.profN', { n: i + 1 })}
+    />
+  )
+}
+
+/** One language pick: the edition's table, every other official language, or one the player writes. */
+function LanguagePick({ i, langs, fixedLangs, edition, onChange }: { i: number; langs: string[]; fixedLangs: string[]; edition: RulesEdition; onChange: (v: string) => void }) {
+  const { t } = useI18n()
+  const groups = useLanguageGroups(edition, l => fixedLangs.includes(l) || (langs[i] !== l && langs.includes(l)))
+  return (
+    <PickOrWrite
+      value={langs[i] ?? ''}
+      onChange={onChange}
+      groups={groups}
+      write={[{ prefix: '', label: t('builder.writeLanguage') }]}
+      placeholder={t('builder.pickLanguage', { n: i + 1 })}
+      ariaLabel={t('builder.pickLanguage', { n: i + 1 })}
+    />
+  )
+}
+
+/** One tool pick: the pick's own list first, then every other tool by kind, or one the player writes. */
+function ToolPick({ i, tools, known, from, onChange }: { i: number; tools: string[]; known: string[]; from: string[]; onChange: (v: string) => void }) {
+  const { t } = useI18n()
+  const groups = useToolGroups(x => known.includes(x) || (tools[i] !== x && tools.includes(x)), from.length < TOOLS.length ? from : undefined)
+  return (
+    <PickOrWrite
+      value={tools[i] ?? ''}
+      onChange={onChange}
+      groups={groups}
+      write={[{ prefix: '', label: t('builder.writeTool') }]}
+      placeholder="—"
+      ariaLabel={t('builder.pickTool', { n: i + 1 })}
+    />
+  )
+}
+
 /** Language and tool picks from race, class and background. */
 function LanguagesAndTools({ draft, update }: StepProps) {
   const { t, term } = useI18n()
+  const edition = rulesEdition(draft)
   const fixedLangs = fixedLanguages(draft)
   const langCount = languagePickCount(draft)
   const langs = draft.chosenLanguages ?? []
@@ -839,6 +881,10 @@ function LanguagesAndTools({ draft, update }: StepProps) {
     next[i] = v
     update({ chosenTools: next })
   }
+  // A name the player wrote has no line of ours; say so instead of calling it group homebrew.
+  const explained = (kind: 'language' | 'tool', x: string) => ({
+    name: term(kind, x, x), key: explainKey(kind, x), text: (kind === 'language' ? LANGUAGES : TOOLS).includes(x) ? undefined : t('builder.writtenOwn'),
+  })
   let offset = 0
   return (
     <div className="field">
@@ -847,14 +893,11 @@ function LanguagesAndTools({ draft, update }: StepProps) {
       {langCount > 0 && (
         <div className="row">
           {Array.from({ length: langCount }, (_, i) => (
-            <select key={i} value={langs[i] ?? ''} aria-label={t('builder.pickLanguage', { n: i + 1 })} onChange={e => setLang(i, e.target.value)}>
-              <option value="">{t('builder.pickLanguage', { n: i + 1 })}</option>
-              {LANGUAGES.filter(l => !fixedLangs.includes(l) && (langs[i] === l || !langs.includes(l))).map(l => <option key={l} value={l}>{term('language', l, l)}</option>)}
-            </select>
+            <LanguagePick key={i} i={i} langs={langs} fixedLangs={fixedLangs} edition={edition} onChange={v => setLang(i, v)} />
           ))}
         </div>
       )}
-      <ExplainList items={[...fixedLangs, ...langs.filter(Boolean)].map(l => ({ name: term('language', l, l), key: explainKey('language', l) }))} />
+      <ExplainList items={[...fixedLangs, ...langs.filter(Boolean)].map(l => explained('language', l))} />
       <label>{t('builder.toolsTitle')} <Why id="tools" /></label>
       <p className="small">{t('builder.knownTools', { list: known.map(x => term('tool', x, x)).join(', ') || t('common.noneLower') })}</p>
       {groups.map(g => {
@@ -863,24 +906,13 @@ function LanguagesAndTools({ draft, update }: StepProps) {
         return (
           <div key={g.source} className="row">
             <span className="small">{t('builder.toolsFrom', { source: g.source, count: g.count })}</span>
-            {Array.from({ length: g.count }, (_, k) => {
-              const i = start + k
-              return (
-                <select key={i} value={tools[i] ?? ''} aria-label={t('builder.pickTool', { n: i + 1 })} onChange={e => setTool(i, e.target.value)}>
-                  <option value="">—</option>
-                  {g.from.filter(x => !known.includes(x) && (tools[i] === x || !tools.includes(x))).map(x => <option key={x} value={x}>{term('tool', x, x)}</option>)}
-                  {g.from.length < TOOLS.length && (
-                    <optgroup label={t('builder.otherTools')}>
-                      {TOOLS.filter(x => !g.from.includes(x) && !known.includes(x) && (tools[i] === x || !tools.includes(x))).map(x => <option key={x} value={x}>{term('tool', x, x)}</option>)}
-                    </optgroup>
-                  )}
-                </select>
-              )
-            })}
+            {Array.from({ length: g.count }, (_, k) => (
+              <ToolPick key={start + k} i={start + k} tools={tools} known={known} from={g.from} onChange={v => setTool(start + k, v)} />
+            ))}
           </div>
         )
       })}
-      <ExplainList items={[...known, ...tools.filter(Boolean)].map(x => ({ name: term('tool', x, x), key: explainKey('tool', x) }))} />
+      <ExplainList items={[...known, ...tools.filter(Boolean)].map(x => explained('tool', x))} />
     </div>
   )
 }

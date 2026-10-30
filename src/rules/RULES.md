@@ -23,7 +23,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `data/books/martial.ts`, `casters.ts` | Barbarian/fighter/monk/rogue and the caster classes' book subclasses (2014, 2024, and `*_REWRITTEN` ids that 2024 redid so they are not also offered as legacy) |
 | `data/books/helpers.ts` | Builders for the book data: source names, `f` (feature), `short`/`long` uses, `fx`, `resist`, `dark`, `move`, `fullSpells`/`halfSpells`/`spells2024`, `legacy` |
 | `data/classFeatures2014.ts` | `FEATURES_2014`: every 2014 class feature from level 1 to 20, with `effects` (sheet changes) and `detail` steps (what grows with level) |
-| `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one SRD per class, listed first), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (languages, tools), items |
+| `data/*.ts` | SRD 5.1 content: races, classes, `subclasses.ts` (one SRD per class, listed first), `feats.ts` (Grappler), `backgrounds.ts` (Acolyte + custom), `proficiencies.ts` (every official language and tool by name: `languageGroups(edition)` puts the edition's standard/exotic or standard/rare table first, then class secret languages, Primordial dialects, sign languages, species, setting and monster tongues; `TOOL_GROUPS` by kind, incl. SCAG instruments and air/space vehicles; `tableLanguages()` for random picks), items |
 | `data/srd52/*.ts` | SRD 5.2 (2024) content: `SPECIES`, `CLASSES_2024`, `SUBCLASSES_2024`, `BACKGROUNDS_2024`, `FEATS_2024` |
 | `rules.test.ts`, `multiclass.test.ts`, `choices.test.ts`, `srd52.test.ts`, `classFeatures.test.ts` | Engine tests |
 

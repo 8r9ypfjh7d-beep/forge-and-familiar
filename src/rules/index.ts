@@ -23,7 +23,12 @@ export { activeSubclasses, blankSubclass, subclassFeatures, subclassOf, subclass
 export { FEATS, allFeats, featById, registerHomebrewFeats } from './data/feats'
 export { FEATS_2024 } from './data/srd52/feats'
 export { SUBCLASSES_2024 } from './data/srd52/subclasses'
-export { LANGUAGES, STANDARD_LANGUAGES, EXOTIC_LANGUAGES, TOOLS, ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS, OTHER_TOOLS } from './data/proficiencies'
+export {
+  LANGUAGES, STANDARD_LANGUAGES, EXOTIC_LANGUAGES, STANDARD_LANGUAGES_2024, RARE_LANGUAGES_2024, SECRET_LANGUAGES, PRIMORDIAL_DIALECTS,
+  SIGN_LANGUAGES, SPECIES_LANGUAGES, SETTING_LANGUAGES, MONSTER_LANGUAGES, languageGroups, tableLanguages,
+  TOOLS, ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS, OTHER_TOOLS, TOOL_GROUPS,
+  type LanguageGroupId, type ToolGroupId,
+} from './data/proficiencies'
 export { ITEMS, entryItem, itemById, registerHomebrewItems } from './data/items'
 export { SKILLS, ALL_SKILLS } from './data/skills'
 export * from './multiclass'

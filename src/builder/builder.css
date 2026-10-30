@@ -171,3 +171,7 @@
 .rolled-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); list-style: none; margin: 0; margin-block-start: var(--sp-2); padding: 0; }
 .rolled-chips li { display: inline-flex; align-items: baseline; gap: var(--sp-2); }
 .rolled-dice { display: inline-flex; gap: var(--sp-1); }
+
+/* Language/tool pick with an optional "write your own" text box beside it. */
+.pick-or-write { display: inline-flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.pick-or-write .pick-write { inline-size: 11em; max-inline-size: 100%; }

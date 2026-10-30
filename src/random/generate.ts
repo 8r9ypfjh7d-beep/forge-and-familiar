@@ -2,7 +2,7 @@
 // Randomness lives here, not in src/rules; pass a seeded rng in tests.
 import { grantedSkills, skillPicks, subclassSlots } from '../builder/validate'
 import {
-  ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, LANGUAGES, RACES, SPECIES, STANDARD_ARRAY,
+  ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, tableLanguages, RACES, SPECIES, STANDARD_ARRAY,
   allFeats, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor, fixedLanguages, fixedTools,
   getBackground, languagePickCount, raceById, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type RulesEdition, type SkillId,
@@ -82,7 +82,7 @@ export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng
   d.chosenSkills = [...fromClass, ...any]
 
   const knownLangs = fixedLanguages(d)
-  d.chosenLanguages = pickSome(LANGUAGES.filter(l => !knownLangs.includes(l)), languagePickCount(d), rng)
+  d.chosenLanguages = pickSome(tableLanguages(edition).filter(l => !knownLangs.includes(l)), languagePickCount(d), rng)
   const knownTools = fixedTools(d)
   const tools: string[] = []
   for (const g of toolPickGroups(d)) tools.push(...pickSome(g.from.filter(x => !knownTools.includes(x) && !tools.includes(x)), g.count, rng))

@@ -92,6 +92,14 @@ describe('builder validation', () => {
     expect(stepWarnings('abilities', dwarf)).toEqual(['You moved your racial bonuses. Many tables allow it; check with your DM.'])
   })
 
+  it('takes any official or written-in language, and warns for another class\'s secret language', () => {
+    const skills = { ...base(), chosenSkills: ['acrobatics', 'athletics', 'deception', 'insight', 'intimidation', 'investigation'] as const }
+    const d = { ...skills, chosenSkills: [...skills.chosenSkills], chosenLanguages: ['Elderspeak', 'Chondathan', 'Druidic'] }
+    expect(stepIssues('skills', d).filter(m => m.includes('language'))).toEqual([])
+    expect(stepWarnings('skills', d)).toContain('Druidic is normally taught only by its class (Druid or Rogue). Fine if your DM agrees.')
+    expect(stepWarnings('skills', { ...d, chosenLanguages: ['Elderspeak', 'Chondathan', 'Gith'] })).toEqual([])
+  })
+
   it('requires a subclass at the right level and dragonborn ancestry', () => {
     expect(stepIssues('class', { ...base(), classes: [{ classId: 'rogue', level: 2 }] })).toEqual([])
     expect(stepIssues('class', { ...base(), classes: [{ classId: 'rogue', level: 3 }] })).toEqual(['Choose a Roguish Archetype for your Rogue.'])
