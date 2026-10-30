@@ -8,7 +8,7 @@ export const WHY_TOPICS = [
   'edition', 'originFeat', 'bgBonus',
   'subrace', 'traits', 'languages', 'size', 'speed', 'ancestry', 'originSwap',
   'level', 'savingThrows', 'proficiencies', 'features', 'hitDie', 'primary', 'casting', 'subclassChoice', 'multiclass',
-  'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder', 'choice.metamagic', 'choice.blessedStrikes', 'choice.elementalFury', 'choice.favoredEnemy', 'choice.naturalExplorer', 'choice.tashas', 'invocations', 'pactBoon',
+  'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder', 'choice.metamagic', 'choice.blessedStrikes', 'choice.elementalFury', 'choice.favoredEnemy', 'choice.naturalExplorer', 'choice.tashas', 'invocations', 'pactBoon', 'options.infusion', 'options.replicate',
   'pick.expertise', 'pick.skill', 'pick.mastery', 'epicBoon',
   'method.standard', 'method.pointBuy', 'method.rolled', 'method.manual', 'reroll', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',
   'background', 'customBackground', 'skills', 'tools',
@@ -28,7 +28,7 @@ export type ExplainKind =
   | 'race' | 'race2024' | 'class' | 'about' | 'sub2014' | 'sub2024' | 'subclass'
   | 'feature' | 'subfeature' | 'invocation' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool' | 'pick'
   | 'metamagic' | 'metamagic2024' | 'feat' | 'feat2024'
-  | 'pick' | 'opt'
+  | 'pick' | 'opt' | 'option'
 
 /** Message key that explains this option, or none (homebrew and other content without one). */
 export function explainKey(kind: ExplainKind, id: string): MessageKey | undefined {
@@ -46,6 +46,9 @@ export const featureKey = (name: string, subclassId?: string): MessageKey | unde
 /** A Metamagic option's explanation for the character's edition; homebrew options carry their own text instead. */
 export const metamagicKey = (o: { id: string }, edition: string): MessageKey | undefined =>
   explainKey(edition === '2024' ? 'metamagic2024' : 'metamagic', o.id)
+/** Artificer Infusions and plans: why.option.<id>, and items made by Replicate Magic Item or a plan share why.option.item.<slug>. */
+const artificerKey = (id: string): MessageKey | undefined =>
+  explainKey('option', id) ?? (id.includes(':') ? explainKey('option', `item.${id.slice(id.indexOf(':') + 1)}`) : undefined)
 
 /** The skill a skill option grants (Lore bard, Knowledge domain, Samurai bonus skill). */
 const optionSkill = (o: ClassOption): SkillId | undefined =>
@@ -65,7 +68,7 @@ export function optionName(o: ClassOption, term: (kind: string, id: string, name
 /** What explains a class option: its own line, its skill's, or (Kensei weapons) the list's; none for homebrew. */
 export const optionKey = (o: ClassOption): MessageKey | undefined => {
   const skill = optionSkill(o)
-  return explainKey('opt', o.id) ?? explainKey('invocation', o.id) ?? (skill ? explainKey('skill', skill) : undefined) ?? (optionItem(o) ? explainKey('pick', o.kind) : undefined)
+  return explainKey('opt', o.id) ?? explainKey('invocation', o.id) ?? artificerKey(o.id) ?? (skill ? explainKey('skill', skill) : undefined) ?? (optionItem(o) ? explainKey('pick', o.kind) : undefined)
 }
 
 /** Message key for why a new player might pick this race or class; none for homebrew. */

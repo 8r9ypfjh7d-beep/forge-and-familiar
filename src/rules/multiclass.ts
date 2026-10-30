@@ -104,20 +104,22 @@ export interface CasterLevel {
 export function getCasterLevel(c: Classes): CasterLevel {
   const casters = classesOf(c).filter(x => x.def.caster === 'full' || x.def.caster === 'half' || x.def.caster === 'third')
   const single = rulesEdition(c) === '2024' || (casters.length === 1 && casters[0].def.caster !== 'full')
+  // The Artificer always rounds up and casts from level 1.
+  const up = (def: ClassDef) => single || !!def.roundsUp
   const parts = casters.map(({ def, level }) => {
     const by = def.caster === 'third' ? 3 : 2
-    const from = def.caster === 'third' ? 3 : rulesEdition(c) === '2024' ? 1 : 2
+    const from = def.caster === 'third' ? 3 : rulesEdition(c) === '2024' || def.roundsUp ? 1 : 2
     return {
       classId: def.id,
       className: def.name,
       level,
-      rounding: def.caster === 'full' ? undefined : single ? 'up' as const : 'down' as const,
-      counts: def.caster === 'full' ? level : single ? (level >= from ? Math.ceil(level / by) : 0) : Math.floor(level / by),
+      rounding: def.caster === 'full' ? undefined : up(def) ? 'up' as const : 'down' as const,
+      counts: def.caster === 'full' ? level : up(def) ? (level >= from ? Math.ceil(level / by) : 0) : Math.floor(level / by),
     }
   })
   const casterLevel = Math.min(MAX_CHARACTER_LEVEL, parts.reduce((n, p) => n + p.counts, 0))
   const terms = casters.map(({ def, level }) =>
-    def.caster === 'full' ? `${def.name} ${level}` : `${def.name} ${level} ÷ ${def.caster === 'third' ? 3 : 2} (round ${single ? 'up' : 'down'})`)
+    def.caster === 'full' ? `${def.name} ${level}` : `${def.name} ${level} ÷ ${def.caster === 'third' ? 3 : 2} (round ${up(def) ? 'up' : 'down'})`)
   const explanation = casters.length === 0 ? 'No spell slots.' : `${terms.join(' + ')} = caster level ${casterLevel}`
   return { casterLevel, parts, explanation }
 }

@@ -12,7 +12,7 @@ import type { Apply } from '../sheet/types'
 import { editionOf, sourceFor } from '../spellbook/access'
 import { Why } from '../builder/Why'
 import {
-  addItem, COINS, fromLibrary, fromMagicItem, isWarlock, itemOf, removeEntry, setCoins, setEquipped,
+  addItem, COINS, fromLibrary, fromMagicItem, infusionStats, isWarlock, itemOf, knownInfusions, removeEntry, setCoins, setEquipped,
   setQty, updateEntry, withBase,
 } from './inventory'
 import './inventory.css'
@@ -202,6 +202,18 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
     if (base) setItem(withBase(base, item.name || base.name, item.id))
   }
   const patch = (p: Partial<Item>) => setItem(i => ({ ...i, ...p }) as Item)
+  const infusions = knownInfusions(character)
+  // Artificer: put a known infusion or plan on this item (its bonus and effects join the item's own).
+  const infuse = (id: string) => {
+    const o = infusions.find(x => x.id === id)
+    if (!o) return
+    const s = infusionStats(o)
+    if (s.magicBonus) setMagic(m => Math.max(m, s.magicBonus))
+    if (s.extraDamage && !extra) setExtra(s.extraDamage)
+    setEffects(fx => [...fx, ...s.effects])
+    const label = t('inv.infusedNote', { name: term('option', o.id, o.name) })
+    setNotes(n => (n.includes(label) ? n : [n.trim(), label].filter(Boolean).join('\n')))
+  }
 
   const save = (ev: React.FormEvent) => {
     ev.preventDefault()
@@ -310,6 +322,14 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
         <label className="check wide inv-pact">
           <input type="checkbox" checked={pact} onChange={ev => setPact(ev.target.checked)} />
           <span><span className="inv-label">{t('inv.f.pact')} <Why title={t('inv.why.pact.title')} text={t('inv.why.pact.text')} /></span><small>{t(uses2024Spells(character) ? 'inv.pactHint2024' : 'inv.pactHint')}</small></span>
+        </label>
+      )}
+      {infusions.length > 0 && (
+        <label className="wide"><span className="inv-label">{t('inv.f.infuse')} <Why title={t('inv.why.infuse.title')} text={t('inv.why.infuse.text')} /></span>
+          <select value="" onChange={ev => infuse(ev.target.value)}>
+            <option value="">{t('inv.infusePick')}</option>
+            {infusions.map(o => <option key={o.id} value={o.id}>{term('option', o.id, o.name)}</option>)}
+          </select>
         </label>
       )}
       <EffectsEditor effects={effects} onChange={setEffects} />

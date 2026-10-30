@@ -120,7 +120,7 @@ describe('book subclasses for every class', () => {
     for (const list of [BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024]) {
       const ids = list.map(s => `${s.classId}:${s.id}`)
       expect(new Set(ids).size).toBe(ids.length)
-      expect(new Set(list.map(s => s.classId)).size).toBe(12)
+      expect(new Set(list.map(s => s.classId)).size).toBe(13)
     }
   })
 

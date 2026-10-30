@@ -17,6 +17,7 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 | `Summary.tsx` | Live preview panel using `derive()` |
 | `ClassOptionPicker.tsx` | Eldritch Invocations and 2014 Pact Boon on the Class step: count by level, ⚠ on unmet prerequisites (pickable anyway), why? line per pick, Origin feat or cantrip for 2024 repeatables, "Take again" |
 | `MulticlassPicker.tsx` | Optional extra classes on the Class step: prerequisites, proficiencies gained, caster-level math |
+| `InfusionPicker.tsx` | Picks from the option lists a class learns many of by level (`ClassDef.optionPicks`: Artificer Infusions, 2024 plans), grouped by unlock level; over or under the count only warns |
 | `builder.css` | Builder-only styles, on the Liquid Glass standard (`src/design/DESIGN.md`) |
 | `Why.tsx`, `why.css` | "why?" button (topic or any title/text, optional capsule label), `Explain` (the picked option's line) and `ExplainList` (name + line per feature, trait, language, tool) |
 | `FeatPicker.tsx` | `FeatSelect` (every feat of the edition grouped by kind, plus "Make your own") and `FeatDetails` (our explanation, book, localized prerequisites, unmet-prerequisite warning) for ASI slots and the 2024 Human's Origin feat |

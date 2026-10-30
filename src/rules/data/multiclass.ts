@@ -9,6 +9,7 @@ export interface MulticlassPrereq {
 }
 
 export const MULTICLASS_PREREQS: Record<string, MulticlassPrereq> = {
+  artificer: { all: { int: 13 } },
   barbarian: { all: { str: 13 } },
   bard: { all: { cha: 13 } },
   cleric: { all: { wis: 13 } },
@@ -34,6 +35,7 @@ export interface MulticlassGrant {
 }
 
 export const MULTICLASS_PROFICIENCIES: Record<string, MulticlassGrant> = {
+  artificer: { armor: ['light', 'medium', 'shield'], weapons: [], other: ["thieves' tools", "tinker's tools"] },
   barbarian: { armor: ['shield'], weapons: ['simple', 'martial'] },
   bard: { armor: ['light'], weapons: [], skills: 1, other: ['one musical instrument'] },
   cleric: { armor: ['light', 'medium', 'shield'], weapons: [] },
@@ -50,6 +52,7 @@ export const MULTICLASS_PROFICIENCIES: Record<string, MulticlassGrant> = {
 
 /** SRD 5.2 (2024): what a class grants when it is not the first. */
 export const MULTICLASS_PROFICIENCIES_2024: Record<string, MulticlassGrant> = {
+  artificer: { armor: ['light', 'medium', 'shield'], weapons: [], other: ["thieves' tools", "tinker's tools"] },
   barbarian: { armor: ['shield'], weapons: ['martial'] },
   bard: { armor: ['light'], weapons: [], skills: 1, other: ['one musical instrument'] },
   cleric: { armor: ['light', 'medium', 'shield'], weapons: [] },

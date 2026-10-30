@@ -2,7 +2,7 @@
 // Pure: each function returns a new Character for the sheet's apply().
 import { LIBRARY_ID_FOR_RULES_ITEM, toRulesItem, type Equipment, type MagicItem } from '../content'
 import type { Character } from '../model/character'
-import { entryItem, itemById, MAGIC_ITEM_STATS, type InventoryEntry, type Item } from '../rules'
+import { entryItem, itemById, MAGIC_ITEM_STATS, pickedClassOptions, type ClassOption, type InventoryEntry, type Item, type ItemEffect } from '../rules'
 
 const RULES_ID_FOR_LIBRARY = Object.fromEntries(Object.entries(LIBRARY_ID_FOR_RULES_ITEM).map(([rules, lib]) => [lib, rules]))
 
@@ -89,3 +89,17 @@ export const isWarlock = (c: Pick<Character, 'classes'>) => c.classes.some(x => 
 
 /** Display item for an entry, or a stand-in so an unknown id still shows. */
 export const itemOf = (e: InventoryEntry): Item => entryItem(e) ?? { kind: 'gear', id: e.itemId, name: e.name ?? e.itemId, weight: 0 }
+
+/** Infusions and magic item plans the character knows, which the item editor can put on an item. */
+export const knownInfusions = (c: Character): ClassOption[] =>
+  pickedClassOptions(c).map(x => x.option).filter(o => !!o.item)
+
+/** What infusing an item (or making a replicated one) adds: its magic bonus and effects, or the copied library item's. */
+export function infusionStats(o: ClassOption): { magicBonus: number; effects: ItemEffect[]; extraDamage?: string } {
+  const lib = o.item?.itemId ? MAGIC_ITEM_STATS[o.item.itemId] : undefined
+  return {
+    magicBonus: o.item?.magicBonus ?? lib?.magicBonus ?? 0,
+    effects: [...(o.item?.effects ?? []), ...(lib?.effects ?? [])].map(f => ({ ...f })),
+    ...(lib?.extraDamage ? { extraDamage: lib.extraDamage } : {}),
+  }
+}

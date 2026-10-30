@@ -105,10 +105,18 @@ describe('Foundry VTT', () => {
     expect(r.file.character).toMatchObject({ raceId: 'dwarf', subraceId: 'hill-dwarf', backgroundId: 'acolyte' })
   })
 
-  it('refuses a class outside the SRD', () => {
+  it('refuses a class the app does not know', () => {
+    const f = foundry()
+    f.items = f.items.map(i => (i.type === 'class' ? { ...i, name: 'Blood Hunter', system: { identifier: 'blood-hunter', levels: 2 } } : i))
+    expect(parseForeign(f)).toEqual({ ok: false, error: 'Class "blood-hunter" is not in the SRD, so Forge & Familiar cannot import it.' })
+  })
+
+  it('imports an Artificer', () => {
     const f = foundry()
     f.items = f.items.map(i => (i.type === 'class' ? { ...i, name: 'Artificer', system: { identifier: 'artificer', levels: 2 } } : i))
-    expect(parseForeign(f)).toEqual({ ok: false, error: 'Class "artificer" is not in the SRD, so Forge & Familiar cannot import it.' })
+    const r = parseForeign(f, {}, NOW)
+    if (!r.ok) throw new Error(r.error)
+    expect(r.file.character.classes[0]).toMatchObject({ classId: 'artificer', level: 2 })
   })
 
   it('imports an unknown race as Human and says so', () => {
