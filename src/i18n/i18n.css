@@ -12,3 +12,5 @@
 [dir='rtl'] .ff-dice__text,
 [dir='rtl'] .stepper-value,
 [dir='rtl'] .track-count { direction: ltr; unicode-bidi: isolate; }
+/* Damage sources keep the Hebrew line order (name first, from the right); their dice stay LTR. */
+[dir='rtl'] .ff-roll__sources { direction: rtl; }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { RollResult } from '../dice'
-import { RollView, useDice } from '../dice/ui'
+import { groupByAction, type RollResult } from '../dice'
+import { RollGroupView, useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
 import { fetchPartyRolls, sendRoll, watchPartyRolls } from './cloud'
 import { mergePartyRolls, mergeRollLists, onMemberRollsChanged, readMemberRolls, type FeedEntry } from './feed'
@@ -70,15 +70,18 @@ export function RollFeed({ party, nameOf }: { party: Party; nameOf: (userId: str
         ? <p className="muted small">{t('party.rolls.empty')}</p>
         : (
           <ol aria-live="polite">
-            {feed.map(({ roll, userId }, i) => (
-              <li key={roll.id} className={i === 0 ? 'latest' : ''}>
+            {groupByAction(feed, f => f.roll, (a, b) => a.userId === b.userId).map((group, i) => {
+              const { roll, userId } = group[group.length - 1]
+              return (
+              <li key={group[0].roll.id} className={i === 0 ? 'latest' : ''}>
                 <div className="feed-meta small muted">
                   <span>{nameOf(userId)}</span>
                   <time dateTime={roll.timestamp}>{ago(roll.timestamp)}</time>
                 </div>
-                <RollView roll={roll} compact={i > 0} />
+                <RollGroupView rolls={group.map(f => f.roll)} compact={i > 0} />
               </li>
-            ))}
+              )
+            })}
           </ol>
         )}
     </section>

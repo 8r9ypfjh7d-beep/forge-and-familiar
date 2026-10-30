@@ -72,6 +72,23 @@ export function roll(notation: string, opts: RollOptions = {}, type: RollType = 
   return build(parseNotation(notation), type, opts)
 }
 
+/**
+ * Rolls several named parts as one roll, e.g. a weapon's "2d6+4" plus Hex's "1d6", and tags each term with
+ * its part's `source`. `crit` doubles every die (flat modifiers stay).
+ */
+export function rollParts(
+  parts: { notation: string; source?: string }[], opts: RollOptions = {}, type: RollType = 'custom', crit = false,
+): RollResult {
+  const sources: (string | undefined)[] = []
+  const terms = parts.flatMap(p => parseNotation(p.notation).map((t): Term => {
+    sources.push(p.source)
+    return crit && t.kind === 'dice' ? { ...t, count: t.count * 2 } : t
+  }))
+  const result = build(terms, type, opts)
+  result.terms = result.terms.map((t, i) => (sources[i] ? { ...t, source: sources[i] } : t))
+  return result
+}
+
 /** A d20 roll plus a flat bonus, with advantage or disadvantage. Flags natural 20s and 1s. */
 export function rollD20(bonus: number, opts: RollOptions = {}, type: RollType = 'check'): RollResult {
   const mode = resolveMode(opts.mode)

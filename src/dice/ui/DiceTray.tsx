@@ -6,7 +6,8 @@ import { roll as rollNotation, rollD20 } from '../roll'
 import { shareSecretRoll } from '../secretCloud'
 import type { RollMode, RollOptions, RollResult, Term } from '../types'
 import { useDice, useRollHistory } from './DiceProvider'
-import { RollView } from './RollView'
+import { RollGroupView } from './RollView'
+import { groupByAction } from '../history'
 import './dice.css'
 
 const DICE = [4, 6, 8, 10, 12, 20, 100] as const
@@ -159,9 +160,9 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
       </div>
       <ol className="ff-dice__history" aria-live="polite">
         {rolls.length === 0 && <li className="ff-dice__empty">{t('dice.empty')}</li>}
-        {rolls.map((r, i) => (
-          <li key={r.id}>
-            <RollView roll={r} compact={i > 0} />
+        {groupByAction(rolls, r => r).map((g, i) => (
+          <li key={g[0].id}>
+            <RollGroupView rolls={g} compact={i > 0} />
           </li>
         ))}
       </ol>

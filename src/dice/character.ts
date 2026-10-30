@@ -6,7 +6,7 @@ import type { Attack, DerivedStats } from '../rules/derive'
 import { autoFailsSave, getRollDice, getRollMode, type RollKind as ConditionRollKind } from '../rules/rollMode'
 import { ABILITY_NAMES, type Ability, type SkillId } from '../rules/types'
 import { critNotation } from './notation'
-import { roll, rollD20 } from './roll'
+import { roll, rollD20, rollParts } from './roll'
 import type { RollMode, RollOptions, RollResult } from './types'
 
 const SHORT: Record<Ability, string> = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' }
@@ -80,13 +80,16 @@ export function rollAttackWithDamage(
   const hit = rollAttack(attack, { ...rest, critRange, label })
   if (hit.d20?.fumble) return { attack: hit }
   const base = twoHanded && attack.versatile ? attack.versatile : attack.damage
-  const notation = [base, ...riders.map(r => r.damage)]
-    .map((n, i) => (i === 0 || /^[+\-−]/.test(n) ? n : `+${n}`)).join('')
   const crit = !!hit.d20?.crit
   const extras = riders.length ? ` + ${riders.map(r => r.name).join(', ')}` : ''
-  const damage = rollDamage({ ...attack, damage: notation }, {
-    ...rest, crit, label: `${attack.name} ${attack.damageType}${extras}${crit ? ' (crit)' : ''}`,
-  })
+  const action = { id: hit.id, name: attack.name }
+  hit.action = action
+  const damage = rollParts(
+    [{ notation: base, source: attack.name }, ...riders.map(r => ({ notation: r.damage, source: r.name }))],
+    { ...rest, label: `${attack.name} ${attack.damageType}${extras}${crit ? ' (crit)' : ''}` }, 'damage', crit,
+  )
+  damage.action = action
+  damage.damageType = attack.damageType
   return { attack: hit, damage }
 }
 

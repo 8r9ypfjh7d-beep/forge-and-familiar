@@ -1,6 +1,6 @@
 import type { Character, HitDie } from '../model/character'
 import {
-  critNotation, roll, rollAttack, rollAttackWithDamage, rollCheck, rollDeathSave, rollHitDie, rollInitiative, rollSave, rollSkill,
+  roll, rollAttack, rollAttackWithDamage, rollCheck, rollDeathSave, rollHitDie, rollInitiative, rollParts, rollSave, rollSkill,
   type AttackOutcome, type RollMode, type RollResult,
 } from '../dice'
 import type { DerivedStats } from '../rules'
@@ -46,14 +46,16 @@ export function useSheetRolls(c: Character) {
      * A crit doubles the dice; a natural 1 on the attack rolls no damage.
      */
     spell(name: string, opts: { attackBonus?: number; damage?: string; damageType?: string; mode?: RollMode; riders?: { name: string; damage: string }[] }): AttackOutcome | { damage?: RollResult } {
-      const hit = opts.attackBonus === undefined ? undefined : record(rollAttack({ name, bonus: opts.attackBonus }, { character, mode: opts.mode }))
+      const hit = opts.attackBonus === undefined ? undefined : rollAttack({ name, bonus: opts.attackBonus }, { character, mode: opts.mode })
+      const action = hit && opts.damage && !hit.d20?.fumble ? { id: hit.id, name } : undefined
+      if (hit) record(Object.assign(hit, action && { action }))
       if (hit?.d20?.fumble || !opts.damage) return hit ? { attack: hit } : {}
       const riders = opts.riders ?? []
-      const notation = [opts.damage, ...riders.map(r => r.damage)].map((n, i) => (i === 0 || /^[+\-−]/.test(n) ? n : `+${n}`)).join('')
       const crit = !!hit?.d20?.crit
       const extras = riders.length ? ` + ${riders.map(r => r.name).join(', ')}` : ''
       const label = `${name}${opts.damageType ? ` ${opts.damageType}` : ''}${extras}${crit ? ' (crit)' : ''}`
-      const damage = record(roll(crit ? critNotation(notation) : notation, { character, label }, 'damage'))
+      const parts = [{ notation: opts.damage, source: name }, ...riders.map(r => ({ notation: r.damage, source: r.name }))]
+      const damage = record({ ...rollParts(parts, { character, label }, 'damage', crit), action, damageType: opts.damageType })
       return hit ? { attack: hit, damage } : { damage }
     },
     /** Any notation, e.g. a wand's "1d6+1" charges at dawn. Returns 0 if the notation is invalid. */
