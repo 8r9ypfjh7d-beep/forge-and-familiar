@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createEncounter, addCombatant } from './engine'
 import {
-  EMPTY_BOARD, healthOf, moveProblem, moveTokenOn, placeTokens, projectPublic, tokenLabel, toLiveEncounter,
-  type LiveCombat,
+  EMPTY_BOARD, moveProblem, moveTokenOn, placeTokens, projectPublic, tokenLabel, toLiveEncounter, type LiveCombat,
 } from './liveLogic'
 import type { Board, Encounter, LiveMap } from './types'
 
@@ -16,16 +15,6 @@ function encounter(): Encounter {
   e = addCombatant(e, { id: 'boss', name: 'Ogre', kind: 'npc', initiative: 8, initBonus: -1, hp: { current: 0, max: 59, temp: 0 } })
   return { ...e, log: ['something happened'] }
 }
-
-describe('health words', () => {
-  it('bloodied at half HP or less, down at 0', () => {
-    expect(healthOf({ current: 7, max: 7 })).toBe('healthy')
-    expect(healthOf({ current: 4, max: 7 })).toBe('healthy')
-    expect(healthOf({ current: 3, max: 7 })).toBe('bloodied')
-    expect(healthOf({ current: 0, max: 7 })).toBe('down')
-    expect(healthOf(undefined)).toBeUndefined()
-  })
-})
 
 describe('token placement', () => {
   it('puts party members along the bottom and monsters along the top, sized by footprint', () => {
@@ -60,16 +49,27 @@ describe('what players see', () => {
     board: { ...EMPTY_BOARD, tokens: placeTokens(encounter(), map), ...board },
   })
 
-  it('strips the log, monster HP and the DM-only board bits', () => {
+  it('the row carries the player view: no log, no AC, monster HP as a look', () => {
     const pub = projectPublic(live({ locked: true }))
     expect('log' in pub.encounter).toBe(false)
     const g1 = pub.encounter.combatants.find(c => c.id === 'g1')!
     expect(g1.hp).toBeUndefined()
-    expect(g1.health).toBe('healthy')
-    expect(pub.encounter.combatants.find(c => c.id === 'g2')!.health).toBe('bloodied')
-    expect(pub.encounter.combatants.find(c => c.id === 'boss')!.health).toBe('down')
+    expect('ac' in g1).toBe(false)
+    expect(g1.look).toBe('healthy')
+    expect(pub.encounter.combatants.find(c => c.id === 'g2')!.look).toBe('bloodied')
+    expect(pub.encounter.combatants.find(c => c.id === 'boss')!.look).toBe('down')
     expect(pub.encounter.combatants.find(c => c.id === 'vex')!.characterId).toBe('c-vex')
     expect(pub.board.locked).toBe(true)
+  })
+
+  it('a combatant row the DM hid loses its token too', () => {
+    const enc = encounter()
+    enc.combatants = enc.combatants.map(c => c.id === 'g1' ? { ...c, hidden: true } : c)
+    const l: LiveCombat = { partyId: 'p1', encounter: toLiveEncounter(enc), map, rev: 1, startedAt: 't', board: { ...EMPTY_BOARD, tokens: placeTokens(enc, map) } }
+    const pub = projectPublic(l)
+    expect(pub.encounter.combatants.some(c => c.id === 'g1')).toBe(false)
+    expect(pub.board.tokens.some(t => t.combatantId === 'g1')).toBe(false)
+    expect(pub.board.tokens.map(t => t.id)).toEqual(['tok-vex', 'tok-g2', 'tok-boss'])
   })
 
   it('hides hidden tokens and tokens under fog, with their combatants', () => {

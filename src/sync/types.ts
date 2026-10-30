@@ -4,6 +4,7 @@ import type { Character } from '../model/character'
 import type { Snapshot } from '../portability/snapshots'
 import type { RollResult } from '../dice/types'
 import type { HomebrewPack } from '../homebrew/types'
+import type { NpcSheet } from '../npc/types'
 
 /** One server row. `rev` goes up by one on every write; `updatedAt` is the server's clock. */
 export interface RemoteRow<T> {
@@ -39,6 +40,10 @@ export interface RemoteStore {
   pullPacks(since?: string): Promise<RemoteRow<HomebrewPack>[]>
   /** Upsert of the owner's copy; `deleted` marks it gone on every device. */
   putPack(row: { id: string; ownerId: string; data: HomebrewPack | { id: string; updatedAt: string }; deleted: boolean }): Promise<void>
+  /** The DM's NPC sheets (src/npc) changed after `since`, deleted ones included. Owner or admin only. */
+  pullNpcs(ownerId: string, since?: string): Promise<RemoteRow<NpcSheet>[]>
+  /** Upsert of the owner's sheet; `deleted` marks it gone on every device. */
+  putNpc(row: { id: string; ownerId: string; data: NpcSheet | { id: string; updatedAt: string }; deleted: boolean }): Promise<void>
   /** Optional live updates: calls onChange when another device writes. Returns unsubscribe. */
   subscribe?(ownerId: string, onChange: () => void): () => void
 }

@@ -9,6 +9,7 @@ import { migrateSubclassIds } from '../rules/subclass'
 import type { RollResult } from '../dice/types'
 import { readMeta, updateMeta } from './outbox'
 import { syncPacks } from './packs'
+import { syncNpcs } from './npcs'
 import type { RemoteRow, RemoteStore } from './types'
 
 export const ROLLS_SYNCED = 'ff:rolls-synced'
@@ -177,5 +178,6 @@ export async function syncOnce(remote: RemoteStore, ownerId: string): Promise<vo
   await syncSnapshots(remote, ownerId)
   await syncRolls(remote, ownerId)
   await syncPacks(remote, ownerId)
+  await syncNpcs(remote, ownerId)
   updateMeta(m => { m.owners[ownerId] = { ...m.owners[ownerId], initialized: true } })
 }

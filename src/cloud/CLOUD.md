@@ -31,6 +31,7 @@ Each device signs in anonymously, then calls `claim_account(code)`, which checks
 | `claim_attempts` | `user_id`, `at` | Nobody; `claim_account`'s rate limit |
 | `characters` | `id`, `owner_id`, `data` jsonb, `rev`, `deleted`, `updated_at` | Owner, and the admin |
 | `dm_state` | `account_id`, `data` jsonb, `updated_at` | Owner, and the admin |
+| `npc_sheets` | `owner_id`, `id`, `data` jsonb, `rev`, `deleted`, `updated_at` | Owner (the DM), and the admin; party members never (`20261030210000_npc_sheets.sql`, src/npc) |
 
 SQL helpers for policies: `current_account_id()`, `is_admin()`, `is_dm()`. `updated_at` is set by the database on every write. Conditional writes: `update ... .eq('rev', base)` with `rev: base + 1`; zero rows back means someone else wrote first. Realtime is on for `characters` and `dm_state`. The DM has no extra access to player sheets.
 

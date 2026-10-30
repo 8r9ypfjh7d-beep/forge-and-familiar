@@ -4,6 +4,7 @@ import type { Character } from '../model/character'
 import type { Snapshot } from '../portability/snapshots'
 import type { RollResult } from '../dice/types'
 import type { HomebrewPack } from '../homebrew/types'
+import type { NpcSheet } from '../npc/types'
 import type { RemoteRow, RemoteStore } from './types'
 
 export interface MemoryRemote extends RemoteStore {
@@ -12,6 +13,8 @@ export interface MemoryRemote extends RemoteStore {
   rolls: Map<string, { ownerId: string; roll: RollResult }>
   /** Keyed `<ownerId>:<packId>`. */
   packs: Map<string, RemoteRow<HomebrewPack>>
+  /** Keyed `<ownerId>:<npcId>`. */
+  npcs: Map<string, RemoteRow<NpcSheet>>
   /** Who shares a party with whom, for pack reads; set by tests. Everyone sees their own. */
   partyOf: Map<string, string>
   /** Viewer account for pullPacks (the server knows it from the session). */
@@ -30,6 +33,7 @@ export function memoryRemote(): MemoryRemote {
     snapshots: new Map(),
     rolls: new Map(),
     packs: new Map(),
+    npcs: new Map(),
     partyOf: new Map(),
     viewer: '',
     offline: false,
@@ -73,6 +77,16 @@ export function memoryRemote(): MemoryRemote {
       const key = `${row.ownerId}:${row.id}`
       const cur = r.packs.get(key)
       r.packs.set(key, { ...copy(row), data: copy(row.data) as HomebrewPack, rev: (cur?.rev ?? 0) + 1, updatedAt: clock() })
+    },
+    async pullNpcs(ownerId, since) {
+      check()
+      return [...r.npcs.values()].filter(x => x.ownerId === ownerId && (!since || x.updatedAt > since)).map(copy)
+    },
+    async putNpc(row) {
+      check()
+      const key = `${row.ownerId}:${row.id}`
+      const cur = r.npcs.get(key)
+      r.npcs.set(key, { ...copy(row), data: copy(row.deleted && cur ? cur.data : (row.data as NpcSheet)), rev: (cur?.rev ?? 0) + 1, updatedAt: clock() })
     },
     async recentRolls(ownerId, limit) {
       check()
