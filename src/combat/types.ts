@@ -11,6 +11,14 @@ export interface Combatant {
   kind: 'pc' | 'npc'
   /** pc only: the Character this row plays. */
   characterId?: string
+  /** npc only: a DM-private NPC sheet (src/npc) this row plays; its HP and conditions live there. */
+  npcId?: string
+  /** npc only: the library stat block (src/content monsters), so the fight shows its actions. */
+  monster?: { source: string; id: string }
+  /** npc only: uses spent per action name (X/Day actions count up, a recharge action is 1 while spent). */
+  spent?: Record<string, number>
+  /** npc only: legendary actions used since the start of its last turn. */
+  legendaryUsed?: number
   /** null until rolled or typed. */
   initiative: number | null
   /** Initiative modifier: rolls for NPCs and breaks ties (higher DEX goes first). */

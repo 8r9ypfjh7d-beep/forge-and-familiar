@@ -16,12 +16,21 @@ export interface PlanMonster {
   xp: number
   cr: number
   count: number
+  /** A DM-private NPC sheet (src/npc) standing in for a library monster; count is 1. */
+  npcId?: string
 }
 
+/** A combat scenario: the monsters, the DM's notes and how it starts. */
 export interface EncounterPlan {
   id: string
   name: string
   monsters: PlanMonster[]
+  /** Read-aloud text, tactics, loot, terrain. Only the DM sees it. */
+  notes?: string
+  /** Roll each monster's hit points when the fight starts, instead of the average. */
+  rollHp?: boolean
+  /** Battle map (src/maps) pushed to the players when the fight starts. */
+  mapId?: string
 }
 
 export interface Npc {
