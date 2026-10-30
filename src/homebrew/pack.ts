@@ -5,12 +5,13 @@ import { ABILITIES, ABILITY_NAMES, type Abilities, type Ability, type ArmorCateg
 import { ALL_SKILLS, SKILLS } from '../rules/data/skills'
 import {
   PACK_FORMAT, PACK_VERSION, RARITIES, SPELL_SCHOOLS,
-  type ContentKind, type FeatEffect, type HomebrewEntry, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace,
+  BACKGROUND_EDITIONS,
+  type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewEntry, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace,
   type HomebrewSpell, type HomebrewSubclass,
 } from './types'
 
 /** Every entry in a pack, all kinds. */
-export const allEntries = (p: HomebrewPack): HomebrewEntry[] => [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses]
+export const allEntries = (p: HomebrewPack): HomebrewEntry[] => [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds]
 
 export const SHARE_PREFIX = 'FFHB1.'
 export const LIMITS = { entries: 500, name: 80, text: 4000, short: 120 }
@@ -35,7 +36,7 @@ export function newPack(id: string, author: { id: string; displayName: string },
   return {
     format: PACK_FORMAT, version: PACK_VERSION, id, name, description: '',
     authorId: author.id, authorName: author.displayName, updatedAt: new Date().toISOString(),
-    spells: [], items: [], feats: [], races: [], subclasses: [],
+    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [],
   }
 }
 
@@ -90,6 +91,14 @@ export function subclassIssues(s: HomebrewSubclass): string[] {
   if (!s.name.trim()) out.push('Give the subclass a name.')
   if (!s.classId) out.push('Pick the class it belongs to.')
   if (s.features.some(f => !f.name.trim())) out.push('Every feature needs a name.')
+  return out
+}
+
+export function backgroundIssues(b: HomebrewBackground): string[] {
+  const out: string[] = []
+  if (!b.name.trim()) out.push('Give the background a name.')
+  if (!b.feature.trim()) out.push('Name the background feature.')
+  if (b.editions !== '2014' && new Set(b.abilityScores).size !== 3) out.push('Pick three abilities for 2024 characters to raise.')
   return out
 }
 
@@ -194,7 +203,13 @@ function cleanEffect(v: unknown): FeatEffect | undefined {
     case 'speed':
     case 'initiative':
     case 'ac':
+    case 'armoredAc':
+    case 'rangedAttack':
       return { kind: v.kind, amount: int(v.amount, -100, 100, 0) }
+    case 'initiativeProficiency':
+      return { kind: v.kind }
+    case 'skillPicks':
+      return { kind: v.kind, count: int(v.count, 1, 6, 1) }
   }
   return undefined
 }
@@ -258,6 +273,35 @@ function cleanSubclass(v: Obj, packId: string, seen: Set<string>): HomebrewSubcl
   }
 }
 
+const idLike = (v: unknown) => {
+  const s = optStr(v, 120)
+  return s && /^[a-z0-9:_-]+$/i.test(s) ? s : undefined
+}
+
+function cleanBackground(v: Obj, packId: string, seen: Set<string>): HomebrewBackground {
+  const name = str(v.name, LIMITS.name) || 'Unnamed background'
+  return {
+    id: ownId(v.id, packId, name, seen),
+    name,
+    editions: oneOf(v.editions, BACKGROUND_EDITIONS, 'both'),
+    skillProficiencies: [...new Set(list(v.skillProficiencies).filter((x): x is SkillId => ALL_SKILLS.includes(x as SkillId)))],
+    tools: textList(v.tools, 10),
+    toolChoices: int(v.toolChoices, 0, 6),
+    toolChoiceFrom: textList(v.toolChoiceFrom, 60),
+    languages: textList(v.languages, 10),
+    languageChoices: int(v.languageChoices, 0, 6),
+    equipment: list(v.equipment).map(idLike).filter((x): x is string => !!x).slice(0, 40),
+    gold: int(v.gold, 0, 100000),
+    feature: str(v.feature, LIMITS.name),
+    featureText: optStr(v.featureText, LIMITS.text),
+    abilityScores: [...new Set(list(v.abilityScores).filter((a): a is Ability => ABILITIES.includes(a as Ability)))].slice(0, 3),
+    originFeatId: idLike(v.originFeatId),
+    originFeatNote: optStr(v.originFeatNote, 40),
+    effects: list(v.effects).map(cleanEffect).filter((e): e is FeatEffect => !!e).slice(0, 20),
+    description: optStr(v.description, LIMITS.text),
+  }
+}
+
 /** Rebuilds a pack from unknown JSON. Throws PackError if it isn't a homebrew pack at all. */
 export function sanitizePack(raw: unknown): HomebrewPack {
   if (!isObj(raw) || raw.format !== PACK_FORMAT) throw new PackError("This isn't a Forge & Familiar homebrew pack.")
@@ -278,6 +322,7 @@ export function sanitizePack(raw: unknown): HomebrewPack {
     feats: list(raw.feats).filter(isObj).map(v => cleanFeat(v, id, seen)),
     races: list(raw.races).filter(isObj).map(v => cleanRace(v, id, seen)),
     subclasses: list(raw.subclasses).filter(isObj).map(v => cleanSubclass(v, id, seen)),
+    backgrounds: list(raw.backgrounds).filter(isObj).map(v => cleanBackground(v, id, seen)),
     history: Array.isArray(raw.history) ? raw.history.slice(0, LIMITS.entries * 20) : undefined,
   }
 }
@@ -290,6 +335,7 @@ export function sanitizeEntry(kind: ContentKind, raw: unknown, packId: string): 
   if (kind === 'items') return cleanItem(raw, packId, seen)
   if (kind === 'races') return cleanRace(raw, packId, seen)
   if (kind === 'subclasses') return cleanSubclass(raw, packId, seen)
+  if (kind === 'backgrounds') return cleanBackground(raw, packId, seen)
   return cleanFeat(raw, packId, seen)
 }
 

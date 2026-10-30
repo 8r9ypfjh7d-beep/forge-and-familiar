@@ -3,18 +3,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChangeHistory, deleteHistory, historyForSharing, importHistory, recordRevision, type RestoreMeta } from '../../history'
 import { useI18n, type Translate } from '../../i18n'
 import type { Character, UserProfile } from '../../model/character'
-import { raceById } from '../../rules'
+import { featById, itemById, raceById } from '../../rules'
 import { listCharacters, saveCharacter } from '../../storage'
 import { allEntries, decodePack, describeEffect, encodeShareCode, entryId, newPack, PackError, sanitizeEntry, slug } from '../pack'
 import { deletePack, importPack, listPacks, onPacksChanged, savePack } from '../store'
 import type { Ability } from '../../rules'
-import type { ContentKind, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
-import { FeatForm, ItemForm, RaceForm, SpellForm, SubclassForm } from './forms'
+import type { ContentKind, HomebrewBackground, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
+import { BackgroundForm, FeatForm, ItemForm, RaceForm, SpellForm, SubclassForm } from './forms'
 import './homebrew.css'
 
 const shortId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 
-const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses']
+const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds']
 
 /** "2 spells · 1 item", or "Empty". */
 const packCounts = (t: Translate, p: HomebrewPack) =>
@@ -97,7 +97,7 @@ function ImportBox({ onImported }: { onImported: (id: string) => void }) {
       if (result !== 'unchanged') {
         if (pack.history) await importHistory(pack.history)
         else {
-          for (const kind of ['spells', 'items', 'feats', 'races', 'subclasses'] as const) {
+          for (const kind of KINDS) {
             for (const entry of pack[kind]) await recordRevision({ kind, entry, authorId: pack.authorId, authorName: pack.authorName, source: 'import' })
           }
         }
@@ -147,6 +147,7 @@ type Editing =
   | { kind: 'feats'; entry: HomebrewFeat }
   | { kind: 'races'; entry: HomebrewRace }
   | { kind: 'subclasses'; entry: HomebrewSubclass }
+  | { kind: 'backgrounds'; entry: HomebrewBackground }
 
 function blank(kind: ContentKind): Editing {
   if (kind === 'spells') {
@@ -168,6 +169,14 @@ function blank(kind: ContentKind): Editing {
     }
   }
   if (kind === 'subclasses') return { kind, entry: { id: '', name: '', classId: 'fighter', features: [], armor: [] } }
+  if (kind === 'backgrounds') {
+    return {
+      kind, entry: {
+        id: '', name: '', editions: 'both', skillProficiencies: [], tools: [], toolChoices: 0, toolChoiceFrom: [], languages: [],
+        languageChoices: 0, equipment: [], gold: 0, feature: '', abilityScores: [], effects: [],
+      },
+    }
+  }
   return { kind, entry: { id: '', name: '', description: '', effects: [] } }
 }
 
@@ -191,6 +200,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
     else if (e.kind === 'items') next.items = upsert(pack.items, (entry = withId(e.entry)))
     else if (e.kind === 'races') next.races = upsert(pack.races, (entry = withId(e.entry)))
     else if (e.kind === 'subclasses') next.subclasses = upsert(pack.subclasses, (entry = withId(e.entry)))
+    else if (e.kind === 'backgrounds') next.backgrounds = upsert(pack.backgrounds, (entry = withId(e.entry)))
     else next.feats = upsert(pack.feats, (entry = withId(e.entry)))
     await savePack(next)
     await recordRevision({ kind: e.kind, entry, authorId: profile.id, authorName: profile.displayName, ...meta })
@@ -203,7 +213,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   }
 
   const removeEntry = async (kind: ContentKind, id: string, name: string) => {
-    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'races' || kind === 'subclasses' ? t('hb.deleteWarnBonus') : ''
+    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'races' || kind === 'subclasses' || kind === 'backgrounds' ? t('hb.deleteWarnBonus') : ''
     if (!confirm(t('hb.deleteConfirm', { name }) + warn)) return
     await savePack({ ...pack, [kind]: (pack[kind] as { id: string }[]).filter(x => x.id !== id) })
   }
@@ -217,6 +227,12 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
       spells: pack.spells.map(rename), items: pack.items.map(rename), feats: pack.feats.map(rename),
       races: pack.races.map(r => ({ ...rename(r), parentRaceId: r.parentRaceId?.replace(`hb:${pack.id}:`, `hb:${id}:`) })),
       subclasses: pack.subclasses.map(rename),
+      // The copy's own feats and items get new ids, so a background pointing at them follows.
+      backgrounds: pack.backgrounds.map(b => ({
+        ...rename(b),
+        originFeatId: b.originFeatId?.replace(`hb:${pack.id}:`, `hb:${id}:`),
+        equipment: b.equipment.map(x => x.replace(`hb:${pack.id}:`, `hb:${id}:`)),
+      })),
     })
     onOpen(copy.id)
   }
@@ -279,6 +295,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
           {editing?.kind === 'items' && <ItemForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'items', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'feats' && <FeatForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'feats', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'races' && <RaceForm key={editing.entry.id || 'new'} initial={editing.entry} pack={pack} onSave={entry => saveEntry({ kind: 'races', entry })} onCancel={() => setEditing(null)} />}
+          {editing?.kind === 'backgrounds' && <BackgroundForm key={editing.entry.id || 'new'} initial={editing.entry} pack={pack} onSave={entry => saveEntry({ kind: 'backgrounds', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'subclasses' && <SubclassForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'subclasses', entry })} onCancel={() => setEditing(null)} />}
 
           {!editing && (
@@ -372,6 +389,10 @@ function subtitle({ t, className }: I18n, kind: ContentKind, e: HomebrewEntry): 
     const sc = e as HomebrewSubclass
     return t('hb.sub.subclass', { class: className(sc.classId) })
   }
+  if (kind === 'backgrounds') {
+    const b = e as HomebrewBackground
+    return t('hb.sub.background', { editions: t(`hb.bg.editions.${b.editions}`), feature: b.feature })
+  }
   const f = e as HomebrewFeat
   return f.prerequisite ? t('hb.sub.prereq', { text: f.prerequisite }) : t('hb.sub.feat')
 }
@@ -436,6 +457,27 @@ function EntryBody({ i18n, kind, entry }: { i18n: I18n; kind: ContentKind; entry
         {sc.features.length > 0 && <p className="small">{[...sc.features].sort((a, b) => a.level - b.level).map(f => `${f.level}: ${f.name}`).join(' · ')}</p>}
         {sc.armor.length > 0 && <p className="small">{t('hb.armorList', { list: list(sc.armor.map(a => t(`hb.cat.${a}`))) })}</p>}
         {sc.description && <p className="hb-text">{sc.description}</p>}
+      </>
+    )
+  }
+  if (kind === 'backgrounds') {
+    const b = entry as HomebrewBackground
+    const choice = (count: number) => (count ? [t('hb.race.choice', { count })] : [])
+    const feat = b.originFeatId ? featById(b.originFeatId, '2024') : undefined
+    const lines = [
+      (b.skillProficiencies.length > 0) && t('hb.race.skills', { list: list(b.skillProficiencies.map(skill)) }),
+      (b.tools.length > 0 || b.toolChoices > 0) && t('hb.bg.tools', { list: list([...b.tools, ...choice(b.toolChoices)]) }),
+      (b.languages.length > 0 || b.languageChoices > 0) && t('hb.race.languages', { list: list([...b.languages, ...choice(b.languageChoices)]) }),
+      b.editions !== '2014' && b.abilityScores.length > 0 && t('hb.bg.abilities', { list: list(b.abilityScores.map(a => abilityShort(a))) }),
+      b.editions !== '2014' && b.originFeatId && t('hb.bg.feat', { feat: `${feat?.name ?? b.originFeatId}${b.originFeatNote ? ` (${b.originFeatNote})` : ''}` }),
+      (b.equipment.length > 0 || b.gold > 0) && t('hb.bg.gear', { list: list([...b.equipment.map(id => itemById(id)?.name ?? id), ...(b.gold ? [`${b.gold} gp`] : [])]) }),
+      b.effects.length > 0 && b.effects.map(describeEffect).join(' · '),
+    ].filter(Boolean)
+    return (
+      <>
+        {lines.map(l => <p key={l as string} className="small">{l}</p>)}
+        {b.featureText && <p className="hb-text"><em>{b.feature}.</em> {b.featureText}</p>}
+        {b.description && <p className="hb-text">{b.description}</p>}
       </>
     )
   }

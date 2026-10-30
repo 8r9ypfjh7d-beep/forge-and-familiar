@@ -20,8 +20,24 @@ export const ALIGNMENTS = [
   'Lawful Evil', 'Neutral Evil', 'Chaotic Evil',
 ]
 
-/** SRD backgrounds of an edition. */
-export const backgroundsFor = (edition: RulesEdition = '2014'): Background[] => (edition === '2024' ? BACKGROUNDS_2024 : BACKGROUNDS)
+/** A homebrew background and the editions it is offered in. */
+export type HomebrewBackgroundDef = Background & { editions: RulesEdition[] }
+
+// Homebrew backgrounds registered at runtime (ids namespaced `hb:<packId>:<slug>`).
+let homebrew: HomebrewBackgroundDef[] = []
+
+/** Replace the registered homebrew backgrounds. SRD ids always win. */
+export function registerHomebrewBackgrounds(list: HomebrewBackgroundDef[]): void {
+  const srd = new Set([...BACKGROUNDS, ...BACKGROUNDS_2024].map(b => b.id))
+  homebrew = list.filter(b => !srd.has(b.id) && b.id !== CUSTOM_BACKGROUND)
+}
+
+/** SRD backgrounds of an edition, then homebrew ones offered in it. */
+export const backgroundsFor = (edition: RulesEdition = '2014'): Background[] => [
+  ...(edition === '2024' ? BACKGROUNDS_2024 : BACKGROUNDS),
+  // 2014 has no background ability scores or Origin feat, so a two-edition homebrew background drops them there.
+  ...homebrew.filter(b => b.editions.includes(edition)).map(b => (edition === '2024' ? b : { ...b, abilityScores: undefined, feat: undefined })),
+]
 
 export const backgroundById = (id: string, edition: RulesEdition = '2014') => backgroundsFor(edition).find(b => b.id === id)
 

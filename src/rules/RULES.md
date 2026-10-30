@@ -29,15 +29,15 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 
 ## Rules editions (2014 and 2024)
 
-Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missing for 2014). Lookups take the edition: `raceById(id, edition)`, `classById`, `subclassById`, `subclassesFor`, `backgroundById`, `featById`, `allRaces`, `allFeats`, `classesFor`, `backgroundsFor`. Without one they return SRD 5.1. Ids are shared where the thing is the same (`fighter`, `dwarf`, `acolyte`); 2024 subclass ids match the content library (`college-of-lore`). Homebrew races, subclasses and feats are offered with both editions.
+Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missing for 2014). Lookups take the edition: `raceById(id, edition)`, `classById`, `subclassById`, `subclassesFor`, `backgroundById`, `featById`, `allRaces`, `allFeats`, `classesFor`, `backgroundsFor`. Without one they return SRD 5.1. Ids are shared where the thing is the same (`fighter`, `dwarf`, `acolyte`); 2024 subclass ids match the content library (`college-of-lore`). Homebrew races, subclasses and feats are offered with both editions; homebrew backgrounds only in the editions their author picked.
 
 2024 differences the engine applies:
 - Origin: species give no ability bonuses or languages. The background lists three abilities as the suggestion; `freeAbilityBonuses` holds one entry per +1 on any ability (`backgroundBonuses`: at most +2 to one, +3 in total). Backgrounds teach Common + 2 picked languages and grant an Origin feat (`Background.feat`, shown as "Magic Initiate (Cleric)"). A Human also picks one (`Character.originFeatId`).
-- `getFeats(c)` = background feat + Human's feat + Fighting Style feats + ASI feats. Feat effects: `initiativeProficiency` (Alert), `skillPicks` (Skilled), `abilityChoice` (Grappler, Epic Boons up to 30; the pick is `Improvement.featAbility`), `rangedAttack` (Archery), `armoredAc` (Defense).
+- `getFeats(c)` = (any edition) a homebrew background's `effects` as one feat-like entry + background feat + Human's feat + Fighting Style feats + ASI feats. Feat effects: `initiativeProficiency` (Alert), `skillPicks` (Skilled), `abilityChoice` (Grappler, Epic Boons up to 30; the pick is `Improvement.featAbility`), `rangedAttack` (Archery), `armoredAc` (Defense).
 - Class choices (`ClassDef.choices`, saved in `Character.featureChoices` as `<classId>.<choiceId>`): Fighting Style (feat options), Divine Order and Primal Order (extra armor and weapon proficiencies). `classChoices(c)` lists them; picks show in `features` as "Divine Order (Protector)".
 - Classes: subclass at 3, Epic Boon slot at 19, 2024 resources (Second Wind uses, Indomitable, Focus Points, Favored Enemy...), Monk and Rogue Light/Finesse martial weapons, Martial Arts d6 to d12, Draconic Sorcery 10 + DEX + CHA. `getWeaponMasteryCount(c)` reads `ClassDef.weaponMastery`.
 - Half casters get slots from level 1 and always round their levels up (also when multiclassed). Multiclass grants come from `MULTICLASS_PROFICIENCIES_2024`.
-- Starting gear is the class's option A kit with its coins or option B coins only (`EquipmentChoice` options carry `gold`); `startingGold` adds the background's coins. 2014 characters start with 15 gp.
+- Starting gear is the class's option A kit with its coins or option B coins only (`EquipmentChoice` options carry `gold`); `startingGold` adds the background's coins. 2014 characters start with 15 gp plus a homebrew background's gold.
 - Not modelled yet: Weapon Mastery picks, Eldritch Invocations, Expertise and Metamagic picks, Elf Keen Senses limited to three skills (any skill is accepted), Skilled's tool option, Heroic Inspiration, background option B (50 gp).
 - Older saves that only set `spellEdition: '2024'` keep 2014 rules; `uses2024Spells` still gives their pact weapon CHA.
 
@@ -72,7 +72,7 @@ Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missi
   - `subclassId: 'custom'` (`CUSTOM_SUBCLASS`) reads `Character.customSubclasses` for that class; always resolve with `subclassOf`, not `subclassById`.
 - ASIs and feats (`improvements`) add to ability scores (cap 20). Feat effects apply: ability, skill, HP per level, speed, initiative, AC. `DerivedStats.feats`, `.tools`, `.languages` list them.
 - Backgrounds go through `getBackground(c)`, which also builds the PHB custom background.
-- Homebrew: `registerHomebrewRaces` (subraces attach to their parent), `registerHomebrewSubclasses`, `registerHomebrewFeats`, like `registerHomebrewItems`. SRD ids always win. Use `allRaces()` for lists; `RACES` is SRD only.
+- Homebrew: `registerHomebrewRaces` (subraces attach to their parent), `registerHomebrewSubclasses`, `registerHomebrewFeats`, `registerHomebrewBackgrounds` (each with its `editions`; in 2014 their ability scores and Origin feat are dropped), like `registerHomebrewItems`. SRD ids always win. Use `allRaces()` for lists; `RACES` is SRD only.
 - Multiclass (SRD 5.1, `data/multiclass.ts`): ability prerequisites for the new class and every current one; later classes grant only their multiclass armor/weapon proficiencies; Unarmored Defense comes from the first class that has it; Channel Divinity uses don't add up. `derive().warnings` carries unmet prerequisites, level over 20, Extra Attack/Unarmored Defense/Channel Divinity not stacking, separate spell lists and pact slots, and the extra skill Bard/Ranger/Rogue grant (not yet pickable).
 
 ## Stable API (used by the sheet and dice)

@@ -7,7 +7,7 @@ import {
   ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pointBuyCost, racialLanguages, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
-  type Ability, type CharacterDraft, type RulesEdition, type SkillId,
+  type Ability, type Background, type CharacterDraft, type RulesEdition, type SkillId,
 } from '../rules'
 import type { OriginSwaps } from '../model/character'
 import { RandomName } from '../random/RandomBar'
@@ -543,7 +543,7 @@ function BackgroundBonuses({ draft, update }: StepProps) {
       <select id="bg-abilities" value={draft.backgroundId} onChange={e => update({ backgroundId: e.target.value, freeAbilityBonuses: bonusesAfterBackground(draft), chosenSkills: [], chosenLanguages: [], chosenTools: [] })}>
         {backgroundsFor('2024').map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)}
       </select>
-      <Explain kind="bg2024" id={draft.backgroundId} />
+      <BackgroundExplain kind="bg2024" bg={bg} id={draft.backgroundId} />
       <p className="small">
         {t('builder.bgBonus.intro', { total, background: bg ? term('background', bg.id, bg.name) : '', abilities: listed.map(a => ability(a)).join(', ') })}
         {' '}<Why id="bgBonus" />
@@ -710,7 +710,7 @@ function SkillsStep({ draft, update }: StepProps) {
           {backgroundsFor(edition).map(b => <option key={b.id} value={b.id}>{term('background', b.id, b.name)}</option>)}
           {edition === '2014' && <option value={CUSTOM_BACKGROUND}>{t('builder.customBackground')}</option>}
         </select>
-        {!custom && <Explain kind={edition === '2024' ? 'bg2024' : 'bg'} id={draft.backgroundId} />}
+        {!custom && <BackgroundExplain kind={edition === '2024' ? 'bg2024' : 'bg'} bg={bg} id={draft.backgroundId} />}
         {bg && !custom && edition === '2014' && <p className="muted small">{t('builder.bgFeature', { feature: term('bgFeature', bg.feature, bg.feature) })}</p>}
         {bg?.feat && (
           <p className="muted small">
@@ -745,6 +745,17 @@ function SkillsStep({ draft, update }: StepProps) {
       </div>
       <LanguagesAndTools draft={draft} update={update} />
     </>
+  )
+}
+
+/** A book background's explanation, or a homebrew one's own text and what homebrew backgrounds are. */
+function BackgroundExplain({ kind, bg, id }: { kind: 'bg' | 'bg2024'; bg?: Background; id: string }) {
+  const { t } = useI18n()
+  if (!id.startsWith('hb:')) return <Explain kind={kind} id={id} />
+  return (
+    <p className="why-explain small" style={{ whiteSpace: 'pre-line' }}>
+      {bg?.description ?? t('why.homebrew')} <Why id="hbBackground" />
+    </p>
   )
 }
 
@@ -958,7 +969,7 @@ function EquipmentStep({ draft, update }: StepProps) {
           )
         })}
       </ul>
-      <p className="muted small">{rulesEdition(draft) === '2024' ? t('builder.gold2024', { gp: startingGold(draft) }) : t('builder.plusGold')}</p>
+      <p className="muted small">{rulesEdition(draft) === '2024' ? t('builder.gold2024', { gp: startingGold(draft) }) : t('builder.plusGold', { gp: startingGold(draft) })}</p>
     </>
   )
 }
