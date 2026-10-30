@@ -15,6 +15,7 @@ import { spendSlot } from '../../quickcast/quickcast'
 import { CastResult, ConfirmCast, SlotPicker, useCast, useCastWarning } from '../../spellbook/Cast'
 import { endEffect, endFight, endsWithFight, setEffectOn, startEffect } from '../effects'
 import type { Apply } from '../types'
+import { FormCard } from './WildShape'
 
 type T = ReturnType<typeof useI18n>['t']
 
@@ -43,6 +44,7 @@ function useDescribe() {
     const type = (d?: string) => (d ? ` ${term('damage', d, d)}` : '')
     return [
       e.damage ? `${t(e.weaponOnly ? 'cs.affects.weapon' : 'cs.affects.damage')}${e.damageType ? ` (${term('damage', e.damageType, e.damageType)})` : ''}` : '',
+      e.pactOnly ? t('fx.pactOnly') : '',
       fx?.once ? t('fx.once') : '',
       ...(['attack', 'save', 'check'] as const).map(k => (fx?.rollDice?.[k] ? t(`fx.dice.${k}` as MessageKey, { dice: fx.rollDice[k]! }) : '')),
       fx?.acBase ? t('fx.acBase', { n: fx.acBase }) : '',
@@ -95,7 +97,12 @@ export function EffectRows({ character, effects, isOn, onToggle, apply }: {
                   {t(live.on ? 'fx.onMe' : 'fx.notOnMe')}
                 </button>
               )}
+              {/* Hex moves to a new target when the cursed one drops to 0 HP: a bonus action, no slot. */}
+              {live && e.id === 'spell:hex' && (
+                <button type="button" className="glass-chip small" onClick={() => apply(t('fx.log.moveHex'), c => c)}>{t('fx.moveHex')}</button>
+              )}
             </span>
+            {live?.form && <FormCard character={character} form={live.form} />}
             {pending?.id === e.id && (
               <ConfirmCast text={pending.text} onYes={() => { setPending(null); onToggle(e, true, pending.slot) }} onNo={() => setPending(null)} />
             )}

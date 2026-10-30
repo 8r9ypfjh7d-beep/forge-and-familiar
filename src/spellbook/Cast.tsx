@@ -7,7 +7,7 @@ import type { Character } from '../model/character'
 import { slotChoices, spellBeams, spellDamage } from '../quickcast/quickcast'
 import type { SlotChoice } from '../quickcast'
 import { setEquipped } from '../inventory/inventory'
-import { cantripDamageBonus, derive, getResources, itemSpellCast, wornArmor, type ItemSpell } from '../rules'
+import { cantripDamageBonus, castsAtMax, derive, getResources, itemSpellCast, maxOfDice, wornArmor, type ItemSpell } from '../rules'
 import { withRollFromText } from '../sheet/combat/combat'
 import { LastRoll, type Shown } from '../sheet/combat/LastRoll'
 import { useSheetRolls } from '../sheet/dice'
@@ -35,9 +35,9 @@ export function useCast(character: Character, apply: Apply) {
 
   /**
    * `free`: cast without a slot (an item's or a race's spell), at `free.level` when it says so, spending
-   * `free.spend` (its once-per-rest use or the item's charges) when it has a limit.
+   * `free.spend` (its once-per-rest use or the item's charges) when it has a limit; `free.max` gives its temporary HP at their highest (Fiendish Vigor).
    */
-  const cast = (spell: Spell, chosen?: SlotChoice, free?: { level?: number; spend?: { id: string; n: number } }) => {
+  const cast = (spell: Spell, chosen?: SlotChoice, free?: { level?: number; spend?: { id: string; n: number }; max?: boolean }) => {
     const slot = free ? undefined : chosen ?? defaultSlot(character, spell)
     const d = derive(character)
     const level = slot?.level ?? free?.level ?? spell.level
@@ -92,9 +92,11 @@ export function useCast(character: Character, apply: Apply) {
       if (r) shown.push({ roll: r, what })
       return r?.total
     }
-    const tempHp = amount(plan.tempHp, t('cast.tempHp'))
+    const tempHp = free?.max && plan.tempHp ? maxOfDice(plan.tempHp) : amount(plan.tempHp, t('cast.tempHp'))
     const healed = amount(plan.heal, t('cs.roll.healing'))
-    if (tempHp) notes.push(t('cast.gotTempHp', { n: tempHp }))
+    // Temporary HP don't stack: the higher amount stays.
+    if (tempHp && tempHp <= character.state.tempHp) notes.push(t('cast.keptTempHp', { n: character.state.tempHp }))
+    else if (tempHp) notes.push(t('cast.gotTempHp', { n: tempHp }))
     if (healed) notes.push(t('cast.healed', { n: healed }))
     const ended = plan.effect ? startEffect(character, plan.effect).ended : []
     for (const name of ended) notes.push(t('cast.concEnded', { name }))
@@ -214,14 +216,14 @@ export function CastButton({ character, spell, onCast }: { character: Character;
 }
 
 /** Casting the spells that items, races and feats give: free, at their own level, spending their use or charges. */
-export function itemSpellCaster<R>(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number; spend?: { id: string; n: number } }) => R): Pick<ItemSpellCaster, 'can'> & { cast: (s: ItemSpell) => R | undefined } {
+export function itemSpellCaster<R>(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number; spend?: { id: string; n: number }; max?: boolean }) => R): Pick<ItemSpellCaster, 'can'> & { cast: (s: ItemSpell) => R | undefined } {
   const find = (text: string) => { const { name, level } = itemSpellCast(text); const s = spells.find(x => x.name.toLowerCase() === name.toLowerCase()); return s && { s, level } }
   return {
     can: s => !!find(s.spell),
     cast: s => {
       const f = find(s.spell)
       const spend = s.useId ? { id: s.useId, n: 1 } : s.charges ? { id: s.charges.id, n: s.charges.cost } : undefined
-      return f ? cast(f.s, undefined, { level: f.level, ...(spend ? { spend } : {}) }) : undefined
+      return f ? cast(f.s, undefined, { level: f.level, ...(spend ? { spend } : {}), ...(castsAtMax(s.note) ? { max: true } : {}) }) : undefined
     },
   }
 }

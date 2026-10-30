@@ -188,6 +188,15 @@ export interface UseContext {
   classLevel: number
   /** Ability modifiers, for features that add one (Dark One's Blessing adds CHA). */
   mods?: Partial<Record<Ability, number>>
+  /** Character level and proficiency bonus, for race traits (Breath Weapon grows with the character). */
+  level?: number
+  prof?: number
+  /** The dragonborn's ancestry: Breath Weapon's damage type, save and area. */
+  breath?: { type: string; save: Ability; area: BreathArea }
+  /** How many pact slots the warlock has (Magical Cunning brings half back). */
+  pactSlots?: number
+  /** Circle of the Moon: Wild Shape takes stronger beasts. */
+  moon?: boolean
 }
 
 /** What using a feature does besides spending one use. */
@@ -197,6 +206,55 @@ export interface UsePlan {
   heal?: string
   tempHp?: string
   effect?: Omit<LiveEffect, 'on'>
+  /** Damage rolled on use (Breath Weapon), with the save it calls for and its area. */
+  hit?: { dice: string; type?: string }
+  save?: { dc: number; ability: Ability }
+  area?: BreathArea
+  /** A die handed to an ally (Bardic Inspiration). */
+  give?: string
+  /** Pact slots regained (Magical Cunning). */
+  pactSlots?: number
+  /** A beast form is picked first (Wild Shape), within these limits. */
+  form?: WildShapeLimit
+}
+
+/** A breath's area: a cone's length, a line's width and length, or a choice of both (2024). */
+export interface BreathArea { cone?: number; line?: [number, number] }
+
+/** "5 by 30 ft. line", "15 ft. cone (DEX save)", "15 ft. cone or 30 ft. line" → its area. */
+export function breathArea(text: string): BreathArea {
+  const cone = /(\d+) ft\. cone/.exec(text)
+  const line = /(?:(\d+) by )?(\d+) ft\. line/.exec(text)
+  return { ...(cone ? { cone: Number(cone[1]) } : {}), ...(line ? { line: [Number(line[1] ?? 5), Number(line[2])] as [number, number] } : {}) }
+}
+
+/** The beasts Wild Shape can take: highest challenge rating and whether flying or swimming forms are allowed. */
+export interface WildShapeLimit { maxCr: number; fly: boolean; swim: boolean }
+
+export function wildShapeLimit(edition: '2014' | '2024', druidLevel: number, moon = false): WildShapeLimit {
+  const l = druidLevel
+  const base = l >= 8 ? 1 : l >= 4 ? 0.5 : 0.25
+  const moonCr = edition === '2024' ? Math.max(1, Math.floor(l / 3)) : l >= 6 ? Math.floor(l / 3) : 1
+  return { maxCr: moon ? Math.max(base, moonCr) : base, fly: l >= 8, swim: edition === '2024' || l >= 4 }
+}
+
+/** Breath Weapon damage dice: 2014 SRD grows 2d6 → 5d6; 2024 and Fizban's 1d10 → 4d10. */
+export function breathDice(level: number, d10: boolean): string {
+  const n = (d10 ? [1, 5, 11, 17] : [1, 6, 11, 16]).filter(x => level >= x).length
+  return d10 ? `${n}d10` : `${n + 1}d6`
+}
+
+/** Bardic Inspiration's die by bard level. */
+export const inspirationDie = (bardLevel: number) => `1d${bardLevel >= 15 ? 12 : bardLevel >= 10 ? 10 : bardLevel >= 5 ? 8 : 6}`
+
+const breath = (d10: boolean): FeatureTemplate => ({ edition, level = 1, prof = 2, mods, breath: b }) => {
+  const big = d10 || edition === '2024'
+  const save = b?.save ?? 'dex'
+  return {
+    hit: { dice: breathDice(level, big), ...(b?.type ? { type: b.type } : {}) },
+    save: { dc: 8 + (mods?.con ?? 0) + prof, ability: save },
+    area: b?.area ?? (big ? { cone: 15, line: [5, 30] } : {}),
+  }
 }
 
 type FeatureTemplate = (ctx: UseContext) => UsePlan & { effectAs?: Omit<LiveEffect, 'on' | 'id' | 'name' | 'from'> }
@@ -211,7 +269,17 @@ export const FEATURE_TEMPLATES: Record<string, FeatureTemplate> = {
       stats: [...BPS, { kind: 'advantage', on: 'save:str' }, { kind: 'advantage', on: 'checks', when: 'with Strength' }],
     },
   }),
-  'wild-shape': ({ classLevel }) => ({ effectAs: { duration: hours(Math.max(1, Math.floor(classLevel / 2))), ends: 'long' } }),
+  // 2024: temp HP equal to the druid level. The beast form is picked when used.
+  'wild-shape': ({ classLevel, edition, moon }) => ({
+    ...(edition === '2024' ? { tempHp: String(classLevel) } : {}),
+    form: wildShapeLimit(edition, classLevel, moon),
+    effectAs: { duration: hours(Math.max(1, Math.floor(classLevel / 2))), ends: 'long' },
+  }),
+  'bardic-inspiration': ({ classLevel }) => ({ give: inspirationDie(classLevel) }),
+  // 2024 Magical Cunning: half the pact slots (rounded up) come back.
+  'magical-cunning': ({ pactSlots = 1 }) => ({ pactSlots: Math.ceil(pactSlots / 2) }),
+  'race:breath-weapon': breath(false),
+  'race:breath-weapon-fizban': breath(true),
   'innate-sorcery': () => ({
     effectAs: { duration: '1 minute', ends: 'short', stats: [{ kind: 'spellDc', value: 1 }, { kind: 'advantage', on: 'attacks', when: 'with spells' }] },
   }),
@@ -340,6 +408,18 @@ export function potionEffect(uid: string, name: string, effects: ItemEffect[] = 
 export function itemSpellCast(text: string): { name: string; level?: number } {
   const m = /^(.*?)\s*\((?:as\s+)?(\d)(?:st|nd|rd|th)[- ]level\)\s*$/i.exec(text)
   return m ? { name: m[1].trim(), level: Number(m[2]) } : { name: text.replace(/\s*\(.*\)\s*$/, '').trim() }
+}
+
+/** A spell given "at its maximum" (2024 Fiendish Vigor): its rolls count as their highest value. */
+export const castsAtMax = (note = '') => /\bmaximum\b/i.test(note)
+
+/** The highest a roll can come up: "2d4+4" → 12. */
+export function maxOfDice(notation: string): number {
+  return notation.replace(/\s+/g, '').split(/(?=[+-])/).reduce((sum, part) => {
+    const m = /^([+-]?)(\d*)d(\d+)$/i.exec(part)
+    const sign = part.startsWith('-') ? -1 : 1
+    return sum + (m ? sign * Number(m[2] || 1) * Number(m[3]) : Number(part) || 0)
+  }, 0)
 }
 
 /** How a race's or item's spell is limited, read from its note: uses that come back on a rest or at dawn, or item charges per cast. */

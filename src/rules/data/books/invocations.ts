@@ -112,7 +112,7 @@ export const INVOCATIONS_2024: ClassOption[] = [
   n('eldritch-mind', 'Eldritch Mind', { effects: [{ kind: 'advantage', on: 'concentration' }] }),
   n('eldritch-smite', 'Eldritch Smite', { minLevel: 5, requires: BLADE24 }),
   n('eldritch-spear', 'Eldritch Spear', { minLevel: 2, ...DAMAGE_CANTRIP }),
-  n('fiendish-vigor', 'Fiendish Vigor', { minLevel: 2, ...atWill('False Life') }),
+  n('fiendish-vigor', 'Fiendish Vigor', { minLevel: 2, spells: [{ name: 'False Life', note: 'at will, maximum temp HP' }] }),
   n('gaze-of-two-minds', 'Gaze of Two Minds', { minLevel: 5 }),
   n('gift-of-the-depths', 'Gift of the Depths', { minLevel: 5, effects: [{ kind: 'moveSpeed', mode: 'swim', value: 0 }], ...oncePerLong('Water Breathing') }),
   n('gift-of-the-protectors', 'Gift of the Protectors', { minLevel: 9, requires: TOME24, uses: { count: 1, recharge: 'long' } }),
