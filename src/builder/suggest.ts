@@ -65,6 +65,8 @@ export function suggestedSkillStep(draft: CharacterDraft): Pick<CharacterDraft, 
   let d: CharacterDraft = { ...draft, chosenSkills: suggestedSkills(draft) }
   const scores = getAbilityScores(d)
   const classPicks = { ...(d.classPicks ?? {}) }
+  // Expertise can also go on a tool (Thieves' Tools): those rank as DEX.
+  const rank = (x: string) => scores[x in SKILLS ? SKILLS[x as SkillId].ability : 'dex']
   for (const { classId, pick } of classPickSlots(d)) {
     if (pick.kind === 'language') continue
     const key = pickKey(classId, pick.id)
@@ -72,7 +74,7 @@ export function suggestedSkillStep(draft: CharacterDraft): Pick<CharacterDraft, 
     // Other picks of the same kind count, so a second Expertise doesn't repeat the first.
     const taken = new Set(classPickSlots(d).filter(s => s.pick.kind === pick.kind && pickKey(s.classId, s.pick.id) !== key).flatMap(s => s.picked))
     const options = [...suggestedForPick(d, pick)].filter(s => !picked.includes(s) && !taken.has(s))
-      .sort((a, b) => scores[SKILLS[b].ability] - scores[SKILLS[a].ability])
+      .sort((a, b) => rank(b) - rank(a))
     classPicks[key] = [...picked, ...options.slice(0, pick.count - picked.length)]
     d = { ...d, classPicks }
   }
