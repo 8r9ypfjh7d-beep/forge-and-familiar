@@ -1,12 +1,17 @@
-// Entry editors for homebrew spells, items, feats, races, subclasses and backgrounds. Each edits a copy and hands it back on save.
+// Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds and class options. Each edits a copy and hands it back on save.
 import { useState, type ReactNode } from 'react'
-import { useI18n } from '../../i18n'
 import { Why } from '../../builder/Why'
-import { ABILITIES, ALL_SKILLS, CLASSES, ITEMS, allFeats, allRaces, itemById, type Ability, type ArmorCategory, type SkillId, type WeaponProperty } from '../../rules'
-import { backgroundIssues, featIssues, itemIssues, raceIssues, spellIssues, subclassIssues } from '../pack'
+import { useI18n } from '../../i18n'
+import { EffectsEditor } from '../../inventory'
+import {
+  ABILITIES, ALL_SKILLS, CLASSES, HOMEBREW_OPTION_KINDS, ITEMS, OPTION_KIND_CLASSES, allFeats, allRaces, isUsefulEffect, itemById,
+  type Ability, type ArmorCategory, type SkillId, type UsesCount, type WeaponProperty,
+} from '../../rules'
+import { backgroundIssues, classOptionIssues, featIssues, itemIssues, raceIssues, spellIssues, subclassIssues } from '../pack'
 import {
   BACKGROUND_EDITIONS, RARITIES, SPELL_SCHOOLS,
-  type BackgroundEditions, type FeatEffect, type HomebrewBackground, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type Rarity, type SpellSchool,
+  type BackgroundEditions, type FeatEffect, type HomebrewBackground, type HomebrewClassOption, type HomebrewFeat, type HomebrewItem, type HomebrewOptionKind,
+  type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type Rarity, type SpellSchool,
 } from '../types'
 
 const WEAPON_PROPS: WeaponProperty[] = ['finesse', 'light', 'heavy', 'reach', 'thrown', 'two-handed', 'versatile', 'ammunition', 'loading', 'ranged']
@@ -34,7 +39,7 @@ const opt = (s: string) => (s.trim() ? s : undefined)
 
 function FormShell<T>({ kind, name, value, issues, onSave, onCancel, children }: {
   /** Which entry this edits, for the title. */
-  kind: 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds'
+  kind: 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions'
   /** The saved name, or empty for a new entry. */
   name: string
   value: T
@@ -510,6 +515,136 @@ export function BackgroundForm({ initial, pack, onSave, onCancel }: { initial: H
       )}
       <EffectsField effects={b.effects} onChange={effects => set({ effects })} hint={t('hb.f.bgEffectsHint')} kinds={BG_EFFECT_KINDS} why={whyOf('hbBgEffects')} />
       <Field label={t('hb.f.description')} wide><textarea rows={4} value={b.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+    </FormShell>
+  )
+}
+
+/** Classes that have option lists, plus the Artificer (infusions) whether or not its class data is loaded. */
+const OPTION_CLASSES = [...new Set([...CLASSES.map(c => c.id), 'artificer'])]
+type UsesKind = 'none' | 'fixed' | 'pb' | 'level' | Ability
+const usesKind = (o: HomebrewClassOption): UsesKind => (!o.uses ? 'none' : typeof o.uses.count === 'number' ? 'fixed' : o.uses.count)
+
+/** A field label with a "why?" bubble. */
+function WhyLabel({ label, why }: { label: string; why: string }) {
+  return <span>{label} <Why compact title={label} text={why} /></span>
+}
+
+export function ClassOptionForm({ initial, onSave, onCancel }: { initial: HomebrewClassOption; onSave: (o: HomebrewClassOption) => void; onCancel: () => void }) {
+  const { t, className, ability } = useI18n()
+  const [o, setO] = useState(initial)
+  const set = (patch: Partial<HomebrewClassOption>) => setO(prev => ({ ...prev, ...patch }))
+  const infusion = o.kind === 'infusion'
+  const setKind = (kind: HomebrewOptionKind) => {
+    // Keep the author's class picks unless they are still the old kind's defaults.
+    const defaults = OPTION_KIND_CLASSES[o.kind].join() === o.classIds.join()
+    const effects = infusion ? o.item?.effects : o.effects
+    set({
+      kind,
+      classIds: defaults ? OPTION_KIND_CLASSES[kind] : o.classIds,
+      ...(kind === 'infusion' ? { item: { ...o.item, effects: effects ?? [] }, effects: undefined } : { effects: effects ?? [], item: undefined }),
+      ...(kind !== 'metamagic' ? { costPerSpellLevel: undefined } : {}),
+    })
+  }
+  const setUses = (kind: UsesKind) => {
+    if (kind === 'none') return set({ uses: undefined })
+    const count: UsesCount = kind === 'fixed' ? (typeof o.uses?.count === 'number' ? o.uses.count : 1) : kind
+    set({ uses: { recharge: o.uses?.recharge ?? 'long', count, ...(kind !== 'fixed' && o.uses?.add ? { add: o.uses.add } : {}) } })
+  }
+  const toggleClass = (id: string, on: boolean) => set({ classIds: on ? [...o.classIds, id] : o.classIds.filter(x => x !== id) })
+  return (
+    <FormShell kind="classOptions" name={initial.name} value={o} issues={classOptionIssues(o)} onCancel={onCancel}
+      onSave={v => onSave({
+        ...v,
+        ...(v.effects ? { effects: v.effects.filter(isUsefulEffect) } : {}),
+        ...(v.item ? { item: { ...v.item, effects: (v.item.effects ?? []).filter(isUsefulEffect) } } : {}),
+      })}>
+      <Field label={t('hb.f.name')} wide><input value={o.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t(`hb.opt.placeholder.${o.kind}`)} /></Field>
+      <label className="hb-field">
+        <WhyLabel label={t('hb.opt.kind')} why={t(`hb.opt.why.kind.${o.kind}`)} />
+        <select value={o.kind} onChange={e => setKind(e.target.value as HomebrewOptionKind)}>
+          {HOMEBREW_OPTION_KINDS.map(k => <option key={k} value={k}>{t(`hb.opt.kind.${k}`)}</option>)}
+        </select>
+      </label>
+      <label className="hb-field">
+        <WhyLabel label={t('hb.opt.edition')} why={t('hb.opt.why.edition')} />
+        <select value={o.edition ?? ''} onChange={e => set({ edition: (e.target.value || undefined) as HomebrewClassOption['edition'] })}>
+          <option value="">{t('hb.opt.edition.both')}</option>
+          <option value="2014">{t('hb.opt.edition.2014')}</option>
+          <option value="2024">{t('hb.opt.edition.2024')}</option>
+        </select>
+      </label>
+      <div className="hb-field wide">
+        <WhyLabel label={t('hb.opt.classes')} why={t('hb.opt.why.classes')} />
+        <div className="row">
+          {OPTION_CLASSES.map(id => <Check key={id} label={className(id)} checked={o.classIds.includes(id)} onChange={on => toggleClass(id, on)} />)}
+        </div>
+      </div>
+      <label className="hb-field">
+        <WhyLabel label={t('hb.opt.minLevel')} why={t('hb.opt.why.minLevel')} />
+        <input type="number" min={1} max={20} value={o.minLevel ?? 1} onChange={e => { const n = Math.min(20, Math.max(1, numOr(e.target.value, 1))); set({ minLevel: n > 1 ? n : undefined }) }} />
+      </label>
+      <label className="hb-field">
+        <WhyLabel label={t('hb.f.prereq')} why={t('hb.opt.why.prereq')} />
+        <input value={o.prerequisite ?? ''} onChange={e => set({ prerequisite: opt(e.target.value) })} placeholder={t(`hb.opt.prereqPlaceholder.${o.kind}`)} />
+      </label>
+      {o.kind !== 'fightingStyle' && !infusion && (
+        <label className="hb-field">
+          <WhyLabel label={t(`hb.opt.cost.${o.kind}`)} why={t(`hb.opt.why.cost.${o.kind}`)} />
+          <input type="number" min={0} max={20} value={o.cost ?? 0} onChange={e => { const n = Math.max(0, numOr(e.target.value, 0)); set({ cost: n || undefined, ...(n ? {} : { costPerSpellLevel: undefined }) }) }} />
+        </label>
+      )}
+      {o.kind === 'metamagic' && !!o.cost && (
+        <div className="hb-field">
+          <span>{t('hb.opt.cost.metamagic')}</span>
+          <label className="hb-check hb-plain"><input type="checkbox" checked={!!o.costPerSpellLevel} onChange={e => set({ costPerSpellLevel: e.target.checked || undefined })} />{t('hb.opt.perSpellLevel')}</label>
+        </div>
+      )}
+      <div className="hb-field">
+        <WhyLabel label={t('hb.opt.picks')} why={t('hb.opt.why.repeatable')} />
+        <label className="hb-check hb-plain"><input type="checkbox" checked={!!o.repeatable} onChange={e => set({ repeatable: e.target.checked || undefined })} />{t('hb.opt.repeatable')}</label>
+      </div>
+      <Field label={t('hb.f.description')} wide><textarea rows={4} value={o.text} onChange={e => set({ text: e.target.value })} placeholder={t('hb.opt.textPlaceholder')} /></Field>
+      <div className="hb-field wide">
+        <WhyLabel label={t('hb.opt.uses')} why={t('hb.opt.why.uses')} />
+        <div className="row">
+          <select aria-label={t('hb.opt.uses')} value={usesKind(o)} onChange={e => setUses(e.target.value as UsesKind)}>
+            <option value="none">{t('builder.cs.uses.none')}</option>
+            <option value="fixed">{t('builder.cs.uses.fixed')}</option>
+            <option value="pb">{t('builder.cs.uses.pb')}</option>
+            <option value="level">{t('builder.cs.uses.level')}</option>
+            {ABILITIES.map(a => <option key={a} value={a}>{t('builder.cs.uses.mod', { ability: ability(a) })}</option>)}
+          </select>
+          {o.uses && (
+            <>
+              <input type="number" className="hb-amount" min={typeof o.uses.count === 'number' ? 1 : -5} max={50}
+                aria-label={typeof o.uses.count === 'number' ? t('builder.cs.uses.count') : t('builder.cs.uses.add')}
+                title={typeof o.uses.count === 'number' ? t('builder.cs.uses.count') : t('builder.cs.uses.add')}
+                value={typeof o.uses.count === 'number' ? o.uses.count : (o.uses.add ?? 0)}
+                onChange={e => {
+                  const n = Math.round(Number(e.target.value) || 0)
+                  set({ uses: typeof o.uses!.count === 'number' ? { ...o.uses!, count: Math.max(1, n) } : { ...o.uses!, add: n || undefined } })
+                }} />
+              <select aria-label={t('builder.cs.recharge')} value={o.uses.recharge} onChange={e => set({ uses: { ...o.uses!, recharge: e.target.value as 'short' | 'long' } })}>
+                <option value="short">{t('builder.cs.recharge.short')}</option>
+                <option value="long">{t('builder.cs.recharge.long')}</option>
+              </select>
+            </>
+          )}
+        </div>
+      </div>
+      {infusion ? (
+        <>
+          <label className="hb-field">
+            <WhyLabel label={t('hb.opt.magicBonus')} why={t('hb.opt.why.magicBonus')} />
+            <select value={o.item?.magicBonus ?? 0} onChange={e => { const n = Number(e.target.value); set({ item: { ...o.item, magicBonus: n || undefined } }) }}>
+              {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n ? `+${n}` : t('hb.opt.magicBonus.none')}</option>)}
+            </select>
+          </label>
+          <EffectsEditor legend={t('hb.opt.itemEffects')} effects={o.item?.effects ?? []} onChange={fx => set({ item: { ...o.item, effects: fx } })} />
+        </>
+      ) : (
+        <EffectsEditor legend={t('hb.opt.effects')} effects={o.effects ?? []} onChange={fx => set({ effects: fx })} />
+      )}
     </FormShell>
   )
 }

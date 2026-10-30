@@ -1,6 +1,7 @@
 // Builder choices beyond race, class and scores: languages, tools, Ability Score Improvements,
 // feats and starting-gear picks. Pure helpers shared by the builder and derive().
 import type { Character } from '../model/character'
+import { homebrewClassOptions } from './classOptions'
 import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { classLanguagePicks } from './classPicks'
@@ -32,11 +33,16 @@ export const choiceKey = (classId: string, choiceId: string) => `${classId}.${ch
 
 /** Class choices the character's levels have unlocked, with the option picked (if any). */
 export function classChoices(c: Classes & Partial<Pick<Character, 'featureChoices'>>): { classId: string; choice: ClassChoice; picked?: ClassChoice['options'][number] }[] {
-  return c.classes.flatMap(cl => (classById(cl.classId, rulesEdition(c))?.choices ?? []).filter(ch => ch.level <= cl.level).map(choice => ({
-    classId: cl.classId,
-    choice,
-    picked: choice.options.find(o => o.id === c.featureChoices?.[choiceKey(cl.classId, choice.id)]),
-  })))
+  const edition = rulesEdition(c)
+  return c.classes.flatMap(cl => (classById(cl.classId, edition)?.choices ?? []).filter(ch => ch.level <= cl.level).map(base => {
+    // Homebrew fighting styles join every Fighting Style list; their effects and uses apply through classOptionEffects.
+    const extra = base.id === 'fightingStyle'
+      ? homebrewClassOptions('fightingStyle').filter(o => (!o.edition || o.edition === edition) && (!o.classIds?.length || o.classIds.includes(cl.classId)))
+        .map(o => ({ id: o.id, name: o.name, detail: o.text ?? '' }))
+      : []
+    const choice = extra.length ? { ...base, options: [...base.options, ...extra] } : base
+    return { classId: cl.classId, choice, picked: choice.options.find(o => o.id === c.featureChoices?.[choiceKey(cl.classId, choice.id)]) }
+  }))
 }
 
 /** Improvements that still match a slot (a lower class level drops the ones above it). */

@@ -10,6 +10,11 @@ export type ClassOptionKind = 'invocation' | 'pactBoon' | 'metamagic' | 'maneuve
 /** The kinds a homebrew pack can write, in editor order. */
 export const HOMEBREW_OPTION_KINDS = ['invocation', 'metamagic', 'maneuver', 'fightingStyle', 'infusion'] as const
 
+/** Classes that pick each homebrew kind by default; the author may tick others. */
+export const OPTION_KIND_CLASSES: Record<(typeof HOMEBREW_OPTION_KINDS)[number], string[]> = {
+  invocation: ['warlock'], metamagic: ['sorcerer'], maneuver: ['fighter'], fightingStyle: ['fighter', 'paladin', 'ranger'], infusion: ['artificer'],
+}
+
 export interface ClassOption {
   id: string
   kind: ClassOptionKind
@@ -44,6 +49,8 @@ export interface ClassOption {
   effects?: ItemEffect[]
   /** More effects from a class level on (Storm Soul at 6). */
   later?: { level: number; effects: ItemEffect[] }[]
+  /** What an infused or replicated item gets; copied onto the item, never applied to the character by itself. */
+  item?: { magicBonus?: number; effects?: ItemEffect[]; itemId?: string }
   /** Spells it grants, from a class level on when `level` is set (Land terrain spells at 3/5/7/9). */
   spells?: { name: string; level?: number; note?: string }[]
 }
@@ -85,13 +92,20 @@ export function classOptionById(id: string, edition?: '2014' | '2024'): ClassOpt
   return matches.find(o => o.edition === edition) ?? matches.find(o => !o.edition) ?? matches[0]
 }
 
-type Owner = Partial<Pick<Character, 'classOptions' | 'classes' | 'rulesEdition'>>
+type Owner = Partial<Pick<Character, 'classOptions' | 'classes' | 'rulesEdition' | 'featureChoices'>>
+
+/** Homebrew fighting styles picked in a Fighting Style choice (saved in featureChoices, like the official styles). */
+const homebrewStylePicks = (c: Owner): ClassOptionPick[] =>
+  Object.entries(c.featureChoices ?? {}).flatMap(([key, id]) => {
+    const [classId, choiceId] = key.split('.')
+    return choiceId === 'fightingStyle' && id.startsWith('hb:') ? [{ kind: 'fightingStyle', id, classId }] : []
+  })
 
 /** The character's picks that still resolve, with the option and the picking class's level. */
 export function pickedClassOptions(c: Owner): { pick: ClassOptionPick; option: ClassOption; level: number }[] {
   const edition = rulesEdition(c)
   const total = (c.classes ?? []).reduce((n, cl) => n + cl.level, 0)
-  return (c.classOptions ?? []).flatMap(pick => {
+  return [...(c.classOptions ?? []), ...homebrewStylePicks(c)].flatMap(pick => {
     const option = classOptionById(pick.id, edition)
     if (!option) return []
     const level = pick.classId ? c.classes?.find(cl => cl.classId === pick.classId)?.level ?? 0 : total

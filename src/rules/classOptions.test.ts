@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  classOptionById, classOptions, createCharacter, derive, getResources, registerClassOptions, type CharacterDraft,
+  classChoices, classOptionById, classOptions, createCharacter, derive, getResources, registerClassOptions, type CharacterDraft,
 } from './index'
 
 const fighter = (level: number, over: Partial<CharacterDraft> = {}) => createCharacter({
@@ -51,5 +51,20 @@ describe('class option registry', () => {
 
   it('ignores picks whose option is gone', () => {
     expect(getResources(fighter(3, { classOptions: [{ kind: 'maneuver', id: 'hb:gone:x' }] }))).toEqual(getResources(fighter(3)))
+  })
+
+  it('adds homebrew fighting styles to the Fighting Style choice and applies the one picked', () => {
+    registerClassOptions('homebrew', [
+      { id: 'hb:p:wall', kind: 'fightingStyle', name: 'Shield Wall', text: 'Hold the line.', classIds: ['fighter'], effects: [{ kind: 'save', ability: 'str', value: 1 }] },
+      { id: 'hb:p:old', kind: 'fightingStyle', name: 'Old Style', edition: '2014', classIds: ['fighter'] },
+      { id: 'hb:p:pal', kind: 'fightingStyle', name: 'Oathguard', classIds: ['paladin'] },
+    ])
+    const c = fighter(1, { rulesEdition: '2024', featureChoices: { 'fighter.fightingStyle': 'hb:p:wall' } })
+    const style = classChoices(c).find(x => x.choice.id === 'fightingStyle')!
+    expect(style.choice.options.map(o => o.id)).toContain('hb:p:wall')
+    expect(style.choice.options.map(o => o.id)).not.toContain('hb:p:old')
+    expect(style.choice.options.map(o => o.id)).not.toContain('hb:p:pal')
+    expect(style.picked?.name).toBe('Shield Wall')
+    expect(derive(c).saves.str.bonus).toBe(derive(fighter(1, { rulesEdition: '2024' })).saves.str.bonus + 1)
   })
 })

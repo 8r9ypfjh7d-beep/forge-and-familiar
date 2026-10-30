@@ -1,4 +1,5 @@
-// Homebrew content: spells, items, feats, races, subclasses and backgrounds a group writes themselves, grouped into shareable packs.
+// Homebrew content: spells, items, feats, races, subclasses, backgrounds and class options a group writes themselves, grouped into shareable packs.
+import type { ClassOption, HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
 import type { Abilities, Ability, ArmorCategory, FeatEffect, Item, Size, SkillId } from '../rules/types'
 
 export type { FeatEffect }
@@ -103,6 +104,10 @@ export interface HomebrewBackground {
   effects: FeatEffect[]
   description?: string
 }
+export type HomebrewOptionKind = (typeof HOMEBREW_OPTION_KINDS)[number]
+
+/** An invocation, metamagic, maneuver, fighting style or infusion. Registered with rules/classOptions, so the matching picker offers it. */
+export type HomebrewClassOption = ClassOption & { kind: HomebrewOptionKind; text: string; classIds: string[] }
 
 /** A rules-engine Item plus flavour. Weapons and armor work in derive() once registered. */
 export type HomebrewItem = Item & { description?: string; rarity?: Rarity }
@@ -127,10 +132,13 @@ export interface HomebrewPack {
   races: HomebrewRace[]
   subclasses: HomebrewSubclass[]
   backgrounds: HomebrewBackground[]
+  /** Invocations, metamagic, maneuvers, fighting styles, infusions. Older packs load with none. */
+  classOptions: HomebrewClassOption[]
   /** Author's change history, only in downloaded pack files. Validated by src/history, never stored in the library. */
   history?: unknown[]
 }
 
-export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds'
+export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions'
 
-export type HomebrewEntry = HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass | HomebrewBackground
+
+export type HomebrewEntry = HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass | HomebrewBackground | HomebrewClassOption

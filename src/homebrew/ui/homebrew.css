@@ -86,6 +86,7 @@
 .hb-field input, .hb-field select, .hb-field textarea { inline-size: 100%; }
 .hb-field textarea { resize: vertical; }
 .hb-check { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 32px; font-size: 0.9rem; text-transform: capitalize; }
+.hb-check.hb-plain { text-transform: none; }
 .hb-check input { accent-color: var(--accent); inline-size: 18px; block-size: 18px; margin: 0; }
 .hb-effect { margin-block-end: var(--sp-2); flex-wrap: nowrap; }
 .hb-effect select { min-inline-size: 0; flex: 1; }

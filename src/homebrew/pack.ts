@@ -1,17 +1,19 @@
 // Pure pack helpers: ids, validation, and share codes. Imported packs come from other people,
 // so everything read from a code or file is rebuilt field by field and never trusted as-is.
 import { parseNotation } from '../dice/notation'
-import { ABILITIES, ABILITY_NAMES, type Abilities, type Ability, type ArmorCategory, type SkillId } from '../rules/types'
+import { HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
+import { sanitizeEffect } from '../rules/itemEffects'
+import { ABILITIES, ABILITY_NAMES, type Abilities, type Ability, type ArmorCategory, type ItemEffect, type SkillId, type UsesCount } from '../rules/types'
 import { ALL_SKILLS, SKILLS } from '../rules/data/skills'
 import {
   PACK_FORMAT, PACK_VERSION, RARITIES, SPELL_SCHOOLS,
   BACKGROUND_EDITIONS,
-  type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewEntry, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace,
+  type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClassOption, type HomebrewEntry, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace,
   type HomebrewSpell, type HomebrewSubclass,
 } from './types'
 
 /** Every entry in a pack, all kinds. */
-export const allEntries = (p: HomebrewPack): HomebrewEntry[] => [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds]
+export const allEntries = (p: HomebrewPack): HomebrewEntry[] => [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds, ...p.classOptions]
 
 export const SHARE_PREFIX = 'FFHB1.'
 export const LIMITS = { entries: 500, name: 80, text: 4000, short: 120 }
@@ -36,7 +38,7 @@ export function newPack(id: string, author: { id: string; displayName: string },
   return {
     format: PACK_FORMAT, version: PACK_VERSION, id, name, description: '',
     authorId: author.id, authorName: author.displayName, updatedAt: new Date().toISOString(),
-    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [],
+    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [],
   }
 }
 
@@ -99,6 +101,14 @@ export function backgroundIssues(b: HomebrewBackground): string[] {
   if (!b.name.trim()) out.push('Give the background a name.')
   if (!b.feature.trim()) out.push('Name the background feature.')
   if (b.editions !== '2014' && new Set(b.abilityScores).size !== 3) out.push('Pick three abilities for 2024 characters to raise.')
+  return out
+}
+
+export function classOptionIssues(o: HomebrewClassOption): string[] {
+  const out: string[] = []
+  if (!o.name.trim()) out.push('Give it a name.')
+  if (!o.text.trim()) out.push('Describe what it does.')
+  if (o.classIds.length === 0) out.push('Pick at least one class that can choose it.')
   return out
 }
 
@@ -302,6 +312,46 @@ function cleanBackground(v: Obj, packId: string, seen: Set<string>): HomebrewBac
   }
 }
 
+const USES: readonly (UsesCount & string)[] = ['pb', 'level', ...ABILITIES]
+
+function cleanUses(v: unknown): HomebrewClassOption['uses'] {
+  if (!isObj(v)) return undefined
+  const count: UsesCount = typeof v.count === 'number' ? int(v.count, 1, 50, 1) : oneOf(v.count, USES, 'pb')
+  const add = int(v.add, -5, 20, 0)
+  return { count, recharge: oneOf(v.recharge, ['short', 'long'] as const, 'long'), ...(add ? { add } : {}) }
+}
+
+const cleanEffects = (v: unknown) => list(v).map(sanitizeEffect).filter((e): e is ItemEffect => !!e).slice(0, 30)
+
+function cleanInfusedItem(v: unknown): HomebrewClassOption['item'] {
+  const o = isObj(v) ? v : {}
+  const magicBonus = int(o.magicBonus, 0, 3, 0)
+  return { ...(magicBonus ? { magicBonus } : {}), effects: cleanEffects(o.effects) }
+}
+
+function cleanClassOption(v: Obj, packId: string, seen: Set<string>): HomebrewClassOption {
+  const name = str(v.name, LIMITS.name) || 'Unnamed option'
+  const cost = int(v.cost, 0, 20, 0)
+  const minLevel = int(v.minLevel, 1, 20, 1)
+  const kind = oneOf(v.kind, HOMEBREW_OPTION_KINDS, 'invocation')
+  return {
+    id: ownId(v.id, packId, name, seen),
+    kind,
+    name,
+    text: str(v.text, LIMITS.text),
+    classIds: [...new Set(list(v.classIds).map(x => str(x, 40)).filter(x => /^[a-z0-9:-]+$/i.test(x)))].slice(0, 20),
+    edition: optOneOf(v.edition, ['2014', '2024'] as const),
+    ...(minLevel > 1 ? { minLevel } : {}),
+    prerequisite: optStr(v.prerequisite),
+    ...(cost ? { cost } : {}),
+    ...(cost && v.costPerSpellLevel === true ? { costPerSpellLevel: true } : {}),
+    ...(v.repeatable === true ? { repeatable: true } : {}),
+    uses: cleanUses(v.uses),
+    // An infusion's effects belong to the infused item, not to the artificer.
+    ...(kind === 'infusion' ? { item: cleanInfusedItem(v.item) } : { effects: cleanEffects(v.effects) }),
+  }
+}
+
 /** Rebuilds a pack from unknown JSON. Throws PackError if it isn't a homebrew pack at all. */
 export function sanitizePack(raw: unknown): HomebrewPack {
   if (!isObj(raw) || raw.format !== PACK_FORMAT) throw new PackError("This isn't a Forge & Familiar homebrew pack.")
@@ -323,6 +373,7 @@ export function sanitizePack(raw: unknown): HomebrewPack {
     races: list(raw.races).filter(isObj).map(v => cleanRace(v, id, seen)),
     subclasses: list(raw.subclasses).filter(isObj).map(v => cleanSubclass(v, id, seen)),
     backgrounds: list(raw.backgrounds).filter(isObj).map(v => cleanBackground(v, id, seen)),
+    classOptions: list(raw.classOptions).filter(isObj).map(v => cleanClassOption(v, id, seen)),
     history: Array.isArray(raw.history) ? raw.history.slice(0, LIMITS.entries * 20) : undefined,
   }
 }
@@ -336,6 +387,7 @@ export function sanitizeEntry(kind: ContentKind, raw: unknown, packId: string): 
   if (kind === 'races') return cleanRace(raw, packId, seen)
   if (kind === 'subclasses') return cleanSubclass(raw, packId, seen)
   if (kind === 'backgrounds') return cleanBackground(raw, packId, seen)
+  if (kind === 'classOptions') return cleanClassOption(raw, packId, seen)
   return cleanFeat(raw, packId, seen)
 }
 

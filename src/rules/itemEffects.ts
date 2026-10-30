@@ -14,7 +14,7 @@ import {
 
 type EffectOf<K extends ItemEffect['kind']> = ItemEffect & { kind: K }
 
-type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions' | 'raceId' | 'subraceId' | 'traitChoices' | 'classPicks'>>
+type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | 'classes' | 'rulesEdition' | 'customSubclasses' | 'classOptions' | 'raceId' | 'subraceId' | 'traitChoices' | 'classPicks' | 'featureChoices'>>
 
 /** An entry's effects work while it is equipped. */
 export const effectsActive = (e: InventoryEntry) => e.equipped
@@ -108,7 +108,7 @@ export function sanitizeEffect(raw: unknown): ItemEffect | undefined {
   const kind = f.kind as ItemEffect['kind']
   if (pick(kind, BONUS_KINDS)) {
     const only = pick(f.only, ['melee', 'ranged'] as const)
-    return { kind: kind as BonusEffectKind, value: num(f.value, -99, 99), ...(f.unarmored === true ? { unarmored: true } : {}), ...(only ? { only } : {}) }
+    return { kind: kind as BonusEffectKind, value: num(f.value, -99, 99), ...(f.unarmored === true ? { unarmored: true } : {}), ...(f.armored === true ? { armored: true } : {}), ...(only ? { only } : {}) }
   }
   switch (kind) {
     case 'abilitySet': return { kind, ability: ability ?? 'str', value: num(f.value, 1, 30) }
