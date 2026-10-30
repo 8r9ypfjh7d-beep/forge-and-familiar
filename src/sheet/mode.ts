@@ -35,7 +35,8 @@ export const COMBAT_TABS: Record<CombatTab, SheetSection[]> = {
   combat: ['fight'],
   spells: ['spells', 'metamagic'],
   inventory: ['inventory', 'supplies'],
-  features: ['features'],
+  // Uses of class, subclass, race and feat features (Channel Divinity, Second Wind) sit above the features they belong to.
+  features: ['resources', 'features'],
   notes: ['notes', 'history'],
 }
 
@@ -49,6 +50,7 @@ const SHARED_SIDE: SheetSection[] = ['skills']
  * (slots and pinned spells) above the skills and fills the main column with notes, attacks and
  * inventory; combat mode fills it with Roll20-style tabs for combat, spells, inventory, features
  * and notes, whose Spells tab already holds the slots and spells, so it has no Spells card.
+ * Feature uses and trackers live only in combat's Features & Traits tab, since story mode leaves them out.
  * A character at 0 HP gets death saves on top in either mode. `powerUp` adds Tamir's strip card under the character card.
  */
 export function sheetLayout(mode: SheetMode, { dying, powerUp }: { dying: boolean; powerUp?: boolean }): SheetLayout {

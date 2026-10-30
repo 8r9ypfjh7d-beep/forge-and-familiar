@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getMaxHp } from '../rules'
+import { getMaxHp, getResources } from '../rules'
 import {
   canLongRest, grantTempHp, heal, hitDiceRemaining, longRest, rollDeathSave,
   setPactUsed, setResourceUsed, setSlotUsed, shortRest, spendHitDie, stabilize,
@@ -92,6 +92,25 @@ describe('slots and resources', () => {
 
   it('ignores unknown resources', () => {
     expect(setResourceUsed(fighter, 'ki', 1)).toBe(fighter)
+  })
+})
+
+describe('feature uses', () => {
+  const lock = makeCharacter({ classes: [{ classId: 'warlock', level: 1, subclassId: 'hexblade' }] })
+  const curse = getResources(lock).find(r => r.id.startsWith('sub:hexblade:'))
+
+  it('subclass features with uses are tracked and come back on their rest', () => {
+    expect(curse).toMatchObject({ max: 1, recharge: 'short' })
+    const spent = setResourceUsed(lock, curse!.id, 1)
+    expect(spent.state.resources[curse!.id].used).toBe(1)
+    expect(shortRest(spent).state.resources[curse!.id].used).toBe(0)
+    expect(longRest(spent).state.resources[curse!.id].used).toBe(0)
+  })
+
+  it('a long-rest use stays spent through a short rest', () => {
+    const spent = setResourceUsed(fighter, 'arcane-recovery', 1)
+    expect(shortRest(spent).state.resources['arcane-recovery'].used).toBe(1)
+    expect(longRest(spent).state.resources['arcane-recovery'].used).toBe(0)
   })
 })
 
