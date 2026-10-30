@@ -26,6 +26,19 @@ export function partyBudget(party: PartyGroup[]): Budget {
   }, { low: 0, moderate: 0, high: 0 })
 }
 
+/** The budget groups for a party's character levels: one group per level, highest first. */
+export function groupsFromLevels(levels: number[]): PartyGroup[] {
+  const counts = new Map<number, number>()
+  for (const l of levels) counts.set(clampLevel(l), (counts.get(clampLevel(l)) ?? 0) + 1)
+  return [...counts].sort((a, b) => b[0] - a[0]).map(([level, count]) => ({ level, count }))
+}
+
+const levelsOf = (party: PartyGroup[]) => party.flatMap(g => Array<number>(Math.max(0, Math.round(g.count) || 0)).fill(g.level))
+
+/** Same players at the same levels, however the groups are split, so "Fill from" shows only when it would change something. */
+export const sameGroups = (a: PartyGroup[], b: PartyGroup[]) =>
+  JSON.stringify(groupsFromLevels(levelsOf(a))) === JSON.stringify(groupsFromLevels(levelsOf(b)))
+
 export const partySize = (party: PartyGroup[]) => party.reduce((n, g) => n + Math.max(0, Math.round(g.count) || 0), 0)
 
 /** SRD 5.2 adds monster XP with no multiplier for numbers. */

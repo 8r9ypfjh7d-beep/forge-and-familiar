@@ -21,7 +21,7 @@ import { PrintSheet } from './print'
 import { Homebrew, loadHomebrew } from './homebrew'
 import { useI18n } from './i18n'
 import type { MessageKey } from './i18n/locales/en'
-import { AppNav, canOpen } from './nav'
+import { AppNav, canOpen, useHashView } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
 import { StarterPicker } from './starters'
 import './list/list.css'
@@ -31,7 +31,6 @@ import {
   setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'campaigns' } | { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'levelup'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party'; partyId?: string; startWith?: 'start' | 'join' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'plan'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
 
 const newId = () => crypto.randomUUID()
 
@@ -43,8 +42,8 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId())
   const [session, setSession] = useState<Session | null>(getSession)
   const [characters, setCharacters] = useState<Character[]>([])
-  // Every visit opens on the campaigns home: pick a campaign, then play it.
-  const [view, setView] = useState<View>({ kind: 'campaigns' })
+  // The screen lives in the address bar (#/sheet/<id>): back, refresh and links keep your place. A bare visit opens Home.
+  const [view, setView] = useHashView()
   const [diceOpen, setDiceOpen] = useState(false)
   const [askEdit, setAskEdit] = useState<{ character: Character; note?: string } | null>(null)
   const requests = useRequests()
@@ -71,7 +70,7 @@ export default function App() {
       setActiveId(s.id)
       setView({ kind: 'campaigns' })
     }
-  }), [])
+  }), [setView])
 
   const active = profiles?.find(p => p.id === activeId) ?? profiles?.[0]
 
@@ -108,8 +107,8 @@ export default function App() {
   // A screen this account may not open (a shortcut, a link, a switched profile) falls back to its home screen.
   const allowed = canOpen(view.kind, nav)
   useEffect(() => {
-    if (!allowed) setView({ kind: 'campaigns' })
-  }, [allowed])
+    if (!allowed) setView({ kind: 'campaigns' }, true)
+  }, [allowed, setView])
 
   // Players edit a character only with the DM's OK (one edit per approval). The DM and the admin edit freely,
   // and so does a player whose character has no DM (in no party run by someone else).
@@ -146,7 +145,7 @@ export default function App() {
   const openRequestLink = useCallback((s: Shared) => {
     if (s.type === 'request') setView({ kind: 'dm', tab: 'requests' })
     else setView(s.request.kind === 'edit' ? { kind: 'list' } : { kind: 'requests' })
-  }, [])
+  }, [setView])
 
   const onScreenId = 'id' in view ? view.id : undefined
   const onScreen = characters.find(c => c.id === onScreenId)
@@ -287,7 +286,7 @@ export default function App() {
         {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView({ kind: 'list' })} />}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} />}
-        {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
+        {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} />}
         {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
         {view.kind === 'admin' && admin && (

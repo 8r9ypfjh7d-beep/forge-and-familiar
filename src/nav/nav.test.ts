@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { canOpen, navItems, navKeyFor } from './items'
+import { hashToView, viewToHash, type View } from './route'
 
 const keys = (items: { key: string }[]) => items.map(i => i.key)
 
@@ -11,14 +12,17 @@ describe('navItems', () => {
     expect(keys(more)).not.toContain('admin')
   })
 
-  it('gives the DM of the party in play just the DM pages and Party', () => {
-    expect(keys(navItems({ isDm: true, partyDm: true }).main)).toEqual(['campaigns', 'dm', 'combat', 'party'])
+  it('keeps Characters for the DM of the party in play, with the initiative tracker under More', () => {
+    const { main, more } = navItems({ isDm: true, partyDm: true })
+    expect(keys(main)).toEqual(['campaigns', 'list', 'dm', 'party'])
+    expect(keys(more)[0]).toBe('combat')
   })
 
   it('gives the admin DM tabs when they run the party in play, still with Admin under More', () => {
     const { main, more } = navItems({ isDm: true, partyDm: true, admin: true })
-    expect(keys(main)).toEqual(['campaigns', 'dm', 'combat', 'party'])
+    expect(keys(main)).toEqual(['campaigns', 'list', 'dm', 'party'])
     expect(keys(more)[0]).toBe('admin')
+    expect(keys(more)).toContain('combat')
   })
 
   it('gives the admin account a player\'s tabs, with the admin page first under More', () => {
@@ -60,5 +64,27 @@ describe('navKeyFor', () => {
 
   it('keeps character screens under Characters', () => {
     for (const kind of ['sheet', 'build', 'edit', 'levels', 'journal', 'print', 'table', 'starters']) expect(navKeyFor(kind)).toBe('list')
+  })
+})
+
+describe('hash routes', () => {
+  const views: View[] = [
+    { kind: 'campaigns' }, { kind: 'list' }, { kind: 'build' }, { kind: 'starters' }, { kind: 'sheet', id: 'abc-123' },
+    { kind: 'edit', id: 'x' }, { kind: 'levelup', id: 'x' }, { kind: 'levels', id: 'x' }, { kind: 'plan', id: 'x' }, { kind: 'print', id: 'x' },
+    { kind: 'combat' }, { kind: 'combat', encounterId: 'e1' }, { kind: 'dm' }, { kind: 'dm', tab: 'requests' }, { kind: 'requests' },
+    { kind: 'party' }, { kind: 'party', partyId: 'p1' }, { kind: 'party', startWith: 'join' }, { kind: 'party', startWith: 'start' },
+    { kind: 'rules' }, { kind: 'homebrew' }, { kind: 'admin' },
+  ]
+  it('round-trips every screen through the address bar', () => {
+    for (const v of views) expect(hashToView(viewToHash(v))).toEqual(v)
+  })
+
+  it('reads readable links and falls back to Home for anything unknown', () => {
+    expect(viewToHash({ kind: 'sheet', id: 'abc' })).toBe('#/sheet/abc')
+    expect(viewToHash({ kind: 'list' })).toBe('#/heroes')
+    expect(hashToView('')).toEqual({ kind: 'campaigns' })
+    expect(hashToView('#/nope')).toEqual({ kind: 'campaigns' })
+    expect(hashToView('#/sheet')).toEqual({ kind: 'list' })
+    expect(hashToView('#/sheet/%E0%A4%A')).toEqual({ kind: 'campaigns' })
   })
 })

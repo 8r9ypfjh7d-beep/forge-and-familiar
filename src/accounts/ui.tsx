@@ -95,14 +95,30 @@ export function AccountBadge({ dm }: { dm: boolean }) {
   return <span className="account-badge small" title={t('account.dmTitle')}>{t('account.dmBadge')}</span>
 }
 
+const LATER_KEY = 'ff.cloudLinkLater'
+const LATER_DAYS = 30
+
+/** Whether "Not now" (tapped at `since`, ms) still hides the sync banner at `now`. */
+export const cloudLinkSnoozed = (since: number | null, now = Date.now()) =>
+  since !== null && Number.isFinite(since) && now - since < LATER_DAYS * 86_400_000 && now >= since
+
+function readLater(): boolean {
+  try { const v = localStorage.getItem(LATER_KEY); return cloudLinkSnoozed(v === null ? null : Number(v)) } catch { return false }
+}
+
 /**
  * Shown to an account activated before the server existed: one more code entry links this
- * device to the cloud, so its characters sync. Hides itself once linked.
+ * device to the cloud, so its characters sync. Hides itself once linked. "Not now" hides it for
+ * 30 days on this device; the player menu's "Enter activation code" still links it any time.
  */
 export function CloudLinkNotice() {
   const { t } = useI18n()
   const [status, setStatus] = useState(getCloudStatus)
-  const [later, setLater] = useState(false)
+  const [later, setLaterState] = useState(readLater)
+  const setLater = (v: boolean) => {
+    try { localStorage.setItem(LATER_KEY, String(Date.now())) } catch { /* private mode: hide for this visit only */ }
+    setLaterState(v)
+  }
   useEffect(() => onCloudChanged(() => setStatus(getCloudStatus())), [])
   if (status !== 'unlinked' || later) return null
   return (
