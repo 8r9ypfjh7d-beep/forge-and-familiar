@@ -17,7 +17,7 @@ import { rulesEdition, uses2024Spells } from './edition'
 import { effectsOf, itemBonus } from './itemEffects'
 import { racialSkills, racialWeapons } from './origin'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
-import { raceProfile, raceUseId } from './race'
+import { pickedOptions, raceProfile, raceUseId } from './race'
 import { slug, subclassFeatures, subclassOf } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type ClassDef, type ConditionId, type InventoryEntry, type Item, type MoveMode, type Recharge,
@@ -607,7 +607,11 @@ export function derive(c: Character): DerivedStats {
     traits: raceInfo.traits.map(t => {
       const choice = race?.traitChoice
       const picked = choice?.name === t ? choice.options.find(o => o.id === c.traitChoices?.[choice.id]) : undefined
-      return picked ? `${t} (${picked.name}: ${picked.detail})` : t
+      if (picked) return `${t} (${picked.name}: ${picked.detail})`
+      // A pick named like a trait (homebrew lineages) shows what was picked.
+      const ch = raceInfo.choices.find(x => x.name === t)
+      const names = ch ? pickedOptions(c, ch.id).map(id => ch.options.find(o => o.id === id)).filter(o => !!o).map(o => (o.detail ? `${o.name}: ${o.detail}` : o.name)) : []
+      return names.length ? `${t} (${names.join(', ')})` : t
     }),
     languages: getLanguages(c),
     tools: getTools(c),

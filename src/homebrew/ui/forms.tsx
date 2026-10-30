@@ -1,18 +1,22 @@
-// Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds and class options (classes are in ClassForm.tsx). Each edits a copy and hands it back on save.
+// Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds, class options, languages and tools (classes are in ClassForm.tsx). Each edits a copy and hands it back on save.
 import { useState, type ReactNode } from 'react'
 import { FeatMechanics } from '../../builder/FeatEditor'
 import { Why } from '../../builder/Why'
 import { useI18n } from '../../i18n'
+import type { MessageKey } from '../../i18n/locales/en'
 import { EffectsEditor } from '../../inventory'
 import {
-  ABILITIES, ALL_SKILLS, CLASSES, classesFor, HOMEBREW_OPTION_KINDS, ITEMS, OPTION_KIND_CLASSES, allFeats, allRaces, isUsefulEffect, itemById,
-  type Ability, type ArmorCategory, type SkillId, type UsesCount, type WeaponProperty,
+  ABILITIES, ALL_SKILLS, CLASSES, classesFor, HOMEBREW_OPTION_KINDS, ITEMS, OPTION_KIND_CLASSES, SIZES, allFeats, allRaces, isUsefulEffect, itemById,
+  type Ability, type ArmorCategory, type Size, type SkillId, type UsesCount, type WeaponCategory, type WeaponProperty,
 } from '../../rules'
-import { backgroundIssues, classOptionIssues, featIssues, itemIssues, raceIssues, spellIssues, subclassIssues } from '../pack'
 import {
-  BACKGROUND_EDITIONS, RARITIES, SPELL_SCHOOLS,
-  type BackgroundEditions, type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClassOption, type HomebrewFeat, type HomebrewItem, type HomebrewOptionKind,
-  type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type Rarity, type SpellSchool,
+  backgroundIssues, classOptionIssues, featIssues, itemIssues, languageIssues, raceIssues, spellIssues, subclassIssues, toolIssues,
+} from '../pack'
+import {
+  BACKGROUND_EDITIONS, LANGUAGE_KINDS, RARITIES, SPELL_SCHOOLS, TOOL_KINDS,
+  type BackgroundEditions, type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClassOption, type HomebrewFeat, type HomebrewItem,
+  type HomebrewLanguage, type HomebrewOptionKind, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type HomebrewTool,
+  type LanguageKind, type Rarity, type SpellSchool, type ToolKind,
 } from '../types'
 
 const WEAPON_PROPS: WeaponProperty[] = ['finesse', 'light', 'heavy', 'reach', 'thrown', 'two-handed', 'versatile', 'ammunition', 'loading', 'ranged']
@@ -322,18 +326,37 @@ export function LinesField({ label, value, onChange, placeholder }: { label: str
   )
 }
 
+/** A label with a "why?" bubble (by message key) explaining the field to someone writing their first species. */
+function WhyKey({ label, why }: { label: string; why: MessageKey }) {
+  const { t } = useI18n()
+  return <span className="why-legend">{label} <Why compact title={label} text={t(why)} /></span>
+}
+
+const WEAPON_TYPES: WeaponCategory[] = ['simple', 'martial']
+
 export function RaceForm({ initial, pack, onSave, onCancel }: { initial: HomebrewRace; pack: HomebrewPack; onSave: (r: HomebrewRace) => void; onCancel: () => void }) {
   const { t, abilityShort, skill } = useI18n()
   const [r, setR] = useState(initial)
   const set = (patch: Partial<HomebrewRace>) => setR(prev => ({ ...prev, ...patch }))
   const ownRaces = pack.races.filter(x => !x.parentRaceId && x.id !== r.id)
-  const parents = [...allRaces().filter(x => !ownRaces.some(o => o.id === x.id) && x.id !== r.id), ...ownRaces]
+  // Subraces attach by id in both editions, so 2024-only species (Goliath, Orc) are offered too.
+  const official = [...allRaces('2014'), ...allRaces('2024')].filter((x, i, all) => all.findIndex(y => y.id === x.id) === i)
+  const parents = [...official.filter(x => !ownRaces.some(o => o.id === x.id) && x.id !== r.id), ...ownRaces]
+  const own = !r.parentRaceId
+  const only2024 = r.edition === '2024'
   const setBonus = (a: Ability, n: number) => {
     const next = { ...r.abilityBonuses }
     if (n) next[a] = n
     else delete next[a]
     set({ abilityBonuses: next })
   }
+  const toggle = <T,>(list: T[] | undefined, x: T, on: boolean): T[] | undefined => {
+    const next = on ? [...(list ?? []), x] : (list ?? []).filter(y => y !== x)
+    return next.length ? next : undefined
+  }
+  const choice = r.choice
+  const setOption = (i: number, patch: Partial<NonNullable<HomebrewRace['choice']>['options'][number]>) =>
+    choice && set({ choice: { ...choice, options: choice.options.map((o, j) => (j === i ? { ...o, ...patch } : o)) } })
   return (
     <FormShell kind="races" name={initial.name} value={r} issues={raceIssues(r)} onSave={onSave} onCancel={onCancel}>
       <Field label={t('hb.f.name')} wide><input value={r.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.raceNamePlaceholder')} /></Field>
@@ -343,32 +366,52 @@ export function RaceForm({ initial, pack, onSave, onCancel }: { initial: Homebre
           {parents.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
         </select>
       </Field>
-      {!r.parentRaceId && (
+      {own && (
         <>
-          <Field label={t('hb.f.size')}>
-            <select value={r.size} onChange={e => set({ size: e.target.value as HomebrewRace['size'] })}>
-              <option value="Small">{t('hb.f.small')}</option>
-              <option value="Medium">{t('hb.f.medium')}</option>
+          <label className="hb-field wide">
+            <WhyKey label={t('hb.f.edition')} why="hb.why.edition" />
+            <select value={r.edition ?? ''} onChange={e => set({ edition: (e.target.value || undefined) as HomebrewRace['edition'] })}>
+              <option value="">{t('hb.f.editionBoth')}</option>
+              <option value="2024">{t('hb.f.edition2024')}</option>
+              <option value="2014">{t('hb.f.edition2014')}</option>
             </select>
-          </Field>
+          </label>
+          <label className="hb-field">
+            <WhyKey label={t('hb.f.size')} why="hb.why.size" />
+            <select value={r.size} onChange={e => set({ size: e.target.value as Size, sizeOptions: r.sizeOptions?.filter(x => x !== e.target.value) })}>
+              {SIZES.map(x => <option key={x} value={x}>{t(`hb.size.${x}`)}</option>)}
+            </select>
+          </label>
           <Field label={t('hb.f.speed')}><input type="number" min={0} max={120} step={5} value={r.speed} onChange={e => set({ speed: numOr(e.target.value, 30) })} /></Field>
+          <div className="hb-field wide">
+            <WhyKey label={t('hb.f.sizeOptions')} why="hb.why.sizeOptions" />
+            <div className="row">
+              {SIZES.filter(x => x !== r.size).map(x => (
+                <Check key={x} label={t(`hb.size.${x}`)} checked={!!r.sizeOptions?.includes(x)} onChange={on => set({ sizeOptions: toggle(r.sizeOptions, x, on) })} />
+              ))}
+            </div>
+          </div>
         </>
       )}
-      <div className="hb-field wide">
-        <span>{t('hb.f.asi')}</span>
-        <div className="row">
-          {ABILITIES.map(a => (
-            <label key={a} className="hb-check">
-              {abilityShort(a)}
-              <input type="number" className="hb-amount" min={-5} max={5} value={r.abilityBonuses[a] ?? 0} onChange={e => setBonus(a, numOr(e.target.value, 0))} />
+      {only2024 ? (
+        <p className="hb-field wide muted small">{t('hb.f.asi2024')}</p>
+      ) : (
+        <div className="hb-field wide">
+          <WhyKey label={t('hb.f.asi')} why="hb.why.asi" />
+          <div className="row">
+            {ABILITIES.map(a => (
+              <label key={a} className="hb-check">
+                {abilityShort(a)}
+                <input type="number" className="hb-amount" min={-5} max={5} value={r.abilityBonuses[a] ?? 0} onChange={e => setBonus(a, numOr(e.target.value, 0))} />
+              </label>
+            ))}
+            <label className="hb-check">
+              {t('hb.f.anyBonus')}
+              <input type="number" className="hb-amount" min={0} max={6} value={r.freeAbilityBonuses} onChange={e => set({ freeAbilityBonuses: numOr(e.target.value, 0) })} />
             </label>
-          ))}
-          <label className="hb-check">
-            {t('hb.f.anyBonus')}
-            <input type="number" className="hb-amount" min={0} max={6} value={r.freeAbilityBonuses} onChange={e => set({ freeAbilityBonuses: numOr(e.target.value, 0) })} />
-          </label>
+          </div>
         </div>
-      </div>
+      )}
       <div className="hb-field wide">
         <span>{t('hb.f.skills')}</span>
         <div className="row">
@@ -383,11 +426,113 @@ export function RaceForm({ initial, pack, onSave, onCancel }: { initial: Homebre
         </div>
       </div>
       <Field label={t('hb.f.skillChoices')}><input type="number" min={0} max={6} value={r.freeSkillChoices} onChange={e => set({ freeSkillChoices: numOr(e.target.value, 0) })} /></Field>
-      <Field label={t('hb.f.languageChoices')}><input type="number" min={0} max={6} value={r.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} /></Field>
+      <label className="hb-field">
+        <WhyKey label={t('hb.f.languageChoices')} why="hb.why.languages" />
+        <input type="number" min={0} max={6} value={r.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} />
+      </label>
       <Field label={t('hb.f.hp')}><input type="number" min={0} max={5} value={r.hpPerLevel} onChange={e => set({ hpPerLevel: numOr(e.target.value, 0) })} /></Field>
-      {!r.parentRaceId && <LinesField label={t('hb.f.languages')} value={r.languages} onChange={languages => set({ languages })} placeholder={t('hb.f.languagesPlaceholder')} />}
+      {own && <LinesField label={t('hb.f.languages')} value={r.languages} onChange={languages => set({ languages })} placeholder={t('hb.f.languagesPlaceholder')} />}
+      {own && (
+        <>
+          <LinesField label={t('hb.f.tools')} value={r.tools ?? []} onChange={tools => set({ tools: tools.length ? tools : undefined })} placeholder={t('hb.f.toolsPlaceholder')} />
+          <label className="hb-field">
+            <WhyKey label={t('hb.f.toolChoices')} why="hb.why.toolChoices" />
+            <input type="number" min={0} max={6} value={r.toolChoices ?? 0} onChange={e => set({ toolChoices: numOr(e.target.value, 0) || undefined })} />
+          </label>
+          <label className="hb-field">
+            <WhyKey label={t('hb.f.naturalArmor')} why="hb.why.naturalArmor" />
+            <input type="number" min={0} max={20} placeholder={t('hb.f.naturalArmorNone')} value={r.naturalArmor || ''} onChange={e => set({ naturalArmor: numOr(e.target.value, 0) || undefined })} />
+          </label>
+          <div className="hb-field wide">
+            <WhyKey label={t('hb.f.training')} why="hb.why.training" />
+            <div className="row">
+              {ARMOR_TYPES.map(a => <Check key={a} label={t(`hb.cat.${a}`)} checked={!!r.armor?.includes(a)} onChange={on => set({ armor: toggle(r.armor, a, on) })} />)}
+              {WEAPON_TYPES.map(w => <Check key={w} label={t('hb.f.weaponsOf', { category: t(`hb.cat.${w}`) })} checked={!!r.weapons?.includes(w)} onChange={on => set({ weapons: toggle(r.weapons, w, on) })} />)}
+            </div>
+          </div>
+        </>
+      )}
+      <EffectsEditor legend={t('hb.f.raceEffects')} effects={r.effects ?? []} onChange={fx => set({ effects: fx.length ? fx : undefined })} />
+      {own && (
+        <fieldset className="hb-field wide hb-choice">
+          <legend><WhyKey label={t('hb.f.choice')} why="hb.why.choice" /></legend>
+          {!choice && (
+            <div>
+              <button type="button" className="glass-btn small" onClick={() => set({ choice: { name: t('hb.f.choiceDefault'), options: [{ name: '', detail: '' }, { name: '', detail: '' }] } })}>{t('hb.f.addChoice')}</button>
+            </div>
+          )}
+          {choice && (
+            <>
+              <div className="row">
+                <input aria-label={t('hb.f.choiceName')} value={choice.name} placeholder={t('hb.f.choiceDefault')} onChange={e => set({ choice: { ...choice, name: e.target.value } })} />
+                <button type="button" className="glass-btn small hb-ghost hb-danger" onClick={() => set({ choice: undefined })}>{t('hb.f.removeChoice')}</button>
+              </div>
+              {choice.options.map((o, i) => (
+                <div key={i} className="glass thin hb-option">
+                  <div className="row">
+                    <input aria-label={t('hb.f.optionName')} placeholder={t('hb.f.optionPlaceholder')} value={o.name} onChange={e => setOption(i, { name: e.target.value })} />
+                    <button type="button" className="glass-btn small icon hb-ghost" aria-label={t('hb.f.removeOption')} onClick={() => set({ choice: { ...choice, options: choice.options.filter((_, j) => j !== i) } })}>✕</button>
+                  </div>
+                  <textarea rows={2} aria-label={t('hb.f.optionDetail')} placeholder={t('hb.f.optionDetail')} value={o.detail} onChange={e => setOption(i, { detail: e.target.value })} />
+                  <EffectsEditor legend={t('hb.f.optionEffects')} effects={o.effects ?? []} onChange={fx => setOption(i, { effects: fx.length ? fx : undefined })} />
+                </div>
+              ))}
+              <div>
+                <button type="button" className="glass-btn small" onClick={() => set({ choice: { ...choice, options: [...choice.options, { name: '', detail: '' }] } })}>{t('hb.f.addOption')}</button>
+              </div>
+            </>
+          )}
+        </fieldset>
+      )}
       <LinesField label={t('hb.f.traits')} value={r.traits} onChange={traits => set({ traits })} placeholder={t('hb.f.traitsPlaceholder')} />
       <Field label={t('hb.f.description')} wide><textarea rows={4} value={r.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+    </FormShell>
+  )
+}
+
+export function LanguageForm({ initial, onSave, onCancel }: { initial: HomebrewLanguage; onSave: (l: HomebrewLanguage) => void; onCancel: () => void }) {
+  const { t } = useI18n()
+  const [l, setL] = useState(initial)
+  const set = (patch: Partial<HomebrewLanguage>) => setL(prev => ({ ...prev, ...patch }))
+  return (
+    <FormShell kind="languages" name={initial.name} value={l} issues={languageIssues(l)} onSave={onSave} onCancel={onCancel}>
+      <Field label={t('hb.f.name')} wide><input value={l.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.languagePlaceholder')} /></Field>
+      <label className="hb-field">
+        <WhyKey label={t('hb.f.langKind')} why="hb.why.langKind" />
+        <select value={l.kind} onChange={e => set({ kind: e.target.value as LanguageKind })}>
+          {LANGUAGE_KINDS.map(k => <option key={k} value={k}>{t(`hb.langKind.${k}`)}</option>)}
+        </select>
+      </label>
+      <Field label={t('hb.f.script')}><input value={l.script ?? ''} placeholder={t('hb.f.scriptPlaceholder')} onChange={e => set({ script: opt(e.target.value) })} /></Field>
+      <Field label={t('hb.f.speakers')} wide><input value={l.speakers ?? ''} placeholder={t('hb.f.speakersPlaceholder')} onChange={e => set({ speakers: opt(e.target.value) })} /></Field>
+      <Field label={t('hb.f.description')} wide><textarea rows={4} value={l.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+      <p className="hb-field wide muted small">{t('hb.f.languageHint')}</p>
+    </FormShell>
+  )
+}
+
+export function ToolForm({ initial, onSave, onCancel }: { initial: HomebrewTool; onSave: (x: HomebrewTool) => void; onCancel: () => void }) {
+  const { t, ability } = useI18n()
+  const [x, setX] = useState(initial)
+  const set = (patch: Partial<HomebrewTool>) => setX(prev => ({ ...prev, ...patch }))
+  return (
+    <FormShell kind="tools" name={initial.name} value={x} issues={toolIssues(x)} onSave={onSave} onCancel={onCancel}>
+      <Field label={t('hb.f.name')} wide><input value={x.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.toolPlaceholder')} /></Field>
+      <label className="hb-field">
+        <WhyKey label={t('hb.f.toolKind')} why="hb.why.toolKind" />
+        <select value={x.kind} onChange={e => set({ kind: e.target.value as ToolKind })}>
+          {TOOL_KINDS.map(k => <option key={k} value={k}>{t(`hb.toolKind.${k}`)}</option>)}
+        </select>
+      </label>
+      <label className="hb-field">
+        <WhyKey label={t('hb.f.toolAbility')} why="hb.why.toolAbility" />
+        <select value={x.ability ?? ''} onChange={e => set({ ability: (e.target.value || undefined) as Ability | undefined })}>
+          <option value="">{t('hb.f.none')}</option>
+          {ABILITIES.map(a => <option key={a} value={a}>{ability(a)}</option>)}
+        </select>
+      </label>
+      <Field label={t('hb.f.description')} wide><textarea rows={4} value={x.description ?? ''} placeholder={t('hb.f.toolDescPlaceholder')} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+      <p className="hb-field wide muted small">{t('hb.f.toolHint')}</p>
     </FormShell>
   )
 }

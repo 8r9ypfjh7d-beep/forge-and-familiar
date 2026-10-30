@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n'
-import { TOOL_GROUPS, languageGroups, type RulesEdition } from '../rules'
+import { TOOL_GROUPS, homebrewLanguageNames, homebrewToolNames, languageGroups, type RulesEdition } from '../rules'
 
 export interface PickGroup {
   label?: string
@@ -72,10 +72,12 @@ export function PickOrWrite({ value, onChange, groups, write, placeholder, ariaL
 /** Picker groups for languages in this edition, leaving out `hide` (already known or picked elsewhere). */
 export function useLanguageGroups(edition: RulesEdition, hide: (lang: string) => boolean, prefix = ''): PickGroup[] {
   const { t, term } = useI18n()
-  return languageGroups(edition).map(g => ({
+  const groups = languageGroups(edition).map(g => ({
     label: t(`builder.langGroup.${g.id}`),
     items: g.languages.filter(l => !hide(l)).map(l => ({ value: prefix + l, label: term('language', l, l) })),
   }))
+  // Languages from the group's homebrew packs.
+  return [...groups, { label: t('builder.homebrewGroup'), items: homebrewLanguageNames().filter(l => !hide(l)).map(l => ({ value: prefix + l, label: l })) }]
 }
 
 /**
@@ -89,5 +91,7 @@ export function useToolGroups(hide: (tool: string) => boolean, first?: string[],
     label: first ? `${t('builder.otherTools')}: ${t(`builder.toolGroup.${g.id}`)}` : t(`builder.toolGroup.${g.id}`),
     items: g.tools.filter(x => !first?.includes(x) && !hide(x)).map(item),
   }))
+  const homebrew = homebrewToolNames().filter(x => !first?.includes(x) && !hide(x))
+  rest.push({ label: first ? `${t('builder.otherTools')}: ${t('builder.homebrewGroup')}` : t('builder.homebrewGroup'), items: homebrew.map(item) })
   return first ? [{ items: first.filter(x => !hide(x)).map(item) }, ...rest] : rest
 }

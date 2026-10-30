@@ -2,9 +2,10 @@
 // Every pack on this device is active: its items are registered with the rules engine so
 // characters holding them keep their attacks, AC and weight.
 import {
-  TOOLS, registerClassOptions, registerHomebrewBackgrounds, registerHomebrewClasses, registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses,
-  type ClassDef, type HomebrewBackgroundDef, type Race, type Subrace,
+  allTools, registerClassOptions, registerHomebrewBackgrounds, registerHomebrewClasses, registerHomebrewFeats, registerHomebrewItems, registerHomebrewProficiencies,
+  registerHomebrewRaces, registerHomebrewSubclasses, type ClassDef, type HomebrewBackgroundDef, type Race, type Subrace, type TraitChoice,
 } from '../rules'
+import { slug } from './pack'
 import { sanitizePack } from './pack'
 import type { HomebrewBackground, HomebrewClass, HomebrewPack, HomebrewRace } from './types'
 
@@ -27,23 +28,37 @@ function readPacks(): HomebrewPack[] {
   }
 }
 
-const toRace = (r: HomebrewRace): Race => ({
+/** The race's named pick as a rules TraitChoice (saved in traitChoices[`<raceId>:choice`]); option ids come from their names. */
+const toChoices = (r: HomebrewRace): TraitChoice[] | undefined =>
+  r.choice && [{ id: `${r.id}:choice`, name: r.choice.name, options: r.choice.options.map(o => ({ id: slug(o.name), name: o.name, detail: o.detail, effects: o.effects })) }]
+
+export const toRace = (r: HomebrewRace): Race => ({
   id: r.id, name: r.name, size: r.size, speed: r.speed, abilityBonuses: r.abilityBonuses,
   freeAbilityBonuses: r.freeAbilityBonuses ? { count: r.freeAbilityBonuses, exclude: [] } : undefined,
   skillProficiencies: r.skillProficiencies, freeSkillChoices: r.freeSkillChoices || undefined,
-  languages: r.languages, languageChoices: r.languageChoices || undefined, traits: r.traits,
+  languages: r.languages, languageChoices: r.languageChoices || undefined,
+  // The pick shows as a trait so the sheet and builder explain it.
+  traits: r.choice ? [...r.traits, r.choice.name] : r.traits,
+  choices: toChoices(r),
   hpPerLevel: r.hpPerLevel || undefined,
+  sizeOptions: r.sizeOptions?.length ? [...new Set([r.size, ...r.sizeOptions])] : undefined,
+  effects: r.effects, tools: r.tools,
+  toolChoices: r.toolChoices ? { count: r.toolChoices, from: allTools() } : undefined,
+  armor: r.armor, weapons: r.weapons,
+  naturalArmor: r.naturalArmor ? { base: r.naturalArmor, dex: true } : undefined,
+  edition: r.edition,
 })
 
-const toSubrace = (r: HomebrewRace): Subrace => ({
+export const toSubrace = (r: HomebrewRace): Subrace => ({
   id: r.id, name: r.name, abilityBonuses: r.abilityBonuses, traits: r.traits, parentRaceId: r.parentRaceId,
-  hpPerLevel: r.hpPerLevel || undefined, languageChoices: r.languageChoices || undefined,
+  hpPerLevel: r.hpPerLevel || undefined, languageChoices: r.languageChoices || undefined, effects: r.effects,
 })
 
+/** A pack background as the rules engine's background, in the editions its author picked. */
 export const toBackground = (b: HomebrewBackground): HomebrewBackgroundDef => ({
   id: b.id, name: b.name, editions: b.editions === 'both' ? ['2014', '2024'] : [b.editions],
   skillProficiencies: b.skillProficiencies, toolProficiencies: b.tools,
-  toolChoices: b.toolChoices ? { count: b.toolChoices, from: b.toolChoiceFrom.length ? b.toolChoiceFrom : [...TOOLS] } : undefined,
+  toolChoices: b.toolChoices ? { count: b.toolChoices, from: b.toolChoiceFrom.length ? b.toolChoiceFrom : allTools() } : undefined,
   languages: b.languages, languageChoices: b.languageChoices || undefined,
   feature: b.feature.trim() || b.name, equipment: b.equipment, gold: b.gold || undefined,
   abilityScores: b.abilityScores.length ? b.abilityScores : undefined,
@@ -62,6 +77,8 @@ export const toClass = ({ tools, ...c }: HomebrewClass): ClassDef => ({
 
 /** Hands every pack's content to the rules engine. */
 function register(packs: HomebrewPack[]) {
+  // Languages and tools first: race tool picks list every tool, homebrew ones included.
+  registerHomebrewProficiencies(packs.flatMap(p => p.languages), packs.flatMap(p => p.tools))
   registerHomebrewItems(packs.flatMap(p => p.items))
   registerHomebrewFeats(packs.flatMap(p => p.feats))
   const races = packs.flatMap(p => p.races)
