@@ -1,15 +1,17 @@
-import type { ComponentType } from 'react'
+import { useState, type ComponentType } from 'react'
 import { useI18n } from '../i18n'
 import type { AbilityMethod } from '../model/character'
 import type { CustomBackground, Improvement } from '../model/character'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
-  STANDARD_ARRAY, abilityMod, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
+  ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   languagePickCount, pointBuyCost, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type RulesEdition, type SkillId,
 } from '../rules'
 import { RandomName } from '../random/RandomBar'
+import { useDice } from '../dice/ui'
+import type { RollResult } from '../dice'
 import { CustomSubclassForm } from './CustomSubclassForm'
 import { MulticlassPicker } from './MulticlassPicker'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
@@ -304,7 +306,7 @@ function SubclassPicker({ draft, update }: StepProps) {
 
 // ---------- Abilities ----------
 
-const METHODS: AbilityMethod[] = ['standard', 'pointBuy', 'manual']
+const METHODS: AbilityMethod[] = ['standard', 'pointBuy', 'rolled', 'manual']
 
 function suggestedArray(draft: CharacterDraft) {
   const cls = classById(draft.classes[0]?.classId ?? '', draft.rulesEdition)
@@ -327,7 +329,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
   const { t, ability } = useI18n()
 
   const setMethod = (m: AbilityMethod) => {
-    const value = m === 'standard' ? 0 : m === 'pointBuy' ? 8 : 10
+    const value = m === 'standard' || m === 'rolled' ? 0 : m === 'pointBuy' ? 8 : 10
     update({ abilityMethod: m, baseAbilities: { str: value, dex: value, con: value, int: value, wis: value, cha: value } })
   }
   const setScore = (a: Ability, v: number) => update({ baseAbilities: { ...draft.baseAbilities, [a]: v } })
@@ -356,6 +358,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
         )}
         {draft.abilityMethod === 'standard' && <Why id="suggest" />}
       </div>
+      {draft.abilityMethod === 'rolled' && <RolledScores draft={draft} update={update} />}
       {draft.abilityMethod === 'pointBuy' && (
         <p className={`small ${cost !== null && cost > POINT_BUY_BUDGET ? 'bad' : ''}`}>
           {t('builder.pointsSpent', { spent: cost ?? '—', budget: POINT_BUY_BUDGET })}
@@ -375,6 +378,12 @@ function AbilitiesStep({ draft, update }: StepProps) {
                   <select value={draft.baseAbilities[a]} onChange={e => setStandard(a, Number(e.target.value))} aria-label={t('builder.baseOf', { ability: ability(a) })}>
                     <option value={0}>—</option>
                     {STANDARD_ARRAY.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                )}
+                {draft.abilityMethod === 'rolled' && (
+                  <select value={draft.baseAbilities[a]} disabled={!draft.rolledScores?.length} onChange={e => update({ baseAbilities: assignRolled(draft.baseAbilities, draft.rolledScores ?? [], a, Number(e.target.value)) })} aria-label={t('builder.baseOf', { ability: ability(a) })}>
+                    <option value={0}>—</option>
+                    {[...new Set(draft.rolledScores ?? [])].sort((x, y) => y - x).map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 )}
                 {draft.abilityMethod === 'pointBuy' && (
@@ -413,6 +422,47 @@ function AbilitiesStep({ draft, update }: StepProps) {
       {edition === '2014' && <MoveRacialBonuses draft={draft} update={update} />}
       <Improvements draft={draft} update={update} />
     </>
+  )
+}
+
+/** Rolled method: rolls 4d6-drop-lowest six times with the dice roller (so the rolls land in dice history) and shows the pool. */
+function RolledScores({ draft, update }: StepProps) {
+  const { t } = useI18n()
+  const dice = useDice()
+  // Dice of this session's rolls, so each total can show its dropped die. Saved drafts keep only the totals.
+  const [rolls, setRolls] = useState<RollResult[]>([])
+  const pool = draft.rolledScores ?? []
+  const rollAll = () => {
+    const next = Array.from({ length: 6 }, (_, i) => dice.roll(ROLLED_NOTATION, { label: t('builder.rollLabel', { n: i + 1 }) }))
+    setRolls(next)
+    update({ rolledScores: next.map(r => r.total), baseAbilities: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 } })
+  }
+  const shown = rolls.length === pool.length && rolls.every((r, i) => r.total === pool[i]) ? rolls : null
+  const sum = pool.reduce((n, v) => n + v, 0)
+  return (
+    <div className="rolled-pool">
+      <div className="row">
+        <button className="glass-btn small" onClick={rollAll}>{t(pool.length ? 'builder.reroll' : 'builder.rollScores')}</button>
+        <Why id="reroll" />
+      </div>
+      {pool.length > 0 && (
+        <>
+          <ul className="rolled-chips" aria-label={t('builder.rolledPool')}>
+            {pool.map((v, i) => (
+              <li key={i} className="glass-chip">
+                <strong className="num">{v}</strong>
+                {shown && (
+                  <span className="muted small rolled-dice">
+                    {shown[i].terms.flatMap(term => (term.kind === 'dice' ? term.rolls : [])).map((d, j) => d.kept ? <span key={j}>{d.value}</span> : <s key={j} title={t('builder.droppedDie')}>{d.value}</s>)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="muted small">{t('builder.rolledTotal', { sum, mods: formatMod(pool.reduce((n, v) => n + abilityMod(v), 0)) })}</p>
+        </>
+      )}
+    </div>
   )
 }
 

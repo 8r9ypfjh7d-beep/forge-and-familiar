@@ -1,6 +1,6 @@
 import { translate, type Translate } from '../i18n/translate'
 import {
-  ABILITIES, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
+  ABILITIES, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
   raceById, racialBonuses, rulesEdition, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type SkillId,
@@ -72,6 +72,9 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
         const cost = pointBuyCost(d.baseAbilities)
         if (cost === null) out.push(t('builder.issue.pointBuyRange'))
         else if (cost > POINT_BUY_BUDGET) out.push(t('builder.issue.pointBuyOver', { cost, budget: POINT_BUY_BUDGET }))
+      } else if (d.abilityMethod === 'rolled') {
+        if (!d.rolledScores?.length) out.push(t('builder.issue.rollFirst'))
+        else if (!usesRolledPool(d.baseAbilities, d.rolledScores)) out.push(t('builder.issue.rolled'))
       } else if (scores.some(s => s < 3 || s > 20)) {
         out.push(t('builder.issue.manualRange'))
       }

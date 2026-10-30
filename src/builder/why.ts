@@ -9,7 +9,7 @@ export const WHY_TOPICS = [
   'subrace', 'traits', 'languages', 'size', 'speed', 'ancestry',
   'level', 'savingThrows', 'proficiencies', 'features', 'hitDie', 'primary', 'casting', 'subclassChoice', 'multiclass',
   'choice.fightingStyle', 'choice.divineOrder', 'choice.primalOrder',
-  'method.standard', 'method.pointBuy', 'method.manual', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',
+  'method.standard', 'method.pointBuy', 'method.rolled', 'method.manual', 'reroll', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',
   'background', 'customBackground', 'skills', 'tools',
   'kit', 'kitChoice', 'kitList',
   'alignment',
