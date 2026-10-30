@@ -293,6 +293,12 @@ describe('starting wealth', () => {
     expect(c.inventory.find(e => e.itemId === 'abacus')?.item?.name).toBe('Abacus')
   })
 
+  it('equips every starting weapon and stacks ammo bundles from two sources', () => {
+    const c = make({ rulesEdition: '2024', raceId: 'elf', subraceId: 'wood-elf', backgroundId: 'guide', classes: [{ classId: 'ranger', level: 1 }] })
+    for (const id of ['scimitar', 'shortsword', 'longbow', 'shortbow']) expect(c.inventory.find(e => e.itemId === id)?.equipped).toBe(true)
+    expect(c.inventory.find(e => e.itemId === 'arrows')?.qty).toBe(40)
+  })
+
   it('never starts below 0 coins when the cart costs too much', async () => {
     const { startingCoins } = await import('./index')
     const d = draft({ purchases: [{ itemId: 'plate', qty: 1, costCp: 150000 }] })
