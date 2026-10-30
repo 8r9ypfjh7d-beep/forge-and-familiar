@@ -26,7 +26,7 @@ describe('2024 builder checks', () => {
     expect(stepWarnings('abilities', draft())).toEqual([])
     expect(stepIssues('race', draft({ raceId: 'human' }))).toContain('Pick an Origin feat.')
     expect(stepIssues('race', draft({ raceId: 'human', originFeatId: 'skilled' }))).toEqual([])
-    expect(stepIssues('class', draft())).toContain('Pick a Fighting Style for your Fighter.')
+    expect(stepIssues('class', draft())).toContain('Pick the Fighting Style for your Fighter.')
     expect(stepIssues('class', draft({ featureChoices: { 'fighter.fightingStyle': 'archery' } }))).toEqual([])
   })
 

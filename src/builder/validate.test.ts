@@ -104,7 +104,7 @@ describe('builder validation', () => {
 
   it('requires a subclass at the right level and dragonborn ancestry', () => {
     expect(stepIssues('class', { ...base(), classes: [{ classId: 'rogue', level: 2 }] })).toEqual([])
-    expect(stepIssues('class', { ...base(), classes: [{ classId: 'rogue', level: 3 }] })).toEqual(['Choose a Roguish Archetype for your Rogue.'])
+    expect(stepIssues('class', { ...base(), classes: [{ classId: 'rogue', level: 3 }] })).toEqual(['Choose the Roguish Archetype for your Rogue.'])
     expect(stepIssues('class', { ...base(), classes: [{ classId: 'rogue', level: 3, subclassId: 'thief' }] })).toEqual([])
     expect(stepIssues('class', { ...base(), classes: [{ classId: 'rogue', level: 3, subclassId: 'champion' }] })).toHaveLength(1)
     expect(stepIssues('race', { ...base(), raceId: 'dragonborn' })).toEqual(['Choose your Draconic Ancestry.'])

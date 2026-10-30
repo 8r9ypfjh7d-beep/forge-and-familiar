@@ -12,10 +12,10 @@ import { explainKey, type WhyId } from './why'
 
 const KIND_TOPIC: Partial<Record<ClassOptionKind, WhyId>> = { invocation: 'invocations', pactBoon: 'pactBoon' }
 
-export function ClassOptionPicker({ draft, update }: StepProps) {
+export function ClassOptionPicker({ draft, update, classId }: StepProps & { classId: string }) {
   return (
     <>
-      {draft.classes.flatMap(cl => optionKindsFor(draft, cl.classId).map(({ kind, count }) => (
+      {draft.classes.filter(cl => cl.classId === classId).flatMap(cl => optionKindsFor(draft, cl.classId).map(({ kind, count }) => (
         <OptionKind key={`${cl.classId}-${kind}`} draft={draft} update={update} classId={cl.classId} level={cl.level} kind={kind} count={count} />
       )))}
     </>

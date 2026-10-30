@@ -126,7 +126,10 @@
 .multiclass-open { align-self: flex-start; margin-block-start: var(--sp-2); }
 .multiclass { margin-block-start: var(--sp-3); padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
 .multiclass h3 { margin-block: 0 var(--sp-1); font-size: 1rem; }
-.multiclass-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-block: var(--sp-2); border-block-end: 1px solid var(--glass-hairline); }
+.multiclass-class { border-block-end: 1px solid var(--glass-hairline); padding-block-end: var(--sp-2); }
+.multiclass-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-block: var(--sp-2); }
+.multiclass-picks { display: flex; flex-direction: column; gap: var(--sp-2); padding-inline-start: var(--sp-3); border-inline-start: 2px solid var(--glass-hairline); }
+.multiclass-picks:empty { display: none; }
 .multiclass-add { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-block: 10px; }
 .multiclass-add .glass-chip.short .small { color: var(--warn); }
 .multiclass-warn { color: var(--warn); margin-block: var(--sp-1); }

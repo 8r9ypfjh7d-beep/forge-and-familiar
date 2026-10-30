@@ -6,11 +6,10 @@ import { ExplainList, Why } from './Why'
 import { metamagicKey } from './why'
 
 /** Sorcerer Metamagic picks: every option for the edition, with costs and why? lines. More than allowed only warns. */
-export function MetamagicPicker({ draft, update }: StepProps) {
+export function MetamagicPicker({ draft, update, classId }: StepProps & { classId: string }) {
   const { t, term } = useI18n()
   const edition = rulesEdition(draft)
-  const sorcerer = draft.classes.find(cl => cl.classId === 'sorcerer')
-  if (!sorcerer) return null
+  if (classId !== 'sorcerer' || !draft.classes.some(cl => cl.classId === 'sorcerer')) return null
   const count = metamagicCount(draft)
   const ids = metamagicIds(draft)
   if (count === 0 && ids.length === 0) {
