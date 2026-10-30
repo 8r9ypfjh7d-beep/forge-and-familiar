@@ -2,9 +2,10 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { loadKind } from '../../content'
-import { derive, xpForNextLevel } from '../../rules'
+import { BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, CLASSES, CLASSES_2024, SUBCLASSES, SUBCLASSES_2024, derive, xpForNextLevel } from '../../rules'
+import { en } from '../../i18n/locales/en'
 import { makeCharacter } from '../fixtures'
-import { actionRoll, actionsOf, addAction, effectToggles, effectsUsed, masteredWeapons, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
+import { actionRoll, actionsOf, addAction, effectToggles, effectsUsed, featureDescription, masteredWeapons, resolveDice, setActionActive, masteryLimit, removeAction, spellAttackRows, updateAction } from './combat'
 
 const warlock = (over = {}) => makeCharacter({
   classes: [{ classId: 'warlock', level: 7 }],
@@ -140,6 +141,58 @@ describe('combat page helpers', () => {
     ])
     // A miss rolls no damage, so Hex isn't listed.
     expect(effectsUsed(active, [], f => f.kind === 'attack').map(e => e.name)).toEqual(['Battle Stance'])
+  })
+})
+
+// Same-name subclass features whose rules really are the same, so they may share a summary.
+const SAME_RULES: Record<string, string[]> = {
+  'Bonus Proficiency': ['life', 'nature'],
+  'Bonus Proficiencies': ['tempest', 'twilight', 'war'],
+  'Channel Divinity: Guided Strike': ['war', 'conquest'],
+  'Potent Spellcasting': ['arcana', 'grave', 'knowledge', 'light', 'peace'],
+  'Extra Attack': ['armorer-dreadnaught', 'armorer-guardian', 'armorer-infiltrator', 'battle-smith', 'swords', 'valor', 'college-of-valor', 'bladesinger'],
+}
+// Versions of one subclass (genie-dao, armorer-guardian) share their features.
+const family = (id: string) => id.replace(/-(dao|djinni|efreeti|marid|dreadnaught|guardian|infiltrator)$/, '')
+
+describe('feature text on the sheet', () => {
+  const editions = [
+    ['2014', [...SUBCLASSES, ...BOOK_SUBCLASSES], CLASSES],
+    ['2024', [...SUBCLASSES_2024, ...BOOK_SUBCLASSES_2024], CLASSES_2024],
+  ] as const
+  const texts = async (edition: '2014' | '2024') => {
+    const [, subclasses, classes] = editions.find(e => e[0] === edition)!
+    const lib = await loadKind('features', { edition })
+    return subclasses.flatMap(s => s.features.map(f => ({
+      sub: s.id, name: f.name,
+      text: featureDescription(lib, { name: f.name, className: classes.find(c => c.id === s.classId)?.name ?? s.classId, subclassId: s.id }, k => en[k]),
+    })))
+  }
+
+  it('shows each subclass its own text, not another subclass\'s SRD entry', async () => {
+    const t14 = await texts('2014')
+    const text = (sub: string, name: string) => t14.find(f => f.sub === sub && f.name === name)?.text
+    expect(text('valor', 'Bonus Proficiencies')).toBe(en['why.subfeature.valor.Bonus Proficiencies'])
+    expect(text('order', 'Bonus Proficiencies')).toBe(en['why.subfeature.order.Bonus Proficiencies'])
+    expect(text('lore', 'Bonus Proficiencies')).toMatch(/^When you join the College of Lore/)
+    expect(text('valor', 'Extra Attack')).toBe(en['why.feature.Extra Attack'])
+  })
+
+  it('gives no two subclasses the same text for a shared name unless the rules match', async () => {
+    for (const [edition] of editions) {
+      const byText = new Map<string, Set<string>>()
+      for (const f of await texts(edition)) {
+        expect(f.text, `${edition} ${f.sub}: ${f.name}`).toBeTruthy()
+        const k = `${f.name}\n${f.text}`
+        byText.set(k, (byText.get(k) ?? new Set()).add(f.sub))
+      }
+      const clashes = [...byText].flatMap(([k, subs]) => {
+        const name = k.slice(0, k.indexOf('\n'))
+        const left = [...subs].filter(s => !SAME_RULES[name]?.includes(s))
+        return new Set(left.map(family)).size > 1 ? [`${edition} ${name}: ${left.join(', ')}`] : []
+      })
+      expect(clashes).toEqual([])
+    }
   })
 })
 

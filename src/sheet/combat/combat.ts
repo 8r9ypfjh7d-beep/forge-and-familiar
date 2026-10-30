@@ -7,6 +7,8 @@ import { formatNotation, parseNotation } from '../../dice/notation'
 import { spellDamage } from '../../quickcast/quickcast'
 import type { SpellEntry } from '../../quickcast/types'
 import { toQuickCast } from '../../spellbook/spellbook'
+import { explainKey, featureKey } from '../../builder/why'
+import type { MessageKey } from '../../i18n/locales/en'
 
 export type { ActionKind, CustomAction } from '../../model/character'
 
@@ -138,10 +140,31 @@ export function withRollFromText(s: Spell): Spell {
 const byName = (spells: Spell[], name: string) => spells.find(s => s.name.toLowerCase() === name.toLowerCase())
 
 /** The library entry for one of derive()'s features: same name, the class's own entry first. */
-export function matchFeature(features: Feature[], name: string, className: string): Feature | undefined {
+export function matchFeature(features: Feature[], name: string, className: string, subclassId?: string): Feature | undefined {
   const n = name.toLowerCase()
   const same = features.filter(f => f.name.toLowerCase() === n)
-  return same.find(f => f.classId === className.toLowerCase()) ?? same[0]
+  // Subclasses share names with different rules ("Bonus Proficiencies", "Divine Strike"): only that subclass's own entry fits.
+  if (subclassId) return same.find(f => f.subclassId === subclassId)
+  const base = same.filter(f => !f.subclassId)
+  return base.find(f => f.classId === className.toLowerCase()) ?? base[0]
+}
+
+/**
+ * A class or subclass feature's text: the player's own text, then the SRD library entry for that class or subclass,
+ * then that subclass's own summary (why.subfeature), then the summary shared by every feature of that name.
+ */
+export function featureDescription(
+  features: Feature[],
+  f: Pick<DerivedStats['features'][number], 'name' | 'className' | 'subclassId' | 'text'>,
+  explain: (key: MessageKey) => string,
+): string | undefined {
+  if (f.text) return f.text
+  const srd = matchFeature(features, f.name, f.className, f.subclassId)?.description
+  if (srd) return srd
+  const own = f.subclassId ? explainKey('subfeature', `${f.subclassId}.${f.name}`) : undefined
+  if (own) return explain(own)
+  const shared = featureKey(f.name)
+  return shared ? explain(shared) : undefined
 }
 
 /** Damage a toggled effect adds to each hit. */

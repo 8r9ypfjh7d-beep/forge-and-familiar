@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BUNDLED, loadKind, type Equipment, type Feat, type Feature, type Spell, type Trait } from '../../content'
 import type { RollMode, RollResult } from '../../dice'
-import { featExplainKey, featureKey, optionKey, optionName } from '../../builder/why'
+import { featExplainKey, optionKey, optionName } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
@@ -20,7 +20,7 @@ import { useSheetRolls } from '../dice'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
-  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteredWeapons, masteryLimit, matchFeature, newActionId, removeAction, resolveDice, setActionActive, spellAttackRows, updateAction,
+  ACTION_KINDS, actionRoll, actionsOf, addAction, isHealing, effectToggles, masteredWeapons, masteryLimit, featureDescription, newActionId, removeAction, resolveDice, setActionActive, spellAttackRows, updateAction,
   effectsUsed, type ActionKind, type CustomAction, type EffectToggle, type UsedEffect, type SpellAttackRow,
 } from './combat'
 import './combat.css'
@@ -707,7 +707,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
     const key = featExplainKey(f.id, rulesEdition(character))
     return (key ? t(key) : undefined) || f.description || lib.feats.find(x => x.name.toLowerCase() === f.name.toLowerCase())?.description
   }
-  // Custom subclass text, then the SRD library, then our own summary (subclasses from other books).
+  // Custom subclass text, then that subclass's own summary or SRD entry (see featureDescription).
   const option = (f: DerivedStats['features'][number]) => (f.optionId ? classOptionById(f.optionId, rulesEdition(character)) : undefined)
   const featureName = (f: DerivedStats['features'][number]) => {
     const o = option(f)
@@ -720,8 +720,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
       const k = optionKey(o)
       return f.text || (k ? t(k) : undefined)
     }
-    const key = featureKey(f.name, f.subclassId)
-    return f.text || matchFeature(lib.features, f.name, f.className)?.description || (key ? t(key) : undefined)
+    return featureDescription(lib.features, f, t)
   }
   const list = (kind: string, xs: string[]) => xs.map(x => term(kind, x, x)).join(', ') || t('common.none')
   return (

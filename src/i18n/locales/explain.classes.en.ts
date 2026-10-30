@@ -303,6 +303,8 @@ export const explainClassesEn = {
   'why.feature.Arcane Charge': 'Teleport when you use Action Surge.',
   'why.feature.Improved War Magic': 'Cast a spell and attack in the same turn.',
   'why.feature.Psionic Power': 'Psionic dice for special tricks; you regain some on a short rest.',
+  'why.subfeature.psi-warrior.Psionic Power': 'Psionic dice power a shield that cuts an ally\'s damage, extra force damage on a hit, and telekinetic moves; you regain one on a short rest.',
+  'why.subfeature.soulknife.Psionic Power': 'Psionic dice add to skill checks you fail and let you speak mind to mind with nearby allies; you regain one on a short rest.',
   'why.feature.Telekinetic Adept': 'Push foes with your strikes and leap through the air with your mind.',
   'why.feature.Guarded Mind': 'Resist psychic damage, and shake off charm or fear.',
   'why.feature.Bulwark of Force': 'Give allies half cover with a force shield.',
