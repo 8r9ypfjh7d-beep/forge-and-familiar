@@ -250,7 +250,6 @@
 .cs-action details summary { cursor: pointer; font-weight: 600; display: flex; gap: var(--sp-2); align-items: baseline; justify-content: space-between; min-block-size: 32px; }
 .cs-action details summary .hint { margin: 0; font-weight: 500; }
 .cs-action details p, .cs-desc { margin: 6px 0 4px; color: var(--s-muted); font-size: .9rem; }
-[dir="rtl"] .cs-desc { text-align: left; }
 .cs-attribution { font-size: .75rem; }
 
 @media (max-width: 559px) {

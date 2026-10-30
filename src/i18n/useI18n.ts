@@ -1,9 +1,26 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
-import { ABILITY_NAMES, ITEMS, SKILLS, THROWN_SUFFIX, classById, raceById, type Ability, type RulesEdition, type SkillId } from '../rules'
+import { ABILITY_NAMES, ITEMS, SKILLS, THROWN_SUFFIX, allRaces, classById, raceById, type Ability, type RulesEdition, type SkillId } from '../rules'
 import type { MessageKey } from './locales/en'
 import { getLocale, setLocale, subscribeLocale } from './store'
+import { spellNoteHe } from './locales/notes.he'
 import { spellMeasureHe } from './locales/spells.he'
 import { LOCALES, spellTermId, term, translate, type Vars } from './translate'
+
+/** Term keys of items, races and subraces by English name, for labels that only carry a name (a spell's source). */
+let named: Map<string, string> | undefined
+function namedKey(name: string): string | undefined {
+  if (!named) {
+    named = new Map()
+    for (const i of ITEMS) named.set(i.name, `item.${i.id}`)
+    for (const edition of ['2014', '2024'] as const) {
+      for (const r of allRaces(edition)) {
+        named.set(r.name, `race.${r.id}`)
+        for (const s of r.subraces ?? []) if (!named.has(s.name)) named.set(s.name, `race.${s.id}`)
+      }
+    }
+  }
+  return named.get(name)
+}
 
 /** Current language plus translators. Re-renders the component when the language changes. */
 export function useI18n() {
@@ -11,7 +28,31 @@ export function useI18n() {
   const t = useCallback((key: MessageKey, vars?: Vars) => translate(locale, key, vars), [locale])
 
   return useMemo(() => {
-    const tr = (kind: string, id: string, fallback: string) => term(locale, kind, id, fallback)
+    const plain = (kind: string, id: string, fallback: string) => term(locale, kind, id, fallback)
+    // What's in brackets after a name: a level, skills, a race ("Wood Elf") or a pick ("Forest", "Elementals").
+    const detail = (text: string): string => {
+      const level = /^(\d+)(?:st|nd|rd|th) level$/.exec(text)
+      if (level) return translate(locale, 'common.levelN', { n: level[1] })
+      const list = text.split(/,\s*|\s+or\s+/)
+      if (list.length > 1) {
+        const parts = list.map(detail)
+        return parts.some((p, i) => p !== list[i]) ? parts.join(', ') : text
+      }
+      const skill = Object.entries(SKILLS).find(([, s]) => s.name === text)?.[0]
+      if (skill) return plain('skill', skill, text)
+      const key = namedKey(text)
+      const named = key ? LOCALES[locale].terms[key] : undefined
+      return named ?? plain('pick', spellTermId(text), plain('detail', text, plain('feature', text, text)))
+    }
+    /** Name-keyed kinds also translate "Name (detail)" when only the name has a term ("Longstrider (Wood Elf)"). */
+    const tr = (kind: string, id: string, fallback: string) => {
+      const own = plain(kind, id, fallback)
+      if (own !== fallback || locale === 'en') return own
+      const m = /^(.*?) \((.*)\)$/.exec(kind === 'resource' ? fallback : id)
+      if (!m) return own
+      const base = kind === 'resource' ? plain('feature', m[1], m[1]) : plain(kind, m[1], m[1])
+      return base === m[1] ? own : `${base} (${detail(m[2])})`
+    }
     const className = (id: string) => tr('class', id, classById(id)?.name ?? id)
     return {
       locale,
@@ -37,6 +78,17 @@ export function useI18n() {
       spellName: (nameOrId: string, fallback = nameOrId) => tr('spell', spellTermId(nameOrId), fallback),
       /** Casting time, range or duration in the current language ("1 action" → "פעולה"). */
       spellMeasure: (text: string) => (locale === 'he' ? spellMeasureHe(text) : text),
+      /**
+       * Where a granted spell or bonus comes from, by its English name: an item, race or subrace ("Forest Gnome"),
+       * feat, feature or racial trait. Unknown names (homebrew, the player's own items) stay as written.
+       */
+      sourceName: (name: string) => {
+        const key = namedKey(name)
+        const own = key ? LOCALES[locale].terms[key] : undefined
+        return own ?? (tr('feat', spellTermId(name), '') || tr('feature', name, name))
+      },
+      /** A granted spell's note ("at will", "once per long rest"). */
+      spellNote: (text: string) => (locale === 'he' ? spellNoteHe(text) : text),
       /** Attacks are named after their weapon (or "Unarmed Strike"); a thrown line is "<weapon> (thrown)". */
       attackName: (name: string): string => {
         const plain = (n: string) => {

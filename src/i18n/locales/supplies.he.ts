@@ -1,0 +1,33 @@
+// Hebrew for the Ammo and rations card, one per key in supplies.en.ts.
+import type { Messages } from '../translate'
+
+export const suppliesHe: Messages = {
+  'supplies.title': 'תחמושת ומזון',
+  'supplies.out': 'נגמרו ה{ammo}',
+  'supplies.left': 'נשארו {n}',
+  'supplies.shoot': 'ירי',
+  'supplies.spendOne': 'להוריד אחד מ{ammo} בלי לגלגל',
+  'supplies.log.spent': 'ירד אחד מ{ammo}',
+  'supplies.log.shot': 'ירי ב{weapon}: {total} לפגיעה',
+  'supplies.log.shotNat20': 'ירי ב{weapon}: {total} לפגיעה (20 טבעי)',
+  'supplies.log.shotNat1': 'ירי ב{weapon}: {total} לפגיעה (1 טבעי)',
+  'supplies.rations': 'מנות מזון',
+  'supplies.perRest': 'אחת בכל מנוחה ארוכה',
+  'supplies.noneLeft': 'לא נשאר',
+  'supplies.days': '{count} ימים',
+  'supplies.days_one': 'יום אחד',
+  'supplies.days_two': 'יומיים',
+  'supplies.noAmmo': 'ציידו קשת או רובה קשת כדי לעקוב כאן אחרי התחמושת.',
+  'supplies.hungry': '{count} ימים בלי אוכל.',
+  'supplies.hungry_one': 'יום אחד בלי אוכל.',
+  'supplies.hungry_two': 'יומיים בלי אוכל.',
+  'supplies.pastLimit': 'עברתם את הגבול של ימים בלי אוכל.',
+  'supplies.limit': 'הגבול הוא {n}.',
+  'supplies.recover': 'חיפוש בשדה הקרב: לאסוף {list}',
+  'supplies.log.recovered': 'נאספו {list}',
+  'supplies.food': 'אוכל היום',
+  'supplies.meal.ration': 'לאכול מנה',
+  'supplies.meal.other': 'אוכל אחר (פונדק, ליקוט, משתה)',
+  'supplies.meal.none': 'להישאר רעבים',
+  'supplies.rationsLeft': '(נשארו {n})',
+}

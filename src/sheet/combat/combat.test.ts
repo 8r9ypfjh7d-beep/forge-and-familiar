@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { loadKind } from '../../content'
 import { BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, CLASSES, CLASSES_2024, SUBCLASSES, SUBCLASSES_2024, derive, xpForNextLevel } from '../../rules'
 import { en } from '../../i18n/locales/en'
+import { he } from '../../i18n/locales/he'
 import { makeCharacter } from '../fixtures'
 import { longRest, shortRest } from '../engine'
 import { getResources } from '../../rules'
@@ -227,6 +228,15 @@ describe('feature text on the sheet', () => {
     expect(text('order', 'Bonus Proficiencies')).toBe(en['why.subfeature.order.Bonus Proficiencies'])
     expect(text('lore', 'Bonus Proficiencies')).toMatch(/^When you join the College of Lore/)
     expect(text('valor', 'Extra Attack')).toBe(en['why.feature.Extra Attack'])
+  })
+
+  it('reads our Hebrew summary in Hebrew and the SRD text in English', async () => {
+    const lib = await loadKind('features', { edition: '2014' })
+    const rage = { name: 'Rage', className: 'Barbarian' }
+    expect(featureDescription(lib, rage, k => en[k])).toMatch(/^In battle, you fight with primal ferocity/)
+    expect(featureDescription(lib, rage, k => he.messages[k] ?? en[k], true)).toBe(he.messages['why.feature.Rage'])
+    // No summary: the English SRD text is still better than nothing.
+    expect(featureDescription(lib, { name: 'No Such Feature', className: 'Barbarian', text: 'Own text' }, k => en[k], true)).toBe('Own text')
   })
 
   it('gives no two subclasses the same text for a shared name unless the rules match', async () => {

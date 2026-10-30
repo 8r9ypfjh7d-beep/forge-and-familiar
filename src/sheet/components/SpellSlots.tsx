@@ -57,7 +57,7 @@ export function SpellSlots({ character, apply, onCastItemSpell }: { character: C
 }
 
 function ItemSpells({ character, spells, onCast }: { character: Character; spells: ReturnType<typeof itemSpellsOf>; onCast?: ItemSpellCaster }) {
-  const { t } = useI18n()
+  const { t, spellName, sourceName, spellNote } = useI18n()
   const resources = getResources(character)
   // What a limited spell has left: its own uses, or the item's charges.
   const left = (s: ItemSpell) => {
@@ -70,10 +70,10 @@ function ItemSpells({ character, spells, onCast }: { character: Character; spell
       <ul className="track-list">
         {spells.map((s, i) => (
           <li key={i}>
-            <span className="track-label"><bdi>{s.spell}</bdi><small><bdi>{s.source}</bdi>{s.note ? <> · <bdi>{s.note}</bdi></> : null}</small></span>
+            <span className="track-label"><bdi>{spellName(s.spell)}</bdi><small><bdi>{sourceName(s.source)}</bdi>{s.note ? <> · <bdi>{spellNote(s.note)}</bdi></> : null}</small></span>
             {left(s) && <span className="track-count" dir="ltr">{left(s)}</span>}
             {onCast?.can(s) && (
-              <button type="button" className="glass-btn small prominent track-use" aria-label={t('use.castFree', { name: s.spell, source: s.source })} onClick={() => onCast.cast(s)}>
+              <button type="button" className="glass-btn small prominent track-use" aria-label={t('use.castFree', { name: spellName(s.spell), source: sourceName(s.source) })} onClick={() => onCast.cast(s)}>
                 {t('cast.cast')}
               </button>
             )}

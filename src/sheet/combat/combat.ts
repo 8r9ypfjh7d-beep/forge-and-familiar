@@ -214,19 +214,19 @@ export function matchFeature(features: Feature[], name: string, className: strin
 /**
  * A class or subclass feature's text: the player's own text, then the SRD library entry for that class or subclass,
  * then that subclass's own summary (why.subfeature), then the summary shared by every feature of that name.
+ * `translated`: the player reads another language, so our translated summary comes before the English SRD text.
  */
 export function featureDescription(
   features: Feature[],
   f: Pick<DerivedStats['features'][number], 'name' | 'className' | 'subclassId' | 'text'>,
   explain: (key: MessageKey) => string,
+  translated = false,
 ): string | undefined {
   if (f.text) return f.text
-  const srd = matchFeature(features, f.name, f.className, f.subclassId)?.description
-  if (srd) return srd
-  const own = f.subclassId ? explainKey('subfeature', `${f.subclassId}.${f.name}`) : undefined
-  if (own) return explain(own)
-  const shared = featureKey(f.name)
-  return shared ? explain(shared) : undefined
+  const srd = () => matchFeature(features, f.name, f.className, f.subclassId)?.description
+  const key = (f.subclassId ? explainKey('subfeature', `${f.subclassId}.${f.name}`) : undefined) ?? featureKey(f.name)
+  if (translated && key) return explain(key)
+  return srd() ?? (key ? explain(key) : undefined)
 }
 
 const slug = (name: string) => name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')

@@ -41,7 +41,7 @@ function useLibrary(edition: Edition): Library | 'error' | null {
 }
 
 export function Spellbook({ character, apply }: { character: Character; apply: Apply }) {
-  const { t } = useI18n()
+  const { t, term } = useI18n()
   const lib = useLibrary(editionOf(character))
   const stats = derive(character)
   const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities, undefined, lib.spells) : []
@@ -88,8 +88,8 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
             : <Browse character={character} apply={apply} access={current} spells={lib.spells} />}
           {lib.sources.map(source => (
             <details key={source.id} className="sb-source">
-              <summary>{t('spells.source', { title: source.title })}</summary>
-              <p lang="en" dir="ltr">{source.attribution}</p>
+              <summary>{t('spells.source', { title: term('source', source.id, source.title) })}</summary>
+              {source.license === 'summaries' ? <p>{t('spells.booksNote')}</p> : <p lang="en" dir="ltr">{source.attribution}</p>}
             </details>
           ))}
         </>
@@ -268,7 +268,7 @@ function groupByLevel(spells: Spell[]) {
 }
 
 function Mine({ character, apply, access, spells, onBrowse }: { character: Character; apply: Apply; access: SpellAccess; spells: Spell[]; onBrowse: () => void }) {
-  const { t } = useI18n()
+  const { t, term } = useI18n()
   const casting = useCast(character, apply)
   const levelName = useLevelName()
   // Forgetting a spell sits behind Edit, away from Cast and Pin.
@@ -282,7 +282,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
   if (!list.length) {
     return (
       <div className="sb-empty">
-        <p className="hint">{t('spells.empty', { className: access.className })}</p>
+        <p className="hint">{t('spells.empty', { className: term('class', access.classId, access.className) })}</p>
         <button type="button" className="glass-btn prominent" onClick={onBrowse}>{t('spells.browse')}</button>
       </div>
     )
