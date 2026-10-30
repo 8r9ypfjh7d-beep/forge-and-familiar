@@ -336,7 +336,7 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
 
 /** One spell: name and stat line; tapping the name opens the full text. Actions go in children. */
 export function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: string; children: ReactNode }) {
-  const { t, locale } = useI18n()
+  const { t, locale, dir } = useI18n()
   const he = locale === 'he' && !!s.descriptionHe
   const [open, setOpen] = useState(false)
   const comps = [s.components.v && 'V', s.components.s && 'S', s.components.m && 'M'].filter(Boolean).join(', ')
@@ -364,7 +364,7 @@ export function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: 
           {he
             ? <p className="sb-summary" lang="he" dir="rtl">{s.descriptionHe}</p>
             : <Markdown text={s.description} />}
-          {s.book && <p className="hint sb-book-note">{t('spells.bookNote', { book: BOOK_TITLES[s.book] ?? s.book })}</p>}
+          {s.book && <p className="hint sb-book-note" lang={locale} dir={dir}>{t('spells.bookNote', { book: BOOK_TITLES[s.book] ?? s.book })}</p>}
           {s.higherLevels && <><h4>{t('spells.higher')}</h4><Markdown text={s.higherLevels} /></>}
         </div>
       )}
