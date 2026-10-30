@@ -13,7 +13,7 @@ import { EffectsEditor, advantageName, effectText } from '../../inventory'
 import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
 import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getCritRange, getDamageRiders, itemById, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
-import { editionOf, sourceFor } from '../../spellbook/access'
+import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
 import { RockSenseButton } from '../../rocksense'
 import { useSheetRolls } from '../dice'
@@ -37,13 +37,14 @@ const EMPTY: Library = { spells: [], features: [], traits: [], feats: [], equipm
 
 /** The character's edition of the content library. Empty while loading or if it fails: the page still works. */
 function useLibrary(character: Character): Library {
-  const source = sourceFor(editionOf(character))
+  const edition = editionOf(character)
+  const source = sourceFor(edition)
   const [lib, setLib] = useState<{ source: string; data: Library } | null>(null)
   useEffect(() => {
     let live = true
     const sources = [source]
     Promise.all([
-      loadKind('spells', { sources }), loadKind('features', { sources }), loadKind('traits', { sources }),
+      loadKind('spells', { sources: spellSourcesFor(edition) }), loadKind('features', { sources }), loadKind('traits', { sources }),
       loadKind('feats', { sources }), loadKind('equipment', { sources }),
     ])
       .then(([spells, features, traits, feats, equipment]) => { if (live) setLib({ source, data: { spells, features, traits, feats, equipment } }) })

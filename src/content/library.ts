@@ -1,9 +1,10 @@
 // Runtime access to the content library: bundled SRD files load lazily (one chunk per source and kind),
 // packs registered at runtime (homebrew, player imports) merge in after them.
 import type { ContentEntryByKind, ContentFile, ContentKind, ContentManifest, ContentPack, Edition, SourceInfo } from './types.ts'
+import { BOOK_SOURCES } from './books/sources.ts'
 
 const manifests = import.meta.glob<ContentManifest>('./data/*/manifest.json', { eager: true, import: 'default' })
-const files = import.meta.glob<ContentFile>(['./data/*/*.json', '!./data/*/manifest.json'], { import: 'default' })
+const files = import.meta.glob<ContentFile>(['./data/*/*.json', '!./data/*/manifest.json', './books/*.json'], { import: 'default' })
 
 /** The bundled sources, with upstream version and counts. */
 export const BUNDLED: ContentManifest[] = Object.values(manifests).sort((a, b) => a.source.id.localeCompare(b.source.id))
@@ -12,16 +13,19 @@ const cache = new Map<string, Promise<unknown[]>>()
 const packs = new Map<string, ContentPack>()
 const listeners = new Set<() => void>()
 
-/** All sources: bundled SRD first, then registered packs. */
+/** Every source that ships with the app: the SRD files, then the book spells (`books/`, spells only). */
+const SHIPPED: SourceInfo[] = [...BUNDLED.map(m => m.source), ...BOOK_SOURCES]
+
+/** All sources: bundled SRD first, then book spells, then registered packs. */
 export function listSources(): SourceInfo[] {
-  return [...BUNDLED.map(m => m.source), ...[...packs.values()].map(p => p.source)]
+  return [...SHIPPED, ...[...packs.values()].map(p => p.source)]
 }
 
 export const sourceById = (id: string) => listSources().find(s => s.id === id)
 
 /** Entries of one kind from one bundled source. Each file is fetched once per page load. */
-function loadBundled<K extends ContentKind>(sourceId: string, kind: K): Promise<ContentEntryByKind[K][]> {
-  const path = `./data/${sourceId}/${kind}.json`
+function loadBundled<K extends ContentKind>(source: SourceInfo, kind: K): Promise<ContentEntryByKind[K][]> {
+  const path = source.id.startsWith('books-') ? `./books/${kind}-${source.edition}.json` : `./data/${source.id}/${kind}.json`
   const load = files[path]
   if (!load) return Promise.resolve([])
   let pending = cache.get(path)
@@ -42,14 +46,14 @@ export interface LoadOptions {
 
 const wanted = (s: SourceInfo, o: LoadOptions) => (!o.sources || o.sources.includes(s.id)) && (!o.edition || s.edition === o.edition)
 
-/** Every entry of a kind across the chosen sources. Bundled entries come first, then packs in registration order. */
+/** Every entry of a kind across the chosen sources. Shipped entries come first, then packs in registration order. */
 export async function loadKind<K extends ContentKind>(kind: K, options: LoadOptions = {}): Promise<ContentEntryByKind[K][]> {
-  const bundled = await Promise.all(BUNDLED.filter(m => wanted(m.source, options)).map(m => loadBundled(m.source.id, kind)))
+  const bundled = await Promise.all(SHIPPED.filter(s => wanted(s, options)).map(s => loadBundled(s, kind)))
   const extra = [...packs.values()].filter(p => wanted(p.source, options)).map(p => (p.entries[kind] ?? []) as ContentEntryByKind[K][])
   return [...bundled, ...extra].flat()
 }
 
-/** One entry by id. With no source given, the first source that has it wins (SRD before packs). */
+/** One entry by id. With no source given, the first source that has it wins (SRD, then books, then packs). */
 export async function getEntry<K extends ContentKind>(kind: K, id: string, options: LoadOptions = {}): Promise<ContentEntryByKind[K] | undefined> {
   return (await loadKind(kind, options)).find(e => e.id === id)
 }

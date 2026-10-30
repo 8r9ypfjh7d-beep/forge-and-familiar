@@ -680,6 +680,7 @@ const messages: Messages = {
   'spells.components': 'רכיבים',
   'spells.duration': 'משך',
   'spells.higher': 'בדרגות גבוהות יותר',
+  'spells.bookNote': 'מתוך {book}. תקציר קצר שנכתב לאפליקציה: את הכללים המלאים בודקים בספר.',
   'spells.source': 'מקור: {title}',
   'spells.log.add': 'נלמד {name}',
   'spells.log.remove': 'הוסר {name}',

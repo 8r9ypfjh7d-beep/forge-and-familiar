@@ -1080,6 +1080,7 @@ export const en = {
   'spells.components': 'Components',
   'spells.duration': 'Duration',
   'spells.higher': 'At higher levels',
+  'spells.bookNote': 'From {book}. A short summary written for this app: check the book for the full rules.',
   'spells.source': 'Source: {title}',
   'spells.log.add': 'Learned {name}',
   'spells.log.remove': 'Removed {name}',

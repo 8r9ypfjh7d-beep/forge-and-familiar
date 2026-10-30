@@ -57,14 +57,14 @@ const str = (v: unknown, max = 200) => (typeof v === 'string' && v.trim() ? v.tr
 
 /**
  * Validates a pack from a file or another device. Keeps known kinds only, entries need a string id and name,
- * and every entry is stamped with the pack's source so it cannot pose as SRD text. Returns null if unusable.
+ * and every entry is stamped with the pack's source so it cannot pose as SRD or book text. Returns null if unusable.
  */
 export function sanitizePack(input: unknown): ContentPack | null {
   if (!isObj(input) || input.format !== CONTENT_FORMAT || typeof input.version !== 'number' || input.version > CONTENT_VERSION) return null
   const s = isObj(input.source) ? input.source : {}
   const id = str(s.id, 80)
   const title = str(s.title)
-  if (!id || !title || id.startsWith('srd-')) return null
+  if (!id || !title || id.startsWith('srd-') || id.startsWith('books-')) return null
   const edition: Edition = s.edition === '2024' ? '2024' : '2014'
   const source: SourceInfo = { id, title, edition, license: str(s.license) ?? 'unspecified', attribution: str(s.attribution, 2000) ?? title }
   const entries: ContentPack['entries'] = {}
