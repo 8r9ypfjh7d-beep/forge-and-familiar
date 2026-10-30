@@ -1,16 +1,43 @@
+import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { randomHookKey } from './generate'
 import { randomName } from './names'
 import './random.css'
 
-/** "Random character" strip at the top of a new character's builder. */
-export function RandomCharacter({ onRoll }: { onRoll: () => void }) {
+/**
+ * "Random character" strip at the top of a new character's builder. With `ask`, it first asks in an in-app
+ * glass dialog whether to replace the player's picks.
+ */
+export function RandomCharacter({ onRoll, ask, busy }: { onRoll: () => void; ask: boolean; busy?: boolean }) {
   const { t } = useI18n()
+  const [asking, setAsking] = useState(false)
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => {
+    const d = ref.current
+    if (!d) return
+    if (asking && !d.open) d.showModal?.()
+    if (!asking && d.open) d.close()
+  }, [asking])
+  const roll = () => { setAsking(false); onRoll() }
   return (
     <div className="random-bar">
-      <button className="glass-btn" onClick={onRoll}>🎲 {t('random.character')}</button>
+      <button className="glass-btn" disabled={busy} aria-busy={busy} onClick={() => (ask ? setAsking(true) : onRoll())}>
+        🎲 {t(busy ? 'random.rolling' : 'random.character')}
+      </button>
       <span className="muted small">{t('random.characterHint')}</span>
+      <dialog ref={ref} className="random-dialog glass-sheet glass-dialog" aria-labelledby="random-dialog-title" onCancel={e => { e.preventDefault(); setAsking(false) }}>
+        {asking && (
+          <>
+            <h2 id="random-dialog-title">{t('random.replace')}</h2>
+            <p className="muted">{t('random.replaceHint')}</p>
+            <div className="random-dialog-actions">
+              <button type="button" className="glass-btn prominent" onClick={roll}>🎲 {t('random.replaceYes')}</button>
+              <button type="button" className="glass-btn" onClick={() => setAsking(false)}>{t('random.replaceNo')}</button>
+            </div>
+          </>
+        )}
+      </dialog>
     </div>
   )
 }
