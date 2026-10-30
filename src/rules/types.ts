@@ -129,6 +129,8 @@ export interface Race extends RaceRules {
   subraces?: Subrace[]
   /** The race can be played without picking a subrace (Human with Variant Human, Tiefling bloodlines). */
   subraceOptional?: boolean
+  /** A 2014 race offered under 2024 rules (no 2024 version exists); its ability bonuses come from the background. */
+  legacy?: boolean
 }
 
 export type ArmorCategory = 'light' | 'medium' | 'heavy' | 'shield'

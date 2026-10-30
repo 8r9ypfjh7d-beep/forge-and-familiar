@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { en } from '../i18n/locales/en'
 import {
-  ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
+  ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_SPECIES_2024, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
   SUBCLASSES, SUBCLASSES_2024, TOOLS,
 } from '../rules'
 import { STEPS } from './steps'
 import { WHY_TOPICS, explainKey, featureKey, pitchKey, type ExplainKind } from './why'
+
+// SRD 5.2 species and the 2024 species from other books.
+const SPECIES_ALL = [...SPECIES, ...BOOK_SPECIES_2024]
 
 const missing = (kind: ExplainKind, ids: string[]) => [...new Set(ids)].filter(id => !explainKey(kind, id))
 
@@ -14,7 +17,7 @@ describe('why? tooltips', () => {
     for (const id of WHY_TOPICS) expect(en, id).toHaveProperty([`why.${id}.text`])
     for (const s of STEPS) expect(WHY_TOPICS).toContain(`step.${s.id}`)
     for (const r of RACES) expect(pitchKey('race', r.id), r.id).toBeDefined()
-    for (const r of SPECIES) expect(pitchKey('race2024', r.id), r.id).toBeDefined()
+    for (const r of SPECIES_ALL) expect(pitchKey('race2024', r.id), r.id).toBeDefined()
     for (const c of CLASSES) expect(pitchKey('class', c.id), c.id).toBeDefined()
     expect(pitchKey('race', 'homebrew-catfolk')).toBeUndefined()
   })
@@ -32,8 +35,8 @@ describe('why? tooltips', () => {
 
   it('explains every subrace, lineage and trait', () => {
     expect(missing('sub2014', RACES.flatMap(r => (r.subraces ?? []).map(s => s.id)))).toEqual([])
-    expect(missing('sub2024', SPECIES.flatMap(r => (r.subraces ?? []).map(s => s.id)))).toEqual([])
-    expect(missing('trait', [...RACES, ...SPECIES].flatMap(r => [...r.traits, ...(r.subraces ?? []).flatMap(s => s.traits)]))).toEqual([])
+    expect(missing('sub2024', SPECIES_ALL.flatMap(r => (r.subraces ?? []).map(s => s.id)))).toEqual([])
+    expect(missing('trait', [...RACES, ...SPECIES_ALL].flatMap(r => [...r.traits, ...(r.subraces ?? []).flatMap(s => s.traits)]))).toEqual([])
   })
 
   it('explains every background, ability, skill, alignment, language and tool', () => {

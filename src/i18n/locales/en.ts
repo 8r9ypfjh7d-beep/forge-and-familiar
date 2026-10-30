@@ -5,6 +5,7 @@ import { explainClassesEn } from './explain.classes.en'
 import { explainEn } from './explain.en'
 import { explainProficienciesEn } from './explain.proficiencies.en'
 import { explainMetamagicEn } from './explain.metamagic.en'
+import { explainSpeciesEn } from './explain.species.en'
 import { itemsEn } from './items.en'
 
 export const en = {
@@ -13,6 +14,7 @@ export const en = {
   ...explainClassesEn,
   ...explainProficienciesEn,
   ...explainMetamagicEn,
+  ...explainSpeciesEn,
   ...itemsEn,
   // Shared
   'common.back': 'Back',
@@ -158,6 +160,8 @@ export const en = {
   'builder.issue.raceFeat': 'Pick a feat for your race.',
   'builder.issue.flexibleBonus': 'Give your racial bonuses: +2 and +1, or +1 to three abilities.',
   'builder.race.noBonus': 'Bonuses from background',
+  'builder.race.legacy': 'Legacy (2014)',
+  'builder.raceSource': 'From {source}. Trait text here is our own short summary; your book has the full rules.',
   'builder.originFeat': 'Origin feat (Versatile)',
   'builder.languages2024': 'Common + 2 of your choice (picked with your background)',
   'builder.traits': 'Traits:',
