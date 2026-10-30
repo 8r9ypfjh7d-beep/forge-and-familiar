@@ -10,9 +10,9 @@ import { optionKey, optionName, type WhyId } from './why'
  * Lists every registered option of the kind, official then homebrew, grouped by the class level that unlocks it.
  * Going over or under the count only warns: the table decides.
  */
-export function InfusionPicker({ draft, update }: StepProps) {
+export function InfusionPicker({ draft, update, classId }: StepProps & { classId: string }) {
   const { t, term, className } = useI18n()
-  const slots = optionPickSlots(draft)
+  const slots = optionPickSlots(draft).filter(s => s.classId === classId)
   if (slots.length === 0) return null
   return (
     <>

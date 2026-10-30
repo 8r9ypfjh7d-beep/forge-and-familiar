@@ -347,12 +347,21 @@ function ClassStep({ draft, update }: StepProps) {
           <ExplainList items={cls.features.filter(f => f.level <= level).map(f => ({ name: term('feature', f.name, f.name), note: t('builder.level', { level: f.level }) + detailOf(featureDetail(f, level)), key: explainKey('feature', f.name), text: f.text }))} />
         </Fold>
       )}
-      {cls && <SubclassPicker draft={draft} update={update} />}
-      {cls && <ClassChoices draft={draft} update={update} />}
-      {cls && <MetamagicPicker draft={draft} update={update} />}
-      {cls && <ClassOptionPicker draft={draft} update={update} />}
-      {cls && <InfusionPicker draft={draft} update={update} />}
-      <MulticlassPicker draft={draft} update={update} />
+      {cls && <ClassPicksFor draft={draft} update={update} classId={cls.id} />}
+      <MulticlassPicker draft={draft} update={update} picksFor={classId => <ClassPicksFor draft={draft} update={update} classId={classId} />} />
+    </>
+  )
+}
+
+/** Everything one class asks to pick: subclass, class choices, Metamagic, option lists, infusions. Each multiclass row gets its own. */
+function ClassPicksFor({ draft, update, classId }: StepProps & { classId: string }) {
+  return (
+    <>
+      <SubclassPicker draft={draft} update={update} classId={classId} />
+      <ClassChoices draft={draft} update={update} classId={classId} />
+      <MetamagicPicker draft={draft} update={update} classId={classId} />
+      <ClassOptionPicker draft={draft} update={update} classId={classId} />
+      <InfusionPicker draft={draft} update={update} classId={classId} />
     </>
   )
 }
@@ -361,9 +370,9 @@ function ClassStep({ draft, update }: StepProps) {
  * Class picks: Fighting Style, Divine/Primal Order, Favored Enemy, Natural Explorer, and Tasha's optional
  * features (2014) in a fold of their own, since leaving them unpicked keeps the Player's Handbook rules.
  */
-function ClassChoices({ draft, update }: StepProps) {
+function ClassChoices({ draft, update, classId: only }: StepProps & { classId: string }) {
   const { t, term, className } = useI18n()
-  const list = classChoices(draft)
+  const list = classChoices(draft).filter(x => x.classId === only)
   if (list.length === 0) return null
   const pick = (classId: string, choiceId: string, optionId: string) =>
     update({ featureChoices: { ...draft.featureChoices, [choiceKey(classId, choiceId)]: optionId } })
@@ -464,12 +473,12 @@ function SubclassPickList({ draft, update, at }: StepProps & { at: ReturnType<ty
   )
 }
 
-function SubclassPicker({ draft, update }: StepProps) {
+function SubclassPicker({ draft, update, classId }: StepProps & { classId: string }) {
   const { t, term, className } = useI18n()
   const edition = rulesEdition(draft)
-  const first = draft.classes[0]
-  const firstDef = classById(first.classId, edition)!
-  const slots = subclassSlots(draft)
+  const own = draft.classes.find(cl => cl.classId === classId)
+  const ownDef = classById(classId, edition)
+  const slots = subclassSlots(draft).filter(cl => cl.classId === classId)
   // Picks from the old subclass's lists (maneuvers, runes...) go with it.
   const setSub = (classId: string, subclassId: string) => {
     const classes = draft.classes.map(cl => (cl.classId === classId ? { ...cl, subclassId } : cl))
@@ -478,8 +487,8 @@ function SubclassPicker({ draft, update }: StepProps) {
   }
   return (
     <>
-      {first.level < firstDef.subclassLevel && (
-        <p className="muted small">{t('builder.subclassLater', { title: term('feature', firstDef.subclassTitle, firstDef.subclassTitle), level: firstDef.subclassLevel })}</p>
+      {own && ownDef && own.level < ownDef.subclassLevel && subclassesFor(classId, edition).length > 0 && (
+        <p className="muted small">{t('builder.subclassLater', { title: term('feature', ownDef.subclassTitle, ownDef.subclassTitle), level: ownDef.subclassLevel })}</p>
       )}
       {slots.map(cl => {
         const def = classById(cl.classId, edition)!

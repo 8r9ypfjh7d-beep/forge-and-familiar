@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import {
@@ -15,8 +15,11 @@ const OTHER_GRANTS: Record<string, MessageKey> = {
   "thieves' tools": 'builder.mc.grant.thievesTools',
 }
 
-/** Optional extra classes after the first, with SRD prerequisites and caster-level math. */
-export function MulticlassPicker({ draft, update }: StepProps) {
+/**
+ * Optional extra classes after the first, with SRD prerequisites and caster-level math.
+ * `picksFor` renders a class's own picks (subclass, options) under its row.
+ */
+export function MulticlassPicker({ draft, update, picksFor }: StepProps & { picksFor?: (classId: string) => ReactNode }) {
   const { t, className, abilityShort, item } = useI18n()
   const [open, setOpen] = useState(draft.classes.length > 1)
   const [first, ...extras] = draft.classes
@@ -77,17 +80,20 @@ export function MulticlassPicker({ draft, update }: StepProps) {
         const name = className(cl.classId)
         const others = total - cl.level
         return (
-          <div key={cl.classId} className="multiclass-row">
-            <strong>{name}</strong>
-            <select
-              aria-label={t('builder.mc.levelOf', { className: name })}
-              value={cl.level}
-              onChange={e => setExtras(extras.map((x, j) => (j === i ? { ...x, level: Number(e.target.value) } : x)))}
-            >
-              {Array.from({ length: Math.max(1, MAX_CHARACTER_LEVEL - others) }, (_, l) => l + 1).map(l => <option key={l} value={l}>{t('builder.level', { level: l })}</option>)}
-            </select>
-            <span className="muted small">{t('builder.mc.gains', { list: grants(cl.classId) })}</span>
-            <button className="glass-btn icon" onClick={() => setExtras(extras.filter((_, j) => j !== i))} aria-label={t('builder.mc.remove', { className: name })}>✕</button>
+          <div key={cl.classId} className="multiclass-class">
+            <div className="multiclass-row">
+              <strong>{name}</strong>
+              <select
+                aria-label={t('builder.mc.levelOf', { className: name })}
+                value={cl.level}
+                onChange={e => setExtras(extras.map((x, j) => (j === i ? { ...x, level: Number(e.target.value) } : x)))}
+              >
+                {Array.from({ length: Math.max(1, MAX_CHARACTER_LEVEL - others) }, (_, l) => l + 1).map(l => <option key={l} value={l}>{t('builder.level', { level: l })}</option>)}
+              </select>
+              <span className="muted small">{t('builder.mc.gains', { list: grants(cl.classId) })}</span>
+              <button className="glass-btn icon" onClick={() => setExtras(extras.filter((_, j) => j !== i))} aria-label={t('builder.mc.remove', { className: name })}>✕</button>
+            </div>
+            {picksFor && <div className="multiclass-picks">{picksFor(cl.classId)}</div>}
           </div>
         )
       })}
