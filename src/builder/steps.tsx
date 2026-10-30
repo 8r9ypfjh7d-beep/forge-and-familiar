@@ -487,7 +487,7 @@ function SubclassPicker({ draft, update, classId }: StepProps & { classId: strin
   }
   return (
     <>
-      {own && ownDef && own.level < ownDef.subclassLevel && subclassesFor(classId, edition).length > 0 && (
+      {own && ownDef && own.level < ownDef.subclassLevel && (
         <p className="muted small">{t('builder.subclassLater', { title: term('feature', ownDef.subclassTitle, ownDef.subclassTitle), level: ownDef.subclassLevel })}</p>
       )}
       {slots.map(cl => {

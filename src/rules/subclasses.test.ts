@@ -118,6 +118,19 @@ describe('custom subclass', () => {
     expect(stepIssues('class', custom(1, ' '))).toContain('Give your custom Otherworldly Patron a name.')
     expect(stepIssues('class', custom(1))).toEqual([])
   })
+
+  it('gives each class its own use counter, even with features of the same name', () => {
+    const focus = (classId: string, count: number, recharge: 'short' | 'long') =>
+      ({ classId, name: `${classId} way`, features: [{ level: 3, name: 'Focus', uses: { count, recharge } }] })
+    const c = createCharacter({
+      name: 'T', ownerId: 'u1', playerName: '', alignment: 'True Neutral', raceId: 'human', backgroundId: 'acolyte',
+      classes: [{ classId: 'fighter', level: 3, subclassId: CUSTOM_SUBCLASS }, { classId: 'rogue', level: 3, subclassId: CUSTOM_SUBCLASS }],
+      abilityMethod: 'standard', baseAbilities: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 }, freeAbilityBonuses: [], chosenSkills: [],
+      customSubclasses: [focus('fighter', 1, 'short'), focus('rogue', 3, 'long')],
+    })
+    const focusUses = derive(c).resources.filter(r => r.label === 'Focus')
+    expect(focusUses.map(r => [r.id, r.max, r.recharge])).toEqual([['sub:custom:fighter:focus', 1, 'short'], ['sub:custom:rogue:focus', 3, 'long']])
+  })
 })
 
 describe('book subclasses for every class', () => {

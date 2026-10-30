@@ -1,7 +1,7 @@
 // Homebrew content: spells, items, feats, races, subclasses, backgrounds, class options, classes, languages and tools a group writes themselves, grouped into shareable packs.
 import type { ClassOption, HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
 import type {
-  Abilities, Ability, ArmorCategory, CasterType, ClassFeature, ClassSpellcasting, Feat, FeatEffect, Item, ItemEffect, RulesEdition, Size, SkillId, WeaponCategory,
+  Abilities, Ability, ArmorCategory, CasterType, ClassFeature, ClassSpellcasting, Feat, FeatEffect, Item, ItemEffect, RulesEdition, Size, SkillId, SubclassFeature, WeaponCategory,
 } from '../rules/types'
 
 export type { FeatEffect }
@@ -110,13 +110,23 @@ export interface HomebrewTool {
   description?: string
 }
 
+/** A subclass with everything the builder's own Custom subclass has: features with text, uses and effects, spells and proficiencies. */
 export interface HomebrewSubclass {
   id: string
   name: string
   classId: string
-  features: { level: number; name: string }[]
+  features: SubclassFeature[]
   /** Extra armor proficiencies. */
   armor: ArmorCategory[]
+  weapons?: WeaponCategory[]
+  /** Extra max HP per level in this class. */
+  hpPerLevel?: number
+  /** Unarmored AC is 10 + DEX + this ability. */
+  unarmoredAbility?: Ability
+  /** Spells always prepared, by class level. */
+  spells?: { level: number; names: string[] }[]
+  /** Warlock pact weapon attacks may use Charisma. */
+  castingWeapon?: boolean
   description?: string
 }
 

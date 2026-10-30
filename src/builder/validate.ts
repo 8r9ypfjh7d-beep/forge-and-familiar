@@ -31,11 +31,11 @@ export function skillPicks(d: CharacterDraft) {
   }
 }
 
-/** Class entries at or past their subclass level. Classes with no subclass to choose from are skipped. */
+/** Class entries at or past their subclass level. A class with no listed subclasses (a new homebrew class) still gets one: Custom. */
 export function subclassSlots(d: CharacterDraft) {
   return d.classes.filter(cl => {
     const def = classById(cl.classId, d.rulesEdition)
-    return def && cl.level >= def.subclassLevel && subclassesFor(cl.classId, d.rulesEdition).length > 0
+    return def && cl.level >= def.subclassLevel
   })
 }
 

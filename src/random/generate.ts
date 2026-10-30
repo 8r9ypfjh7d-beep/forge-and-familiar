@@ -58,7 +58,10 @@ export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng
   d.name = randomName(d.raceId, rng)
 
   // Clerics, Sorcerers and Warlocks (2014) pick a subclass at 1st level.
-  for (const cl of subclassSlots(d)) cl.subclassId = pick(subclassesFor(cl.classId, edition), rng).id
+  for (const cl of subclassSlots(d)) {
+    const options = subclassesFor(cl.classId, edition)
+    if (options.length) cl.subclassId = pick(options, rng).id
+  }
   for (const x of classChoices(d)) d.featureChoices![choiceKey(x.classId, x.choice.id)] = pick(x.choice.options, rng).id
   if (race.originFeatChoice) d.originFeatId = pick(allFeats(edition).filter(f => f.category === 'origin'), rng).id
 

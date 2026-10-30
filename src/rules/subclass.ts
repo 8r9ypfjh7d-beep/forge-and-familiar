@@ -50,5 +50,9 @@ export function subclassSpellNames(c: Owner & Partial<Pick<Character, 'classes'>
 /** Lower-case slug used in resource ids. */
 export const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
+/** Resource id for a subclass feature's uses. Every class's custom subclass has the id `custom`, so its class is part of the id. */
+export const subclassResourceId = (subclass: SubclassDef, feature: Pick<SubclassFeature, 'name'>) =>
+  subclass.id === CUSTOM_SUBCLASS ? `sub:custom:${subclass.classId}:${slug(feature.name)}` : `sub:${subclass.id}:${slug(feature.name)}`
+
 /** A blank custom subclass for a class. */
 export const blankSubclass = (classId: string): SubclassData => ({ classId, name: '', features: [] })
