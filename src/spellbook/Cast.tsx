@@ -7,7 +7,7 @@ import type { Character } from '../model/character'
 import { slotChoices, spellBeams, spellDamage } from '../quickcast/quickcast'
 import type { SlotChoice } from '../quickcast'
 import { setEquipped } from '../inventory/inventory'
-import { cantripDamageBonus, castsAtMax, derive, getResources, itemSpellCast, maxOfDice, wornArmor, type ItemSpell } from '../rules'
+import { cantripDamageBonus, castingWith, castsAtMax, derive, getResources, itemSpellCast, maxOfDice, wornArmor, type Ability, type ItemSpell } from '../rules'
 import { withRollFromText } from '../sheet/combat/combat'
 import { LastRoll, type Shown } from '../sheet/combat/LastRoll'
 import { useSheetRolls } from '../sheet/dice'
@@ -16,6 +16,7 @@ import { startEffect } from '../sheet/effects'
 import type { Apply } from '../sheet/types'
 import type { ItemSpellCaster } from '../sheet/components/SpellSlots'
 import { castPlan, castSpell, castWarnings, defaultSlot, fixedAmount } from './cast'
+import { extraSpellAbility } from './extra'
 import { toQuickCast } from './spellbook'
 
 export interface CastOut {
@@ -27,6 +28,9 @@ export interface CastOut {
   takeOff?: { uid: string; name: string }
 }
 
+/** How a slot-free cast goes: see useCast's `cast`. */
+export interface FreeCast { level?: number; spend?: { id: string; n: number }; max?: boolean; ability?: Ability }
+
 /** Casting for one card: `cast` does everything and returns what to show; `out` is the last result. */
 export function useCast(character: Character, apply: Apply) {
   const { t, term, abilityShort } = useI18n()
@@ -35,9 +39,10 @@ export function useCast(character: Character, apply: Apply) {
 
   /**
    * `free`: cast without a slot (an item's or a race's spell), at `free.level` when it says so, spending
-   * `free.spend` (its once-per-rest use or the item's charges) when it has a limit; `free.max` gives its temporary HP at their highest (Fiendish Vigor).
+   * `free.spend` (its once-per-rest use or the item's charges) when it has a limit; `free.max` gives its temporary HP at their highest (Fiendish Vigor);
+   * `free.ability` is the spellcasting ability the player picked for it (2024 Elven Lineage).
    */
-  const cast = (spell: Spell, chosen?: SlotChoice, free?: { level?: number; spend?: { id: string; n: number }; max?: boolean }) => {
+  const cast = (spell: Spell, chosen?: SlotChoice, free?: FreeCast) => {
     const slot = free ? undefined : chosen ?? defaultSlot(character, spell)
     const d = derive(character)
     const level = slot?.level ?? free?.level ?? spell.level
@@ -54,7 +59,9 @@ export function useCast(character: Character, apply: Apply) {
 
     // Attack, save and damage or healing, as the attacks table rolls them.
     const entry = toQuickCast(withRollFromText(spell))
-    const sc = d.spellcasting
+    // A race's or feat's spell may use its own ability (2024 lineages, Magic Initiate); else the class's.
+    const ownAbility = free?.ability ?? (free ? undefined : extraSpellAbility(character, spell.id))
+    const sc = ownAbility ? castingWith(character, ownAbility) : d.spellcasting
     const perHit = spell.level === 0 ? cantripDamageBonus(character, spell.name, d.mods.cha) : 0
     const dice = spellDamage({ ...entry, id: '', kind: 'spell' }, level, d.level, sc ? d.mods[sc.ability] : 0, perHit)
     const healing = entry.damageType === 'healing'
@@ -216,14 +223,14 @@ export function CastButton({ character, spell, onCast }: { character: Character;
 }
 
 /** Casting the spells that items, races and feats give: free, at their own level, spending their use or charges. */
-export function itemSpellCaster<R>(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number; spend?: { id: string; n: number }; max?: boolean }) => R): Pick<ItemSpellCaster, 'can'> & { cast: (s: ItemSpell) => R | undefined } {
+export function itemSpellCaster<R>(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: FreeCast) => R): Pick<ItemSpellCaster, 'can'> & { cast: (s: ItemSpell) => R | undefined } {
   const find = (text: string) => { const { name, level } = itemSpellCast(text); const s = spells.find(x => x.name.toLowerCase() === name.toLowerCase()); return s && { s, level } }
   return {
     can: s => !!find(s.spell),
     cast: s => {
       const f = find(s.spell)
       const spend = s.useId ? { id: s.useId, n: 1 } : s.charges ? { id: s.charges.id, n: s.charges.cost } : undefined
-      return f ? cast(f.s, undefined, { level: f.level, ...(spend ? { spend } : {}), ...(castsAtMax(s.note) ? { max: true } : {}) }) : undefined
+      return f ? cast(f.s, undefined, { level: f.level, ...(spend ? { spend } : {}), ...(castsAtMax(s.note) ? { max: true } : {}), ...(s.ability ? { ability: s.ability } : {}) }) : undefined
     },
   }
 }

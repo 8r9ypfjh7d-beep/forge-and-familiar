@@ -245,6 +245,11 @@ export interface Character {
   classOptions?: ClassOptionPick[]
   /** Class multi-picks, keyed `<classId>.<ClassPick id>` → skill ids (Expertise, Primal Knowledge). */
   classPicks?: Record<string, string[]>
+  /**
+   * Spellcasting ability picked for spells from outside a class: `race` (2024 Elven Lineage, Gnomish Lineage, Fiendish Legacy)
+   * and a spell feat's slot (`bg`, `origin`, `asi-<classId>-<level>`: 2024 Magic Initiate). Missing: the best of INT, WIS and CHA.
+   */
+  spellAbilities?: Record<string, Ability>
   /** Weapon Mastery (2024): weapon item ids whose mastery property the character can use. */
   weaponMasteries?: string[]
   /** 2024 Human (Versatile): the Origin feat picked. */

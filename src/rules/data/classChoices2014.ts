@@ -142,10 +142,12 @@ export const CLASS_CHOICES_2014: Record<string, ClassChoice[]> = {
 const expertise = (id: string, level: number, count: number, name = 'Expertise'): ClassPick => ({ id, name, level, kind: 'expertise', count })
 const deft = { choice: 'naturalExplorer', option: 'deft-explorer' }
 
-/** 2014 multi-picks, read by classPickSlots(). Rogue Expertise may also go to thieves' tools (noted in its why? text). */
+const THIEVES_TOOLS = "Thieves' tools"
+
+/** 2014 multi-picks, read by classPickSlots(). Rogue Expertise may also go to thieves' tools. */
 export const CLASS_PICKS_2014: Record<string, ClassPick[]> = {
   bard: [expertise('expertise', 3, 2), expertise('expertise10', 10, 2)],
-  rogue: [expertise('expertise', 1, 2), expertise('expertise6', 6, 2)],
+  rogue: [{ ...expertise('expertise', 1, 2), tools: [THIEVES_TOOLS] }, { ...expertise('expertise6', 6, 2), tools: [THIEVES_TOOLS] }],
   ranger: [
     { ...expertise('deftExplorer', 1, 1, 'Deft Explorer'), when: deft },
     { id: 'deftExplorerLanguages', name: 'Deft Explorer', level: 1, kind: 'language', count: 2, when: deft },

@@ -36,9 +36,9 @@ export function suggestedImprovements(draft: CharacterDraft): Improvement[] {
   return improvements
 }
 
-/** Fills the open skill picks: class skills first, then any skill, both by the character's best abilities. */
+/** Fills the open skill picks: the race's short list, class skills, the background's list, then any skill, each by the character's best abilities. */
 export function suggestedSkills(draft: CharacterDraft): SkillId[] {
-  const { classCount, classFrom, raceCount, bgCount, bgFrom } = skillPicks(draft)
+  const { classCount, classFrom, raceCount, bgCount, bgFrom, raceListCount, raceFrom } = skillPicks(draft)
   const granted = grantedSkills(draft)
   const scores = getAbilityScores(draft)
   const rank = (list: SkillId[]) => [...list].sort((a, b) => scores[SKILLS[b].ability] - scores[SKILLS[a].ability])
@@ -46,8 +46,10 @@ export function suggestedSkills(draft: CharacterDraft): SkillId[] {
   const add = (list: SkillId[], upTo: number) => {
     for (const s of rank(list)) if (out.length < upTo && !out.includes(s) && !granted.has(s)) out.push(s)
   }
-  add(classFrom, classCount)
-  add(bgFrom, classCount + bgCount)
-  add(Object.keys(SKILLS) as SkillId[], classCount + bgCount + raceCount)
+  // The race's short list (Keen Senses) first, so the class's longer list can't use it all up.
+  add(raceFrom, raceListCount)
+  add(classFrom, raceListCount + classCount)
+  add(bgFrom, raceListCount + classCount + bgCount)
+  add(Object.keys(SKILLS) as SkillId[], classCount + bgCount + raceListCount + raceCount)
   return out
 }

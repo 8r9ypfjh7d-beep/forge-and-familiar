@@ -4,6 +4,7 @@ import type { Character } from '../model/character'
 import { CLASS_PICKS_2014 } from './data/classChoices2014'
 import { classById } from './data/classes'
 import { ITEMS } from './data/items'
+import { SKILLS } from './data/skills'
 import { WEAPON_MASTERY } from './data/masteries'
 import { rulesEdition } from './edition'
 import type { ClassPick, Item, ItemEffect, SkillId } from './types'
@@ -35,12 +36,18 @@ export function classPickSlots(c: Picks): { classId: string; pick: ClassPick; pi
 export const classLanguagePicks = (c: Classes) =>
   classPickSlots(c).reduce((n, s) => n + (s.pick.kind === 'language' ? s.pick.count : 0), 0)
 
-/** What the skill picks do on the sheet: proficiency, and double proficiency for Expertise. */
+/** Tools picked for Expertise (Rogue: thieves' tools): double proficiency on checks with them. */
+export function toolExpertise(c: Partial<Picks>): string[] {
+  if (!c.classes) return []
+  return [...new Set(classPickSlots(c as Picks).flatMap(({ pick, picked }) => (pick.kind === 'expertise' ? picked.filter(p => !(p in SKILLS)) : [])))]
+}
+
+/** What the skill picks do on the sheet: proficiency, and double proficiency for Expertise. Tool picks are in toolExpertise(). */
 export function classPickEffects(c: Partial<Picks>): { source: string; effect: ItemEffect }[] {
   if (!c.classes) return []
   return classPickSlots(c as Picks).flatMap(({ pick, picked }) => {
     if (pick.kind === 'language') return []
-    return picked.map(skill => ({
+    return picked.filter(p => p in SKILLS).map(skill => ({
       source: pick.name,
       effect: { kind: 'skillProficiency', skill: skill as SkillId, ...(pick.kind === 'expertise' ? { expertise: true } : {}) } as ItemEffect,
     }))

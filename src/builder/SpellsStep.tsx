@@ -1,10 +1,10 @@
 // The builder's Spells step: cantrips and known, prepared or spellbook spells per spellcasting class,
 // race and lineage spells, and picks from spell feats (Magic Initiate). Counts guide, they never block.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { loadKind, searchEntries, type CharacterClass, type Edition, type Spell, type Subclass } from '../content'
 import { SpellName, useI18n, type MessageKey } from '../i18n'
 import type { KnownSpell } from '../model/character'
-import { classById, featById, getAbilityScores, raceById } from '../rules'
+import { MENTAL_ABILITIES, RACE_SPELL_KEY, chosenSpellAbility, classById, featById, featChoosesSpellAbility, getAbilityScores, raceById, raceChoosesSpellAbility, type Ability } from '../rules'
 import { SearchField } from '../rulesqa/SearchField'
 import {
   SpellRow, availableSpells, canPickExtra, isSecret, editionOf, extraKey, extraList, extraSources, grantedSpells, keepValidSpells, spellAccess,
@@ -17,6 +17,21 @@ import { Why } from './Why'
 import type { WhyId } from './why'
 
 interface Library { spells: Spell[]; classes: CharacterClass[]; subclasses: Subclass[] }
+
+/** Intelligence, Wisdom or Charisma for spells that let the player pick (2024 lineages, Magic Initiate); the default is the best. */
+function SpellAbilityPick({ draft, update, pickKey }: StepProps & { pickKey: string }) {
+  const { t, ability } = useI18n()
+  const id = `spell-ability-${pickKey}`
+  return (
+    <p className="small">
+      <label htmlFor={id}>{t('builder.spells.ability')}</label>{' '}
+      <select id={id} value={chosenSpellAbility(draft, pickKey)}
+        onChange={e => update({ spellAbilities: { ...draft.spellAbilities, [pickKey]: e.target.value as Ability } })}>
+        {MENTAL_ABILITIES.map(a => <option key={a} value={a}>{ability(a)}</option>)}
+      </select>
+    </p>
+  )
+}
 
 /** One entry per id, the first one winning: bundled SRD entries load first, so a pack never replaces them. */
 function firstById<T extends { id: string }>(list: T[]): T[] {
@@ -158,6 +173,7 @@ export function SpellsStep({ draft, update }: StepProps) {
       {granted.length > 0 && (
         <section className="bs-section">
           <h3 className="small">{t(editionOf(draft) === '2024' ? 'builder.spells.granted2024' : 'builder.spells.granted')} <Why id="grantedSpells" /></h3>
+          {raceChoosesSpellAbility(draft) && <SpellAbilityPick draft={draft} update={update} pickKey={RACE_SPELL_KEY} />}
           <ul className="bs-granted">
             {granted.map(g => (
               <li key={g.spell.id} className={g.unlocked ? '' : 'locked'}>
@@ -190,6 +206,7 @@ export function SpellsStep({ draft, update }: StepProps) {
             ? term('feat', source.grantId, featById(source.grantId, draft.rulesEdition)?.name ?? source.grantId)
             : term('subrace', source.grantId, raceById(draft.raceId, draft.rulesEdition)?.subraces?.find(s => s.id === source.grantId)?.name ?? source.grantId)}
           fixedNames={(source.fixed ?? []).flatMap(id => { const n = byId.get(id)?.name; return n ? [spellName(id, n)] : [] })}
+          abilityPick={source.kind === 'feat' && featChoosesSpellAbility(draft, source.grantId) ? <SpellAbilityPick draft={draft} update={update} pickKey={source.slot} /> : null}
         />
       ))}
     </div>
@@ -244,7 +261,7 @@ function ClassSpells({ access: a, spells, saved, toggle, name }: {
   )
 }
 
-function ExtraSpells({ source, spells, saved, list, setList, toggle, className, title, fixedNames }: {
+function ExtraSpells({ source, spells, saved, list, setList, toggle, className, title, fixedNames, abilityPick }: {
   source: ExtraSource
   spells: Spell[]
   saved: KnownSpell[]
@@ -254,6 +271,7 @@ function ExtraSpells({ source, spells, saved, list, setList, toggle, className, 
   className: (id: string) => string
   title: string
   fixedNames: string[]
+  abilityPick: ReactNode
 }) {
   const { t } = useI18n()
   const key = extraKey(source, list)
@@ -274,6 +292,7 @@ function ExtraSpells({ source, spells, saved, list, setList, toggle, className, 
           ))}
         </div>
       )}
+      {abilityPick}
       {fixedNames.length > 0 && <p className="small">{t('builder.spells.alsoGives')} <bdi>{fixedNames.join(', ')}</bdi></p>}
       {(source.cantrips > 0 || source.spells > 0) && (
         <>

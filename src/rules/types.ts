@@ -128,6 +128,10 @@ export interface Race extends RaceRules {
   skillProficiencies?: SkillId[]
   /** Number of skills of the player's choice (Half-Elf, 2024 Human and Elf). */
   freeSkillChoices?: number
+  /** Limits those picks to a short list (2024 Elf Keen Senses: Insight, Perception or Survival); others only warn. */
+  freeSkillFrom?: SkillId[]
+  /** Its spells use Intelligence, Wisdom or Charisma, picked by the player (2024 Elven Lineage); saved in Character.spellAbilities.race. */
+  spellAbilityChoice?: boolean
   /** 2024 Human (Versatile): the player picks an Origin feat. */
   originFeatChoice?: boolean
   /** Languages every member knows. Choices are counted in languageChoices. */
@@ -231,6 +235,9 @@ export interface ClassPick {
   count: number
   /** The book's list. Missing means any skill (Expertise: any skill you're proficient in). Others only warn. */
   from?: SkillId[]
+  /** Tools the pick may also go to (Rogue Expertise: thieves' tools); `toolsOffList` offers them with a warning only (2024). */
+  tools?: string[]
+  toolsOffList?: boolean
   /** Only while a class choice has (or, with `not`, lacks) this option (2014 Deft Explorer's expertise). */
   when?: ClassChoice['when']
 }
@@ -248,6 +255,8 @@ export interface ClassDef {
   weaponIds?: string[]
   caster: CasterType
   spellAbility?: Ability
+  /** Spells the class always has prepared from a level, by name; they don't count against prepared spells (2024 Ranger's Hunter's Mark). */
+  alwaysPrepared?: { level: number; names: string[] }[]
   /** Monk/Barbarian style unarmored AC: 10 + DEX + this ability. */
   unarmoredDefense?: Ability
   resources: ResourceDef[]

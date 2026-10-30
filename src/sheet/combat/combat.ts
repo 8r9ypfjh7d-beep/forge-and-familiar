@@ -1,13 +1,14 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction, LiveEffect } from '../../model/character'
-import { actionUseId, cantripDamageBonus, classChoices, featureEffectId, pickedClassOptions, getDamageRiders, getResources, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
+import { actionUseId, cantripDamageBonus, castingWith, classChoices, featureEffectId, pickedClassOptions, getDamageRiders, getResources, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
 import type { SlotChoice } from '../../quickcast/types'
 import type { SpellEntry } from '../../quickcast/types'
 import { editionOf } from '../../spellbook/access'
+import { extraSpellAbility } from '../../spellbook/extra'
 import { toQuickCast } from '../../spellbook/spellbook'
 import { explainKey, featureKey } from '../../builder/why'
 import { setResourceUsed } from '../engine'
@@ -128,7 +129,6 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
   const innate = innateCantrips(stats, library)
   // A character without a casting class still attacks with a race's cantrip: its own ability, else the best of INT, WIS and CHA.
   const sc = stats.spellcasting ?? (innate.length ? innateCasting(stats, innate[0].ability) : undefined)
-  if (!sc) return []
   const byId = new Map(library.map(s => [s.id, s]))
   const known = (c.spells ?? []).flatMap(k => { const s = byId.get(k.id); return s ? [{ s, classId: k.classId }] : [] })
   const out: SpellAttackRow[] = []
@@ -137,7 +137,7 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
   const potent = new Set(c.rulesEdition === '2024' ? classChoices(c).filter(x => x.picked?.id === 'potent-spellcasting').map(x => x.classId) : [])
   const push = (entry: Omit<SpellEntry, 'id' | 'kind'>, range: string, classId?: string, own = sc) => {
     const key = entry.name.toLowerCase()
-    if (seen.has(key) || entry.roll === 'none') return
+    if (!own || seen.has(key) || entry.roll === 'none') return
     seen.add(key)
     const beams = spellBeams(entry, entry.level, stats.level)
     let damage = spellDamage({ ...entry, id: '', kind: 'spell' }, entry.level, stats.level, stats.mods[own.ability], cantripDamageBonus(c, entry.name, stats.mods.cha))
@@ -153,7 +153,11 @@ export function spellAttackRows(c: Character, stats: DerivedStats, library: Spel
       entry,
     })
   }
-  for (const { s, classId } of known) push(toQuickCast(withRollFromText(s)), s.range, classId)
+  for (const { s, classId } of known) {
+    // Magic Initiate picks cast with their own ability (picked in 2024, the list's class's in 2014).
+    const own = extraSpellAbility(c, s.id)
+    push(toQuickCast(withRollFromText(s)), s.range, classId, own ? castingWith(c, own) : sc)
+  }
   for (const q of c.quickCast ?? []) if (q.kind === 'spell') push(q, byName(library, q.name)?.range ?? '')
   // Cantrips from the race, a feat or an item (a Tiefling's Fire Bolt): at will, so they sit with the attacks.
   for (const { spell, ability } of innate) push(toQuickCast(withRollFromText(spell)), spell.range, undefined, ability ? innateCasting(stats, ability) : sc)
@@ -169,7 +173,7 @@ function innateCantrips(stats: DerivedStats, library: Spell[]): { spell: Spell; 
   return stats.itemSpells.flatMap(s => {
     const spell = byName(library, itemSpellCast(s.spell).name)
     if (spell?.level !== 0) return []
-    const ability = NOTE_ABILITIES.find(([re]) => re.test(s.note ?? ''))?.[1]
+    const ability = s.ability ?? NOTE_ABILITIES.find(([re]) => re.test(s.note ?? ''))?.[1]
     return [{ spell, ...(ability ? { ability } : {}) }]
   })
 }

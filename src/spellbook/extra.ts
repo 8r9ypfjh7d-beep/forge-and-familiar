@@ -2,7 +2,7 @@
 // Pure: reads the rules engine's race, background and feat data and the content library's spells.
 import type { Spell, SpellSchool } from '../content'
 import type { Character, KnownSpell } from '../model/character'
-import { activeImprovements, getBackground, itemSpellCast, raceProfile, rulesEdition } from '../rules'
+import { activeImprovements, chosenSpellAbility, featChoosesSpellAbility, getBackground, itemSpellCast, raceProfile, rulesEdition, type Ability } from '../rules'
 
 type Input = Pick<Character, 'raceId' | 'classes' | 'backgroundId'> &
   Partial<Pick<Character, 'subraceId' | 'traitChoices' | 'rulesEdition' | 'customBackground' | 'originFeatId' | 'improvements' | 'spells'>>
@@ -133,6 +133,24 @@ export function canPickExtra(spell: Spell, source: ExtraSource, list: string): b
 
 /** Spells saved through a non-class source. */
 export const isExtraSpell = (k: KnownSpell) => k.classId.startsWith('extra:')
+
+/** The ability a class list casts with (2014 Magic Initiate and the High Elf cantrip use the list's class's ability). */
+const LIST_ABILITY: Record<string, Ability> = { bard: 'cha', cleric: 'wis', druid: 'wis', sorcerer: 'cha', warlock: 'cha', wizard: 'int' }
+
+/**
+ * The spellcasting ability for a spell picked through a non-class source: the player's pick for a feat that lets
+ * them choose (2024 Magic Initiate), else the list's class's ability. Undefined when a class knows the spell too, or for other sources.
+ */
+export function extraSpellAbility(c: Character, spellId: string): Ability | undefined {
+  const known = (c.spells ?? []).filter(k => k.id === spellId)
+  const k = known.find(isExtraSpell)
+  if (!k || known.some(x => !isExtraSpell(x))) return undefined
+  const [, slot, list] = k.classId.split(':')
+  const source = extraSources(c).find(s => s.slot === slot)
+  if (!source) return undefined
+  if (source.kind === 'feat' && featChoosesSpellAbility(c, source.grantId)) return chosenSpellAbility(c, slot)
+  return LIST_ABILITY[list]
+}
 
 /**
  * Drops saved spells whose class or extra source the character no longer has, so changing a class or a feat

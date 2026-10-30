@@ -169,12 +169,15 @@ export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng
     d.freeAbilityBonuses = [best, best, second]
   }
 
-  const { classCount, classFrom, raceCount, bgCount, bgFrom } = skillPicks(d)
+  const { classCount, classFrom, raceCount, bgCount, bgFrom, raceListCount, raceFrom } = skillPicks(d)
   const granted = grantedSkills(d)
   const fromBg = pickSome(bgFrom.filter(s => !granted.has(s)), bgCount, rng)
-  const fromClass = pickSome(classFrom.filter(s => !granted.has(s) && !fromBg.includes(s)), classCount, rng)
-  const any = pickSome((ALL_SKILLS as readonly SkillId[]).filter(s => !granted.has(s) && !fromClass.includes(s) && !fromBg.includes(s)), raceCount, rng)
-  d.chosenSkills = [...fromClass, ...fromBg, ...any]
+  // The race's short list (Keen Senses) before the class's longer one, so the class can't use it all up.
+  const fromRace = pickSome(raceFrom.filter(s => !granted.has(s) && !fromBg.includes(s)), raceListCount, rng)
+  const fromClass = pickSome(classFrom.filter(s => !granted.has(s) && !fromBg.includes(s) && !fromRace.includes(s)), classCount, rng)
+  const taken = [...fromClass, ...fromBg, ...fromRace]
+  const any = pickSome((ALL_SKILLS as readonly SkillId[]).filter(s => !granted.has(s) && !taken.includes(s)), raceCount, rng)
+  d.chosenSkills = [...taken, ...any]
 
   // Expertise and Primal Knowledge, one class pick at a time so Expertise sees earlier skill picks.
   d.classPicks = {}

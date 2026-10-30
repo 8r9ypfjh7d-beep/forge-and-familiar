@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { loadKind, type Edition } from '../content'
 import type { Character } from '../model/character'
 import { canTake, isSecret, spellAccess, sourceFor, wizardSpellbook } from './access'
-import { canPickExtra, extraKey, extraList, extraSources, grantedSpells, keepValidSpells } from './extra'
+import { canPickExtra, extraKey, extraList, extraSources, extraSpellAbility, grantedSpells, keepValidSpells } from './extra'
+import { createCharacter } from '../rules'
 
 const spellsOf = (edition: Edition) => loadKind('spells', { sources: [sourceFor(edition)] })
 
@@ -103,5 +104,44 @@ describe('Magical Secrets', () => {
     const [a] = spellAccess({ classes: [{ classId: 'bard', level: 10 }], rulesEdition: '2024' }, l.classes, l.subclasses, scores)
     expect(a.secrets).toEqual({ lists: ['cleric', 'druid', 'wizard'] })
     expect(canTake(l.spells.find(s => s.id === 'fireball')!, a)).toBe(true)
+  })
+})
+
+describe('class always-prepared spells', () => {
+  it("prepares the 2024 Ranger's Hunter's Mark for free, and not in 2014", async () => {
+    const load = async (edition: Edition) => {
+      const sources = [sourceFor(edition)]
+      const [spells, classes, subclasses] = await Promise.all([loadKind('spells', { sources }), loadKind('classes', { sources }), loadKind('subclasses', { sources })])
+      return { spells, classes, subclasses }
+    }
+    const scores = { str: 10, dex: 16, con: 12, int: 10, wis: 14, cha: 8 }
+    const l = await load('2024')
+    const [ranger] = spellAccess({ rulesEdition: '2024', classes: [{ classId: 'ranger', level: 1 }] }, l.classes, l.subclasses, scores, undefined, l.spells)
+    expect(ranger.alwaysPrepared).toContain('hunters-mark')
+    const [paladin] = spellAccess({ rulesEdition: '2024', classes: [{ classId: 'paladin', level: 5 }] }, l.classes, l.subclasses, scores, undefined, l.spells)
+    expect(paladin.alwaysPrepared).toEqual(expect.arrayContaining(['divine-smite', 'find-steed']))
+    const old = await load('2014')
+    const [ranger14] = spellAccess({ classes: [{ classId: 'ranger', level: 2 }] }, old.classes, old.subclasses, scores, undefined, old.spells)
+    expect(ranger14.alwaysPrepared).toEqual([])
+  })
+})
+
+describe('extra spell ability', () => {
+  const hero = (over: Partial<Character>): Character => createCharacter({
+    name: 'T', ownerId: 'u1', playerName: '', alignment: 'True Neutral', raceId: 'human', backgroundId: 'acolyte',
+    classes: [{ classId: 'fighter', level: 1 }], abilityMethod: 'standard', baseAbilities: { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 },
+    freeAbilityBonuses: [], chosenSkills: [], ...over,
+  })
+
+  it('uses the 2024 Magic Initiate pick, defaulting to the best of INT, WIS and CHA', () => {
+    const c = hero({ rulesEdition: '2024', freeAbilityBonuses: ['int', 'int', 'wis'], spells: [{ id: 'guidance', classId: 'extra:bg:cleric' }] })
+    expect(extraSpellAbility(c, 'guidance')).toBe('int')
+    expect(extraSpellAbility({ ...c, spellAbilities: { bg: 'wis' } }, 'guidance')).toBe('wis')
+  })
+
+  it("uses the list's ability for 2014 Magic Initiate and nothing for class spells", () => {
+    const c = hero({ originFeatId: 'magic-initiate', raceId: 'human', subraceId: 'variant-human', spells: [{ id: 'sacred-flame', classId: 'extra:origin:cleric' }, { id: 'fire-bolt', classId: 'wizard' }] })
+    expect(extraSpellAbility(c, 'sacred-flame')).toBe('wis')
+    expect(extraSpellAbility(c, 'fire-bolt')).toBeUndefined()
   })
 })

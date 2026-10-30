@@ -1,7 +1,7 @@
 // Class multi-picks in the builder: Expertise and Primal Knowledge skills (Skills step) and Weapon Mastery weapons (Equipment step).
 // Off-list picks are allowed and dimmed; stepWarnings says why.
 import { useI18n, type MessageKey } from '../i18n'
-import { ALL_SKILLS, MASTERY_WEAPONS, classPickSlots, getWeaponMasteryCount, pickKey, weaponMastery, type SkillId } from '../rules'
+import { ALL_SKILLS, MASTERY_WEAPONS, SKILLS, classPickSlots, getWeaponMasteryCount, pickKey, weaponMastery, type SkillId } from '../rules'
 import type { StepProps } from './steps'
 import { suggestedForPick, suggestedMasteryWeapons } from './validate'
 import { Why } from './Why'
@@ -16,7 +16,7 @@ export function ClassSkillPicks({ draft, update }: StepProps) {
       {slots.map(({ classId, pick, picked }) => {
         const key = pickKey(classId, pick.id)
         const suggested = suggestedForPick(draft, pick)
-        const toggle = (s: SkillId) => {
+        const toggle = (s: string) => {
           if (picked.includes(s)) set(key, picked.filter(x => x !== s))
           else if (picked.length < pick.count) set(key, [...picked, s])
           else if (pick.count === 1) set(key, [s])
@@ -28,7 +28,7 @@ export function ClassSkillPicks({ draft, update }: StepProps) {
             </label>
             <p className="muted small">{t(pick.kind === 'expertise' ? 'builder.pick.expertise' : 'builder.pick.skill', { count: pick.count, chosen: picked.length })}</p>
             <div className="row">
-              {ALL_SKILLS.map(s => (
+              {[...ALL_SKILLS, ...(pick.kind === 'expertise' ? pick.tools ?? [] : [])].map(s => (
                 <button
                   key={s}
                   type="button"
@@ -36,7 +36,7 @@ export function ClassSkillPicks({ draft, update }: StepProps) {
                   aria-pressed={picked.includes(s)}
                   onClick={() => toggle(s)}
                 >
-                  {skill(s)}
+                  {s in SKILLS ? skill(s as SkillId) : term('tool', s, s)}
                 </button>
               ))}
             </div>

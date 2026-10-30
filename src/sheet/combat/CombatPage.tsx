@@ -249,7 +249,12 @@ export function SkillsPanel({ character }: { character: Character }) {
       {last && <LastRoll key={last.roll.id} rolls={[last]} onDone={() => setLast(null)} />}
       <h2 className="cs-tools-title">{t('cs.tools')}</h2>
       {d.tools.length
-        ? <ul className="cs-tools">{d.tools.map(x => <li key={x}>{term('tool', x, x)}</li>)}</ul>
+        ? <ul className="cs-tools">{d.tools.map(x => (
+          <li key={x}>
+            {term('tool', x, x)}
+            {d.toolExpertise.some(e => e.toLowerCase() === x.toLowerCase()) && <small className="cs-adv">{t('cs.toolExpertise', { bonus: formatMod(2 * d.proficiencyBonus) })}</small>}
+          </li>
+        ))}</ul>
         : <p className="hint">{t('common.none')}</p>}
     </section>
   )

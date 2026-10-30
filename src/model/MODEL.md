@@ -34,7 +34,8 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
   - `traitChoices`: race trait options, e.g. `{ draconicAncestry: 'red' }`; a `Race.choices` pick that takes several options is comma-separated (`{ instincts: 'insight,deception' }`).
   - `sizeChoice`: Small or Medium when the race offers both (`Race.sizeOptions`).
   - `featureChoices`: class choices (2024 Fighting Style/Orders; 2014 Fighting Style, Favored Enemy, Natural Explorer, Tasha's optional features as `use`/`phb`) keyed `<classId>.<choiceId>`, e.g. `{ 'fighter.fightingStyle': 'archery' }`.
-  - `classPicks`: class multi-picks keyed `<classId>.<pickId>` → skill ids, e.g. `{ 'rogue.expertise': ['stealth', 'insight'] }`.
+  - `classPicks`: class multi-picks keyed `<classId>.<pickId>` → skill ids (or a tool name for Rogue Expertise), e.g. `{ 'rogue.expertise': ['stealth', "Thieves' tools"] }`.
+  - `spellAbilities`: INT, WIS or CHA picked for spells outside a class, keyed `race` (2024 Elven Lineage, Gnomish Lineage, Fiendish Legacy) or a spell feat's slot (`bg`, `origin`, `asi-<classId>-<level>`: 2024 Magic Initiate). Missing means the best of the three.
   - `weaponMasteries`: 2024 Weapon Mastery weapon item ids, e.g. `['greatsword', 'longbow']`. Missing on older saves: the combat page falls back to equipped weapons.
   - `originFeatId`: a 2024 Human's Origin feat, or the feat of a 2014 subrace with `featChoice` (Variant Human); `'custom'` reads `customOriginFeat` (a full `Feat` the player built).
   - `abilityMethod` is `standard`, `pointBuy`, `rolled` or `manual`. `rolledScores` (optional) keeps the six 4d6-drop-lowest totals the builder rolled, so going back or editing never rerolls them; `baseAbilities` must use each once.

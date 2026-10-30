@@ -867,8 +867,8 @@ export function Improvements({ draft, update, only }: StepProps & { only?: { cla
 
 function SkillsStep({ draft, update }: StepProps) {
   const granted = grantedSkills(draft)
-  const { classCount, classFrom, raceCount, bgCount, bgFrom } = skillPicks(draft)
-  const total = classCount + raceCount + bgCount
+  const { classCount, classFrom, raceCount, bgCount, bgFrom, raceListCount, raceFrom } = skillPicks(draft)
+  const total = classCount + raceCount + bgCount + raceListCount
   const toggle = (s: SkillId) => {
     const has = draft.chosenSkills.includes(s)
     if (has) update({ chosenSkills: draft.chosenSkills.filter(x => x !== s) })
@@ -913,11 +913,12 @@ function SkillsStep({ draft, update }: StepProps) {
         )}
       </p>
       {bgCount > 0 && <p className="small">{t('builder.bgSkills', { count: bgCount, skills: bgFrom.map(s => skill(s)).join(', ') })}</p>}
+      {raceListCount > 0 && <p className="small">{t('builder.raceSkills', { count: raceListCount, skills: raceFrom.map(s => skill(s)).join(', ') })}</p>}
       <div className="skill-grid">
         {ALL_SKILLS.map(s => {
           const isGranted = granted.has(s)
           // Any skill can be picked; ones off the class and background lists are dimmed and only warn.
-          const suggested = raceCount > 0 || classFrom.includes(s) || bgFrom.includes(s)
+          const suggested = raceCount > 0 || classFrom.includes(s) || bgFrom.includes(s) || raceFrom.includes(s)
           const checked = isGranted || draft.chosenSkills.includes(s)
           return (
             <label key={s} className={`skill ${isGranted ? 'granted' : ''} ${!suggested && !isGranted ? 'dim' : ''}`}>
@@ -927,6 +928,7 @@ function SkillsStep({ draft, update }: StepProps) {
               {isGranted && <span className="tag">{t('builder.tag.granted')}</span>}
               {!isGranted && classFrom.includes(s) && <span className="tag class">{t('builder.tag.class')}</span>}
               {!isGranted && bgFrom.includes(s) && <span className="tag class">{t('builder.tag.background')}</span>}
+              {!isGranted && raceFrom.includes(s) && <span className="tag class">{t('builder.tag.race')}</span>}
             </label>
           )
         })}

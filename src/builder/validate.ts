@@ -1,7 +1,7 @@
 import { translate, type Translate } from '../i18n/translate'
 import { coinText } from './shop'
 import {
-  ABILITIES, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_FEAT, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses, improvementFeat,
+  ABILITIES, ALL_SKILLS, SKILLS, CUSTOM_BACKGROUND, CUSTOM_FEAT, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses, improvementFeat,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
   flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassById, subclassOf, subclassPickLists, toolPickGroups,
   type Ability, type CharacterDraft, type ClassPick, type SkillId,
@@ -20,15 +20,19 @@ export function grantedSkills(d: CharacterDraft): Set<SkillId> {
 
 /**
  * Skill picks: the first class's list, picks of any skill from the race and feats (2024 Skilled) as `raceCount`,
- * and the background's short list (Haunted One) as `bgCount`/`bgFrom`.
+ * the background's short list (Haunted One) as `bgCount`/`bgFrom`, and the race's short list (2024 Elf Keen Senses)
+ * as `raceListCount`/`raceFrom`.
  */
 export function skillPicks(d: CharacterDraft) {
   const cls = classById(d.classes[0]?.classId ?? '', d.rulesEdition)
-  const free = raceProfile(d).freeSkillChoices + featSkillPicks(d)
+  const profile = raceProfile(d)
+  const listed = profile.freeSkillFrom.length > 0
   const bg = getBackground(d)?.skillChoices
   return {
-    classCount: cls?.skillChoices.count ?? 0, classFrom: cls?.skillChoices.from ?? [], raceCount: free,
+    classCount: cls?.skillChoices.count ?? 0, classFrom: cls?.skillChoices.from ?? [],
+    raceCount: (listed ? 0 : profile.freeSkillChoices) + featSkillPicks(d),
     bgCount: bg?.count ?? 0, bgFrom: bg?.from ?? [],
+    raceListCount: listed ? profile.freeSkillChoices : 0, raceFrom: profile.freeSkillFrom,
   }
 }
 
@@ -46,14 +50,26 @@ export function draftProficientSkills(d: CharacterDraft): Set<SkillId> {
   return new Set([...grantedSkills(d), ...d.chosenSkills, ...extra])
 }
 
-/** Skills a pick suggests; the rest only warn. Expertise needs proficiency (Scholar also its list); a skill pick wants a new skill. */
-export function suggestedForPick(d: CharacterDraft, pick: ClassPick): SkillId[] {
+/** Tools a pick may go to that the draft is proficient with (Rogue Expertise: thieves' tools). */
+export function pickTools(d: CharacterDraft, pick: ClassPick): string[] {
+  const known = new Set(draftTools(d).map(t => t.toLowerCase()))
+  return (pick.tools ?? []).filter(t => known.has(t.toLowerCase()))
+}
+
+/** Every tool the draft is proficient with: race, class, background and picked tools. */
+const draftTools = (d: CharacterDraft) => [...fixedTools(d), ...(d.chosenTools ?? []), ...(d.backgroundId === CUSTOM_BACKGROUND ? d.customBackground?.tools ?? [] : [])]
+
+/**
+ * Skills (and tools) a pick suggests; the rest only warn. Expertise needs proficiency (Scholar also its list), and may
+ * go to a listed tool you're proficient with unless that's off the book's list; a skill pick wants a new skill.
+ */
+export function suggestedForPick(d: CharacterDraft, pick: ClassPick): string[] {
   if (pick.kind !== 'expertise') {
     const known = new Set([...grantedSkills(d), ...d.chosenSkills])
     return (pick.from ?? ALL_SKILLS).filter(s => !known.has(s))
   }
   const prof = draftProficientSkills(d)
-  return (pick.from ?? ALL_SKILLS).filter(s => prof.has(s))
+  return [...(pick.from ?? ALL_SKILLS).filter(s => prof.has(s)), ...(pick.toolsOffList ? [] : pickTools(d, pick))]
 }
 
 /** Weapons a draft can master without a warning: ones it is proficient with (Barbarian: melee only). */
@@ -144,12 +160,14 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       break
     }
     case 'skills': {
-      const { classCount, raceCount, bgCount } = skillPicks(d)
+      const { classCount, raceCount, bgCount, raceListCount } = skillPicks(d)
+      const total = classCount + raceCount + bgCount + raceListCount
       const granted = grantedSkills(d)
       if (d.chosenSkills.some(s => granted.has(s))) out.push(t('builder.issue.skillGranted'))
-      // Skills off the class and background lists only warn (stepWarnings): the count is what matters.
-      if (bgCount && d.chosenSkills.length !== classCount + raceCount + bgCount) out.push(t('builder.issue.skillsBackground', { count: bgCount }))
-      if (d.chosenSkills.length !== classCount + raceCount + bgCount) {
+      // Skills off the class, background and race lists only warn (stepWarnings): the count is what matters.
+      if (bgCount && d.chosenSkills.length !== total) out.push(t('builder.issue.skillsBackground', { count: bgCount }))
+      if (raceListCount && d.chosenSkills.length !== total) out.push(t('builder.issue.skillsRace', { count: raceListCount }))
+      if (d.chosenSkills.length !== total) {
         out.push(raceCount
           ? t('builder.issue.skillsMixed', { classCount, raceCount })
           : t('builder.issue.skillsClass', { classCount }))
@@ -256,11 +274,13 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
       }
       break
     case 'skills': {
-      const { classCount, classFrom, bgCount, bgFrom } = skillPicks(d)
+      const { classCount, classFrom, bgCount, bgFrom, raceListCount, raceFrom } = skillPicks(d)
       const fromClass = d.chosenSkills.filter(s => classFrom.includes(s)).length
       const fromBg = d.chosenSkills.filter(s => bgFrom.includes(s) && !classFrom.includes(s)).length
-      const listed = classCount + bgCount
-      if (listed && d.chosenSkills.length && Math.min(fromClass, classCount) + fromBg < Math.min(listed, d.chosenSkills.length)) out.push(t('builder.warn.skillsOffList'))
+      const fromRace = d.chosenSkills.filter(s => raceFrom.includes(s) && !classFrom.includes(s) && !bgFrom.includes(s)).length
+      const listed = classCount + bgCount + raceListCount
+      const onList = Math.min(fromClass, classCount) + fromBg + Math.min(fromRace, raceListCount)
+      if (listed && d.chosenSkills.length && onList < Math.min(listed, d.chosenSkills.length)) out.push(t('builder.warn.skillsOffList'))
       const tools = d.chosenTools ?? []
       let at = 0
       const off = toolPickGroups(d).some(g => tools.slice(at, (at += g.count)).some(p => p && !g.from.includes(p)))
@@ -274,7 +294,10 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
       const prof = draftProficientSkills(d)
       for (const { pick, picked } of classPickSlots(d)) {
         if (pick.kind === 'language') continue
-        const offList = picked.some(s => (pick.from && !pick.from.includes(s as SkillId)) || (pick.kind === 'expertise' && !prof.has(s as SkillId)))
+        const tools = pick.kind === 'expertise' && !pick.toolsOffList ? pickTools(d, pick) : []
+        const offList = picked.some(s => !(s in SKILLS)
+          ? !tools.includes(s)
+          : (pick.from && !pick.from.includes(s as SkillId)) || (pick.kind === 'expertise' && !prof.has(s as SkillId)))
         if (offList) out.push(t(pick.kind === 'expertise' ? 'builder.warn.expertiseOffList' : 'builder.warn.pickOffList', { pick: term('feature', pick.name, pick.name) }))
       }
       break

@@ -6,7 +6,7 @@ import type { Character } from '../model/character'
 import { bookSpellcasting } from '../rules/data/books/artificer'
 import { classById } from '../rules/data/classes'
 import { rulesEdition } from '../rules/edition'
-import { subclassSpellNames } from '../rules/subclass'
+import { classSpellNames, subclassSpellNames } from '../rules/subclass'
 import type { Abilities, Ability, ClassDef } from '../rules/types'
 
 export interface SpellAccess {
@@ -154,6 +154,8 @@ export function spellAccess(
       ...(sub?.spells ?? []).filter(s => s.level <= cl.level).map(s => s.spell.id),
       ...subclassSpellNames(c, cl.classId).flatMap(n => spellIdByName(byName, n) ?? []),
     ])]
+    // The class's own always-prepared spells (2024 Ranger's Hunter's Mark): never just "expanded".
+    const fromClass = classSpellNames(c, cl.classId).flatMap(n => spellIdByName(byName, n) ?? [])
     // A 2014 patron's expanded spells only join the warlock's list; they still cost a spell known. 2024's are always prepared.
     const expandedOnly = cl.classId === 'warlock' && (def.edition ?? rulesEdition(c)) === '2014'
     out.push({
@@ -168,7 +170,7 @@ export function spellAccess(
       limit,
       ...(cl.classId === 'wizard' ? { spellbook: wizardSpellbook(cl.level) } : {}),
       ...magicalSecrets(cl, def.edition),
-      ...(expandedOnly ? { alwaysPrepared: [], listed: granted } : { alwaysPrepared: granted }),
+      ...(expandedOnly ? { alwaysPrepared: fromClass, listed: granted } : { alwaysPrepared: [...new Set([...granted, ...fromClass])] }),
     })
   }
   return out
