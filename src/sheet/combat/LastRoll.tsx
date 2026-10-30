@@ -6,6 +6,9 @@ import { useI18n } from '../../i18n'
 /** A roll and what it is for, e.g. "To hit" or "Damage (force)". */
 export interface Shown { roll: RollResult; what: string }
 
+/** The breakdown marks dropped dice as ~~4~~ ("[17, ~~4~~] + 5"): show them struck through. */
+const struck = (text: string) => text.split(/~~(.+?)~~/).map((part, i) => (i % 2 ? <s key={i}>{part}</s> : part))
+
 /**
  * The last roll a panel made, one labeled line per roll so "to hit" and "damage" can't be mixed up.
  * The dice history keeps them all. With `onDone` it fades away on its own (see FadingResult).
@@ -21,9 +24,9 @@ export function LastRoll({ rolls, note, onDone }: { rolls: Shown[]; note?: strin
         const mode = r.d20 && r.d20.mode !== 'normal' ? t(r.d20.mode === 'advantage' ? 'dice.advShort' : 'dice.disShort') : ''
         return (
           <div key={r.id} className={`cs-rollline type-${r.type}${crit ? ' crit' : ''}${fumble ? ' fumble' : ''}`}>
-            <span className="what">{what}{mode && <small> ({mode})</small>}</span>
+            <span className="what">{what}{mode && <small>{mode}</small>}</span>
             <span className="total">{r.total}</span>
-            <span className="how" dir="ltr">{r.breakdown}</span>
+            <span className="how" dir="ltr">{struck(r.breakdown)}</span>
             {r.type === 'attack' && (
               <span className="meaning">
                 {fumble ? t('cs.roll.fumble') : crit ? t('cs.roll.crit') : t('cs.roll.hitsAc', { n: r.total })}
