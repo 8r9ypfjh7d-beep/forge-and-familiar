@@ -49,6 +49,8 @@ const above = (level: number, base: number) => Math.max(0, level - base)
 const dice = (n: number, sides: number) => `${n}d${sides}`
 const plus = (expr: string, n: number) => (n ? `${expr}+${n}` : expr)
 const BPS = ['bludgeoning', 'piercing', 'slashing'].map((damage): ItemEffect => ({ kind: 'resistance', damage }))
+/** 2024 Rage of the Wilds, Bear: every damage type except force, necrotic, psychic and radiant. */
+const WILD_BEAR = DAMAGE_TYPES.filter(d => !['force', 'necrotic', 'psychic', 'radiant'].includes(d)).map((damage): ItemEffect => ({ kind: 'resistance', damage }))
 /** Bear Totem Spirit: every damage type except psychic. */
 const BEAR = DAMAGE_TYPES.filter(d => d !== 'psychic').map((damage): ItemEffect => ({ kind: 'resistance', damage }))
 
@@ -203,6 +205,8 @@ export interface UseContext {
   moon?: boolean
   /** 2014 Totem Warrior with the Bear spirit: raging resists every damage type but psychic. */
   bear?: boolean
+  /** 2024 Path of the Wild Heart (barbarian 3+): each Rage picks Bear, Eagle or Wolf (Rage of the Wilds). */
+  wildHeart?: boolean
   /** Channel Divinity: the options the character has, each with its class's level, spell save DC and casting modifier. */
   channel?: ChannelSource[]
 }
@@ -282,18 +286,31 @@ const breath = (d10: boolean): FeatureTemplate => ({ edition, level = 1, prof = 
   }
 }
 
-type FeatureTemplate = (ctx: UseContext) => UsePlan & { effectAs?: Omit<LiveEffect, 'on' | 'id' | 'name' | 'from'> }
+type EffectAs = Omit<LiveEffect, 'on' | 'id' | 'name' | 'from'>
+/** `optionsAs`: options whose effect is the feature's own (Rage of the Wilds: the same Rage, with the picked animal). */
+type FeatureTemplate = (ctx: UseContext) => UsePlan & { effectAs?: EffectAs; optionsAs?: { id: string; name: string; effectAs: EffectAs; note?: UseNote }[] }
 
 /** Features with numbers, by resource id. Everything else still gets Use: it spends one and logs it. */
 export const FEATURE_TEMPLATES: Record<string, FeatureTemplate> = {
   'second-wind': ({ classLevel }) => ({ heal: `1d10+${classLevel}` }),
   'lay-on-hands': () => ({ pool: 'heal' }),
-  rage: ({ edition, bear }) => ({
-    effectAs: {
-      duration: edition === '2024' ? '10 minutes' : '1 minute', ends: 'short',
-      stats: [...(bear ? BEAR : BPS), { kind: 'advantage', on: 'save:str' }, { kind: 'advantage', on: 'checks', when: 'with Strength' }],
-    },
-  }),
+  rage: ({ edition, bear, wildHeart }) => {
+    const rage = (resist: ItemEffect[]) => ({
+      duration: edition === '2024' ? '10 minutes' : '1 minute', ends: 'short' as const,
+      stats: [...resist, { kind: 'advantage', on: 'save:str' } as ItemEffect, { kind: 'advantage', on: 'checks', when: 'with Strength' } as ItemEffect],
+    })
+    // Rage of the Wilds (2024 Wild Heart): the animal is picked each time you rage.
+    if (wildHeart) {
+      return {
+        optionsAs: [
+          { id: 'bear', name: 'Bear', effectAs: rage(WILD_BEAR), note: { key: 'wildBear' } },
+          { id: 'eagle', name: 'Eagle', effectAs: rage(BPS), note: { key: 'wildEagle' } },
+          { id: 'wolf', name: 'Wolf', effectAs: rage(BPS), note: { key: 'wildWolf' } },
+        ],
+      }
+    }
+    return { effectAs: rage(bear ? BEAR : BPS) }
+  },
   // 2024: temp HP equal to the druid level. The beast form is picked when used.
   'wild-shape': ({ classLevel, edition, moon }) => ({
     ...(edition === '2024' ? { tempHp: String(classLevel) } : {}),
@@ -505,8 +522,10 @@ export const featureEffectId = (resourceId: string) => `feature:${resourceId}`
 export function planUse(resourceId: string, name: string, ctx: UseContext): UsePlan {
   const tpl = FEATURE_TEMPLATES[resourceId]?.(ctx)
   if (!tpl) return {}
-  const { effectAs, ...rest } = tpl
-  return effectAs ? { ...rest, effect: { id: featureEffectId(resourceId), name, from: 'feature', ...effectAs } } : rest
+  const { effectAs, optionsAs, ...rest } = tpl
+  const effect = (as: EffectAs, label = name) => ({ id: featureEffectId(resourceId), name: label, from: 'feature' as const, ...as })
+  if (optionsAs) rest.options = optionsAs.map(o => ({ id: o.id, name: o.name, plan: { effect: effect(o.effectAs, `${name} (${o.name})`), ...(o.note ? { note: o.note } : {}) } }))
+  return effectAs ? { ...rest, effect: effect(effectAs) } : rest
 }
 
 // ---- Items ----

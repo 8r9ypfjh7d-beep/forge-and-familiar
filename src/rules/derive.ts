@@ -83,6 +83,7 @@ export function featureUseContext(c: Character, id: string): UseContext {
     edition, classLevel: resourceClassLevel(c, id), level, prof: proficiencyBonus(level), mods: getAbilityMods(getAbilityScores(c)),
   }
   if (id === 'magical-cunning') ctx.pactSlots = getSpellSlots(c).pact?.count
+  if (id === 'rage') ctx.wildHeart = edition === '2024' && classesOf(c).some(x => x.subclass?.id === 'path-of-the-wild-heart')
   if (id === 'rage') ctx.bear = subclassPickLists(c).some(l => l.list.kind === 'totemSpirit' && l.picked.some(p => p.id === 'totem-bear'))
   if (id === 'channel-divinity') ctx.channel = channelOptions(c)
   if (id === 'wild-shape') ctx.moon = classesOf(c).some(x => x.def.id === 'druid' && /moon/.test(x.subclass?.id ?? ''))

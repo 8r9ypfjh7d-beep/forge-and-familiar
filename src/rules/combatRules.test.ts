@@ -88,3 +88,21 @@ describe('Halfling Lucky', () => {
     expect(hasLucky(make({}))).toBe(false)
   })
 })
+
+describe('Rage of the Wilds (2024 Wild Heart)', () => {
+  it('asks Bear, Eagle or Wolf; Bear resists all but force, necrotic, psychic and radiant', () => {
+    const c = make({ rulesEdition: '2024', backgroundId: 'soldier', classes: [{ classId: 'barbarian', level: 3, subclassId: 'path-of-the-wild-heart' }] })
+    const plan = planUse('rage', 'Rage', featureUseContext(c, 'rage'))
+    expect(plan.effect).toBeUndefined()
+    expect(plan.options?.map(o => o.id)).toEqual(['bear', 'eagle', 'wolf'])
+    const bear = plan.options![0].plan.effect!
+    expect(bear).toMatchObject({ id: 'feature:rage', name: 'Rage (Bear)', duration: '10 minutes' })
+    const resists = bear.stats!.flatMap(s => (s.kind === 'resistance' ? [s.damage] : []))
+    expect(resists).toContain('fire')
+    expect(resists.filter(d => ['force', 'necrotic', 'psychic', 'radiant'].includes(d))).toEqual([])
+    expect(plan.options![2].plan.effect!.stats!.filter(s => s.kind === 'resistance')).toHaveLength(3)
+    // Another 2024 barbarian rages straight away.
+    const berserker = make({ rulesEdition: '2024', backgroundId: 'soldier', classes: [{ classId: 'barbarian', level: 3 }] })
+    expect(planUse('rage', 'Rage', featureUseContext(berserker, 'rage')).effect?.id).toBe('feature:rage')
+  })
+})
