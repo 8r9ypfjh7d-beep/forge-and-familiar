@@ -1,7 +1,7 @@
 // Pure helpers for the combat page: spells as attack rows, the player's own actions, toggled effects, weapon mastery.
 import type { Feature, Spell } from '../../content'
 import type { ActionKind, Character, CustomAction, LiveEffect } from '../../model/character'
-import { actionUseId, cantripDamageBonus, castingWith, classChoices, featureEffectId, pickedClassOptions, getDamageRiders, getResources, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
+import { actionUseId, cantripDamageBonus, castingWith, classChoices, featureEffectId, pickedClassOptions, getDamageRiders, getResources, getWeaponMasteryCount, hasRunningNumbers, itemSpellCast, planCast, RECKLESS_ID, recklessEffect, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
 import { slotChoices, spellBeams, spellDamage } from '../../quickcast/quickcast'
@@ -312,6 +312,12 @@ export function effectToggles(c: Character, stats: DerivedStats, spells: Spell[]
       const start = { id: 'feature:eldritch-smite', name: 'Eldritch Smite', from: 'feature' as const, damage, damageType: 'force', weaponOnly: true, once: true, ends: 'short' as const, ...(slot ? { level: slot.level } : {}) }
       out.push({ id: start.id, name: start.name, damage, damageType: 'force', weaponOnly: true, pactOnly: true, ...(live ? { live } : { start, slot }) })
     }
+  }
+  // Reckless Attack: a switch for this turn's advantage on Strength melee attacks.
+  if (stats.features.some(f => f.name === 'Reckless Attack') && !out.some(e => e.id === RECKLESS_ID)) {
+    const live = running.find(e => e.id === RECKLESS_ID)
+    const start = recklessEffect()
+    out.push({ id: RECKLESS_ID, name: start.name, feature: true, stats: start.stats, ...(live ? { live } : { start }) })
   }
   // Running effects from anything else: spells cast from an item or pinned under another name, features, items.
   for (const live of running) if (!out.some(e => e.id === live.id || e.live?.id === live.id)) out.push({ id: live.id, name: live.name, ...fromLive(live), live })

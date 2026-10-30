@@ -7,7 +7,7 @@ import { loadKind, type Spell } from '../../content'
 import { effectText } from '../../inventory'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
-import { derive } from '../../rules'
+import { derive, RECKLESS_ID } from '../../rules'
 import { editionOf, spellSourcesFor } from '../../spellbook/access'
 import { effectToggles, setActionActive, type EffectToggle } from '../combat/combat'
 import type { SlotChoice } from '../../quickcast'
@@ -51,6 +51,7 @@ function useDescribe() {
       fx?.acMin ? t('fx.acMin', { n: fx.acMin }) : '',
       fx?.reflect ? t('fx.reflect', { dice: fx.reflect.damage, type: type(fx.reflect.type) }) : '',
       fx?.whileTempHp ? t('fx.whileTempHp') : '',
+      e.id === RECKLESS_ID ? t('fx.reckless') : '',
       ...(e.stats ?? []).map(f => effectText(i18n, f)),
     ].filter(Boolean).join(' · ')
   }

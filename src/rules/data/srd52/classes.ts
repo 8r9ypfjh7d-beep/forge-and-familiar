@@ -158,7 +158,7 @@ export const CLASSES_2024: ClassDef[] = [
     toolChoices: { count: 1, from: [...ARTISAN_TOOLS, ...MUSICAL_INSTRUMENTS] },
     subclassLevel: 3, subclassTitle: 'Monk Subclass', asiLevels: ASI,
     features: [
-      ...f(1, 'Martial Arts', 'Unarmored Defense'), ...f(2, "Monk's Focus", 'Unarmored Movement', 'Uncanny Metabolism'), ...f(3, 'Deflect Attacks'),
+      ...f(1, 'Martial Arts', 'Unarmored Defense'), ...f(2, "Monk's Focus", 'Unarmored Movement'), { level: 2, name: 'Uncanny Metabolism', uses: { count: 1, recharge: 'long' } }, ...f(3, 'Deflect Attacks'),
       ...f(4, 'Slow Fall'), ...f(5, 'Extra Attack', 'Stunning Strike'), ...f(6, 'Empowered Strikes'), ...f(7, 'Evasion'), ...f(9, 'Acrobatic Movement'),
       ...f(10, 'Heightened Focus', 'Self-Restoration'), ...f(13, 'Deflect Energy'), fx(14, 'Disciplined Survivor', ...ALL_SAVES), ...f(15, 'Perfect Focus'),
       ...f(18, 'Superior Defense'), ...f(19, 'Epic Boon'), fx(20, 'Body and Mind', ...plus4('dex', 'wis')),

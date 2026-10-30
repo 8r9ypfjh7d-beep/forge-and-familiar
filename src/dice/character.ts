@@ -46,8 +46,10 @@ export function rollInitiative(stats: DerivedStats, opts: RollOptions = {}): Rol
 }
 
 /** critRange: lowest natural roll that crits (rules getCritRange, 19 for a Champion). */
-export function rollAttack(attack: Pick<Attack, 'name' | 'bonus'>, opts: RollOptions & { critRange?: number } = {}): RollResult {
-  const r = rollD20(attack.bonus, prepare(opts, `${attack.name} attack`, 'attack'), 'attack')
+export function rollAttack(attack: Pick<Attack, 'name' | 'bonus'> & Partial<Pick<Attack, 'ability' | 'reach'>>, opts: RollOptions & { critRange?: number } = {}): RollResult {
+  // Strength melee attacks say so, for Reckless Attack's advantage.
+  const strMelee = attack.ability === 'str' && attack.reach !== undefined ? 'str' : undefined
+  const r = rollD20(attack.bonus, prepare(opts, `${attack.name} attack`, 'attack', strMelee), 'attack')
   if (opts.critRange && r.d20 && r.d20.natural >= opts.critRange) r.d20.crit = true
   return r
 }
@@ -74,7 +76,7 @@ export interface AttackOutcome {
  * A crit doubles all the damage dice (riders too); a natural 1 rolls no damage.
  */
 export function rollAttackWithDamage(
-  attack: Pick<Attack, 'name' | 'bonus' | 'damage' | 'damageType' | 'versatile'> & Partial<Pick<Attack, 'greatWeapon' | 'properties'>>,
+  attack: Pick<Attack, 'name' | 'bonus' | 'damage' | 'damageType' | 'versatile'> & Partial<Pick<Attack, 'greatWeapon' | 'properties' | 'ability' | 'reach'>>,
   opts: RollOptions & { critRange?: number; twoHanded?: boolean; riders?: (Pick<DamageRider, 'name' | 'damage'> & { damageType?: string })[] } = {},
 ): AttackOutcome {
   const { label, riders = [], twoHanded, critRange, ...rest } = opts

@@ -20,8 +20,7 @@ import { isMeleeWeapon, summonPactWeapon } from '../../inventory'
 import { updateEntry } from '../../inventory/inventory'
 import { heal } from '../engine'
 import { applyUse, spendResource } from '../uses'
-import { PoolForm, useResourceUse } from '../components/Resources'
-import { FormPicker } from '../components/WildShape'
+import { PoolForm, UsePanel, useResourceUse } from '../components/Resources'
 import { turnActions, type TurnRow } from './turn'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
@@ -396,7 +395,9 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
       effects: effectsUsed(active, r.damage ? used.map(e => e.id) : [], f =>
         f.kind === 'attack' || (f.kind === 'damage' && !!r.damage) || ((f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === a.ability)),
     })
-    if (r.damage && active.some(e => e.oncePerTurn)) setOn(o => ({ ...o, ...Object.fromEntries(active.filter(e => e.oncePerTurn).map(e => [e.id, false])) }))
+    // Sneak Attack and the like are once per turn: the switch goes off once their dice went into a hit.
+    const turnOnce = used.filter(e => e.oncePerTurn)
+    if (r.damage && turnOnce.length) setOn(o => ({ ...o, ...Object.fromEntries(turnOnce.map(e => [e.id, false])) }))
     // A 2014 smite is spent by the hit it rode on.
     const spent = used.filter(e => e.live?.once)
     if (r.damage && spent.length) apply(t('fx.log.spent', { name: spent.map(e => e.name).join(', ') }), spendOnceEffects)
@@ -685,7 +686,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
  */
 function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]; character: Character; apply: Apply; features: Feature[]; onOut: (o: Outcome) => void }) {
   const i18n = useI18n()
-  const { t, term } = i18n
+  const { t, term, abilityShort } = i18n
   const casting = useCast(character, apply)
   const uses = useResourceUse(character, apply, onOut)
   const rolls = useSheetRolls(character)
@@ -699,8 +700,11 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
   }
   const castFree = (r: Extract<TurnRow, { type: 'spell' }>) => onOut(casting.cast(r.spell, undefined, r.free))
 
-  /** A feature without uses: spends from its pool (Flurry of Blows) and does what its template says (Dark One's Blessing). */
-  const triggerFeature = (r: Extract<TurnRow, { type: 'feature' }>) => {
+  /**
+   * A feature without uses: spends from its pool (Flurry of Blows, or a boosted 2024 Patient Defense) and does what its
+   * template says (Dark One's Blessing). Flurry of Blows rolls its unarmed strikes; Stunning Strike shows its save DC.
+   */
+  const triggerFeature = (r: Extract<TurnRow, { type: 'feature' }>, boosted = false) => {
     const cl = character.classes.find(x => x.classId === r.className.toLowerCase())
     const plan = r.use ? planUse(r.use, r.name, { edition: rulesEdition(character), classLevel: cl?.level ?? d.level, mods: d.mods }) : {}
     const shown: Shown[] = []
@@ -714,13 +718,23 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
     }
     const tempHp = amount(plan.tempHp, t('cast.tempHp'))
     const healed = amount(plan.heal, t('cs.roll.healing'))
-    const pool = r.spend && left(r.spend.id)
+    const unarmed = r.strikes ? d.attacks.find(a => /unarmed/i.test(a.name)) : undefined
+    for (let i = 1; unarmed && i <= (r.strikes ?? 0); i++) {
+      const hit = rolls.attack(unarmed, {})
+      shown.push({ roll: hit.attack, what: t('turn.strike', { what: t('cs.roll.toHit'), n: i }) })
+      if (hit.damage) shown.push({ roll: hit.damage, what: t('turn.strike', { what: t('cs.roll.damage', { type: term('damage', unarmed.damageType, unarmed.damageType) }), n: i }) })
+    }
+    const cost = r.spend ?? (boosted ? r.boost : undefined)
+    const pool = cost && left(cost.id)
+    const how = MONK_NOTES[r.name]
     const notes = [
-      pool ? t('turn.spent', { n: r.spend!.n, pool: pool.label }) : '',
-      pool ? (pool.n < r.spend!.n ? t('use.noneLeft') : t('use.left', { n: pool.n - r.spend!.n, max: pool.max })) : '',
+      r.save ? t('cs.saveNote', { dc: r.save.dc, ability: abilityShort(r.save.ability) }) : '',
+      how ? t(how[r.boost ? (boosted ? 'boost' : 'free') : 'paid']) : '',
+      pool ? t('turn.spent', { n: cost!.n, pool: pool.label }) : '',
+      pool ? (pool.n < cost!.n ? t('use.noneLeft') : t('use.left', { n: pool.n - cost!.n, max: pool.max })) : '',
       tempHp ? t('cast.gotTempHp', { n: tempHp }) : '', healed ? t('cast.healed', { n: healed }) : '', plan.effect ? t('cast.inEffect') : '',
     ].filter(Boolean)
-    apply(t('use.log', { label: r.name }), c => r.spend ? spendResource(c, r.spend.id, plan, { tempHp, heal: healed }, r.spend.n) : applyUse(c, plan, { tempHp, heal: healed }))
+    apply(t('use.log', { label: r.name }), c => cost ? spendResource(c, cost.id, plan, { tempHp, heal: healed }, cost.n) : applyUse(c, plan, { tempHp, heal: healed }))
     onOut({ name: r.name, rolls: shown, note: notes.join(' · ') || undefined })
   }
 
@@ -747,21 +761,26 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
                   {uses.pool === res.id && l && (
                     <PoolForm left={l.n} missing={Math.max(0, d.maxHp - character.state.currentHp)} label={label} onSpend={(n, self) => uses.spendPool(res, label, n, self)} />
                   )}
-                  {uses.picking?.id === res.id && <FormPicker character={character} limit={uses.picking.limit} label={label} onPick={f => uses.pickForm(res, label, f)} />}
+                  <UsePanel uses={uses} resource={res} label={label} character={character} />
                 </li>
               )
             }
-            const l = r.spend && left(r.spend.id)
+            const l = (r.spend ?? r.boost) && left((r.spend ?? r.boost)!.id)
             const button = r.use === 'dark-ones-blessing' ? t('turn.droppedFoe') : t('use.use')
             return (
               <li key={r.key} className="cs-action">
                 <div className="cs-action-row">
                   <FeatureName name={r.name} text={r.text ?? describe(features, d, r.name, t)} />
-                  {(r.use || r.spend) && (
+                  {(r.use || r.spend || r.boost || r.save) && (
                     <span className="cs-action-tools">
+                      {r.save && <span className="sb-badge">{t('cs.saveNote', { dc: r.save.dc, ability: abilityShort(r.save.ability) })}</span>}
                       {l && <span className="track-count" dir="ltr">{l.n}/{l.max}</span>}
                       <button type="button" className="glass-btn small prominent" onClick={() => triggerFeature(r)}
                         aria-label={r.use === 'dark-ones-blessing' ? t('turn.droppedFoeName', { name: r.name }) : t('use.useName', { label: r.name })}>{button}</button>
+                      {r.boost && l && (
+                        <button type="button" className="glass-btn small" onClick={() => triggerFeature(r, true)}
+                          aria-label={t('turn.boostName', { name: r.name, n: r.boost.n, pool: l.label })}>{t('turn.boost', { n: r.boost.n })}</button>
+                      )}
                     </span>
                   )}
                 </div>
@@ -789,6 +808,12 @@ function TurnRows({ rows, character, apply, features, onOut }: { rows: TurnRow[]
       )}
     </>
   )
+}
+
+/** What the monk's pool features do: paid (2014), or free and boosted with a point (2024). */
+const MONK_NOTES: Record<string, Record<'paid' | 'free' | 'boost', MessageKey>> = {
+  'Patient Defense': { paid: 'turn.note.pd', free: 'turn.note.pdFree', boost: 'turn.note.pdBoost' },
+  'Step of the Wind': { paid: 'turn.note.step', free: 'turn.note.stepFree', boost: 'turn.note.stepBoost' },
 }
 
 /** A feature's text from the library or the builder's explanations, found by its name. */
