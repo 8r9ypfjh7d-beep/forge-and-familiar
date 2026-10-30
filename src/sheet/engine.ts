@@ -3,7 +3,7 @@
 // Rules follow the SRD 5.1 sections on Hit Points, Death Saving Throws and Resting.
 import type { Character, CharacterState, HitDie } from '../model/character'
 import type { RestType } from '../rules/types'
-import { abilityMod, getAbilityScores, getHitDice, getMaxHp, getResources, getSpellSlots } from '../rules'
+import { abilityMod, getAbilityScores, getHitDice, getMaxHp, getResources, getSpellSlots, migrateSubclassIds } from '../rules'
 
 
 export type Counter = NonNullable<CharacterState['counters']>[number]
@@ -30,7 +30,8 @@ export function vitals(c: Character): Vitals {
 }
 
 /** Fills missing fields and clamps used counts to the current maxima (e.g. after a level change). */
-export function normalize(c: Character): Character {
+export function normalize(saved: Character): Character {
+  const c = migrateSubclassIds(saved)
   // Fields of removed features (exhaustion, inspiration, attunement, in-game clock) are dropped from old saves.
   const { exhaustion: _e, inspiration: _i, attuned: _a, clock: _c, ...s } = c.state as CharacterState & Record<'exhaustion' | 'inspiration' | 'attuned' | 'clock', unknown>
   const { slots, pact } = getSpellSlots(c)

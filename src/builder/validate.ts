@@ -3,7 +3,7 @@ import { coinText } from './shop'
 import {
   ABILITIES, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_FEAT, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses, improvementFeat,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
-  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassOf, subclassPickLists, subclassesFor, toolPickGroups,
+  flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassById, subclassOf, subclassPickLists, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type ClassPick, type SkillId,
 } from '../rules'
 
@@ -95,7 +95,8 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       for (const cl of subclassSlots(d)) {
         if (cl.subclassId === CUSTOM_SUBCLASS) {
           if (!subclassOf(d, cl)?.name.trim()) out.push(t('builder.issue.customSubclass', { title: subclassTitle(cl.classId) }))
-        } else if (!subclassesFor(cl.classId, edition).some(s => s.id === cl.subclassId)) {
+        } else if (!cl.subclassId || (!subclassOf(d, cl) && subclassById(cl.subclassId, edition))) {
+          // Another class's subclass is a wrong pick; an id that isn't found at all (homebrew from another device) is kept and only warned about.
           out.push(t('builder.issue.subclass', { className: className(cl.classId), title: subclassTitle(cl.classId) }))
         }
       }
@@ -238,6 +239,11 @@ export function stepWarnings(step: StepId, d: CharacterDraft, t: Translate = eng
       break
     }
     case 'class':
+      for (const cl of subclassSlots(d)) {
+        if (cl.subclassId && cl.subclassId !== CUSTOM_SUBCLASS && !subclassOf(d, cl)) {
+          out.push(t('builder.warn.subclassMissing', { className: term('class', cl.classId, classById(cl.classId, edition)?.name ?? cl.classId), id: cl.subclassId }))
+        }
+      }
       // Subclass picks (maneuvers, runes...) only warn: a player may decide later, and tables bend the counts.
       for (const at of subclassPickLists(d)) {
         const vars = { feature: term('feature', at.list.feature, at.list.feature), className: term('class', at.classId, classById(at.classId, edition)?.name ?? at.classId), max: at.max, picked: at.picked.length }

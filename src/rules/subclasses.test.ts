@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { stepIssues } from '../builder/validate'
+import { stepIssues, stepWarnings } from '../builder/validate'
+import { draftFrom } from '../builder/edit'
+import { normalize } from '../sheet/engine'
+import { buildDiffers } from '../sync/engine'
 import { he } from '../i18n/locales/he'
 import { loadKind } from '../content'
 import { spellAccess, spellIdByName, spellSourcesFor } from '../spellbook/access'
 import {
-  BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, CUSTOM_SUBCLASS, SUBCLASSES, SUBCLASSES_2024, createCharacter, derive, getProficiencies, getResources, subclassById, subclassesFor,
-  subclassSpellNames, type CharacterDraft,
+  BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, CUSTOM_SUBCLASS, SUBCLASSES, SUBCLASSES_2024, createCharacter, derive, getProficiencies, getResources, migrateSubclassIds,
+  missingSubclasses, subclassById, subclassesFor, subclassOf, subclassSpellNames, type CharacterDraft,
 } from './index'
 
 const warlock = (level: number, subclassId: string, over: Partial<CharacterDraft> = {}) => createCharacter({
@@ -65,6 +68,36 @@ describe('warlock patrons from every book', () => {
     expect(ids.filter(id => ['knowledge', 'purple-dragon-knight', 'bladesinging'].includes(id))).toEqual([])
     expect(BOOK_SUBCLASSES.map(s => s.id)).not.toContain('spellfire-sorcery')
     expect(subclassById('spellfire-sorcery', '2024')!.spells!.find(s => s.level === 6)!.names).toEqual(['Counterspell'])
+  })
+
+  it('keeps the subclass of 2024 characters saved with the ids Heroes of Faerûn replaced', () => {
+    for (const [classId, old, now] of [['wizard', 'bladesinging', 'bladesinger'], ['cleric', 'knowledge', 'knowledge-domain'], ['fighter', 'purple-dragon-knight', 'banneret']]) {
+      const saved = { ...warlock(3, old, { rulesEdition: '2024', classes: [{ classId, level: 3, subclassId: old }] }), levelPlan: [{ level: 4, classId, subclassId: old }] }
+      expect(subclassOf(saved, saved.classes[0])?.id, old).toBe(now)
+      const loaded = normalize(saved)
+      expect(loaded.classes[0].subclassId).toBe(now)
+      expect(loaded.levelPlan![0].subclassId).toBe(now)
+      expect(missingSubclasses(loaded)).toEqual([])
+      expect(stepIssues('class', draftFrom(loaded)).filter(x => x.startsWith('Choose the'))).toEqual([])
+      // Another device's old copy is the same build, so sync doesn't keep a conflict copy.
+      expect(buildDiffers(saved, loaded)).toBe(false)
+    }
+    // 2014 still has the original subclasses under their own ids.
+    const old2014 = warlock(3, 'bladesinging', { classes: [{ classId: 'wizard', level: 3, subclassId: 'bladesinging' }] })
+    expect(migrateSubclassIds(old2014)).toBe(old2014)
+    expect(subclassOf(old2014, old2014.classes[0])?.id).toBe('bladesinging')
+  })
+
+  it('keeps a subclass id it can\'t find and warns instead of blocking', () => {
+    const c = warlock(3, 'homebrew-from-another-phone', { rulesEdition: '2024' })
+    const loaded = normalize(c)
+    expect(loaded.classes[0].subclassId).toBe('homebrew-from-another-phone')
+    expect(missingSubclasses(loaded)).toEqual([{ classId: 'warlock', level: 3, subclassId: 'homebrew-from-another-phone' }])
+    const draft = draftFrom(loaded)
+    expect(draft.classes[0].subclassId).toBe('homebrew-from-another-phone')
+    expect(stepIssues('class', draft)).toEqual([])
+    expect(stepWarnings('class', draft).join()).toContain('homebrew-from-another-phone')
+    expect(stepIssues('class', { ...draft, classes: [{ classId: 'warlock', level: 3 }] })).toHaveLength(1)
   })
 
   it('gives the Hexblade martial weapons, medium armor, shields and Charisma pact attacks', () => {
