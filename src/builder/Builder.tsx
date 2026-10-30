@@ -8,7 +8,7 @@ import { getCharacter, saveCharacter } from '../storage'
 import type { MessageKey } from '../i18n'
 import { applyEdit, draftFrom, startingGearChanged } from './edit'
 import { STEPS } from './steps'
-import { stepIssues } from './validate'
+import { stepIssues, stepWarnings } from './validate'
 import { Summary } from './Summary'
 import { Why } from './Why'
 import './builder.css'
@@ -39,18 +39,21 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
   const [initial] = useState<CharacterDraft>(() => (editing ? draftFrom(editing) : emptyDraft(ownerId)))
   const [draft, setDraft] = useState<CharacterDraft>(initial)
   const [step, setStep] = useState(0)
+  const [furthest, setFurthest] = useState(editing ? STEPS.length - 1 : 0)
   const [replaceGear, setReplaceGear] = useState(true)
   const [hookKey, setHookKey] = useState<string>()
   const update = (patch: Partial<CharacterDraft>) => setDraft(d => ({ ...d, ...patch }))
-  const { t } = useI18n()
+  const { t, term } = useI18n()
   const stepsRef = useRef<HTMLElement>(null)
   // On phones the step bar is one swipeable row: keep the current step in view.
   useEffect(() => {
     stepsRef.current?.querySelector('[aria-current="step"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    setFurthest(f => Math.max(f, step))
   }, [step])
 
   const issues = useMemo(() => STEPS.map(s => stepIssues(s.id, draft, t)), [draft, t])
   const firstBlocked = issues.findIndex(i => i.length > 0)
+  const warnings = useMemo(() => stepWarnings(STEPS[step].id, draft, t, term), [step, draft, t, term])
   const Current = STEPS[step].Component
   const isLast = step === STEPS.length - 1
   const gearChanged = !!editing && startingGearChanged(editing, draft)
@@ -84,12 +87,11 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
       {!editing && <RandomCharacter onRoll={rollRandom} />}
       <nav className="steps" ref={stepsRef} aria-label={t('builder.steps')}>
         {STEPS.map((s, i) => {
-          const reachable = firstBlocked === -1 || i <= firstBlocked
+          // Every step is open in any order; only creating or saving needs them all done.
           return (
             <button
               key={s.id}
-              className={`step ${i === step ? 'active' : ''} ${reachable && issues[i].length === 0 ? 'done' : ''}`}
-              disabled={!reachable}
+              className={`step ${i === step ? 'active' : ''} ${i <= furthest && issues[i].length === 0 ? 'done' : ''}`}
               aria-current={i === step ? 'step' : undefined}
               onClick={() => setStep(i)}
             >
@@ -110,15 +112,20 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
               {issues[step].map(m => <li key={m}>{m}</li>)}
             </ul>
           )}
+          {warnings.length > 0 && (
+            <ul className="step-warnings small" role="note">
+              {warnings.map(m => <li key={m}>{m}</li>)}
+            </ul>
+          )}
           {gearChanged && (STEPS[step].id === 'equipment' || isLast) && (
             <label className="gear-swap small">
               <input type="checkbox" checked={replaceGear} onChange={e => setReplaceGear(e.target.checked)} />
               <span>{t('builder.edit.swapGear')}</span>
             </label>
           )}
-          {editing && firstBlocked !== -1 && firstBlocked !== step && (
+          {(editing || isLast) && firstBlocked !== -1 && firstBlocked !== step && (
             <p className="edit-blocked small">
-              {t('builder.edit.blocked', { step: t(`builder.step.${STEPS[firstBlocked].id}`) })}{' '}
+              {t(editing ? 'builder.edit.blocked' : 'builder.blocked', { step: t(`builder.step.${STEPS[firstBlocked].id}`) })}{' '}
               <button className="glass-btn small" onClick={() => setStep(firstBlocked)}>{t('builder.edit.goFix')}</button>
             </p>
           )}
@@ -135,7 +142,7 @@ export function Builder({ ownerId, editing, onCreate, onCancel }: {
             )}
             <div className="row">
               {!isLast && (
-                <button className={`glass-btn ${editing ? '' : 'prominent'}`} disabled={issues[step].length > 0} onClick={() => setStep(step + 1)}>
+                <button className={`glass-btn ${editing ? '' : 'prominent'}`} onClick={() => setStep(step + 1)}>
                   {t('builder.next')}
                 </button>
               )}

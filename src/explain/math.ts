@@ -4,7 +4,7 @@
 import type { Character } from '../model/character'
 import {
   applyItemAbilities, effectsOf, entryItem, itemBonuses,
-  ABILITY_NAMES, SKILLS, abilityMod, backgroundBonuses, getBackground, classById, derive, featBonus, featEffects, getAbilityMods, getAbilityScores,
+  ABILITY_NAMES, SKILLS, abilityMod, backgroundBonuses, getBackground, classById, derive, featBonus, featEffects, fixedRacialBonuses, getAbilityMods, getAbilityScores,
   getEquippedArmor, getMaxHp, getSkillProficiencies, proficiencyBonus, raceById, rulesEdition, totalLevel,
   type Ability, type ClassDef, type SkillId,
 } from '../rules'
@@ -57,13 +57,13 @@ function jackOfAllTrades(c: Character): number {
 function abilityScore(c: Character, a: Ability): StatMath {
   const lines: MathLine[] = [{ label: 'Base score', value: c.baseAbilities[a] }]
   const race = raceById(c.raceId, rulesEdition(c))
-  const sub = race?.subraces?.find(s => s.id === c.subraceId)
   const fromBackground = rulesEdition(c) === '2024' ? backgroundBonuses(c)[a] : 0
   if (fromBackground) lines.push({ label: `${getBackground(c)?.name ?? 'Background'} (your pick)`, value: fromBackground })
-  if (race?.abilityBonuses[a]) lines.push({ label: race.name, value: race.abilityBonuses[a] })
-  if (sub?.abilityBonuses[a]) lines.push({ label: sub.name, value: sub.abilityBonuses[a] })
+  for (const b of fixedRacialBonuses(c)) {
+    if (b.ability === a) lines.push({ label: b.book === a ? b.source : `${b.source} (moved)`, value: b.value })
+  }
   const free = race?.freeAbilityBonuses
-  if (free && c.freeAbilityBonuses.slice(0, free.count).includes(a) && !free.exclude.includes(a)) {
+  if (free && c.freeAbilityBonuses.slice(0, free.count).includes(a)) {
     lines.push({ label: `${race.name} (your pick)`, value: 1 })
   }
   const raw = lines.reduce((n, l) => n + l.value, 0)

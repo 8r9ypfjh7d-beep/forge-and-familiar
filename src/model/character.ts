@@ -141,9 +141,11 @@ export interface Character {
   baseAbilities: Abilities
   /**
    * Abilities chosen for free +1s. 2014: racial picks (Half-Elf). 2024: the background's three +1s,
-   * one entry per +1, so ['wis', 'wis', 'cha'] is +2 WIS and +1 CHA.
+   * one entry per +1, so ['wis', 'wis', 'cha'] is +2 WIS and +1 CHA. Any ability; the background's are a suggestion.
    */
   freeAbilityBonuses: Ability[]
+  /** 2014: where the player moved each fixed race/subrace bonus, in fixedRacialBonuses() order. Missing keeps the book's. */
+  racialBonusTargets?: Ability[]
   /** Skills picked from class and free race choices. Race and background skills are added by the engine. */
   chosenSkills: SkillId[]
   /** Languages picked from race and background choices. Fixed ones are added by the engine. */

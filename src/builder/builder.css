@@ -45,6 +45,12 @@
   border-radius: var(--r-md); background: color-mix(in srgb, var(--bad) 8%, transparent);
   color: var(--muted); font-size: 0.85rem;
 }
+/* Off-book choices: a note, never a block. */
+.step-warnings {
+  margin-block: var(--sp-3) 0; padding-block: var(--sp-2); padding-inline: var(--sp-6) var(--sp-3);
+  border-radius: var(--r-md); background: color-mix(in srgb, var(--warn) 10%, transparent);
+  color: var(--muted); list-style: '⚠  ';
+}
 
 /* Fields inside the builder read like .glass-field without touching the shared inputs. */
 .builder :is(input:not([type='checkbox'], [type='radio'], [type='file']), select, textarea) {
@@ -78,6 +84,12 @@
 .ability-table th, .ability-table td { padding-block: var(--sp-2); padding-inline: var(--sp-2); border-block-end: 1px solid var(--glass-hairline); text-align: start; }
 .ability-table td.num { text-align: center; }
 .ability-table input[type='number'] { inline-size: 70px; }
+/* 2024 background bonus per ability; the background's listed (suggested) abilities read stronger. */
+.ability-table select.bg-bonus-pick { min-inline-size: 64px; }
+.ability-table select.bg-bonus-pick.listed { font-weight: 700; border-color: color-mix(in srgb, var(--accent) 45%, var(--glass-hairline)); }
+.move-racial .row { gap: var(--sp-3); }
+.bg-bonus-pick-row { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.bg-bonus > .glass-btn { align-self: start; }
 .stepper { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .stepper .glass-btn { inline-size: 32px; padding: 0; }
 .stepper .num { min-inline-size: 24px; font-weight: 600; }

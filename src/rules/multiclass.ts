@@ -15,7 +15,7 @@ type Classes = Pick<Character, 'classes'> & Partial<Pick<Character, 'rulesEditio
 
 /** The fields multiclass rules read; a builder draft has them too. */
 export type MulticlassInput = Pick<Character, 'classes' | 'baseAbilities' | 'raceId' | 'subraceId' | 'freeAbilityBonuses'> &
-  Partial<Pick<Character, 'rulesEdition' | 'backgroundId' | 'customBackground' | 'improvements' | 'originFeatId' | 'featureChoices'>>
+  Partial<Pick<Character, 'rulesEdition' | 'backgroundId' | 'customBackground' | 'racialBonusTargets' | 'improvements' | 'originFeatId' | 'featureChoices'>>
 
 export const MAX_CHARACTER_LEVEL = 20
 

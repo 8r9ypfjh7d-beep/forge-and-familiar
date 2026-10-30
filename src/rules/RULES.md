@@ -8,7 +8,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 |------|---------|
 | `index.ts` | Public API re-exports |
 | `types.ts` | Rule definitions: abilities, races, classes, items, conditions |
-| `abilities.ts` | Modifiers, standard array, point buy, racial bonuses, final scores |
+| `abilities.ts` | Modifiers, standard array, point buy, racial bonuses (`fixedRacialBonuses`: 2014 race/subrace bonuses, moved by `racialBonusTargets`), final scores |
 | `derive.ts` | `derive()` and helpers: HP, hit dice, AC, attacks, saves, skills, slots, resources, speed |
 | `factory.ts` | `createCharacter(draft)`, `freshState(maxHp)`, starting kit |
 | `rollMode.ts` | Advantage/disadvantage from own conditions |
@@ -29,7 +29,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 Each character picks its rules with `Character.rulesEdition` (`'2024'`, or missing for 2014). Lookups take the edition: `raceById(id, edition)`, `classById`, `subclassById`, `subclassesFor`, `backgroundById`, `featById`, `allRaces`, `allFeats`, `classesFor`, `backgroundsFor`. Without one they return SRD 5.1. Ids are shared where the thing is the same (`fighter`, `dwarf`, `acolyte`); 2024 subclass ids match the content library (`college-of-lore`). Homebrew races, subclasses and feats are offered with both editions.
 
 2024 differences the engine applies:
-- Origin: species give no ability bonuses or languages. The background lists three abilities; `freeAbilityBonuses` holds one entry per +1 (`backgroundBonuses`: at most +2 to one, +3 in total). Backgrounds teach Common + 2 picked languages and grant an Origin feat (`Background.feat`, shown as "Magic Initiate (Cleric)"). A Human also picks one (`Character.originFeatId`).
+- Origin: species give no ability bonuses or languages. The background lists three abilities as the suggestion; `freeAbilityBonuses` holds one entry per +1 on any ability (`backgroundBonuses`: at most +2 to one, +3 in total). Backgrounds teach Common + 2 picked languages and grant an Origin feat (`Background.feat`, shown as "Magic Initiate (Cleric)"). A Human also picks one (`Character.originFeatId`).
 - `getFeats(c)` = background feat + Human's feat + Fighting Style feats + ASI feats. Feat effects: `initiativeProficiency` (Alert), `skillPicks` (Skilled), `abilityChoice` (Grappler, Epic Boons up to 30; the pick is `Improvement.featAbility`), `rangedAttack` (Archery), `armoredAc` (Defense).
 - Class choices (`ClassDef.choices`, saved in `Character.featureChoices` as `<classId>.<choiceId>`): Fighting Style (feat options), Divine Order and Primal Order (extra armor and weapon proficiencies). `classChoices(c)` lists them; picks show in `features` as "Divine Order (Protector)".
 - Classes: subclass at 3, Epic Boon slot at 19, 2024 resources (Second Wind uses, Indomitable, Focus Points, Favored Enemy...), Monk and Rogue Light/Finesse martial weapons, Martial Arts d6 to d12, Draconic Sorcery 10 + DEX + CHA. `getWeaponMasteryCount(c)` reads `ClassDef.weaponMastery`.
