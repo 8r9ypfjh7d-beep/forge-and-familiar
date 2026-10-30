@@ -75,7 +75,7 @@ function EditionPicker({ draft, update }: StepProps) {
 function RaceStep({ draft, update }: StepProps) {
   const edition = rulesEdition(draft)
   const race = raceById(draft.raceId, edition)
-  const { t, term, abilityShort } = useI18n()
+  const { t, term, abilityShort, skill } = useI18n()
   // Legacy (2014) races under 2024 rules keep their 2014 pitch and subrace explanations.
   const racePitch = race && (pitchKey(edition === '2024' && !race.legacy ? 'race2024' : 'race', race.id))
   const subBonus = (b: Partial<Record<Ability, number>>) => (Object.keys(b).length ? ` (${bonusText(b, abilityShort)})` : '')
@@ -83,6 +83,14 @@ function RaceStep({ draft, update }: StepProps) {
   const profile = raceProfile(draft)
   const raceTraits = race ? profile.traits : []
   const featList = profile.featChoice === 'origin' ? originFeats : allFeats(edition)
+  // A trait some races share under one name with different rules (Natural Armor) has a race-specific line.
+  const traitKey = (name: string) => (race && explainKey('trait', `${race.id}.${name}`)) || explainKey('trait', name)
+  // Skill picks (Kenku Training, Kobold Craftiness) show the skill's name.
+  const optionLabel = (o: TraitChoice['options'][number]) => {
+    const sk = o.effects?.length === 1 && o.effects[0].kind === 'skillProficiency' ? skill(o.effects[0].skill) : undefined
+    if (sk && o.name === o.id) return sk
+    return sk ? `${term('trait', o.name, o.name)} (${sk})` : term('trait', o.name, o.name)
+  }
   const toggleOption = (ch: TraitChoice, id: string) => {
     const now = pickedOptions(draft, ch.id)
     const next = now.includes(id) ? now.filter(x => x !== id) : (ch.count ?? 1) === 1 ? [id] : [...now, id].slice(-(ch.count ?? 1))
@@ -107,7 +115,7 @@ function RaceStep({ draft, update }: StepProps) {
             <strong>{term('race', r.id, r.name)}</strong>
             <span className="muted small">
               {edition === '2024' ? t('builder.race.noBonus') : r.flexibleAbilityBonuses ? t('builder.race.flexBonus') : bonusText(r.abilityBonuses, abilityShort)}
-              {r.freeAbilityBonuses ? t('builder.race.freeBonus', { count: r.freeAbilityBonuses.count }) : ''}
+              {r.freeAbilityBonuses ? (r.freeAbilityBonuses.value === 2 ? t('builder.race.plusTwo') : t('builder.race.freeBonus', { count: r.freeAbilityBonuses.count })) : ''}
             </span>
             <span className="muted small">{t('builder.race.sizeSpeed', { size: (r.sizeOptions ?? [r.size]).map(x => term('size', x, x)).join(' / '), speed: r.speed })}</span>
             {r.source && <span className="muted small">{r.source}</span>}
@@ -179,14 +187,14 @@ function RaceStep({ draft, update }: StepProps) {
       )}
       {profile.choices.map(ch => {
         const picked = pickedOptions(draft, ch.id)
-        const key = explainKey('trait', ch.name)
+        const key = traitKey(ch.name)
         return (
           <div className="field" key={ch.id}>
             <label>{term('trait', ch.name, ch.name)}{(ch.count ?? 1) > 1 ? ` (${picked.length}/${ch.count})` : ''} {key && <Why title={term('trait', ch.name, ch.name)} text={t(key)} />}</label>
             <div className="row">
               {ch.options.map(o => (
                 <button key={o.id} className={`glass-chip ${picked.includes(o.id) ? 'on' : ''}`} title={o.detail} onClick={() => toggleOption(ch, o.id)}>
-                  {term('trait', o.name, o.name)}
+                  {optionLabel(o)}
                 </button>
               ))}
             </div>
@@ -208,7 +216,7 @@ function RaceStep({ draft, update }: StepProps) {
           {raceTraits.length === 0 && t('common.none')}
         </p>
       )}
-      {race && <ExplainList items={raceTraits.map(x => ({ name: term('trait', x, x), key: explainKey('trait', x) }))} />}
+      {race && <ExplainList items={raceTraits.map(x => ({ name: term('trait', x, x), key: traitKey(x) }))} />}
       {canSwapOrigin(draft) && <OriginSwapsPicker draft={draft} update={update} />}
     </>
   )
@@ -510,7 +518,7 @@ function AbilitiesStep({ draft, update }: StepProps) {
       {flexible && <FlexibleRaceBonuses draft={draft} />}
       <table className="ability-table">
         <thead>
-          <tr><th>{t('builder.col.ability')}</th><th>{t('builder.col.base')}</th><th>{t(edition === '2024' ? 'builder.col.background' : 'builder.col.racial')}<Why id={edition === '2024' ? 'bgBonus' : 'racial'} compact /></th>{hasAsi && <th>{t('builder.col.asi')}</th>}<th>{t('builder.col.score')}</th><th>{t('builder.col.mod')}<Why id="modifier" compact /></th>{free && <th>+1<Why id="freeBonus" compact /></th>}</tr>
+          <tr><th>{t('builder.col.ability')}</th><th>{t('builder.col.base')}</th><th>{t(edition === '2024' ? 'builder.col.background' : 'builder.col.racial')}<Why id={edition === '2024' ? 'bgBonus' : 'racial'} compact /></th>{hasAsi && <th>{t('builder.col.asi')}</th>}<th>{t('builder.col.score')}</th><th>{t('builder.col.mod')}<Why id="modifier" compact /></th>{free && <th>+{free.value ?? 1}<Why id="freeBonus" compact /></th>}</tr>
         </thead>
         <tbody>
           {ABILITIES.map(a => (

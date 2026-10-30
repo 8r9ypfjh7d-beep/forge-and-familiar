@@ -70,7 +70,7 @@ function abilityScore(c: Character, a: Ability): StatMath {
   }
   const free = profile.freeAbilityBonuses
   if (is2014 && race && free && c.freeAbilityBonuses.slice(0, free.count).includes(a)) {
-    lines.push({ label: `${sub?.freeAbilityBonuses ? sub.name : race.name} (your pick)`, value: 1 })
+    lines.push({ label: `${sub?.freeAbilityBonuses ? sub.name : race.name} (your pick)`, value: free.value ?? 1 })
   }
   const raw = lines.reduce((n, l) => n + l.value, 0)
   if (raw > 20) lines.push({ label: 'Capped at 20', value: 20 - raw })

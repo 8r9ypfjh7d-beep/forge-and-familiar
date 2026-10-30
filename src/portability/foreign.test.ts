@@ -113,11 +113,11 @@ describe('Foundry VTT', () => {
 
   it('imports an unknown race as Human and says so', () => {
     const f = foundry()
-    f.items = f.items.map(i => (i.type === 'race' ? { ...i, name: 'Aarakocra' } : i))
+    f.items = f.items.map(i => (i.type === 'race' ? { ...i, name: 'Moonfolk Wobbler' } : i))
     const r = parseForeign(f, {}, NOW)
     if (!r.ok) throw new Error(r.error)
     expect(r.file.character.raceId).toBe('human')
-    expect(r.file.character.notes).toContain('Race: Aarakocra (imported as Human')
+    expect(r.file.character.notes).toContain('Race: Moonfolk Wobbler (imported as Human')
   })
 })
 

@@ -104,7 +104,7 @@ export function racialBonuses(c: RacialInput): Abilities {
   const out = emptyAbilities(0)
   for (const b of fixedRacialBonuses(c)) out[b.ability] += b.value
   if (profile.freeAbilityBonuses) {
-    for (const a of new Set(c.freeAbilityBonuses.slice(0, profile.freeAbilityBonuses.count))) out[a] += 1
+    for (const a of new Set(c.freeAbilityBonuses.slice(0, profile.freeAbilityBonuses.count))) out[a] += profile.freeAbilityBonuses.value ?? 1
   }
   return out
 }

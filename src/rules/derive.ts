@@ -369,6 +369,21 @@ export function getAttacks(c: Character): Attack[] {
     properties: [],
     reach: 5,
   })
+  // Natural weapons (Tabaxi claws, Minotaur horns): unarmed strikes with a damage die and type.
+  for (const w of raceProfile(c).naturalWeapons) {
+    const ability: Ability = martialArts && mods.dex > mods.str ? 'dex' : 'str'
+    out.push({
+      name: w.name,
+      bonus: mods[ability] + prof + itemBonus(c, 'attack', true, 'melee'),
+      damage: withMod(w.damage, mods[ability] + itemBonus(c, 'damage', true, 'melee')),
+      damageType: w.type,
+      ability,
+      proficient: true,
+      notes: [],
+      properties: [],
+      reach: 5,
+    })
+  }
   return out
 }
 
@@ -531,7 +546,7 @@ export function derive(c: Character): DerivedStats {
     skills,
     passivePerception: 10 + skills.perception.bonus + itemBonus(c, 'passivePerception'),
     // 2024 Alert adds the proficiency bonus instead of Jack of All Trades' half.
-    initiative: mods.dex + (featEffects(c, 'initiativeProficiency').length ? prof : jackOfAllTrades) + featBonus(c, 'initiative') + itemChecks + itemBonus(c, 'initiative'),
+    initiative: mods.dex + (featEffects(c, 'initiativeProficiency').length || raceProfile(c).initiativeProficiency ? prof : jackOfAllTrades) + featBonus(c, 'initiative') + itemChecks + itemBonus(c, 'initiative'),
     ...(initiativeAdvantage ? { initiativeAdvantage } : {}),
     checkAdvantage,
     speed,
