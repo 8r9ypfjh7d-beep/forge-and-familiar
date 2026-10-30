@@ -7,7 +7,7 @@ import type { Character } from '../model/character'
 import { slotChoices, spellBeams, spellDamage } from '../quickcast/quickcast'
 import type { SlotChoice } from '../quickcast'
 import { setEquipped } from '../inventory/inventory'
-import { cantripDamageBonus, castingWith, castsAtMax, derive, getResources, itemSpellCast, maxOfDice, wornArmor, type Ability, type ItemSpell } from '../rules'
+import { cantripDamageBonus, healingSpellBonus, castingWith, castsAtMax, derive, getResources, itemSpellCast, maxOfDice, wornArmor, type Ability, type ItemSpell } from '../rules'
 import { withRollFromText } from '../sheet/combat/combat'
 import { LastRoll, type Shown } from '../sheet/combat/LastRoll'
 import { useSheetRolls } from '../sheet/dice'
@@ -62,9 +62,10 @@ export function useCast(character: Character, apply: Apply) {
     // A race's or feat's spell may use its own ability (2024 lineages, Magic Initiate); else the class's.
     const ownAbility = free?.ability ?? (free ? undefined : extraSpellAbility(character, spell.id))
     const sc = ownAbility ? castingWith(character, ownAbility) : d.spellcasting
-    const perHit = spell.level === 0 ? cantripDamageBonus(character, spell.name, d.mods.cha) : 0
-    const dice = spellDamage({ ...entry, id: '', kind: 'spell' }, level, d.level, sc ? d.mods[sc.ability] : 0, perHit)
     const healing = entry.damageType === 'healing'
+    const perHit = spell.level === 0 ? cantripDamageBonus(character, spell.name, d.mods.cha)
+      : healing ? healingSpellBonus(character.classes, level) : 0
+    const dice = spellDamage({ ...entry, id: '', kind: 'spell' }, level, d.level, sc ? d.mods[sc.ability] : 0, perHit)
     const riders = entry.roll === 'attack' && !healing
       ? (character.state.effects ?? []).filter(e => e.on && e.damage && !e.weaponOnly).map(e => ({ name: e.name, damage: e.damage!, damageType: e.damageType }))
       : []
