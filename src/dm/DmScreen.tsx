@@ -1,4 +1,4 @@
-// The DM screen: party budget on top, then tabs for encounters, monsters, quick reference and NPCs.
+// The DM screen: party budget on top, then tabs for encounters, players' rolls, monsters, quick reference and NPCs.
 // Uses the sheet's card style (.ff-sheet) so it reads like the rest of the app.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createEncounter, addCombatant, saveEncounter } from '../combat'
@@ -18,6 +18,8 @@ import {
   groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
+import { RollsTab } from './RollsTab'
+import { useDmRolls, useUnseenRolls } from './useDmRolls'
 import { loadDm, onDmChanged, saveDm, syncDm } from './store'
 import { emptyDmState, type DmState, type EncounterPlan, type Npc, type PartyGroup } from './types'
 import '../sheet/sheet.css'
@@ -28,11 +30,11 @@ const newId = () => crypto.randomUUID()
 const SOURCE = 'srd-5.1'
 const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 
-export type DmTab = 'encounters' | 'monsters' | 'reference' | 'npcs' | 'requests'
+export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'reference' | 'npcs' | 'requests'
 type Tab = DmTab
-const TABS: Tab[] = ['encounters', 'monsters', 'reference', 'npcs', 'requests']
+const TABS: Tab[] = ['encounters', 'rolls', 'monsters', 'reference', 'npcs', 'requests']
 const TAB_KEYS: Record<Tab, MessageKey> = {
-  encounters: 'dm.tab.encounters', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests',
+  encounters: 'dm.tab.encounters', rolls: 'dm.tab.rolls', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests',
 }
 const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
   none: 'dm.diff.none', trivial: 'dm.diff.trivial', low: 'dm.diff.low', moderate: 'dm.diff.moderate', high: 'dm.diff.high', beyond: 'dm.diff.beyond',
@@ -57,6 +59,10 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
   // Opened straight on a later tab (from a request link): bring it into view on narrow screens.
   useEffect(() => { if (initialTab) document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [initialTab, state])
   const [openMonster, setOpenMonster] = useState<string | null>(null)
+  // Players' rolls, live, so the Rolls tab can show a badge while the DM works on another tab.
+  const rolls = useDmRolls(party)
+  const { unseen, markSeen } = useUnseenRolls(userId, rolls)
+  useEffect(() => { if (tab === 'rolls') markSeen() }, [tab, rolls, markSeen])
 
   useEffect(() => {
     let live = true
@@ -126,10 +132,12 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
               tabIndex={tab === id ? 0 : -1} className={tab === id ? 'on' : ''} onClick={() => setTab(id)} onKeyDown={e => move(e, i)}>
               {t(TAB_KEYS[id])}
               {id === 'requests' && requests && inbox(requests).length > 0 && <span className="dm-badge">{inbox(requests).length}</span>}
+              {id === 'rolls' && tab !== 'rolls' && unseen > 0 && <span className="dm-badge dm-badge--soft">{unseen > 99 ? '99+' : unseen}</span>}
             </button>
           ))}
         </div>
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
+          {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
           {tab === 'encounters' && <EncountersTab state={state} update={update} monsters={monsters} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} />}
           {tab === 'reference' && <ReferenceTab />}
