@@ -1,5 +1,6 @@
 import { ARTIFICER_SUBCLASSES, ARTIFICER_SUBCLASSES_2024 } from './artificer'
 import { CASTERS, CASTERS_2024, CASTERS_REWRITTEN } from './casters'
+import { FAERUN_2024, FAERUN_REWRITTEN } from './faerun'
 import { MARTIAL, MARTIAL_2024, MARTIAL_REWRITTEN } from './martial'
 import { PHB, PHB24, SCAG, TCE, VRGR, XGE, f, fullSpells as pactSpells, legacy, long, short, spells, type Def } from './helpers'
 
@@ -116,7 +117,7 @@ const PATRONS_2024: Def[] = [
 /** 2014 patrons with no 2024 rewrite: offered in 2024 too, as the 2024 book allows. */
 const LEGACY_PATRONS = PATRONS.filter(p => !['archfey', 'great-old-one', 'celestial'].includes(p.id)).map(p => legacy(p, 3))
 
-const REWRITTEN = new Set([...MARTIAL_REWRITTEN, ...CASTERS_REWRITTEN])
+const REWRITTEN = new Set([...MARTIAL_REWRITTEN, ...CASTERS_REWRITTEN, ...FAERUN_REWRITTEN])
 const OTHERS = [...MARTIAL, ...CASTERS]
 const byClass = (a: Def, b: Def) => a.classId.localeCompare(b.classId)
 
@@ -124,5 +125,5 @@ const byClass = (a: Def, b: Def) => a.classId.localeCompare(b.classId)
 export const BOOK_SUBCLASSES: Def[] = [...OTHERS, ...PATRONS, ...ARTIFICER_SUBCLASSES].sort(byClass)
 /** 2024 rules: the 2024 book's subclasses, then 2014 ones it didn't rewrite (features move to level 3). */
 export const BOOK_SUBCLASSES_2024: Def[] = [
-  ...MARTIAL_2024, ...CASTERS_2024, ...OTHERS.filter(d => !REWRITTEN.has(d.id)).map(d => legacy(d)), ...PATRONS_2024, ...LEGACY_PATRONS, ...ARTIFICER_SUBCLASSES_2024,
+  ...MARTIAL_2024, ...CASTERS_2024, ...FAERUN_2024, ...OTHERS.filter(d => !REWRITTEN.has(d.id)).map(d => legacy(d)), ...PATRONS_2024, ...LEGACY_PATRONS, ...ARTIFICER_SUBCLASSES_2024,
 ].sort(byClass)

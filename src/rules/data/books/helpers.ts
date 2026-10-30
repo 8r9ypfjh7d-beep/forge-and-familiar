@@ -15,6 +15,7 @@ export const FTD = "Fizban's Treasury of Dragons"
 export const MOT = 'Mythic Odysseys of Theros'
 export const BGG = "Bigby Presents: Glory of the Giants"
 export const DSDQ = 'Dragonlance: Shadow of the Dragon Queen'
+export const FRHOF = 'Forgotten Realms: Heroes of Faerûn'
 
 export const f = (level: number, name: string, extra: Omit<SubclassFeature, 'level' | 'name'> = {}): SubclassFeature => ({ level, name, ...extra })
 export const short = (count: UsesCount = 1) => ({ uses: { count, recharge: 'short' as const } })
