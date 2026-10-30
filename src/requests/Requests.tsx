@@ -5,7 +5,7 @@ import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { EffectsEditor, effectText } from '../inventory'
 import type { Character, CustomAction } from '../model/character'
-import { derive, type Ability, type ItemEffect } from '../rules'
+import { derive, type Ability, type ItemEffect, type Recharge } from '../rules'
 import { resolveDice } from '../sheet/combat/combat'
 import { listCharacters } from '../storage'
 import { isDelivered, onDeliveryChanged, startRequestsCloud } from './cloud'
@@ -234,6 +234,7 @@ function RequestForm({ characters, userId, userName, onSent }: {
   const [roll, setRoll] = useState<NonNullable<CustomAction['roll']>>({})
   const [extra, setExtra] = useState({ damage: '', type: '' })
   const [stats, setStats] = useState<ItemEffect[]>([])
+  const [uses, setUses] = useState<CustomAction['uses']>()
   const [tried, setTried] = useState(false)
   const character = characters.find(x => x.id === characterId)
   const derived = character ? derive(character) : undefined
@@ -247,10 +248,10 @@ function RequestForm({ characters, userId, userName, onSent }: {
     if (issues.length || diceBad || extraBad || !character) return
     const r = newRequest({
       fromId: userId, fromName: userName, characterId, characterName: character.name, kind, title, details,
-      roll, extraDamage: extra, stats,
+      roll, extraDamage: extra, stats, uses,
     }, crypto.randomUUID(), nowIso())
     await updateRequests(l => [...l, r])
-    setTitle(''); setDetails(''); setRoll({}); setExtra({ damage: '', type: '' }); setStats([]); setTried(false)
+    setTitle(''); setDetails(''); setRoll({}); setExtra({ damage: '', type: '' }); setStats([]); setUses(undefined); setTried(false)
     onSent(r.id)
   }
 
@@ -327,6 +328,8 @@ function RequestForm({ characters, userId, userName, onSent }: {
             <p className="hint">{extraBad ? t('cs.form.diceBad') : t('req.extraDamageHint')}</p>
           </fieldset>
 
+          <UsesBox uses={uses} onChange={setUses} />
+
           <div className="req-field req-box">
             <EffectsEditor effects={stats} onChange={setStats} legend={t('req.stats')} />
             <p className="hint">{t('req.statsHint')}</p>
@@ -350,7 +353,45 @@ function AbilityPick({ label, value, onChange }: { label: string; value: Ability
   )
 }
 
-/** The roll, extra damage and stat changes of a request, one short line each. */
+/** Limited uses for the request ("once per day" boots): none, a number or the proficiency bonus, and when they come back. */
+function UsesBox({ uses, onChange }: { uses: CustomAction['uses']; onChange: (u: CustomAction['uses']) => void }) {
+  const { t } = useI18n()
+  const count = uses?.count
+  const recharge = uses?.recharge ?? 'long'
+  return (
+    <fieldset className="req-field req-box">
+      <legend className="sub-title">{t('cs.form.uses')}</legend>
+      <div className="req-grid">
+        <label>{t('cs.form.usesCount')}
+          <select value={count === undefined ? 'none' : count === 'pb' ? 'pb' : 'number'} onChange={e => {
+            const v = e.target.value
+            onChange(v === 'none' ? undefined : { count: v === 'pb' ? 'pb' : 1, recharge })
+          }}>
+            <option value="none">{t('cs.form.usesNone')}</option>
+            <option value="number">{t('cs.form.usesNumber')}</option>
+            <option value="pb">{t('cs.form.usesPb')}</option>
+          </select>
+        </label>
+        {typeof count === 'number' && (
+          <label>{t('cs.form.usesN')}
+            <input type="number" min={1} max={99} inputMode="numeric" value={count}
+              onChange={e => onChange({ count: Math.max(1, Math.floor(Number(e.target.value) || 1)), recharge })} />
+          </label>
+        )}
+        {uses && (
+          <label>{t('cs.form.recharge')}
+            <select value={recharge} onChange={e => onChange({ ...uses, recharge: e.target.value as Recharge })}>
+              {(['short', 'long', 'dawn', 'none'] as const).map(r => <option key={r} value={r}>{t(`rest.${r}`)}</option>)}
+            </select>
+          </label>
+        )}
+      </div>
+      <p className="hint">{t('req.usesHint')}</p>
+    </fieldset>
+  )
+}
+
+/** The roll, extra damage, stat changes and uses of a request, one short line each. */
 function Mechanics({ r }: { r: DmRequest }) {
   const i18n = useI18n()
   const { t, abilityShort } = i18n
@@ -373,6 +414,12 @@ function Mechanics({ r }: { r: DmRequest }) {
       {r.stats?.length ? (
         <li><span className="sub-title">{t('req.m.stats')}</span> <bdi>{r.stats.map(f => effectText(i18n, f)).join(' · ')}</bdi></li>
       ) : null}
+      {r.uses && (
+        <li><span className="sub-title">{t('req.m.uses')}</span> {t('req.m.usesLine', {
+          count: r.uses.count === 'pb' ? t('cs.form.usesPb') : typeof r.uses.count === 'number' ? r.uses.count : t('cs.form.usesMod', { ability: abilityShort(r.uses.count) }),
+          recharge: t(`rest.${r.uses.recharge}`),
+        })}</li>
+      )}
     </ul>
   )
 }

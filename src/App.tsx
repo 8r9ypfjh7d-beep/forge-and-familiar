@@ -4,6 +4,7 @@ import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from '.
 import { AccountBadge, ActivateScreen, CloudLinkNotice, activate, activateErrorKey, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
 import { AdminPage } from './admin'
 import { Builder, EditCharacter, UnfinishedDraft } from './builder/Builder'
+import { PromptDialog } from './builder/ConfirmDialog'
 import { LevelUp } from './builder/LevelUp'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { DmScreen } from './dm'
@@ -299,7 +300,8 @@ export default function App() {
           />
         )}
         {view.kind === 'party' && (
-          <PartyView key={`${active.id}:${view.partyId ?? ''}:${view.startWith ?? ''}`} userId={active.id} openId={view.partyId} startWith={view.startWith}
+          <PartyView key={active.id} userId={active.id} openId={view.partyId} startWith={view.startWith}
+            onRoute={(partyId, replace) => setView(partyId ? { kind: 'party', partyId } : { kind: 'party' }, replace)}
             onOpenCharacter={id => setView({ kind: 'sheet', id })} />
         )}
       </main>
@@ -317,6 +319,7 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
   onAdd: (name: string) => void
 }) {
   const { t } = useI18n()
+  const [asking, setAsking] = useState<'player' | 'code' | null>(null)
   return (
     <div className="row profile">
       <label className="muted small" htmlFor="profile">{t('app.player')}</label>
@@ -324,19 +327,18 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
         id="profile"
         value={active.id}
         onChange={e => {
-          if (e.target.value === '__new') {
-            const name = prompt(t('app.newPlayerPrompt'))?.trim()
-            if (name) onAdd(name)
-          } else if (e.target.value === '__code') {
-            const code = prompt(t('account.codePrompt'))?.trim()
-            if (code) activate(code).then(s => { if (typeof s === 'string') alert(t(activateErrorKey(s))) })
-          } else onSwitch(e.target.value)
+          if (e.target.value === '__new') setAsking('player')
+          else if (e.target.value === '__code') setAsking('code')
+          else onSwitch(e.target.value)
         }}
       >
         {profiles.map(p => <option key={p.id} value={p.id}>{p.displayName}</option>)}
         <option value="__new">{t('app.addPlayer')}</option>
         <option value="__code">{t('account.enterCode')}</option>
       </select>
+      <PromptDialog open={asking === 'player'} title={t('app.newPlayerPrompt')} yes={t('app.addPlayerYes')} onClose={() => setAsking(null)} onSubmit={onAdd} />
+      <PromptDialog open={asking === 'code'} title={t('account.codePrompt')} yes={t('account.codeYes')} onClose={() => setAsking(null)}
+        onSubmit={async code => { const s = await activate(code); if (typeof s === 'string') return t(activateErrorKey(s)) }} />
     </div>
   )
 }

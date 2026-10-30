@@ -180,7 +180,7 @@ export function SpellsStep({ draft, update }: StepProps) {
                 <SpellName name={g.spell.name} id={g.spell.id} />
                 <span className="muted small">
                   {g.from !== g.spell.name ? `${term('trait', g.from, g.from)} · ` : ''}
-                  {g.unlocked ? (g.spell.level === 0 ? t('spells.cantrip') : t('builder.spells.oncePerRest')) : t('builder.spells.atLevel', { level: g.atLevel })}
+                  {g.unlocked ? (g.spell.level === 0 ? t('spells.cantrip') : t(/proficiency bonus/i.test(g.note ?? '') ? 'builder.spells.pbPerRest' : 'builder.spells.oncePerRest')) : t('builder.spells.atLevel', { level: g.atLevel })}
                 </span>
               </li>
             ))}

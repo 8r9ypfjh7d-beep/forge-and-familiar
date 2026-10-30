@@ -1,7 +1,7 @@
 // Pure request rules: create, validate, decide, sort for each side, merge links, grant to a character.
 import { addItem } from '../inventory/inventory'
 import type { Character, CustomAction } from '../model/character'
-import type { Ability, ItemEffect } from '../rules/types'
+import type { Ability, ItemEffect, Recharge } from '../rules/types'
 import { sanitizeEffect } from '../rules/itemEffects'
 import type { DmRequest, RequestKind, RequestStatus } from './types'
 
@@ -16,7 +16,11 @@ export interface RequestInput {
   roll?: CustomAction['roll']
   extraDamage?: DmRequest['extraDamage']
   stats?: ItemEffect[]
+  uses?: CustomAction['uses']
 }
+
+const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
+const RECHARGES: Recharge[] = ['short', 'long', 'dawn', 'none']
 
 export type RequestProblem = 'noCharacter' | 'noTitle'
 
@@ -31,19 +35,19 @@ export function problems(input: Pick<RequestInput, 'characterId' | 'title'>): Re
 }
 
 export function newRequest(input: RequestInput, id: string, now: string): DmRequest {
-  const { roll, extraDamage, stats, ...rest } = input
+  const { roll, extraDamage, stats, uses, ...rest } = input
   return {
     ...rest,
     id,
     title: input.title.trim().slice(0, TITLE_MAX),
     details: input.details.trim().slice(0, DETAILS_MAX),
-    ...mechanics({ roll, extraDamage, stats }),
+    ...mechanics({ roll, extraDamage, stats, uses }),
     createdAt: now,
     status: 'pending',
   }
 }
 
-type Mechanics = Pick<DmRequest, 'roll' | 'extraDamage' | 'stats'>
+type Mechanics = Pick<DmRequest, 'roll' | 'extraDamage' | 'stats' | 'uses'>
 
 /** Keeps only the parts that say something: a roll with dice or a check, extra damage with dice, any stat change. */
 export function mechanics(m: Mechanics): Mechanics {
@@ -61,10 +65,14 @@ export function mechanics(m: Mechanics): Mechanics {
     out.extraDamage = { damage: m.extraDamage.damage.trim(), ...(m.extraDamage.type?.trim() ? { type: m.extraDamage.type.trim() } : {}) }
   }
   if (m.stats?.length) out.stats = m.stats.map(f => ({ ...f }))
+  const count = m.uses?.count
+  if (m.uses && count !== undefined && (typeof count === 'number' ? count >= 1 : count === 'pb' || ABILITIES.includes(count)) && RECHARGES.includes(m.uses.recharge)) {
+    out.uses = { count: typeof count === 'number' ? Math.min(99, Math.floor(count)) : count, recharge: m.uses.recharge }
+  }
   return out
 }
 
-export const hasMechanics = (r: Mechanics) => !!(r.roll || r.extraDamage || r.stats?.length)
+export const hasMechanics = (r: Mechanics) => !!(r.roll || r.extraDamage || r.stats?.length || r.uses)
 
 export type Decision = Exclude<RequestStatus, 'pending'>
 
@@ -150,6 +158,7 @@ export function grantToCharacter(c: Character, r: DmRequest, uid: string): Chara
     ...(r.roll ? { roll: { ...r.roll } } : {}),
     ...(withEffects && r.extraDamage ? { effect: { ...r.extraDamage } } : {}),
     ...(withEffects && r.stats?.length ? { stats: r.stats.map(f => ({ ...f })) } : {}),
+    ...(r.uses ? { uses: { ...r.uses } } : {}),
   })
   const addAction = (ch: Character, a: CustomAction): Character => ({ ...ch, customActions: [...(ch.customActions ?? []), a] })
   if (r.kind === 'item') {
@@ -160,8 +169,8 @@ export function grantToCharacter(c: Character, r: DmRequest, uid: string): Chara
       ...(extra ? { extraDamage: extra } : {}),
       ...(r.stats?.length ? { effects: r.stats.map(f => ({ ...f })) } : {}),
     }).character
-    // The item's stat changes and extra damage work while it is equipped; its roll becomes an action.
-    return r.roll ? addAction(withItem, action('action', false)) : withItem
+    // The item's stat changes and extra damage work while it is equipped; its roll or uses become an action.
+    return r.roll || r.uses ? addAction(withItem, action(r.roll ? 'action' : 'other', false)) : withItem
   }
   if (r.kind === 'effect' || r.kind === 'ability' || hasMechanics(r)) return addAction(c, action('other', true))
   const line = details ? `${r.title}: ${details}` : r.title
@@ -199,7 +208,6 @@ export function encodeShared(type: Shared['type'], r: DmRequest): string {
   return toBase64Url(JSON.stringify({ v: 1, t: type === 'request' ? 'q' : 'a', r: req }))
 }
 
-const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 
 function readMechanics(r: Record<string, unknown>): Mechanics {
   const roll = r.roll as Record<string, unknown> | undefined
@@ -216,6 +224,7 @@ function readMechanics(r: Record<string, unknown>): Mechanics {
     } : undefined,
     extraDamage: extra && typeof extra === 'object' ? { damage: str(extra.damage, 40), type: str(extra.type, 30) } : undefined,
     stats: stats.flatMap(f => sanitizeEffect(f) ?? []),
+    uses: r.uses && typeof r.uses === 'object' ? r.uses as CustomAction['uses'] : undefined,
   })
 }
 

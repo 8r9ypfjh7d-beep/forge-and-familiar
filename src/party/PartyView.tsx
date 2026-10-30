@@ -21,16 +21,29 @@ import './party.css'
 
 /** Parties the player is in, plus create and join. Opens one party's read-only table view.
  *  The campaigns home opens it on one party (openId) or straight on start/join (startWith). */
-export function PartyView({ userId, onOpenCharacter, openId: initialOpen, startWith }: {
+export function PartyView({ userId, onOpenCharacter, openId: initialOpen, startWith, onRoute }: {
   userId: string
   onOpenCharacter: (id: string) => void
   openId?: string
   startWith?: 'start' | 'join'
+  /** Puts the open party in the URL (#/party/<id>), so refresh and back keep it. `replace` for a just-made party. */
+  onRoute?: (partyId: string | null, replace?: boolean) => void
 }) {
   const [parties, setParties] = useState<Party[] | null>(null)
-  const [openId, setOpenId] = useState<string | null>(initialOpen ?? null)
+  const [openId, setOpenIdState] = useState<string | null>(initialOpen ?? null)
   const [newParty, setNewParty] = useState(!!startWith)
   const { t } = useI18n()
+  // The URL is the source when it changes (back button); local state covers screens without routing.
+  const [route, setRoute] = useState({ initialOpen, startWith })
+  if (route.initialOpen !== initialOpen || route.startWith !== startWith) {
+    setRoute({ initialOpen, startWith })
+    setOpenIdState(initialOpen ?? null)
+    if (startWith) setNewParty(true)
+  }
+  const setOpenId = (id: string | null, replace?: boolean) => {
+    setOpenIdState(id)
+    onRoute?.(id, replace)
+  }
 
   const refresh = useCallback(() => { listParties(userId).then(setParties) }, [userId])
   useEffect(() => { refresh(); return onPartiesChanged(refresh) }, [refresh])
@@ -57,7 +70,7 @@ export function PartyView({ userId, onOpenCharacter, openId: initialOpen, startW
         )}
       {/* Your parties come first; start or join sit behind one "New party" button. */}
       {newParty
-        ? <NewParty userId={userId} mode={startWith} onClose={() => setNewParty(false)} onOpen={id => { markPicked(userId); setNewParty(false); setOpenId(id) }} />
+        ? <NewParty userId={userId} mode={startWith} onClose={() => setNewParty(false)} onOpen={id => { markPicked(userId); setNewParty(false); setOpenId(id, true) }} />
         : <button className="glass-btn party-new" onClick={() => setNewParty(true)}>{t('party.new')}</button>}
     </section>
   )
