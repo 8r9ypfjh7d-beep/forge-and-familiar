@@ -13,6 +13,7 @@ import { explainMetamagicEn } from './explain.metamagic.en'
 import { explainSpeciesEn } from './explain.species.en'
 import { explainRacesEn } from './explain.races.en'
 import { itemsEn } from './items.en'
+import { picks2014En } from './picks2014.en'
 
 export const en = {
   ...explainEn,
@@ -28,6 +29,7 @@ export const en = {
   ...explainInvocationsEn,
   ...explainFeatsEn,
   ...itemsEn,
+  ...picks2014En,
   // Shared
   'common.back': 'Back',
   'common.backArrow': '←',

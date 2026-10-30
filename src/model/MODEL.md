@@ -31,7 +31,7 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
   - `chosenLanguages`, `chosenTools`: picks the race, class and background allow. Fixed languages and tools are added by the engine.
   - `traitChoices`: race trait options, e.g. `{ draconicAncestry: 'red' }`; a `Race.choices` pick that takes several options is comma-separated (`{ instincts: 'insight,deception' }`).
   - `sizeChoice`: Small or Medium when the race offers both (`Race.sizeOptions`).
-  - `featureChoices`: 2024 class picks keyed `<classId>.<choiceId>`, e.g. `{ 'fighter.fightingStyle': 'archery' }`.
+  - `featureChoices`: class choices (2024 Fighting Style/Orders; 2014 Fighting Style, Favored Enemy, Natural Explorer, Tasha's optional features as `use`/`phb`) keyed `<classId>.<choiceId>`, e.g. `{ 'fighter.fightingStyle': 'archery' }`.
   - `classPicks`: class multi-picks keyed `<classId>.<pickId>` → skill ids, e.g. `{ 'rogue.expertise': ['stealth', 'insight'] }`.
   - `weaponMasteries`: 2024 Weapon Mastery weapon item ids, e.g. `['greatsword', 'longbow']`. Missing on older saves: the combat page falls back to equipped weapons.
   - `originFeatId`: a 2024 Human's Origin feat, or the feat of a 2014 subrace with `featChoice` (Variant Human); `'custom'` reads `customOriginFeat` (a full `Feat` the player built).

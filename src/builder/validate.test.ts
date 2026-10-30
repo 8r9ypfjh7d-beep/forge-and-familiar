@@ -29,9 +29,11 @@ describe('builder validation', () => {
   it('counts class and free race skill picks', () => {
     // Rogue picks 4 from its list, half-elf adds 2 of any kind; acolyte grants insight + religion.
     const picks = ['stealth', 'acrobatics', 'deception', 'perception', 'arcana', 'history'] as const
-    expect(stepIssues('skills', { ...base(), chosenSkills: [...picks] })).toEqual([])
-    expect(stepIssues('skills', { ...base(), chosenSkills: [...picks.slice(0, 5)] })).toHaveLength(1)
-    expect(stepIssues('skills', { ...base(), chosenSkills: [...picks.slice(0, 5), 'insight'] })).toHaveLength(1)
+    expect(stepIssues('skills', { ...base(), chosenSkills: [...picks], classPicks: { 'rogue.expertise': ['stealth', 'acrobatics'] } })).toEqual([])
+    expect(stepIssues('skills', { ...base(), chosenSkills: [...picks] })).toEqual(['Rogue: pick 2 for Expertise.'])
+    const expertise = { 'rogue.expertise': ['stealth', 'acrobatics'] }
+    expect(stepIssues('skills', { ...base(), classPicks: expertise, chosenSkills: [...picks.slice(0, 5)] })).toHaveLength(1)
+    expect(stepIssues('skills', { ...base(), classPicks: expertise, chosenSkills: [...picks.slice(0, 5), 'insight'] })).toHaveLength(1)
   })
 
   it('only warns, never blocks, when a multiclass prerequisite is missing', () => {
@@ -43,7 +45,7 @@ describe('builder validation', () => {
 
   it('asks for language picks from race and background', () => {
     const picks = ['stealth', 'acrobatics', 'deception', 'perception', 'arcana', 'history'] as const
-    const d = { ...base(), chosenSkills: [...picks] }
+    const d = { ...base(), chosenSkills: [...picks], classPicks: { 'rogue.expertise': ['stealth', 'acrobatics'] } }
     expect(stepIssues('skills', { ...d, chosenLanguages: ['Dwarvish', 'Giant'] })).toEqual(['Pick 3 languages you don\'t already know.'])
     expect(stepIssues('skills', { ...d, chosenLanguages: ['Dwarvish', 'Giant', 'Elvish'] })).toHaveLength(1)
     expect(stepIssues('skills', { ...d, chosenLanguages: ['Dwarvish', 'Giant', 'Giant'] })).toHaveLength(1)

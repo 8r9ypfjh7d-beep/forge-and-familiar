@@ -1,6 +1,7 @@
 // Class multi-picks (Expertise, Primal Knowledge, class languages) and Weapon Mastery weapons.
 // Pure helpers shared by the builder, derive() (through activeItemEffects) and the combat page.
 import type { Character } from '../model/character'
+import { CLASS_PICKS_2014 } from './data/classChoices2014'
 import { classById } from './data/classes'
 import { ITEMS } from './data/items'
 import { WEAPON_MASTERY } from './data/masteries'
@@ -10,18 +11,24 @@ import type { ClassPick, Item, ItemEffect, SkillId } from './types'
 type WeaponItem = Extract<Item, { kind: 'weapon' }>
 
 type Classes = Pick<Character, 'classes'> & Partial<Pick<Character, 'rulesEdition'>>
-type Picks = Classes & Partial<Pick<Character, 'classPicks'>>
+type Picks = Classes & Partial<Pick<Character, 'classPicks' | 'featureChoices'>>
 
 /** Key of a class pick in Character.classPicks. */
 export const pickKey = (classId: string, pickId: string) => `${classId}.${pickId}`
 
 /** Picks the character's class levels have unlocked, with what was picked (at most `count`). */
 export function classPickSlots(c: Picks): { classId: string; pick: ClassPick; picked: string[] }[] {
-  return (c.classes ?? []).flatMap(cl => (classById(cl.classId, rulesEdition(c))?.picks ?? []).filter(p => p.level <= cl.level).map(pick => ({
-    classId: cl.classId,
-    pick,
-    picked: (c.classPicks?.[pickKey(cl.classId, pick.id)] ?? []).slice(0, pick.count),
-  })))
+  const edition = rulesEdition(c)
+  return (c.classes ?? []).flatMap(cl => {
+    // 2014 picks (Bard and Rogue Expertise, Deft Explorer) live beside the 2014 class choices.
+    const own = [...(classById(cl.classId, edition)?.picks ?? []), ...(edition === '2024' ? [] : (CLASS_PICKS_2014[cl.classId] ?? []))]
+    const chosen = (id: string) => c.featureChoices?.[`${cl.classId}.${id}`]
+    return own.filter(p => p.level <= cl.level && (!p.when || (chosen(p.when.choice) === p.when.option) !== !!p.when.not)).map(pick => ({
+      classId: cl.classId,
+      pick,
+      picked: (c.classPicks?.[pickKey(cl.classId, pick.id)] ?? []).slice(0, pick.count),
+    }))
+  })
 }
 
 /** Extra languages the class levels let the player pick (Rogue's Thieves' Cant, Ranger's Deft Explorer). */

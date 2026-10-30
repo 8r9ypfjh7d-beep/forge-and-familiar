@@ -205,7 +205,7 @@ describe('older saves', () => {
     expect(ids('ranger', 9)).toEqual(['deftExplorer:1', 'deftExplorerLanguages:2', 'expertise9:2'])
     expect(ids('wizard', 2)).toEqual(['scholar:1'])
     expect(ids('rogue', 5).length).toBe(2)
-    expect(classPickSlots({ classes: [{ classId: 'rogue', level: 5 }] })).toEqual([])
+    expect(classPickSlots({ classes: [{ classId: 'rogue', level: 5 }] }).map(s => s.pick.id)).toEqual(['expertise'])
     expect(languagePickCount(draft({ classes: [{ classId: 'rogue', level: 1 }] })) - languagePickCount(draft())).toBe(1)
   })
 

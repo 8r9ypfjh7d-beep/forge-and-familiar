@@ -180,15 +180,35 @@ export interface ClassChoice {
   id: string
   name: string
   level: number
-  options: {
-    id: string
-    name: string
-    detail: string
-    /** Fighting Style options are feats; their effects apply through the feat. */
-    featId?: string
-    armor?: ArmorCategory[]
-    weapons?: WeaponCategory[]
-  }[]
+  /** Why? topic when several choices share one (Favored Enemy at 1, 6 and 14). Defaults to the id. */
+  topic?: string
+  /** Options other lists can join (homebrew fighting styles). */
+  pool?: 'fightingStyle'
+  /** Only offered while another choice of the same class has (or, with `not`, lacks) this option. */
+  when?: { choice: string; option: string; not?: boolean }
+  /** Optional rules (Tasha's): leaving it unpicked keeps the book's base rules, so the builder does not ask for it. */
+  optional?: boolean
+  options: ClassChoiceOption[]
+}
+
+export interface ClassChoiceOption {
+  id: string
+  name: string
+  detail: string
+  /** Fighting Style options are feats; their effects apply through the feat. */
+  featId?: string
+  armor?: ArmorCategory[]
+  weapons?: WeaponCategory[]
+  /** Book outside the SRD it comes from ("Tasha's Cauldron of Everything"). */
+  source?: string
+  /** Sheet changes while picked (Archery's ranged attack bonus, Blind Fighting's blindsight). */
+  effects?: ItemEffect[]
+  /** Sheet changes that only the feat engine models (Defense: +1 AC in armor). */
+  featEffects?: FeatEffect[]
+  /** Sheet changes from a later class level on (Deft Explorer's speeds at 6). */
+  levelEffects?: [number, ItemEffect[]][]
+  /** Uses tracked on the sheet's Resources, counted like subclass features. */
+  uses?: SubclassFeature['uses']
 }
 
 /**
@@ -204,6 +224,8 @@ export interface ClassPick {
   count: number
   /** The book's list. Missing means any skill (Expertise: any skill you're proficient in). Others only warn. */
   from?: SkillId[]
+  /** Only while a class choice has (or, with `not`, lacks) this option (2014 Deft Explorer's expertise). */
+  when?: ClassChoice['when']
 }
 
 export interface ClassDef {

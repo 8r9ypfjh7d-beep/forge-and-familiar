@@ -37,7 +37,7 @@ const BARBARIAN_SKILLS: SkillId[] = ['animalHandling', 'athletics', 'intimidatio
 const potent = (cls: string) => ({ id: 'potent-spellcasting', name: 'Potent Spellcasting', detail: `Add your WIS modifier to the damage of your ${cls} cantrips.` })
 
 const fightingStyle = (level: number, extra?: ClassChoice['options'][number]): ClassChoice =>
-  ({ id: 'fightingStyle', name: 'Fighting Style', level, options: extra ? [...STYLES, extra] : STYLES })
+  ({ id: 'fightingStyle', name: 'Fighting Style', level, pool: 'fightingStyle', options: extra ? [...STYLES, extra] : STYLES })
 
 export const CLASSES_2024: ClassDef[] = [
   {
