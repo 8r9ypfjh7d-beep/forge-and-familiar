@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
-import { createCharacter, derive, featureUseContext, hasLucky, planUse, type CharacterDraft } from './index'
+import { createCharacter, derive, featureUseContext, hasLucky, healingSpellBonus, planUse, type CharacterDraft } from './index'
 
 // Rules the play audit found the sheet ignoring: Great Weapon and Unarmed Fighting, the Martial Arts die on
 // Monk weapons, Bear Totem rage and Halfling Lucky.
@@ -104,5 +104,14 @@ describe('Rage of the Wilds (2024 Wild Heart)', () => {
     // Another 2024 barbarian rages straight away.
     const berserker = make({ rulesEdition: '2024', backgroundId: 'soldier', classes: [{ classId: 'barbarian', level: 3 }] })
     expect(planUse('rage', 'Rage', featureUseContext(berserker, 'rage')).effect?.id).toBe('feature:rage')
+  })
+})
+
+describe('Disciple of Life', () => {
+  it('adds 2 + the slot level to leveled healing spells for Life clerics only', () => {
+    expect(healingSpellBonus([{ classId: 'cleric', subclassId: 'life' }], 1)).toBe(3)
+    expect(healingSpellBonus([{ classId: 'cleric', subclassId: 'life-domain' }], 3)).toBe(5)
+    expect(healingSpellBonus([{ classId: 'cleric', subclassId: 'life' }], 0)).toBe(0)
+    expect(healingSpellBonus([{ classId: 'cleric', subclassId: 'light' }], 1)).toBe(0)
   })
 })

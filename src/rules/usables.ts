@@ -588,3 +588,9 @@ export function spellLimit(note = '', prof = 2): SpellLimit | undefined {
   const pb = /proficiency bonus|\bpb\b/.test(n)
   return { max: pb ? prof : word ? COUNT_WORDS[word] : digits ? Number(digits[1]) : 1, recharge }
 }
+
+/** Life Domain's Disciple of Life: a leveled healing spell restores 2 + the spell's level more (both editions). */
+export function healingSpellBonus(classes: { classId: string; subclassId?: string }[], castLevel: number): number {
+  const life = classes.some(c => c.classId === 'cleric' && (c.subclassId === 'life' || c.subclassId === 'life-domain'))
+  return life && castLevel > 0 ? 2 + castLevel : 0
+}

@@ -3,6 +3,7 @@ import type { Spell } from '../content'
 import type { Character, KnownSpell } from '../model/character'
 import { addEntry, AUTO_HIT, newEntryId } from '../quickcast/quickcast'
 import type { SpellEntry } from '../quickcast/types'
+import type { Ability } from '../rules/types'
 
 export const spellsOf = (c: Character, classId?: string): KnownSpell[] =>
   (c.spells ?? []).filter(s => !classId || s.classId === classId)
@@ -53,6 +54,12 @@ export function upcastStep(base?: string, next?: string): string | undefined {
   return `${Number(b[1]) - Number(a[1])}d${a[2]}${flat > 0 ? `+${flat}` : ''}`
 }
 
+/** Spells whose library entry lacks its save or damage in one edition (2014 Spirit Guardians, 2024 Spiritual Weapon). */
+const MISSING_NUMBERS: Record<string, { save?: Ability; damage: string; damageType: string; upcast?: string; addMod?: boolean }> = {
+  'spirit guardians': { save: 'wis', damage: '3d8', damageType: 'radiant', upcast: '1d8' },
+  'spiritual weapon': { damage: '1d8', damageType: 'force', addMod: true },
+}
+
 /** The quick-cast fields for a library spell: how it rolls, its damage or healing, and upcasting. */
 export function toQuickCast(s: Spell): Omit<SpellEntry, 'id' | 'kind'> {
   const auto = AUTO_HIT[s.name.trim().toLowerCase()]
@@ -65,11 +72,18 @@ export function toQuickCast(s: Spell): Omit<SpellEntry, 'id' | 'kind'> {
     entry.damage = byChar[1] ?? Object.values(byChar)[0]
     entry.cantripScaling = true
   } else if (bySlot?.[s.level]) {
-    entry.damage = bySlot[s.level].replace(/\s+/g, '')
-    const step = upcastStep(bySlot[s.level], bySlot[s.level + 1])
+    const noMod = (n?: string) => n?.replace(/\s*\+\s*MOD/i, '')
+    entry.damage = noMod(bySlot[s.level])!.replace(/\s+/g, '')
+    if (/MOD/i.test(bySlot[s.level])) entry.addMod = true
+    const step = upcastStep(noMod(bySlot[s.level])!, noMod(bySlot[s.level + 1]))
     if (step) entry.upcast = step
   }
   if (entry.damage && s.damage?.type) entry.damageType = s.damage.type
+  const gap = MISSING_NUMBERS[s.name.trim().toLowerCase()]
+  if (gap) {
+    if (!s.save && !s.attack && gap.save) { entry.roll = 'save'; entry.save = gap.save }
+    if (!entry.damage) Object.assign(entry, { damage: gap.damage, damageType: gap.damageType, upcast: gap.upcast, addMod: gap.addMod })
+  }
   const heal = s.healBySlotLevel?.[s.level]
   if (!entry.damage && heal) {
     entry.damage = heal.replace(/\s*\+\s*MOD/i, '').replace(/\s+/g, '')

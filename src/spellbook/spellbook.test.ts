@@ -104,6 +104,14 @@ describe('quick-cast from the library', () => {
     expect(toQuickCast(await get('cure-wounds'))).toMatchObject({ roll: 'none', damage: '1d8', damageType: 'healing', addMod: true, upcast: '1d8' })
     expect(toQuickCast(await get('shield'))).toEqual({ name: 'Shield', level: 1, roll: 'none' })
   })
+
+  it('fills spells whose library entry lacks numbers, and adds MOD to damage', async () => {
+    const get = async (id: string, source: string) => (await getEntry('spells', id, { sources: [source] }))!
+    expect(toQuickCast(await get('spiritual-weapon', 'srd-5.1'))).toMatchObject({ roll: 'attack', damage: '1d8', damageType: 'force', addMod: true })
+    expect(toQuickCast(await get('spiritual-weapon', 'srd-5.2'))).toMatchObject({ roll: 'attack', damage: '1d8', damageType: 'force', addMod: true })
+    expect(toQuickCast(await get('spirit-guardians', 'srd-5.1'))).toMatchObject({ roll: 'save', save: 'wis', damage: '3d8', upcast: '1d8' })
+    expect(toQuickCast(await get('spirit-guardians', 'srd-5.2'))).toMatchObject({ roll: 'save', save: 'wis', damage: '3d8', damageType: 'radiant' })
+  })
 })
 
 describe('styles', () => {
