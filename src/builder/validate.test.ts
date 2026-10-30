@@ -3,7 +3,7 @@ import { emptyDraft } from './Builder'
 import { stepIssues, stepWarnings } from './validate'
 import { createCharacter, derive } from '../rules'
 
-const base = () => ({ ...emptyDraft('u1'), raceId: 'half-elf', classes: [{ classId: 'rogue', level: 1 }], chosenLanguages: ['Dwarvish', 'Giant', 'Orc'] })
+const base = () => ({ ...emptyDraft('u1'), backgroundId: 'acolyte', raceId: 'half-elf', classes: [{ classId: 'rogue', level: 1 }], chosenLanguages: ['Dwarvish', 'Giant', 'Orc'] })
 
 describe('builder validation', () => {
   it('requires a subrace when the race has one', () => {

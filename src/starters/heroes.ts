@@ -1,5 +1,5 @@
 // Pre-made level 1 heroes for new players. Pure data: every hero is a finished CharacterDraft
-// (SRD 5.1 only, standard array, valid skill picks) plus beginner-friendly flavour and tips.
+// (standard array, a fitting PHB background, valid skill picks) plus beginner-friendly flavour and tips.
 import type { Character } from '../model/character'
 import { createCharacter, type CharacterDraft } from '../rules'
 
@@ -19,7 +19,7 @@ export interface StarterHero {
   draft: Omit<CharacterDraft, 'ownerId' | 'playerName'>
 }
 
-const BASE = { backgroundId: 'acolyte', abilityMethod: 'standard' as const, freeAbilityBonuses: [] }
+const BASE = { abilityMethod: 'standard' as const, freeAbilityBonuses: [] }
 
 export const STARTER_HEROES: StarterHero[] = [
   {
@@ -27,19 +27,19 @@ export const STARTER_HEROES: StarterHero[] = [
     role: 'Defender',
     difficulty: 'Easy',
     pitch: 'Heavy armor, a big shield and a sword. Stand in front and hit hard.',
-    backstory: 'A temple guard who left the gates to see what the gods were protecting the world from.',
+    backstory: 'A border soldier who left the army to see what the walls were protecting the world from.',
     tips: [
       'Your AC is the highest in the party: step between enemies and your friends.',
       'Second Wind heals you once per short rest as a bonus action.',
       'No good target in reach? Use your light crossbow.',
     ],
     draft: {
-      ...BASE, name: 'Brannoc Steelheart', alignment: 'Lawful Good',
+      ...BASE, name: 'Brannoc Steelheart', alignment: 'Lawful Good', backgroundId: 'soldier',
       raceId: 'human', classes: [{ classId: 'fighter', level: 1 }],
       featureChoices: { 'fighter.fightingStyle': 'defense' },
-      chosenLanguages: ['Dwarvish', 'Celestial', 'Giant'],
+      chosenLanguages: ['Dwarvish'], chosenTools: ['Dice set'],
       baseAbilities: { str: 15, dex: 13, con: 14, int: 8, wis: 12, cha: 10 },
-      chosenSkills: ['athletics', 'perception'],
+      chosenSkills: ['perception', 'survival'],
     },
   },
   {
@@ -47,18 +47,17 @@ export const STARTER_HEROES: StarterHero[] = [
     role: 'Skirmisher',
     difficulty: 'Easy',
     pitch: 'Small, quick and lucky. Strike from the shadows, then slip away.',
-    backstory: 'A temple orphan who learned that locked doors are only suggestions.',
+    backstory: 'A street orphan who learned that locked doors are only suggestions.',
     tips: [
       'Sneak Attack adds 1d6 damage once per turn when you have advantage or an ally is next to your target.',
       'Use your shortbow from cover; you can hide behind larger allies.',
       'Halfling Luck lets you reroll a natural 1 on attacks, checks and saves.',
     ],
     draft: {
-      ...BASE, name: 'Pip Tealeaf', alignment: 'Chaotic Good',
+      ...BASE, name: 'Pip Tealeaf', alignment: 'Chaotic Good', backgroundId: 'urchin',
       raceId: 'halfling', subraceId: 'lightfoot', classes: [{ classId: 'rogue', level: 1 }],
-      chosenLanguages: ['Elvish', 'Celestial'],
       baseAbilities: { str: 8, dex: 15, con: 14, int: 12, wis: 13, cha: 10 },
-      chosenSkills: ['stealth', 'acrobatics', 'perception', 'sleightOfHand'],
+      chosenSkills: ['acrobatics', 'perception', 'investigation', 'deception'],
       classPicks: { 'rogue.expertise': ['stealth', 'sleightOfHand'] },
     },
   },
@@ -75,7 +74,7 @@ export const STARTER_HEROES: StarterHero[] = [
     ],
     spells: ['Cantrips: Sacred Flame, Guidance, Spare the Dying', '1st level: Cure Wounds, Healing Word, Bless'],
     draft: {
-      ...BASE, name: 'Thora Ironhearth', alignment: 'Neutral Good',
+      ...BASE, name: 'Thora Ironhearth', alignment: 'Neutral Good', backgroundId: 'acolyte',
       raceId: 'dwarf', subraceId: 'hill-dwarf', classes: [{ classId: 'cleric', level: 1, subclassId: 'life' }],
       chosenLanguages: ['Celestial', 'Giant'], chosenTools: ["Smith's tools"],
       baseAbilities: { str: 13, dex: 10, con: 14, int: 8, wis: 15, cha: 12 },
@@ -87,7 +86,7 @@ export const STARTER_HEROES: StarterHero[] = [
     role: 'Spellcaster',
     difficulty: 'Medium',
     pitch: 'A scholar with a spellbook full of magic. Fragile, but powerful.',
-    backstory: 'A temple archivist who read one forbidden book too many and went looking for the rest.',
+    backstory: 'A library archivist who read one forbidden book too many and went looking for the rest.',
     tips: [
       'You have few hit points: stay behind the front line.',
       'Fire Bolt costs nothing, so use it every turn you have nothing better.',
@@ -95,11 +94,11 @@ export const STARTER_HEROES: StarterHero[] = [
     ],
     spells: ['Cantrips: Fire Bolt, Mage Hand, Light', '1st level: Magic Missile, Shield, Sleep, Mage Armor, Detect Magic, Burning Hands'],
     draft: {
-      ...BASE, name: 'Elara Moonwhisper', alignment: 'Neutral Good',
+      ...BASE, name: 'Elara Moonwhisper', alignment: 'Neutral Good', backgroundId: 'sage',
       raceId: 'elf', subraceId: 'high-elf', classes: [{ classId: 'wizard', level: 1 }],
       chosenLanguages: ['Draconic', 'Celestial', 'Sylvan'],
       baseAbilities: { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 },
-      chosenSkills: ['arcana', 'investigation'],
+      chosenSkills: ['investigation', 'insight'],
     },
   },
   {
@@ -107,18 +106,18 @@ export const STARTER_HEROES: StarterHero[] = [
     role: 'Striker',
     difficulty: 'Easy',
     pitch: 'Huge hit points, a greataxe and a terrible temper.',
-    backstory: 'Raised by monks who hoped prayer would calm him. It mostly did not.',
+    backstory: 'Grew up wild in the northern hills. Town walls still make him itchy.',
     tips: [
       'Rage as a bonus action: extra damage and half damage from weapons.',
       'With no armor your AC is 10 + DEX + CON, so you never need to buy any.',
       'Relentless Endurance drops you to 1 HP instead of 0 once per long rest.',
     ],
     draft: {
-      ...BASE, name: 'Grukk Stonefist', alignment: 'Chaotic Neutral',
+      ...BASE, name: 'Grukk Stonefist', alignment: 'Chaotic Neutral', backgroundId: 'outlander',
       raceId: 'half-orc', classes: [{ classId: 'barbarian', level: 1 }],
-      chosenLanguages: ['Giant', 'Goblin'],
+      chosenLanguages: ['Giant'], chosenTools: ['Drum'],
       baseAbilities: { str: 15, dex: 13, con: 14, int: 10, wis: 12, cha: 8 },
-      chosenSkills: ['athletics', 'survival'],
+      chosenSkills: ['perception', 'nature'],
     },
   },
   {
@@ -126,18 +125,18 @@ export const STARTER_HEROES: StarterHero[] = [
     role: 'Defender',
     difficulty: 'Medium',
     pitch: 'A dragonborn knight of faith with a breath weapon and healing hands.',
-    backstory: 'Sworn to an oath at her clutch-temple, she seeks a wrong worth righting.',
+    backstory: 'Heir to a proud clan, she swore an oath to put the family name to better use.',
     tips: [
       'Lay on Hands is a pool of healing: spend as many points as you need.',
       'Your breath weapon hits everything in an area; save it for groups.',
       'Divine Sense reveals hidden undead and fiends nearby.',
     ],
     draft: {
-      ...BASE, name: 'Kethra Flamecrest', alignment: 'Lawful Good',
+      ...BASE, name: 'Kethra Flamecrest', alignment: 'Lawful Good', backgroundId: 'noble',
       raceId: 'dragonborn', classes: [{ classId: 'paladin', level: 1 }],
-      chosenLanguages: ['Celestial', 'Dwarvish'], traitChoices: { draconicAncestry: 'gold' },
+      chosenLanguages: ['Dwarvish'], chosenTools: ['Dragonchess set'], traitChoices: { draconicAncestry: 'gold' },
       baseAbilities: { str: 15, dex: 10, con: 13, int: 8, wis: 12, cha: 14 },
-      chosenSkills: ['athletics', 'persuasion'],
+      chosenSkills: ['athletics', 'religion'],
     },
   },
   {
@@ -145,7 +144,7 @@ export const STARTER_HEROES: StarterHero[] = [
     role: 'Striker',
     difficulty: 'Medium',
     pitch: 'A tiefling who made a deal with a fiend. Blasts enemies from afar.',
-    backstory: 'Raised in a temple that feared her horns, she found a patron who did not.',
+    backstory: 'She talked her way through every town that feared her horns, until she met a patron who talked back.',
     tips: [
       'Eldritch Blast is your main attack and costs nothing.',
       'Pact slots come back on a short rest, so ask the party for one when you run out.',
@@ -153,11 +152,10 @@ export const STARTER_HEROES: StarterHero[] = [
     ],
     spells: ['Cantrips: Eldritch Blast, Minor Illusion', '1st level: Charm Person, Protection from Evil and Good'],
     draft: {
-      ...BASE, name: 'Vex Emberlyn', alignment: 'Chaotic Neutral',
+      ...BASE, name: 'Vex Emberlyn', alignment: 'Chaotic Neutral', backgroundId: 'charlatan',
       raceId: 'tiefling', classes: [{ classId: 'warlock', level: 1, subclassId: 'fiend' }],
-      chosenLanguages: ['Abyssal', 'Elvish'],
       baseAbilities: { str: 8, dex: 13, con: 14, int: 12, wis: 10, cha: 15 },
-      chosenSkills: ['deception', 'arcana'],
+      chosenSkills: ['arcana', 'intimidation'],
     },
   },
   {
@@ -165,7 +163,7 @@ export const STARTER_HEROES: StarterHero[] = [
     role: 'Support',
     difficulty: 'Medium',
     pitch: 'A charming half-elf musician. Good at talking, helping and a bit of everything.',
-    backstory: 'A temple choir singer who wanted to sing about adventures, not hymns.',
+    backstory: 'A tavern singer who wanted to sing about adventures, not just hear about them.',
     tips: [
       'Bardic Inspiration gives an ally a d6 to add to one roll.',
       'You have five skills: you are the party face, so do the talking.',
@@ -173,12 +171,12 @@ export const STARTER_HEROES: StarterHero[] = [
     ],
     spells: ['Cantrips: Vicious Mockery, Minor Illusion', '1st level: Healing Word, Faerie Fire, Sleep, Thunderwave'],
     draft: {
-      ...BASE, name: 'Lyric Aldane', alignment: 'Chaotic Good',
+      ...BASE, name: 'Lyric Aldane', alignment: 'Chaotic Good', backgroundId: 'entertainer',
       raceId: 'half-elf', classes: [{ classId: 'bard', level: 1 }],
-      chosenLanguages: ['Halfling', 'Sylvan', 'Celestial'], chosenTools: ['Lute', 'Flute', 'Lyre'],
+      chosenLanguages: ['Halfling'], chosenTools: ['Lute', 'Flute', 'Lyre', 'Viol'],
       baseAbilities: { str: 8, dex: 14, con: 13, int: 10, wis: 12, cha: 15 },
       freeAbilityBonuses: ['dex', 'con'],
-      chosenSkills: ['performance', 'persuasion', 'deception', 'acrobatics', 'perception'],
+      chosenSkills: ['persuasion', 'deception', 'perception', 'insight', 'history'],
     },
   },
 ]
