@@ -227,3 +227,8 @@
 .ff-dm .dm-rolls__meta { display: flex; justify-content: space-between; gap: var(--sp-2); }
 .ff-dm .dm-rolls__tag { margin-inline-start: 6px; padding: 0 6px; border-radius: var(--r-pill); background: var(--glass-tint); color: var(--accent); font-weight: 600; }
 .dm-badge--soft { background: var(--accent); }
+
+/* Monsters tab: rules toggle, source picker and legacy marks */
+.ff-dm .dm-edition { display: flex; gap: var(--sp-1); margin-block-end: var(--sp-2); }
+.ff-dm .dm-filters .dm-source { grid-column: 1 / -1; }
+.ff-dm .dm-legacy { color: var(--muted); font-weight: 400; }

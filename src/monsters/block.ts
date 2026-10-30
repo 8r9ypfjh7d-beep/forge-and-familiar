@@ -1,35 +1,12 @@
 // Pure reads of a Monster stat block: modifiers, legendary counts, spell slots. No React, no storage.
 // Every monster screen (DM screen, NPC sheets, custom monsters) reads stat blocks through here.
 import type { Monster, MonsterAction } from '../content'
-import type { Ability } from '../rules'
 
 export const monsterMod = (score: number) => Math.floor((score - 10) / 2)
 
-/**
- * Fields the full-monster-list and custom-monsters threads add to `Monster` (agreed 2026-10-30).
- * Declared here as well so stat blocks render them as soon as the data has them; once `Monster`
- * carries them, this intersection is redundant and can go.
- */
-export interface MonsterExtras {
-  spellcasting?: MonsterSpellcasting
-  lairActions?: MonsterAction[]
-  legendary?: { actions: number; resistance?: number; description?: string }
-  /** 2024 initiative bonus; missing = DEX modifier. */
-  initiative?: number
-  /** Book code (MM, VGM...), named by BOOK_TITLES. */
-  book?: string
-}
-
-export interface MonsterSpellcasting {
-  ability: Ability
-  saveDc?: number
-  attackBonus?: number
-  /** "Cantrips (at will)", "1st level (4 slots)", "1/day each": the spells under each heading. */
-  groups: { label: string; spells: string[] }[]
-  note?: string
-}
-
-export type Block = Monster & MonsterExtras
+/** A stat block. `Monster` (src/content) carries every optional field (spellcasting, lairActions, legendary, initiative, book, nameHe…). */
+export type Block = Monster
+export type { MonsterSpellcasting } from '../content'
 
 export const initBonus = (m: Block) => m.initiative ?? monsterMod(m.abilities.dex)
 export const conSave = (m: Block) => m.savingThrows.con ?? monsterMod(m.abilities.con)

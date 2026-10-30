@@ -127,18 +127,32 @@ export interface MonsterQuery {
   minCr: number | null
   maxCr: number | null
   type: string
+  /** '' any, 'srd' the SRD, 'hb' homebrew and imported packs, or a book code (`Monster.book`). */
+  book?: string
 }
 
-export function findMonsters(list: Monster[], q: MonsterQuery, limit = 60): Monster[] {
+/** Which source picker group a monster belongs to: 'srd', its book code, or 'hb' for packs. */
+export const monsterGroup = (m: Pick<Monster, 'source' | 'book'>) =>
+  m.source.startsWith('srd-') ? 'srd' : m.source.startsWith('books-') ? m.book ?? 'books' : 'hb'
+
+/** Matches the English name, and the translated name when `localName` is given (Hebrew search). */
+export function findMonsters(list: Monster[], q: MonsterQuery, limit = 60, localName?: (m: Monster) => string): Monster[] {
   const text = q.text.trim().toLowerCase()
   return list
     .filter(m =>
-      (!text || m.name.toLowerCase().includes(text)) &&
+      (!text || m.name.toLowerCase().includes(text) || (localName?.(m) ?? '').toLowerCase().includes(text)) &&
       (q.minCr == null || m.challengeRating >= q.minCr) &&
       (q.maxCr == null || m.challengeRating <= q.maxCr) &&
-      (!q.type || m.type.toLowerCase() === q.type))
+      (!q.type || m.type.toLowerCase() === q.type) &&
+      (!q.book || monsterGroup(m) === q.book))
     .sort((a, b) => a.challengeRating - b.challengeRating || a.name.localeCompare(b.name))
     .slice(0, limit)
+}
+
+/** Source groups present in the list, for the source picker: 'srd' first, then book codes, then 'hb'. */
+export const monsterGroups = (list: Monster[]) => {
+  const set = new Set(list.map(monsterGroup))
+  return ['srd', ...[...set].filter(g => g !== 'srd' && g !== 'hb').sort(), ...(set.has('hb') ? ['hb'] : [])].filter(g => set.has(g))
 }
 
 /** Every CR in the list, smallest first, for the CR pickers. */

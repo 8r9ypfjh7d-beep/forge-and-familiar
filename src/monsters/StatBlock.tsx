@@ -1,7 +1,7 @@
 // A monster stat block with roll buttons: ability checks, saves, skills, attacks and damage go through
 // src/dice under the creature's name. Shared by the DM screen's Monsters tab and the NPC sheet.
 import { useState, type ReactNode } from 'react'
-import type { MonsterAction } from '../content'
+import { monsterSourceNote, type MonsterAction } from '../content'
 import { rollD20 } from '../dice'
 import { RollView, useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
@@ -28,10 +28,16 @@ export interface StatBlockProps {
   /** Uses spent per action name, drawn as pips next to the action; tapping a pip spends or returns one. */
   uses?: Record<string, number>
   onUse?: (action: MonsterAction, spent: number) => void
+  /** An older-edition book monster shown to a newer-edition campaign (loadMonsters marks it). */
+  legacy?: boolean
 }
 
-export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, onUse }: StatBlockProps) {
-  const { t, abilityShort } = useI18n()
+export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, onUse, legacy }: StatBlockProps) {
+  const { t, abilityShort, locale, monsterName } = useI18n()
+  const he = locale === 'he'
+  const shown = title ?? monsterName(m)
+  const lore = he && m.descriptionHe ? m.descriptionHe : m.description
+  const note = monsterSourceNote(m)
   const { record, roll } = useDice()
   const [last, setLast] = useState<ReturnType<typeof record> | null>(null)
   const who = rollAs ?? title ?? m.name
@@ -52,8 +58,8 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
     <section className="card mon-statblock" aria-labelledby="mon-sb-name" lang="en" dir="ltr">
       <div className="card-head">
         <div>
-          <h3 id="mon-sb-name">{title ?? m.name}</h3>
-          <p className="hint">{title ? `${m.name} · ` : ''}{typeLine(m)}</p>
+          <h3 id="mon-sb-name">{shown}{shown !== m.name && <small className="mon-sb-en" lang="en" dir="ltr"> {m.name}</small>}</h3>
+          <p className="hint">{title ? `${m.name} · ` : ''}{typeLine(m)}{legacy ? ` · ${t('dm.legacy')}` : ''}</p>
         </div>
         {actions}
       </div>
@@ -92,6 +98,10 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
         {list('dm.senses', sensesText(m))}
         {m.languages && <p><b>{t('dm.languages')}</b> {m.languages}</p>}
         {resistance > 0 && <p><b>{t('dm.legendaryResistance')}</b> {resistance}/Day</p>}
+        {list('dm.gear', m.gear ?? [])}
+        {list('dm.habitat', m.habitat ?? [])}
+        {list('dm.treasure', m.treasure ?? [])}
+        {lore && <p className="mon-sb-lore">{lore}</p>}
       </div>
       {last && <div className="mon-roll" aria-live="polite"><RollView roll={last} compact /></div>}
       <Actions title={t('dm.traits')} list={m.traits} {...actionProps} />
@@ -115,6 +125,8 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
       <Actions title={t('dm.reactions')} list={m.reactions} {...actionProps} />
       <Actions title={t('dm.legendary')} note={legendary ? t('dm.legendaryPerRound', { count: legendary }) : undefined} list={m.legendaryActions} {...actionProps} />
       <Actions title={t('dm.lairActions')} list={m.lairActions ?? []} {...actionProps} />
+      {m.regionalEffects && <><h2 className="sub-title">{t('dm.regionalEffects')}</h2><p>{m.regionalEffects}</p></>}
+      <p className="hint mon-sb-source"><b>{note.title}</b>{note.note ? ` · ${note.note}` : ''}</p>
     </section>
   )
 }
@@ -128,7 +140,7 @@ function Actions({ title, note, list, onD20, onDmg, uses, onUse }: {
   uses?: Record<string, number>
   onUse?: (action: MonsterAction, spent: number) => void
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   if (!list.length) return null
   return (
     <>
@@ -136,7 +148,7 @@ function Actions({ title, note, list, onD20, onDmg, uses, onUse }: {
       <ul className="plain mon-actions">
         {list.map((a, i) => (
           <li key={i}>
-            <p><b>{a.name}{usageText(a)}.</b> {a.description}</p>
+            <p><b>{a.name}{usageText(a)}.</b> {locale === 'he' && a.descriptionHe ? a.descriptionHe : a.description}</p>
             {onUse && a.usage && <UsePips action={a} spent={uses?.[a.name] ?? 0} onUse={onUse} />}
             {(a.attackBonus != null || a.damage.length > 0 || a.damageChoice?.length) && (
               <div className="mon-action-rolls">
