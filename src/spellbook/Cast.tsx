@@ -6,7 +6,8 @@ import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { slotChoices, spellDamage } from '../quickcast/quickcast'
 import type { SlotChoice } from '../quickcast'
-import { derive, getResources } from '../rules'
+import { setEquipped } from '../inventory/inventory'
+import { derive, getResources, wornArmor } from '../rules'
 import { withRollFromText } from '../sheet/combat/combat'
 import { LastRoll, type Shown } from '../sheet/combat/LastRoll'
 import { useSheetRolls } from '../sheet/dice'
@@ -16,7 +17,14 @@ import type { Apply } from '../sheet/types'
 import { castPlan, castSpell, defaultSlot, fixedAmount } from './cast'
 import { toQuickCast } from './spellbook'
 
-export interface CastOut { name: string; rolls: Shown[]; note?: string; healMe?: number }
+export interface CastOut {
+  name: string
+  rolls: Shown[]
+  note?: string
+  healMe?: number
+  /** Body armor that stops the spell working (Mage Armor), offered to take off in one tap. */
+  takeOff?: { uid: string; name: string }
+}
 
 /** Casting for one card: `cast` does everything and returns what to show; `out` is the last result. */
 export function useCast(character: Character, apply: Apply) {
@@ -82,12 +90,13 @@ export function useCast(character: Character, apply: Apply) {
     const ended = plan.effect ? startEffect(character, plan.effect).ended : []
     for (const name of ended) notes.push(t('cast.concEnded', { name }))
     if (plan.effect) notes.push(t('cast.inEffect'))
+    const takeOff = plan.effect?.acBase ? wornArmor(character) : undefined
 
     const log = slot
       ? t(slot.source === 'pact' ? 'cs.log.castPact' : 'cs.log.cast', { name: spell.name, level: slot.level })
       : t('cast.log', { name: spell.name })
     apply(log, c => castSpell(c, plan, { slot, tempHp, heal: healed, spend: free?.spend }).character)
-    const value: CastOut = { name: spell.name, rolls: shown, note: notes.join(' · ') || undefined, ...(healMe ? { healMe } : {}) }
+    const value: CastOut = { name: spell.name, rolls: shown, note: notes.join(' · ') || undefined, ...(healMe ? { healMe } : {}), ...(takeOff ? { takeOff } : {}) }
     setOut(o => ({ key: (o?.key ?? 0) + 1, value }))
     return value
   }
@@ -100,10 +109,12 @@ export function CastResult({ out, outKey, onDone, character, apply }: { out: Cas
   const { t } = useI18n()
   const [healedKey, setHealedKey] = useState(-1)
   if (!out) return null
+  // The armor question stays until it's answered, so the roll doesn't fade under it.
+  const armor = out.takeOff && character.inventory.some(e => e.uid === out.takeOff!.uid && e.equipped) ? out.takeOff : undefined
   return (
     <div className="sb-cast-out" key={outKey}>
       <strong>{out.name}</strong>
-      <LastRoll rolls={out.rolls} note={out.note} onDone={onDone} />
+      <LastRoll rolls={out.rolls} note={out.note} onDone={armor ? undefined : onDone} />
       {out.healMe !== undefined && healedKey !== outKey && character.state.currentHp > 0 && (
         <button type="button" className="glass-btn small" onClick={() => {
           setHealedKey(outKey)
@@ -111,6 +122,20 @@ export function CastResult({ out, outKey, onDone, character, apply }: { out: Cas
         }}>
           {t('cast.healMe', { n: out.healMe })}
         </button>
+      )}
+      {armor && (
+        <div className="sb-take-off" role="alert">
+          <p>{t('cast.wearing', { armor: armor.name, name: out.name })}</p>
+          <div className="sb-actions">
+            <button type="button" className="glass-btn small prominent" onClick={() => {
+              apply(t('cast.log.takeOff', { armor: armor.name }), c => setEquipped(c, armor.uid, false))
+              onDone()
+            }}>
+              {t('cast.takeOff', { armor: armor.name })}
+            </button>
+            <button type="button" className="glass-btn small" onClick={onDone}>{t('cast.keepOn')}</button>
+          </div>
+        </div>
       )}
     </div>
   )

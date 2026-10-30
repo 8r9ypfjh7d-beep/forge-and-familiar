@@ -14,7 +14,7 @@ Combat mode's Spells tab and story mode's Spells card. The tab shows the spell s
 | `Spellbook.tsx` | `Spellbook` (combat's Spells tab): spell slots, summary (save DC, attack, cantrips and spells used of allowed), My spells, Add spells (search, level chips), spell details, source attribution |
 | `spellbook.css` | Liquid Glass styles for the card's insides (the card frame is the sheet's): `.glass-segmented` tabs, `.glass-chip` filters, `SearchField`, inset spell list on thin glass, tinted Add/Pin buttons |
 | `cast.ts` | Pure: `castPlan` (rules `planCast` with the character's edition, spellcasting modifier and speed), `defaultSlot` (lowest free slot that fits), `castSpell` (spends the slot, starts the running effect, adds temp HP and healing) |
-| `Cast.tsx` | `useCast` (one tap: rolls the spell's attack, save DC, damage or healing, 2024 smite damage, temp HP dice, then applies `castSpell` as one undoable step), `CastButton` (Cast, plus ▾ for a higher slot when there is a choice), `CastResult` (fading result; healing spells offer Heal me) |
+| `Cast.tsx` | `useCast` (one tap: rolls the spell's attack, save DC, damage or healing, 2024 smite damage, temp HP dice, then applies `castSpell` as one undoable step), `CastButton` (Cast, plus ▾ for a higher slot when there is a choice), `CastResult` (fading result; healing spells offer Heal me; an AC-base spell like Mage Armor cast in body armor asks to take it off, via `wornArmor`, and doesn't fade until answered) |
 | `cast.test.ts` | Casting Armor of Agathys, concentration, rests, smites, Aid |
 | `spellbook.test.ts` | Access for both editions, multiclass, subclass spells, quick-cast mapping |
 
@@ -40,7 +40,7 @@ Spells from the official books show their book code (XGE, TCE…) as a tag. The 
 
 ## Story spells
 
-`SpellsCard` (also in `Spellbook.tsx`) is story mode's Spells card, above the skills. It shows the spell slots (`sheet/components/SpellSlots.tsx`), then the pinned spells: the spell entries of `Character.quickCast`. Combat mode has no Spells card; its Spells tab pins with the same list, and pinned attack or save spells show in the Combat tab's attacks table. "+ Pin spells" picks from every spell the character's classes can take (their own spells first). Pin buttons toggle (`toggleSpellPin`).
+`SpellsCard` (also in `Spellbook.tsx`) is story mode's Spells card, above the skills. It shows the spell slots (`sheet/components/SpellSlots.tsx`), then the pinned spells: the spell entries of `Character.quickCast`. Combat mode has no Spells card; its Spells tab pins with the same list, and pinned attack or save spells show in the Combat tab's attacks table. "+ Pin spells" picks from every spell the character's classes can take (their own spells first). Pin buttons toggle (`toggleSpellPin`). With nothing pinned the card lists the character's own class spells (chosen, always prepared and feat picks; race spells stay under "From your items") with Cast, so a new character can cast in story mode. Unpin ✕ shows only while "+ Pin spells" is open, and combat's My spells hides forget ✕ behind Edit list, so a mistap next to Cast can't drop a spell.
 
 ## Quick cast
 

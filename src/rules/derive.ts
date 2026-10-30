@@ -248,6 +248,12 @@ export function getEquippedArmor(c: Character): { armor?: Armor; shield?: Armor 
   return { armor: body?.item, shield: shield?.item }
 }
 
+/** The body armor being worn (not a shield), with its inventory uid so the sheet can take it off. */
+export function wornArmor(c: Character): { uid: string; name: string } | undefined {
+  const { body } = equippedArmor(c)
+  return body && { uid: body.entry.uid, name: body.entry.name ?? body.item.name }
+}
+
 /** Running spells and features that apply to the character (switched on). */
 export const liveEffects = (c: Pick<Character, 'state'>) => (c.state?.effects ?? []).filter(e => e.on)
 

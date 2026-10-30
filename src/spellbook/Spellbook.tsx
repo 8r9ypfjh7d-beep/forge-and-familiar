@@ -109,6 +109,7 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
 /**
  * Story mode's Spells card: spell slots on top, then the pinned spells (they also show in combat's
  * attacks table) with a picker over every spell their classes can take (their own spells first).
+ * With nothing pinned it lists the character's own spells, so a new character can cast right away.
  */
 export function SpellsCard({ character, apply }: { character: Character; apply: Apply }) {
   const { t } = useI18n()
@@ -139,6 +140,11 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
     .sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || a.level - b.level || a.name.localeCompare(b.name))
   const shown = searchEntries(pool, query).slice(0, 60)
   const isOn = (s: Spell) => isPinned(character, s.name)
+  // Race spells are left out: they cast from "From your items" without a slot.
+  const own = pinned.length ? [] : [...new Set([...spellsOf(character).map(k => k.id), ...access.flatMap(a => a.alwaysPrepared)])]
+    .flatMap(id => byId.get(id) ?? [])
+    .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+  const levelBadge = (level: number) => (level === 0 ? t('spells.cantrip') : t(`sheet.slot.${level}` as MessageKey))
 
   return (
     <section className="card spellbook spell-card" aria-labelledby="spell-card-title">
@@ -155,15 +161,25 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
       {lib === 'error' && <p className="hint">{t('spells.failed')}</p>}
       {lib && lib !== 'error' && !noSpells && (
         <div className="sb-pinned" role="group" aria-labelledby="pinned-title">
-          {slots && <h3 id="pinned-title" className="sub-title">{t('spells.story.pinnedTitle')}</h3>}
-          {pinned.length === 0 && !picking && <p className="hint">{t('spells.story.empty')}</p>}
+          {slots && <h3 id="pinned-title" className="sub-title">{t(own.length ? 'spells.story.yourTitle' : 'spells.story.pinnedTitle')}</h3>}
+          {pinned.length === 0 && !picking && <p className="hint">{t(own.length ? 'spells.story.ownHint' : 'spells.story.empty')}</p>}
           <CastResult out={casting.out} outKey={casting.outKey} onDone={casting.clear} character={character} apply={apply} />
+          {own.length > 0 && !picking && (
+            <ul className="sb-list">
+              {own.map(s => (
+                <SpellRow key={s.id} spell={s} badge={levelBadge(s.level)} running={isRunning(character, s.id)}>
+                  <CastButton character={character} spell={s} onCast={casting.cast} />
+                </SpellRow>
+              ))}
+            </ul>
+          )}
           {pinned.length > 0 && (
             <ul className="sb-list">
               {pinned.map(e => {
                 const s = byName.get(e.name.toLowerCase())
-                const badge = e.level === 0 ? t('spells.cantrip') : t(`sheet.slot.${e.level}` as MessageKey)
-                const remove = (
+                const badge = levelBadge(e.level)
+                // Unpinning is part of "+ Pin spells", so a mistap during play can't drop a spell.
+                const remove = picking && (
                   <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.story.unpinName', { name: e.name })} onClick={() => unpin(e)}>✕</button>
                 )
                 // Spells typed into quick-cast by hand have no library text, so they show as a plain row.
@@ -246,6 +262,8 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
   const { t } = useI18n()
   const casting = useCast(character, apply)
   const levelName = useLevelName()
+  // Forgetting a spell sits behind Edit, away from Cast and Pin.
+  const [editing, setEditing] = useState(false)
   const byId = new Map(spells.map(s => [s.id, s]))
   const chosen = new Set(spellsOf(character, access.classId).map(k => k.id))
   const list = [...new Set([...access.alwaysPrepared, ...chosen])]
@@ -263,6 +281,11 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
   const pin = (s: Spell, on: boolean) => apply(t(on ? 'spells.story.log.unpin' : 'spells.log.pin', { name: s.name }), c => toggleSpellPin(c, s))
   return (
     <div className="sb-groups">
+      <div className="sb-edit">
+        <button type="button" className="glass-btn small" aria-pressed={editing} onClick={() => setEditing(e => !e)}>
+          {editing ? t('spells.story.done') : t('spells.edit')}
+        </button>
+      </div>
       <CastResult out={casting.out} outKey={casting.outKey} onDone={casting.clear} character={character} apply={apply} />
       {groupByLevel(list).map(([level, group]) => (
         <section key={level} aria-label={levelName(level)}>
@@ -278,7 +301,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
                     aria-label={pinned ? t('spells.story.unpinName', { name: s.name }) : t('spells.pinName', { name: s.name })}>
                     {pinned ? t('spells.pinned') : t('spells.pin')}
                   </button>
-                  {!always && (
+                  {editing && !always && (
                     <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.removeName', { name: s.name })}
                       onClick={() => apply(t('spells.log.remove', { name: s.name }), c => removeSpell(c, access.classId, s.id))}>
                       ✕
