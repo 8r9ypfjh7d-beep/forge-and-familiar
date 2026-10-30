@@ -222,8 +222,18 @@ export function getResources(c: Character): ResourceInfo[] {
     const limit = spellLimit(s.note, prof)
     if (s.useId && limit && 'max' in limit && !out.some(o => o.id === s.useId)) out.push({ id: s.useId, label: `${s.spell} (${s.source})`, max: limit.max, recharge: limit.recharge })
   }
+  // The player's own combat-page actions with uses (Overdrive once per long rest): a number, PB or a modifier.
+  for (const a of c.customActions ?? []) {
+    const u = a.uses
+    if (!u) continue
+    const max = Math.max(1, typeof u.count === 'number' ? Math.floor(u.count) : u.count === 'pb' ? prof : mods[u.count])
+    out.push({ id: actionUseId(a.id), label: a.name, max, recharge: u.recharge })
+  }
   return [...out, ...getItemCharges(c)]
 }
+
+/** The resource id that tracks a custom action's uses. */
+export const actionUseId = (actionId: string) => `act:${actionId}`
 
 /** Weapon Mastery (2024): how many kinds of weapon the character can use mastery properties with. 0 in 2014. */
 export function getWeaponMasteryCount(c: Pick<Character, 'classes' | 'rulesEdition'>): number {
