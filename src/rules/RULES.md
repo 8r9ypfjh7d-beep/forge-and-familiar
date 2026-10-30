@@ -11,7 +11,8 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `abilities.ts` | Modifiers, standard array, point buy, racial bonuses (`fixedRacialBonuses`: 2014 race/subrace bonuses, moved by `racialBonusTargets`), final scores |
 | `origin.ts` | Tasha's Customizing Your Origin (2014): `bookOrigin`, `racialSkills`, `racialLanguages`, `racialWeapons` apply `Character.originSwaps`; `canSwapOrigin` |
 | `derive.ts` | `derive()` and helpers: HP, hit dice, AC, attacks, saves, skills, slots, resources, speed |
-| `factory.ts` | `createCharacter(draft)`, `freshState(maxHp)`, starting kit |
+| `factory.ts` | `createCharacter(draft)`, `freshState(maxHp)`, starting kit, `startingGold`, `startingCoins` (after purchases) |
+| `wealth.ts` | Starting wealth: 2014 class gold dice (`ClassDef.startingWealth`, `wealthDice`, `averageWealth`), 2024 background 50 gp, purchase totals, `coinsFromCp` |
 | `rollMode.ts` | Advantage/disadvantage from own conditions |
 | `attackRiders.ts` | `getDamageRiders` (Rage, Sneak Attack, 2024 Divine Strike / Primal Strike) and `getCritRange` (Champion) for one-tap attacks |
 | `classPicks.ts` | Class multi-picks (`ClassDef.picks`: Expertise, Primal Knowledge, class languages) as skill effects, and Weapon Mastery weapons (`MASTERY_WEAPONS`, `weaponMastery`; table in `data/masteries.ts`) |

@@ -250,3 +250,52 @@ describe('languages and tools', () => {
     expect(TOOLS).toEqual(expect.arrayContaining(['Vehicles (air)', 'Vehicles (space)', 'Yarting']))
   })
 })
+
+describe('starting wealth', () => {
+  it('gives every 2014 class its gold dice and a rounded-down average', async () => {
+    const { CLASSES, averageWealth, wealthDice } = await import('./index')
+    for (const c of CLASSES) expect(wealthDice(c), c.id).toBeDefined()
+    const byId = (id: string) => CLASSES.find(c => c.id === id)!
+    expect(wealthDice(byId('fighter'))).toEqual({ notation: '5d4', multiplier: 10 })
+    expect(averageWealth(byId('fighter'))).toBe(125)
+    expect(averageWealth(byId('barbarian'))).toBe(50)
+    expect(averageWealth(byId('monk'))).toBe(12)
+  })
+
+  it('2014 class gold replaces the class and background gear', () => {
+    const c = make({ startingWealth: { classGold: 120 } })
+    expect(c.inventory).toEqual([])
+    expect(c.coins).toEqual({ gp: 120, sp: 0, cp: 0 })
+    expect(make().coins.gp).toBe(15)
+  })
+
+  it('2024 background option B gives 50 gp instead of its items', () => {
+    const base = { rulesEdition: '2024' as const, raceId: 'human', backgroundId: 'criminal', classes: [{ classId: 'fighter', level: 1 }] }
+    const a = make(base)
+    const b = make({ ...base, startingWealth: { backgroundGold: true } })
+    expect(a.inventory.some(e => e.itemId === 'thieves-tools')).toBe(true)
+    expect(b.inventory.some(e => e.itemId === 'thieves-tools')).toBe(false)
+    expect(b.coins.gp - a.coins.gp).toBe(50 - 16)
+  })
+
+  it('adds builder purchases to the inventory and pays for them in coins', () => {
+    const c = make({
+      startingWealth: { classGold: 100 },
+      purchases: [
+        { itemId: 'chain-mail', qty: 1, costCp: 7500 },
+        { itemId: 'arrows', qty: 20, costCp: 100 },
+        { itemId: 'abacus', item: { kind: 'gear', id: 'abacus', name: 'Abacus', weight: 2 }, qty: 1, costCp: 250 },
+      ],
+    })
+    expect(c.coins).toEqual({ gp: 21, sp: 5, cp: 0 })
+    expect(c.inventory.find(e => e.itemId === 'chain-mail')).toMatchObject({ qty: 1, equipped: true })
+    expect(c.inventory.find(e => e.itemId === 'arrows')?.qty).toBe(20)
+    expect(c.inventory.find(e => e.itemId === 'abacus')?.item?.name).toBe('Abacus')
+  })
+
+  it('never starts below 0 coins when the cart costs too much', async () => {
+    const { startingCoins } = await import('./index')
+    const d = draft({ purchases: [{ itemId: 'plate', qty: 1, costCp: 150000 }] })
+    expect(startingCoins(d)).toEqual({ coins: { gp: 0, sp: 0, cp: 0 }, leftCp: 1500 - 150000 })
+  })
+})

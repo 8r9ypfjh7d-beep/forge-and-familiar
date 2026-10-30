@@ -228,6 +228,8 @@ export interface ClassDef {
   weaponMastery?: [number, number][]
   /** Gold in the starting kit (2024 kits list it; 2014 characters start with 15 gp). */
   startingGold?: number
+  /** 2014 "take gold instead": `dice`d4 × `multiplier` gp in place of the class and background gear. */
+  startingWealth?: { dice: number; multiplier: number }
 }
 
 /** One starting-equipment choice. An option lists item ids; `any:<filter>` asks the player for one item. */

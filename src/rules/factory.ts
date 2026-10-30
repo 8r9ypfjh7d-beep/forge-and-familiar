@@ -4,7 +4,9 @@ import { getBackground } from './data/backgrounds'
 import { classById } from './data/classes'
 import { itemById } from './data/items'
 import { getMaxHp } from './derive'
+import type { Item } from './types'
 import { rulesEdition } from './edition'
+import { BACKGROUND_GOLD_2024, coinsFromCp, purchasesCp, takesBackgroundGold, takesClassGold } from './wealth'
 
 /** The choices the builder collects before a character exists. */
 export type CharacterDraft = Omit<Character, 'id' | 'schemaVersion' | 'inventory' | 'state' | 'createdAt' | 'updatedAt' | 'xp' | 'notes' | 'coins'>
@@ -26,18 +28,31 @@ export function freshState(maxHp: number): CharacterState {
   }
 }
 
-/** Starting gear ids from the class kit and the background, merged into stacks. */
-export function startingItemIds(draft: Pick<CharacterDraft, 'classes' | 'backgroundId' | 'customBackground' | 'equipmentPicks' | 'rulesEdition'>): string[] {
+type GearInput = Pick<CharacterDraft, 'classes' | 'backgroundId' | 'customBackground' | 'equipmentPicks' | 'rulesEdition' | 'startingWealth'>
+
+/** Starting gear ids from the class kit and the background, merged into stacks. Starting wealth taken instead drops them. */
+export function startingItemIds(draft: GearInput): string[] {
+  if (takesClassGold(draft)) return []
   const cls = classById(draft.classes[0]?.classId ?? '', rulesEdition(draft))
-  const bg = getBackground(draft)
+  const bg = takesBackgroundGold(draft) ? undefined : getBackground(draft)
   return [...(cls ? classKit(cls, draft.equipmentPicks) : []), ...(bg?.equipment ?? [])]
 }
 
-/** Starting gold: 15 gp in 2014 (plus a homebrew background's coins); in 2024 the class kit's and the background's coins. */
-export function startingGold(draft: Pick<CharacterDraft, 'classes' | 'backgroundId' | 'customBackground' | 'equipmentPicks' | 'rulesEdition'>): number {
-  if (rulesEdition(draft) !== '2024') return 15 + (getBackground(draft)?.gold ?? 0)
+/**
+ * Starting gold before shopping. 2014: 15 gp (plus a homebrew background's coins), or the class gold taken instead of the gear.
+ * 2024: the class kit's and the background's coins (50 gp when the background's option B is taken).
+ */
+export function startingGold(draft: GearInput): number {
+  if (rulesEdition(draft) !== '2024') return takesClassGold(draft) ? Math.max(0, draft.startingWealth?.classGold ?? 0) : 15 + (getBackground(draft)?.gold ?? 0)
   const cls = classById(draft.classes[0]?.classId ?? '', '2024')
-  return (cls ? kitGold(cls, draft.equipmentPicks) : 0) + (getBackground(draft)?.gold ?? 0)
+  const bg = takesBackgroundGold(draft) ? BACKGROUND_GOLD_2024 : (getBackground(draft)?.gold ?? 0)
+  return (cls ? kitGold(cls, draft.equipmentPicks) : 0) + bg
+}
+
+/** Coins left after the builder purchases (never below 0) and how far over budget the cart is, in cp. */
+export function startingCoins(draft: GearInput & Pick<CharacterDraft, 'purchases'>): { coins: Character['coins']; leftCp: number } {
+  const leftCp = startingGold(draft) * 100 - purchasesCp(draft.purchases)
+  return { coins: coinsFromCp(leftCp), leftCp }
 }
 
 const AMMO_BUNDLE: Record<string, number> = { arrows: 20, bolts: 20, rations: 5, torch: 5 }
@@ -47,14 +62,18 @@ export function createCharacter(draft: CharacterDraft, now = new Date()): Charac
   const inventory: Character['inventory'] = []
   let wornArmor = false
   let weapons = 0
-  for (const itemId of startingItemIds(draft)) {
-    const stack = inventory.find(e => e.itemId === itemId)
+  const gear: { itemId: string; item?: Item; qty?: number }[] = [
+    ...startingItemIds(draft).map(itemId => ({ itemId })),
+    ...(draft.purchases ?? []).filter(p => p.qty > 0),
+  ]
+  for (const { itemId, item: embedded, qty } of gear) {
+    const stack = inventory.find(e => e.itemId === itemId && !e.item === !embedded)
     if (stack) {
-      stack.qty += 1
+      stack.qty += qty ?? 1
       continue
     }
     // Equip the first body armor, a shield and up to two weapons.
-    const item = itemById(itemId)
+    const item = embedded ?? itemById(itemId)
     let equipped = false
     if (item?.kind === 'armor' && item.category === 'shield') equipped = true
     else if (item?.kind === 'armor') {
@@ -64,7 +83,7 @@ export function createCharacter(draft: CharacterDraft, now = new Date()): Charac
       equipped = weapons < 2
       weapons += 1
     }
-    inventory.push({ uid: uid(), itemId, qty: AMMO_BUNDLE[itemId] ?? 1, equipped })
+    inventory.push({ uid: uid(), itemId, qty: qty ?? AMMO_BUNDLE[itemId] ?? 1, equipped, ...(embedded ? { item: embedded } : {}) })
   }
 
   const base: Character = {
@@ -73,7 +92,7 @@ export function createCharacter(draft: CharacterDraft, now = new Date()): Charac
     schemaVersion: CHARACTER_SCHEMA_VERSION,
     xp: 0,
     notes: '',
-    coins: { cp: 0, sp: 0, gp: startingGold(draft) },
+    coins: startingCoins(draft).coins,
     inventory,
     state: freshState(1),
     createdAt: now.toISOString(),

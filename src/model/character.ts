@@ -116,6 +116,13 @@ export interface CustomAction {
   active?: boolean
 }
 
+/** One shop line from the builder: the item (engine id, or the library item embedded), how many and the total price. */
+export interface Purchase extends Pick<InventoryEntry, 'itemId' | 'item'> {
+  qty: number
+  /** Total price in copper pieces. */
+  costCp: number
+}
+
 export const CHARACTER_SCHEMA_VERSION = 1
 
 /** A person using the app. Local profile for now; maps to an auth account once a backend exists. */
@@ -183,6 +190,14 @@ export interface Character {
   improvements?: Improvement[]
   /** Starting gear: per class equipmentChoices entry, the option index and the items picked for its "any" slots. */
   equipmentPicks?: { option: number; items: string[] }[]
+  /**
+   * Starting wealth in place of gear. 2014 `classGold`: the class's gold (rolled, average or typed) replaces the
+   * class and background gear; `rolls` keeps the d4s when it was rolled. 2024 `backgroundGold`: the background's
+   * 50 gp (option B) replaces its items.
+   */
+  startingWealth?: { classGold?: number; rolls?: number[]; backgroundGold?: boolean }
+  /** Gear bought in the builder with the starting coins. Missing: nothing bought. */
+  purchases?: Purchase[]
   inventory: InventoryEntry[]
   coins: { cp: number; sp: number; gp: number }
   notes: string

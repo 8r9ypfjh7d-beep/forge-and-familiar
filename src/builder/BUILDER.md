@@ -19,6 +19,9 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 | `Why.tsx`, `why.css` | "why?" button (topic or any title/text, optional capsule label), `Explain` (the picked option's line) and `ExplainList` (name + line per feature, trait, language, tool) |
 | `why.ts` | "why?" topic ids, `explainKey(kind, id)` and `pitchKey()`; topic text is in `i18n/locales/en.ts`, option explanations in `i18n/locales/explain.en.ts` / `explain.he.ts` |
 | `validate.test.ts` | Validation tests |
+| `Shop.tsx` | Equipment step shop: SRD item library of the character's edition, search, item-type shelves, cart with budget |
+| `shop.ts` | Pure shop helpers: `costCp`, `shopItem` (library item → engine id or embedded item), `changePurchase`, `coinText` |
+| `shop.test.ts` | Prices, cart, engine ids, over-budget warning, editing purchases |
 | `kit.ts` | `groupKitItems()`: repeated kit items shown once with a count (Javelin ×10) |
 | `kit.test.ts` | Kit item grouping |
 | `edit.test.ts` | Editing keeps play state and gear |
@@ -45,7 +48,9 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 - Language picks come from race, subrace and background (`languagePickCount`); tool picks from race and first class (`toolPickGroups`), in that order in `chosenTools`.
 - Every language and tool pick (and the custom background's two picks) offers every official name, grouped, plus "✎ Write your own…": the typed name is saved as-is and explained as "written in by you". A tool pick shows its own list first, the rest under "Other tools: <kind>" (warns). Druidic or Thieves' Cant without a Druid or Rogue level warns (`builder.warn.secretLanguage`).
 - Changing race clears language, tool and trait picks; changing the first class clears skills, tools, gear picks, ASIs, class choices, class picks and weapon masteries.
-- Not in the builder yet: spell selection, Bard (Lore) / Ranger / Rogue extra skill and expertise picks, buying gear with starting gold.
+- Starting gold: in 2014 the Equipment step offers "Class kit" or "Gold" (the class's d4s × 10, Monk 5d4): roll (src/dice), take the average or type an amount; gold drops the class and background gear. In 2024 the class kit's A/B/gold choice is in the kit choices and the background gets its own "items + coins / 50 gp" choice. Changing the first class or the rules edition goes back to the kit.
+- Shop: every Equipment step lists the edition's SRD items with prices (free pack contents hidden). Buying adds a cart line (bundles like 20 arrows count once); the coins left go into the starting coins. Spending more than you have only warns (`stepWarnings`) and starts at 0 coins. Ammo, rations, rope and the crystal focus are bought under the engine's ids so the sheet's counters see them. Editing purchases counts as a starting-gear change: swapping gear also moves the coins.
+- Not in the builder yet: spell selection, Bard (Lore) / Ranger / Rogue extra skill and expertise picks, trinkets.
 - Multiclass: `classes[0]` is the starting class (saves, skills, gear). Unmet prerequisites only warn (decided 2026-10-29: many tables allow it): once scores are set, the picker marks short classes with ⚠ and shows a translated note, and `derive().warnings` lists them in the summary. All picker text is in en + he (`builder.mc.*`).
 - "why?" tips are for new players: one short, jargon-light paragraph each. Every option is explained: card stats (legend capsules), each race trait, subrace/lineage, class (`why.about.<id>` plus the `why.class.<id>` pitch), class and subclass feature up to the chosen level, subclass, Fighting Style/Order, ability, skill, background, language, tool, kit choice and alignment. Features and traits are keyed by name, artisan's tools, gaming sets and instruments share one line per group.
 - Add SRD content to `rules/data/` and `why.test.ts` fails until its line is in `explain.en.ts`; `i18n.test.ts` then asks for the Hebrew in `explain.he.ts`. Homebrew has no line and shows "ask your DM".
