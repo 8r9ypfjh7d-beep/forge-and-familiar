@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { en } from '../i18n/locales/en'
 import {
-  ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_BACKGROUNDS_2024, BOOK_SPECIES_2024, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
+  ABILITIES, ALIGNMENTS, ALL_SKILLS, BACKGROUNDS, BOOK_BACKGROUNDS_2024, BOOK_RACES, BOOK_SUBRACES, BOOK_SPECIES_2024, BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024, BACKGROUNDS_2024, CLASSES, CLASSES_2024, LANGUAGES, RACES, SPECIES,
   SUBCLASSES, SUBCLASSES_2024, TOOLS, allFeats, CLASS_CHOICES_2014,
 } from '../rules'
 import { he } from '../i18n/locales/he'
@@ -49,6 +49,12 @@ describe('why? tooltips', () => {
     expect(missing('sub2014', RACES.flatMap(r => (r.subraces ?? []).map(s => s.id)))).toEqual([])
     expect(missing('sub2024', SPECIES_ALL.flatMap(r => (r.subraces ?? []).map(s => s.id)))).toEqual([])
     expect(missing('trait', [...RACES, ...SPECIES_ALL].flatMap(r => [...r.traits, ...(r.subraces ?? []).flatMap(s => s.traits)]))).toEqual([])
+    // Official races and subraces from other books (src/rules/data/books/races.*.ts).
+    expect(missing('race', BOOK_RACES['2014'].map(r => r.id))).toEqual([])
+    expect(missing('sub2014', BOOK_SUBRACES['2014'].map(s => s.id))).toEqual([])
+    // Traits whose meaning differs per race use why.trait.<raceId>.<name>, as the race step looks them up.
+    const parent = (s: { parentRaceId?: string; id: string }) => s.parentRaceId ?? s.id
+    expect([...BOOK_RACES['2014'], ...BOOK_SUBRACES['2014']].flatMap(r => r.traits.filter(t => !explainKey('trait', `${parent(r)}.${t}`) && !explainKey('trait', t)))).toEqual([])
   })
 
   it('explains every background, ability, skill, alignment, language and tool', () => {

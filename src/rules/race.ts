@@ -6,7 +6,7 @@ import { raceById } from './data/races'
 import { rulesEdition } from './edition'
 import { slug } from './subclass'
 import type {
-  Ability, ArmorCategory, ItemEffect, Race, RaceUse, Size, SkillId, Subrace, TraitChoice, WeaponCategory,
+  Ability, ArmorCategory, ItemEffect, Race, RaceEffect, RaceUse, Size, SkillId, Subrace, TraitChoice, WeaponCategory,
 } from './types'
 
 export type RaceInput = Pick<Character, 'raceId'> &
@@ -60,8 +60,10 @@ export function raceProfile(c: RaceInput): RaceProfile {
   const removed = new Set(subrace?.removesTraits ?? [])
   const choices = parts.flatMap(p => p.choices ?? []).filter(ch => (ch.level ?? 1) <= level)
   const effects: RaceProfile['effects'] = []
-  const add = (source: string, list: (ItemEffect & { level?: number })[] | undefined) => {
-    for (const { level: from, ...effect } of list ?? []) if ((from ?? 1) <= level) effects.push({ source, effect: effect as ItemEffect })
+  const add = (source: string, list: RaceEffect[] | undefined) => {
+    for (const { level: from, trait, ...effect } of list ?? []) {
+      if ((from ?? 1) <= level && !(trait && removed.has(trait))) effects.push({ source, effect: effect as ItemEffect })
+    }
   }
   for (const p of parts) add(p.name, p.effects)
   const legacy = race?.traitChoice
@@ -98,7 +100,7 @@ export function raceProfile(c: RaceInput): RaceProfile {
     ...(subrace?.featChoice || race?.featChoice ? { featChoice: 'any' as const } : race?.originFeatChoice ? { featChoice: 'origin' as const } : {}),
     choices,
     effects,
-    uses: parts.flatMap(p => p.uses ?? []).filter(u => (u.level ?? 1) <= level),
+    uses: parts.flatMap(p => p.uses ?? []).filter(u => (u.level ?? 1) <= level && !removed.has(u.trait)),
     ...((subrace?.naturalArmor ?? race?.naturalArmor) ? { naturalArmor: subrace?.naturalArmor ?? race?.naturalArmor } : {}),
     naturalWeapons: parts.flatMap(p => p.naturalWeapons ?? []),
     initiativeProficiency: parts.some(p => p.initiativeProficiency),

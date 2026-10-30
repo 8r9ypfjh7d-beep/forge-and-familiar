@@ -36,8 +36,11 @@ export interface RaceUse {
   level?: number
 }
 
-/** An effect from character level `level` on (innate spells at 3rd and 5th). */
-export type RaceEffect = ItemEffect & { level?: number }
+/**
+ * An effect from character level `level` on (innate spells at 3rd and 5th). `trait` names the trait it comes from,
+ * so a subrace that swaps that trait out drops it too (tiefling bloodlines lose Infernal Legacy's spells).
+ */
+export type RaceEffect = ItemEffect & { level?: number; trait?: string }
 
 /** A racial pick saved in Character.traitChoices[id]; the picked option's effects apply (Changeling Instincts, Simic Hybrid). */
 export interface TraitChoice {

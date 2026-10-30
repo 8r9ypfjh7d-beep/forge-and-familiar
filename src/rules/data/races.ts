@@ -1,11 +1,13 @@
-import type { Race, RulesEdition, Subrace } from '../types'
+import type { Race, RaceEffect, RulesEdition, Subrace } from '../types'
+import { BOOK_RACES_2014, BOOK_SUBRACES_2014, dark, resist, spell } from './books/races.2014'
 import { LEGACY_RACES } from './books/races.legacy'
 import { MOTM_RACES } from './books/races.motm'
 import { SETTING_RACES, SETTING_SUBRACES } from './books/races.settings'
 import { BOOK_SPECIES_2024 } from './books/species2024'
 import { SPECIES } from './srd52/species'
 
-// SRD 5.1 races and subraces only.
+// SRD 5.1 races and subraces only. `effects` put the traits' rules on the sheet.
+const feyAncestry: RaceEffect = { kind: 'advantage', on: 'saves', when: "against being charmed; magic can't put you to sleep" }
 export const RACES: Race[] = [
   {
     id: 'dwarf', name: 'Dwarf', size: 'Medium', speed: 25,
@@ -13,6 +15,7 @@ export const RACES: Race[] = [
     languages: ['Common', 'Dwarvish'],
     toolChoices: { count: 1, from: ["Smith's tools", "Brewer's supplies", "Mason's tools"] },
     traits: ['Darkvision', 'Dwarven Resilience', 'Dwarven Combat Training', 'Stonecunning'],
+    effects: [dark(60), resist('poison'), { kind: 'advantage', on: 'saves', when: 'against poison' }],
     subraces: [
       { id: 'hill-dwarf', name: 'Hill Dwarf', abilityBonuses: { wis: 1 }, traits: ['Dwarven Toughness'], hpPerLevel: 1 },
     ],
@@ -23,6 +26,7 @@ export const RACES: Race[] = [
     skillProficiencies: ['perception'],
     languages: ['Common', 'Elvish'],
     traits: ['Darkvision', 'Keen Senses', 'Fey Ancestry', 'Trance'],
+    effects: [dark(60), feyAncestry],
     subraces: [
       { id: 'high-elf', name: 'High Elf', abilityBonuses: { int: 1 }, traits: ['Elf Weapon Training', 'Cantrip', 'Extra Language'], languageChoices: 1 },
     ],
@@ -32,6 +36,7 @@ export const RACES: Race[] = [
     abilityBonuses: { dex: 2 },
     languages: ['Common', 'Halfling'],
     traits: ['Lucky', 'Brave', 'Halfling Nimbleness'],
+    effects: [{ kind: 'advantage', on: 'saves', when: 'against being frightened' }],
     subraces: [
       { id: 'lightfoot', name: 'Lightfoot', abilityBonuses: { cha: 1 }, traits: ['Naturally Stealthy'] },
     ],
@@ -42,6 +47,7 @@ export const RACES: Race[] = [
     languages: ['Common'],
     languageChoices: 1,
     traits: [],
+    subraceOptional: true,
   },
   {
     id: 'dragonborn', name: 'Dragonborn', size: 'Medium', speed: 30,
@@ -50,25 +56,28 @@ export const RACES: Race[] = [
     traitChoice: {
       id: 'draconicAncestry', name: 'Draconic Ancestry',
       options: [
-        { id: 'black', name: 'Black', detail: 'Acid, 5 by 30 ft. line (DEX save)' },
-        { id: 'blue', name: 'Blue', detail: 'Lightning, 5 by 30 ft. line (DEX save)' },
-        { id: 'brass', name: 'Brass', detail: 'Fire, 5 by 30 ft. line (DEX save)' },
-        { id: 'bronze', name: 'Bronze', detail: 'Lightning, 5 by 30 ft. line (DEX save)' },
-        { id: 'copper', name: 'Copper', detail: 'Acid, 5 by 30 ft. line (DEX save)' },
-        { id: 'gold', name: 'Gold', detail: 'Fire, 15 ft. cone (DEX save)' },
-        { id: 'green', name: 'Green', detail: 'Poison, 15 ft. cone (CON save)' },
-        { id: 'red', name: 'Red', detail: 'Fire, 15 ft. cone (DEX save)' },
-        { id: 'silver', name: 'Silver', detail: 'Cold, 15 ft. cone (CON save)' },
-        { id: 'white', name: 'White', detail: 'Cold, 15 ft. cone (CON save)' },
+        { id: 'black', name: 'Black', detail: 'Acid, 5 by 30 ft. line (DEX save)', effects: [{ ...resist('acid'), trait: 'Damage Resistance' }] },
+        { id: 'blue', name: 'Blue', detail: 'Lightning, 5 by 30 ft. line (DEX save)', effects: [{ ...resist('lightning'), trait: 'Damage Resistance' }] },
+        { id: 'brass', name: 'Brass', detail: 'Fire, 5 by 30 ft. line (DEX save)', effects: [{ ...resist('fire'), trait: 'Damage Resistance' }] },
+        { id: 'bronze', name: 'Bronze', detail: 'Lightning, 5 by 30 ft. line (DEX save)', effects: [{ ...resist('lightning'), trait: 'Damage Resistance' }] },
+        { id: 'copper', name: 'Copper', detail: 'Acid, 5 by 30 ft. line (DEX save)', effects: [{ ...resist('acid'), trait: 'Damage Resistance' }] },
+        { id: 'gold', name: 'Gold', detail: 'Fire, 15 ft. cone (DEX save)', effects: [{ ...resist('fire'), trait: 'Damage Resistance' }] },
+        { id: 'green', name: 'Green', detail: 'Poison, 15 ft. cone (CON save)', effects: [{ ...resist('poison'), trait: 'Damage Resistance' }] },
+        { id: 'red', name: 'Red', detail: 'Fire, 15 ft. cone (DEX save)', effects: [{ ...resist('fire'), trait: 'Damage Resistance' }] },
+        { id: 'silver', name: 'Silver', detail: 'Cold, 15 ft. cone (CON save)', effects: [{ ...resist('cold'), trait: 'Damage Resistance' }] },
+        { id: 'white', name: 'White', detail: 'Cold, 15 ft. cone (CON save)', effects: [{ ...resist('cold'), trait: 'Damage Resistance' }] },
       ],
     },
     traits: ['Draconic Ancestry', 'Breath Weapon', 'Damage Resistance'],
+    uses: [{ trait: 'Breath Weapon', count: 1, recharge: 'short' }],
+    subraceOptional: true,
   },
   {
     id: 'gnome', name: 'Gnome', size: 'Small', speed: 25,
     abilityBonuses: { int: 2 },
     languages: ['Common', 'Gnomish'],
     traits: ['Darkvision', 'Gnome Cunning'],
+    effects: [dark(60), ...(['int', 'wis', 'cha'] as const).map(a => ({ kind: 'advantage' as const, on: `save:${a}` as const, when: 'against magic' }))],
     subraces: [
       { id: 'rock-gnome', name: 'Rock Gnome', abilityBonuses: { con: 1 }, traits: ["Artificer's Lore", 'Tinker'] },
     ],
@@ -81,6 +90,8 @@ export const RACES: Race[] = [
     languages: ['Common', 'Elvish'],
     languageChoices: 1,
     traits: ['Darkvision', 'Fey Ancestry', 'Skill Versatility'],
+    effects: [dark(60), feyAncestry],
+    subraceOptional: true,
   },
   {
     id: 'half-orc', name: 'Half-Orc', size: 'Medium', speed: 30,
@@ -88,19 +99,23 @@ export const RACES: Race[] = [
     skillProficiencies: ['intimidation'],
     languages: ['Common', 'Orc'],
     traits: ['Darkvision', 'Menacing', 'Relentless Endurance', 'Savage Attacks'],
+    effects: [dark(60)],
+    uses: [{ trait: 'Relentless Endurance', count: 1, recharge: 'long' }],
   },
   {
     id: 'tiefling', name: 'Tiefling', size: 'Medium', speed: 30,
     abilityBonuses: { int: 1, cha: 2 },
     languages: ['Common', 'Infernal'],
     traits: ['Darkvision', 'Hellish Resistance', 'Infernal Legacy'],
+    effects: [dark(60), resist('fire'), ...[spell('Thaumaturgy'), spell('Hellish Rebuke (as 2nd level)', 3), spell('Darkness', 5)].map(e => ({ ...e, trait: 'Infernal Legacy' }))],
+    subraceOptional: true,
   },
 ]
 
 // Official races from other books (names and mechanics only; our own text lives in i18n explain files).
 // Each book group keeps its own file under books/; subraces with parentRaceId attach to that race.
-export const BOOK_RACES: Record<RulesEdition, Race[]> = { '2014': [...MOTM_RACES, ...LEGACY_RACES, ...SETTING_RACES], '2024': [...BOOK_SPECIES_2024] }
-export const BOOK_SUBRACES: Record<RulesEdition, Subrace[]> = { '2014': [...SETTING_SUBRACES], '2024': [] }
+export const BOOK_RACES: Record<RulesEdition, Race[]> = { '2014': [...BOOK_RACES_2014, ...MOTM_RACES, ...LEGACY_RACES, ...SETTING_RACES], '2024': [...BOOK_SPECIES_2024] }
+export const BOOK_SUBRACES: Record<RulesEdition, Subrace[]> = { '2014': [...BOOK_SUBRACES_2014, ...SETTING_SUBRACES], '2024': [] }
 
 /** Attach subraces to their race (by parentRaceId); unknown parents are dropped. */
 const attach = (list: Race[], subraces: Subrace[]): Race[] =>

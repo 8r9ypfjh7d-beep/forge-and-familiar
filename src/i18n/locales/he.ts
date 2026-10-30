@@ -13,6 +13,7 @@ import { explainProficienciesHe, proficiencyTermsHe } from './explain.proficienc
 import { explainMetamagicHe, metamagicTermsHe } from './explain.metamagic.he'
 import { explainSpeciesHe, speciesTermsHe } from './explain.species.he'
 import { explainRacesHe, racesTermsHe } from './explain.races.he'
+import { explainRaces2014He, racesTerms2014He } from './explain.races2014.he'
 import { itemsHe } from './items.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
 
@@ -29,6 +30,7 @@ const messages: Messages = {
   ...explainRacesHe,
   ...explainInvocationsHe,
   ...explainFeatsHe,
+  ...explainRaces2014He,
   ...itemsHe,
   ...picks2014He,
   'common.back': 'חזרה',
@@ -2516,6 +2518,7 @@ const terms: Terms = {
   ...invocationTermsHe,
   ...featNamesHe,
   ...picks2014TermsHe,
+  ...racesTerms2014He,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',
