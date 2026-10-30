@@ -3,12 +3,14 @@
 import { explainBooksEn } from './explain.books.en'
 import { explainClassesEn } from './explain.classes.en'
 import { explainEn } from './explain.en'
+import { explainProficienciesEn } from './explain.proficiencies.en'
 import { itemsEn } from './items.en'
 
 export const en = {
   ...explainEn,
   ...explainBooksEn,
   ...explainClassesEn,
+  ...explainProficienciesEn,
   ...itemsEn,
   // Shared
   'common.back': 'Back',
@@ -192,6 +194,24 @@ export const en = {
   'builder.originSwap.replace': 'Replace {name}',
   'builder.asi.featLevel': '{feat} (level {level}+)',
   'builder.otherTools': 'Other tools',
+  'builder.writeLanguage': '✎ Write your own language…',
+  'builder.writeTool': '✎ Write your own tool…',
+  'builder.writeOwnName': 'Your own name',
+  'builder.writeOwnPlaceholder': 'Type its name',
+  'builder.writtenOwn': 'Written in by you. Agree with your DM what it covers.',
+  'builder.langGroup.standard': 'Standard',
+  'builder.langGroup.exotic': 'Exotic',
+  'builder.langGroup.rare': 'Rare',
+  'builder.langGroup.secret': 'Class secret languages',
+  'builder.langGroup.dialect': 'Primordial dialects',
+  'builder.langGroup.sign': 'Sign languages',
+  'builder.langGroup.species': 'Peoples of other worlds',
+  'builder.langGroup.setting': 'Regional and setting tongues',
+  'builder.langGroup.monster': 'Monster tongues',
+  'builder.toolGroup.artisan': "Artisan's tools",
+  'builder.toolGroup.gaming': 'Gaming sets',
+  'builder.toolGroup.instrument': 'Musical instruments',
+  'builder.toolGroup.other': 'Kits and vehicles',
   'builder.bgBonus.of': 'Background bonus to {ability}',
   'builder.col.asi': 'ASI',
   'builder.col.score': 'Score',
@@ -246,6 +266,7 @@ export const en = {
   'builder.warn.featLevel': '{feat} is usually taken from level {level}. Fine if your DM agrees.',
   'builder.warn.skillsOffList': 'Some skills are not on your class list. Fine if your DM agrees.',
   'builder.warn.toolsOffList': 'Some tools are not on the usual list. Fine if your DM agrees.',
+  'builder.warn.secretLanguage': '{language} is normally taught only by its class (Druid or Rogue). Fine if your DM agrees.',
   'builder.issue.skillsClass': 'Pick {classCount} class skills.',
   'builder.mc.open': '+ Multiclass (optional)',
   'builder.mc.title': 'Multiclass',

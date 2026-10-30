@@ -4,12 +4,14 @@ import type { Messages, Terms } from '../translate'
 import { explainBooksHe } from './explain.books.he'
 import { explainClassesHe } from './explain.classes.he'
 import { explainHe } from './explain.he'
+import { explainProficienciesHe, proficiencyTermsHe } from './explain.proficiencies.he'
 import { itemsHe } from './items.he'
 
 const messages: Messages = {
   ...explainHe,
   ...explainBooksHe,
   ...explainClassesHe,
+  ...explainProficienciesHe,
   ...itemsHe,
   'common.back': 'חזרה',
   'common.backArrow': '→',
@@ -190,6 +192,24 @@ const messages: Messages = {
   'builder.originSwap.replace': 'להחליף את {name}',
   'builder.asi.featLevel': '{feat} (מדרגה {level})',
   'builder.otherTools': 'כלים אחרים',
+  'builder.writeLanguage': '✎ כתבו שפה משלכם…',
+  'builder.writeTool': '✎ כתבו כלי משלכם…',
+  'builder.writeOwnName': 'השם שלכם',
+  'builder.writeOwnPlaceholder': 'הקלידו את השם',
+  'builder.writtenOwn': 'כתבתם אותו בעצמכם. סכמו עם השה"מ מה הוא כולל.',
+  'builder.langGroup.standard': 'רגילות',
+  'builder.langGroup.exotic': 'אקזוטיות',
+  'builder.langGroup.rare': 'נדירות',
+  'builder.langGroup.secret': 'שפות סודיות של מקצועות',
+  'builder.langGroup.dialect': 'ניבים של הקדמונית',
+  'builder.langGroup.sign': 'שפות סימנים',
+  'builder.langGroup.species': 'עמים מעולמות אחרים',
+  'builder.langGroup.setting': 'לשונות אזוריות ושל עולמות מערכה',
+  'builder.langGroup.monster': 'לשונות מפלצות',
+  'builder.toolGroup.artisan': 'כלי אומן',
+  'builder.toolGroup.gaming': 'ערכות משחק',
+  'builder.toolGroup.instrument': 'כלי נגינה',
+  'builder.toolGroup.other': 'ערכות וכלי רכב',
   'builder.bgBonus.of': 'תוספת רקע ל{ability}',
   'builder.col.asi': 'שיפור',
   'builder.col.score': 'ערך',
@@ -244,6 +264,7 @@ const messages: Messages = {
   'builder.warn.featLevel': 'בדרך כלל לוקחים את {feat} מדרגה {level}. זה בסדר אם השה"מ מסכים.',
   'builder.warn.skillsOffList': 'חלק מהמיומנויות אינן ברשימת המקצוע. זה בסדר אם השה"מ מסכים.',
   'builder.warn.toolsOffList': 'חלק מהכלים אינם ברשימה הרגילה. זה בסדר אם השה"מ מסכים.',
+  'builder.warn.secretLanguage': 'בדרך כלל רק המקצוע שלה מלמד את {language} (דרואיד או נוכל). זה בסדר אם השה"מ מסכים.',
   'builder.issue.skillsClass': 'בחרו {classCount} מיומנויות מקצוע.',
   'builder.mc.open': '+ שילוב מקצועות (רשות)',
   'builder.mc.title': 'שילוב מקצועות',
@@ -2032,6 +2053,7 @@ const messages: Messages = {
 }
 
 const terms: Terms = {
+  ...proficiencyTermsHe,
   'feature.Flurry of Blows': 'מטח מכות',
   'feature.Patient Defense': 'הגנה סבלנית',
   'feature.Step of the Wind': 'צעד הרוח',

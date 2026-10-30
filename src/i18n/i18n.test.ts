@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { stepIssues } from '../builder/validate'
 import { emptyDraft } from '../builder/Builder'
-import { ALIGNMENTS, CLASSES, RACES, SKILLS } from '../rules'
+import { ALIGNMENTS, CLASSES, LANGUAGES, RACES, SKILLS, TOOLS } from '../rules'
 import { en } from './locales/en'
 import { he } from './locales/he'
 import { LOCALES, term, translate } from './translate'
@@ -52,6 +52,11 @@ describe('Hebrew coverage', () => {
       ...Object.keys(SKILLS).map(s => `skill.${s}`),
       ...ALIGNMENTS.map(a => `alignment.${a}`),
     ]
+    expect(ids.filter(k => !(k in he.terms))).toEqual([])
+  })
+
+  it('names every language and tool', () => {
+    const ids = [...LANGUAGES.map(l => `language.${l}`), ...TOOLS.map(x => `tool.${x}`)]
     expect(ids.filter(k => !(k in he.terms))).toEqual([])
   })
 })

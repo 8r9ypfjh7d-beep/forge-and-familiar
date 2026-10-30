@@ -17,7 +17,7 @@ const foundry = () => ({
     attributes: { hp: { value: 99, temp: 3 } },
     details: { alignment: 'Neutral Good', xp: { value: 900 }, biography: { value: '<p>Raised in a <b>library</b>.</p>' } },
     skills: { arc: { value: 1 }, his: { value: 2 }, prc: { value: 1 }, ath: { value: 0 } },
-    traits: { languages: { value: ['common', 'elvish', 'draconic'], custom: 'Thieves Cant' } },
+    traits: { languages: { value: ['common', 'elvish', 'draconic'], custom: 'Thieves Cant; Elderspeak' } },
     currency: { pp: 1, gp: 12, ep: 2, sp: 3, cp: 4 },
   },
   items: [
@@ -86,7 +86,7 @@ describe('Foundry VTT', () => {
     expect(getAbilityScores(c)).toMatchObject({ str: 8, dex: 14, con: 13, int: 17, wis: 12, cha: 10 })
     // Perception comes from the elf, so it is not a chosen skill.
     expect(c.chosenSkills).toEqual(['arcana', 'history'])
-    expect(c.chosenLanguages).toEqual(['Draconic'])
+    expect(c.chosenLanguages).toEqual(['Draconic', "Thieves' Cant"])
     expect(c.coins).toEqual({ gp: 22, sp: 13, cp: 4 })
     expect(c.spells).toEqual([{ id: 'magic-missile', classId: 'wizard' }, { id: 'shield', classId: 'wizard' }])
     expect(c.inventory.find(i => i.itemId === 'quarterstaff')?.equipped).toBe(true)
@@ -94,7 +94,7 @@ describe('Foundry VTT', () => {
     expect(c.state.currentHp).toBe(getMaxHp(c))
     expect(c.state.tempHp).toBe(3)
     expect(c.notes).toContain('Imported from Foundry VTT on 2026-10-29.')
-    for (const miss of ['Spell: Unwritten Hex', 'Expertise: History', 'Language: Thieves Cant']) expect(c.notes).toContain(miss)
+    for (const miss of ['Spell: Unwritten Hex', 'Expertise: History', 'Language: Elderspeak']) expect(c.notes).toContain(miss)
   })
 
   it('reads older actors that use data and text race', () => {

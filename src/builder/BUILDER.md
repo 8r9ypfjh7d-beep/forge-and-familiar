@@ -11,6 +11,7 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 | `CustomSubclassForm.tsx` | The player's own subclass editor (Custom chip in the subclass picker) |
 | `steps.tsx` | Step components: Race (+ Dragonborn ancestry), Class (+ subclass), Abilities (+ ASI or feat), Background & skills (+ custom background, languages, tools), Equipment (SRD kit choices), Details |
 | `validate.ts` | `stepIssues()` per step (missing picks; they block Create/Save only) and `stepWarnings()` (off-book choices, shown as ⚠ notes, never block) |
+| `ProficiencyPick.tsx` | `PickOrWrite` select with grouped options plus "✎ Write your own…" (opens a text box); `useLanguageGroups()` / `useToolGroups()` build the language and tool groups |
 | `Summary.tsx` | Live preview panel using `derive()` |
 | `MulticlassPicker.tsx` | Optional extra classes on the Class step: prerequisites, proficiencies gained, caster-level math |
 | `builder.css` | Builder-only styles, on the Liquid Glass standard (`src/design/DESIGN.md`) |
@@ -40,6 +41,7 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 - Background "Custom background" is the PHB rule: any 2 skills, 2 tools or languages in any mix, a named feature. No background items; the class kit and 15 gp still apply.
 - Subclass is required once a class reaches `subclassLevel`. The picker lists every official subclass (with its book and bonus spells) plus Custom, which opens `CustomSubclassForm.tsx`: name, description, features by level (text, uses with recharge, sheet effects through the inventory `EffectsEditor`), bonus spells, armor/weapon proficiencies, HP per level, unarmored AC and (warlock) Charisma pact weapon. A custom subclass needs a name. Each ASI slot (`asiLevels`) needs two +1s or a feat; going past 20 only warns.
 - Language picks come from race, subrace and background (`languagePickCount`); tool picks from race and first class (`toolPickGroups`), in that order in `chosenTools`.
+- Every language and tool pick (and the custom background's two picks) offers every official name, grouped, plus "✎ Write your own…": the typed name is saved as-is and explained as "written in by you". A tool pick shows its own list first, the rest under "Other tools: <kind>" (warns). Druidic or Thieves' Cant without a Druid or Rogue level warns (`builder.warn.secretLanguage`).
 - Changing race clears language, tool and trait picks; changing the first class clears skills, tools, gear picks and ASIs.
 - Not in the builder yet: spell selection, Bard (Lore) / Ranger / Rogue extra skill and expertise picks, buying gear with starting gold.
 - Multiclass: `classes[0]` is the starting class (saves, skills, gear). Unmet prerequisites only warn (decided 2026-10-29: many tables allow it): once scores are set, the picker marks short classes with ⚠ and shows a translated note, and `derive().warnings` lists them in the summary. All picker text is in en + he (`builder.mc.*`).
