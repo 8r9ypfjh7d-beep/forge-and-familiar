@@ -35,6 +35,7 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
   - `abilityMethod` is `standard`, `pointBuy`, `rolled` or `manual`. `rolledScores` (optional) keeps the six 4d6-drop-lowest totals the builder rolled, so going back or editing never rerolls them; `baseAbilities` must use each once.
   - `freeAbilityBonuses`: 2014 racial +1 picks, or in 2024 the background's three +1s (an ability twice is +2). Any ability is allowed; the builder warns when a pick is off the book.
   - `racialBonusTargets`: 2014 only, the player moved their race and subrace bonuses (a common table rule). Entry i is where the i-th fixed bonus goes, in `fixedRacialBonuses()` order; missing entries stay where the book puts them.
+  - `originSwaps`: 2014 only, Tasha's Customizing Your Origin. `skills`, `languages` and `weapons` (item ids) map each race proficiency to its replacement of the same kind; read through `racialSkills`/`racialLanguages`/`racialWeapons` (`rules/origin.ts`). Kept by Before-edit snapshots.
   - `improvements`: one per Ability Score Improvement the class levels grant: ability bonuses or a `featId` (SRD or homebrew), plus `featAbility` for feats with a +1 choice.
   - `equipmentPicks`: per class equipment choice, the option taken and the items picked for its "any weapon" slots.
   - `classes[].subclassId`: SRD, book or homebrew subclass id, or `'custom'` for the player's own one.

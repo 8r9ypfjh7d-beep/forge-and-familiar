@@ -9,6 +9,7 @@ Pure functions over a `Character`. No React, storage or dice. Import from `src/r
 | `index.ts` | Public API re-exports |
 | `types.ts` | Rule definitions: abilities, races, classes, items, conditions |
 | `abilities.ts` | Modifiers, standard array, point buy, racial bonuses (`fixedRacialBonuses`: 2014 race/subrace bonuses, moved by `racialBonusTargets`), final scores |
+| `origin.ts` | Tasha's Customizing Your Origin (2014): `bookOrigin`, `racialSkills`, `racialLanguages`, `racialWeapons` apply `Character.originSwaps`; `canSwapOrigin` |
 | `derive.ts` | `derive()` and helpers: HP, hit dice, AC, attacks, saves, skills, slots, resources, speed |
 | `factory.ts` | `createCharacter(draft)`, `freshState(maxHp)`, starting kit |
 | `rollMode.ts` | Advantage/disadvantage from own conditions |

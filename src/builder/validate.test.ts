@@ -114,4 +114,13 @@ describe('builder validation', () => {
     expect(stepIssues('abilities', capped)).toEqual([])
     expect(stepWarnings('abilities', capped)).toEqual(['Scores stop at 20, so part of your STR increase is lost.'])
   })
+
+  it("warns, never blocks, when racial proficiencies are swapped (Tasha's)", () => {
+    const d = { ...base(), raceId: 'half-orc' }
+    expect(stepWarnings('race', d)).toEqual([])
+    const swapped = { ...d, originSwaps: { skills: { intimidation: 'persuasion' as const } } }
+    expect(stepIssues('race', swapped)).toEqual([])
+    expect(stepWarnings('race', swapped)).toHaveLength(1)
+    expect(stepWarnings('race', { ...d, originSwaps: {} })).toEqual([])
+  })
 })

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
 import {
   abilityMod, createCharacter, derive, getCritRange, getDamageRiders, getAbilityScores, getArmorClass, getAttacks, getMaxHp,
-  getResources, getSpellSlots, pointBuyCost, assignRolled, usesRolledPool, ROLLED_NOTATION, type CharacterDraft,
+  getResources, getSpellSlots, pointBuyCost, assignRolled, usesRolledPool, ROLLED_NOTATION, canSwapOrigin, racialLanguages, racialSkills, racialWeapons,
+  type CharacterDraft,
 } from './index'
 
 const draft = (over: Partial<CharacterDraft> = {}): CharacterDraft => ({
@@ -62,6 +63,30 @@ describe('abilities', () => {
     // Moved racial bonuses: the hill dwarf's +2 CON goes to STR, the +1 WIS stays.
     const moved = make({ raceId: 'dwarf', subraceId: 'hill-dwarf', racialBonusTargets: ['str'] })
     expect(getAbilityScores(moved)).toMatchObject({ str: 17, con: 13, wis: 11 })
+  })
+})
+
+describe("Tasha's customizing your origin", () => {
+  it('swaps race skills, languages and weapons for others of the same kind', () => {
+    const elf = make({ raceId: 'elf', subraceId: 'high-elf', classes: [{ classId: 'wizard', level: 1 }], chosenSkills: ['arcana', 'history'], originSwaps: {
+      skills: { perception: 'stealth' }, languages: { Elvish: 'Draconic' }, weapons: { longsword: 'rapier' },
+    } })
+    const d = derive(elf)
+    expect(d.skills.perception.proficient).toBe(false)
+    expect(d.skills.stealth.proficient).toBe(true)
+    expect(d.languages).toContain('Draconic')
+    expect(d.languages).not.toContain('Elvish')
+    expect(racialWeapons(elf)).toEqual(['rapier', 'shortsword', 'shortbow', 'longbow'])
+    // A wizard is not proficient with rapiers except through the swapped Elf Weapon Training.
+    elf.inventory = [{ uid: '1', itemId: 'rapier', qty: 1, equipped: true }]
+    expect(getAttacks(elf).find(x => x.itemId === 'rapier')?.proficient).toBe(true)
+  })
+
+  it('keeps the book proficiencies without swaps, and 2024 species ignore them', () => {
+    expect(racialSkills({ raceId: 'elf' })).toEqual(['perception'])
+    expect(racialLanguages({ raceId: 'dwarf', originSwaps: { languages: { Dwarvish: '' } } })).toEqual(['Common', 'Dwarvish'])
+    expect(canSwapOrigin({ raceId: 'elf', rulesEdition: '2024' })).toBe(false)
+    expect(racialSkills({ raceId: 'elf', rulesEdition: '2024', originSwaps: { skills: { perception: 'stealth' } } })).not.toContain('stealth')
   })
 })
 

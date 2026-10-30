@@ -6,9 +6,10 @@ import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
   ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
-  languagePickCount, pointBuyCost, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
+  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pointBuyCost, racialLanguages, raceById, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, subclassOf, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type RulesEdition, type SkillId,
 } from '../rules'
+import type { OriginSwaps } from '../model/character'
 import { RandomName } from '../random/RandomBar'
 import { useDice } from '../dice/ui'
 import type { RollResult } from '../dice'
@@ -35,7 +36,7 @@ function switchEdition(draft: CharacterDraft, edition: RulesEdition): Partial<Ch
     rulesEdition: edition === '2024' ? '2024' : undefined,
     // Spells follow the rules edition again.
     spellEdition: undefined,
-    raceId: '', subraceId: undefined, freeAbilityBonuses: [], chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {},
+    raceId: '', subraceId: undefined, freeAbilityBonuses: [], originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {},
     backgroundId: 'acolyte', originFeatId: undefined, featureChoices: {}, improvements: [], equipmentPicks: [],
     classes: draft.classes.map(cl => ({ classId: cl.classId, level: cl.level })),
   }
@@ -87,7 +88,7 @@ function RaceStep({ draft, update }: StepProps) {
           <button
             key={r.id}
             className={`choice ${draft.raceId === r.id ? 'selected' : ''}`}
-            onClick={() => update({ raceId: r.id, subraceId: r.subraces?.[0]?.id, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined })}
+            onClick={() => update({ raceId: r.id, subraceId: r.subraces?.[0]?.id, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined })}
           >
             <strong>{term('race', r.id, r.name)}</strong>
             <span className="muted small">
@@ -103,7 +104,7 @@ function RaceStep({ draft, update }: StepProps) {
           <label>{t(edition === '2024' ? 'builder.lineage' : 'builder.subrace')} <Why id="subrace" /></label>
           <div className="row">
             {race.subraces.map(s => (
-              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [], racialBonusTargets: undefined })}>
+              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [], racialBonusTargets: undefined, originSwaps: undefined })}>
                 {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}
               </button>
             ))}
@@ -150,7 +151,7 @@ function RaceStep({ draft, update }: StepProps) {
         <p className="small">
           {racePitch && <><strong>{t('why.pick', { name: term('race', race.id, race.name) })}</strong> {t(racePitch)}<br /></>}
           <strong>{t('builder.languages')}</strong><Why id="languages" />{' '}
-          {edition === '2024' ? t('builder.languages2024') : race.languages.map(x => term('language', x, x)).join(', ')}
+          {edition === '2024' ? t('builder.languages2024') : racialLanguages(draft).map(x => term('language', x, x)).join(', ')}
           {languagePickCount({ ...draft, backgroundId: '' }) > 0 && <> {t('builder.languagesPlus', { count: languagePickCount({ ...draft, backgroundId: '' }) })}</>}
           <br />
           <strong>{t('builder.traits')}</strong><Why id="traits" />{' '}
@@ -158,7 +159,52 @@ function RaceStep({ draft, update }: StepProps) {
         </p>
       )}
       {race && <ExplainList items={raceTraits.map(x => ({ name: term('trait', x, x), key: explainKey('trait', x) }))} />}
+      {canSwapOrigin(draft) && <OriginSwapsPicker draft={draft} update={update} />}
     </>
+  )
+}
+
+/** Tasha's Customizing Your Origin: swap each race skill, language and weapon for another of the same kind. */
+function OriginSwapsPicker({ draft, update }: StepProps) {
+  const { t, term, skill } = useI18n()
+  const book = bookOrigin(draft)
+  const swaps = draft.originSwaps
+  const on = swaps !== undefined
+  const weapons = ITEMS.filter(i => i.kind === 'weapon')
+  const set = <K extends keyof OriginSwaps>(kind: K, from: string, to: string) =>
+    update({ originSwaps: { ...swaps, [kind]: { ...swaps?.[kind], [from]: to === from ? undefined : to } } })
+  const rows: { kind: keyof OriginSwaps; ids: string[]; options: string[]; name: (id: string) => string }[] = [
+    { kind: 'skills', ids: book.skills, options: ALL_SKILLS, name: id => skill(id as SkillId) },
+    { kind: 'languages', ids: book.languages, options: LANGUAGES, name: id => term('language', id, id) },
+    { kind: 'weapons', ids: book.weapons, options: weapons.map(w => w.id), name: id => term('item', id, itemById(id)?.name ?? id) },
+  ]
+  return (
+    <div className="field origin-swaps">
+      <label className="small">
+        <input type="checkbox" checked={on} onChange={e => update({ originSwaps: e.target.checked ? {} : undefined })} />
+        {' '}{t('builder.originSwap.toggle')} <Why id="originSwap" />
+      </label>
+      {on && <p className="muted small">{t('builder.originSwap.intro')}</p>}
+      {on && rows.filter(r => r.ids.length).map(r => (
+        <div key={r.kind}>
+          <strong className="small">{t(`builder.originSwap.${r.kind}`)}</strong>
+          <div className="row">
+          {r.ids.map(id => (
+            <span key={id} className="bg-bonus-pick-row">
+              <span className="small">{t('builder.originSwap.from', { name: r.name(id) })}</span>
+              <select
+                value={(swaps?.[r.kind] as Record<string, string> | undefined)?.[id] || id}
+                aria-label={t('builder.originSwap.replace', { name: r.name(id) })}
+                onChange={e => set(r.kind, id, e.target.value)}
+              >
+                {r.options.map(x => <option key={x} value={x}>{r.name(x)}</option>)}
+              </select>
+            </span>
+          ))}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
