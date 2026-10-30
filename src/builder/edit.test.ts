@@ -5,7 +5,7 @@ import { applyEdit, draftFrom, startingGearChanged } from './edit'
 import { stepIssues, type StepId } from './validate'
 
 const brannoc = () => createCharacter({ ...STARTER_HEROES[0].draft, ownerId: 'u1', playerName: 'Ziv' } as CharacterDraft)
-const STEP_IDS: StepId[] = ['race', 'class', 'abilities', 'skills', 'equipment', 'details']
+const STEP_IDS: StepId[] = ['race', 'class', 'abilities', 'skills', 'spells', 'equipment', 'details']
 
 describe('editing a saved character', () => {
   it('turns a character back into a draft that passes every step', () => {

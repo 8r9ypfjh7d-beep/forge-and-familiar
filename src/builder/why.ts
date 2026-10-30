@@ -4,7 +4,7 @@ import { en, type MessageKey } from '../i18n/locales/en'
 import { ARTISAN_TOOLS, GAMING_SETS, MUSICAL_INSTRUMENTS } from '../rules'
 
 export const WHY_TOPICS = [
-  'step.race', 'step.class', 'step.abilities', 'step.skills', 'step.equipment', 'step.details',
+  'step.race', 'step.class', 'step.abilities', 'step.skills', 'step.spells', 'step.equipment', 'step.details',
   'edition', 'originFeat', 'bgBonus',
   'subrace', 'traits', 'languages', 'size', 'speed', 'ancestry', 'originSwap',
   'level', 'savingThrows', 'proficiencies', 'features', 'hitDie', 'primary', 'casting', 'subclassChoice', 'multiclass',
@@ -13,6 +13,7 @@ export const WHY_TOPICS = [
   'method.standard', 'method.pointBuy', 'method.rolled', 'method.manual', 'reroll', 'suggest', 'racial', 'modifier', 'freeBonus', 'asi',
   'background', 'customBackground', 'skills', 'tools',
   'hbBackground', 'hbBgEditions', 'hbBgFeature', 'hbBgAbilities', 'hbBgFeat', 'hbBgProfs', 'hbBgGear', 'hbBgEffects',
+  'cantrips', 'spellsKnown', 'spellsPrepared', 'spellbook', 'alwaysPrepared', 'grantedSpells', 'extraSpells', 'magicalSecrets',
   'kit', 'kitChoice', 'kitList', 'startingGold', 'bgGold', 'shop',
   'alignment',
 ] as const

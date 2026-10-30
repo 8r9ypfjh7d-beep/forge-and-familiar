@@ -10,6 +10,7 @@ import { SearchField } from '../rulesqa/SearchField'
 import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlots'
 import type { Apply } from '../sheet/types'
 import { availableSpells, editionOf, sourceFor, spellAccess, type SpellAccess } from './access'
+import { grantedSpells, isExtraSpell } from './extra'
 import { addSpell, isPinned, pinnedSpells, removeSpell, setEdition, spellsOf, toggleSpellPin } from './spellbook'
 import './spellbook.css'
 
@@ -112,17 +113,23 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
   const [query, setQuery] = useState('')
   const access = lib && lib !== 'error' ? spellAccess(character, lib.classes, lib.subclasses, stats.abilities, undefined, lib.spells) : []
   const slots = hasSlots(character)
-  const noSpells = !!lib && lib !== 'error' && access.length === 0
+  const spells = lib && lib !== 'error' ? lib.spells : []
+  // Race spells and picks from feats like Magic Initiate sit beside the class lists.
+  const byId = new Map(spells.map(s => [s.id, s]))
+  const other = [
+    ...grantedSpells(character, spells).filter(g => g.unlocked).map(g => g.spell),
+    ...spellsOf(character).filter(isExtraSpell).flatMap(k => byId.get(k.id) ?? []),
+  ]
+  const noSpells = !!lib && lib !== 'error' && access.length === 0 && other.length === 0
   if (noSpells && !slots && !itemSpellsOf(character).length) return null
 
-  const spells = lib && lib !== 'error' ? lib.spells : []
   const byName = new Map(spells.map(s => [s.name.toLowerCase(), s]))
   const pinned = pinnedSpells(character)
   const toggle = (s: Spell, on: boolean) =>
     apply(t(on ? 'spells.story.log.unpin' : 'spells.story.log.pin', { name: s.name }), c => toggleSpellPin(c, s))
   const unpin = (e: SpellEntry) => apply(t('spells.story.log.unpin', { name: e.name }), c => removeEntry(c, e.id))
-  const mine = new Set([...spellsOf(character).map(k => k.id), ...access.flatMap(a => a.alwaysPrepared)])
-  const pool = [...new Map(access.flatMap(a => availableSpells(spells, a)).map(s => [s.id, s])).values()]
+  const mine = new Set([...spellsOf(character).map(k => k.id), ...access.flatMap(a => a.alwaysPrepared), ...other.map(s => s.id)])
+  const pool = [...new Map([...access.flatMap(a => availableSpells(spells, a)), ...other].map(s => [s.id, s])).values()]
     .sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || a.level - b.level || a.name.localeCompare(b.name))
   const shown = searchEntries(pool, query).slice(0, 60)
   const isOn = (s: Spell) => isPinned(character, s.name)
@@ -203,9 +210,16 @@ function Summary({ character, access, prof, mod, spells }: { character: Characte
       {access.cantrips > 0 && (
         <div className={cantrips > access.cantrips ? 'over' : ''}><dt>{t('spells.cantrips')}</dt><dd>{cantrips}/{access.cantrips}</dd></div>
       )}
-      <div className={leveled > access.limit ? 'over' : ''}>
-        <dt>{t(access.kind === 'known' ? 'spells.known' : 'spells.prepared')}</dt><dd>{leveled}/{access.limit}</dd>
-      </div>
+      {access.spellbook != null ? (
+        <>
+          <div className={leveled > access.spellbook ? 'over' : ''}><dt>{t('spells.spellbook')}</dt><dd>{leveled}/{access.spellbook}</dd></div>
+          <div><dt>{t('spells.prepared')}</dt><dd>{access.limit}</dd></div>
+        </>
+      ) : (
+        <div className={leveled > access.limit ? 'over' : ''}>
+          <dt>{t(access.kind === 'known' ? 'spells.known' : 'spells.prepared')}</dt><dd>{leveled}/{access.limit}</dd>
+        </div>
+      )}
     </dl>
   )
 }
@@ -319,7 +333,7 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
 }
 
 /** One spell: name and stat line; tapping the name opens the full text. Actions go in children. */
-function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: string; children: ReactNode }) {
+export function SpellRow({ spell: s, badge, children }: { spell: Spell; badge?: string; children: ReactNode }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const comps = [s.components.v && 'V', s.components.s && 'S', s.components.m && 'M'].filter(Boolean).join(', ')

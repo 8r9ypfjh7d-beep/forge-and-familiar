@@ -1,6 +1,6 @@
 # Character builder
 
-Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacter()` makes the saved character at full HP with its starting kit equipped.
+Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharacter()` makes the saved character at full HP with its starting kit equipped.
 
 ## Files Covered
 
@@ -11,6 +11,7 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 | `CustomSubclassForm.tsx` | The player's own subclass editor (Custom chip in the subclass picker) |
 | `steps.tsx` | Step components: Race (+ Dragonborn ancestry), Class (+ subclass), Abilities (+ ASI or feat), Background & skills (+ custom background, languages, tools), Equipment (SRD kit choices), Details |
 | `ClassPicks.tsx` | Class multi-picks: Expertise / Primal Knowledge skill chips (Background & skills step) and Weapon Mastery weapon chips (Equipment step). Off-list chips are dimmed and only warn |
+| `SpellsStep.tsx` | Spells step: per spellcasting class the cantrips and known/prepared/spellbook spells with counters, subclass always-prepared spells, race spells, and picks from spell feats (Magic Initiate) and the High Elf cantrip |
 | `validate.ts` | `stepIssues()` per step (missing picks; they block Create/Save only) and `stepWarnings()` (off-book choices, shown as ⚠ notes, never block) |
 | `ProficiencyPick.tsx` | `PickOrWrite` select with grouped options plus "✎ Write your own…" (opens a text box); `useLanguageGroups()` / `useToolGroups()` build the language and tool groups |
 | `Summary.tsx` | Live preview panel using `derive()` |
@@ -48,9 +49,10 @@ Six-step wizard that turns choices into a `CharacterDraft`, then `createCharacte
 - Language picks come from race, subrace and background (`languagePickCount`); tool picks from race and first class (`toolPickGroups`), in that order in `chosenTools`.
 - Every language and tool pick (and the custom background's two picks) offers every official name, grouped, plus "✎ Write your own…": the typed name is saved as-is and explained as "written in by you". A tool pick shows its own list first, the rest under "Other tools: <kind>" (warns). Druidic or Thieves' Cant without a Druid or Rogue level warns (`builder.warn.secretLanguage`).
 - Changing race clears language, tool and trait picks; changing the first class clears skills, tools, gear picks, ASIs, class choices, class picks and weapon masteries.
+- Spells step (both editions, multiclass aware): numbers come from `spellAccess` (the sheet's), wizards fill a spellbook (6 + 2 per level) and prepare from it. Counts are guidance: under or over only shows a note, never blocks. The pool is the edition's library plus homebrew and imported packs. Picks save to `Character.spells`; non-class picks use `classId` `extra:<slot>:<list>` (see `spellbook/extra.ts`). Changing a class or feat drops picks it no longer covers (`keepValidSpells`).
 - Starting gold: in 2014 the Equipment step offers "Class kit" or "Gold" (the class's d4s × 10, Monk 5d4): roll (src/dice), take the average or type an amount; gold drops the class and background gear. In 2024 the class kit's A/B/gold choice is in the kit choices and the background gets its own "items + coins / 50 gp" choice. Changing the first class or the rules edition goes back to the kit.
 - Shop: every Equipment step lists the edition's SRD items with prices (free pack contents hidden). Buying adds a cart line (bundles like 20 arrows count once); the coins left go into the starting coins. Spending more than you have only warns (`stepWarnings`) and starts at 0 coins. Ammo, rations, rope and the crystal focus are bought under the engine's ids so the sheet's counters see them. Editing purchases counts as a starting-gear change: swapping gear also moves the coins.
-- Not in the builder yet: spell selection, Bard (Lore) / Ranger / Rogue extra skill and expertise picks, trinkets.
+- Not in the builder yet: Bard (Lore) / Ranger / Rogue extra skill and expertise picks, trinkets.
 - Multiclass: `classes[0]` is the starting class (saves, skills, gear). Unmet prerequisites only warn (decided 2026-10-29: many tables allow it): once scores are set, the picker marks short classes with ⚠ and shows a translated note, and `derive().warnings` lists them in the summary. All picker text is in en + he (`builder.mc.*`).
 - "why?" tips are for new players: one short, jargon-light paragraph each. Every option is explained: card stats (legend capsules), each race trait, subrace/lineage, class (`why.about.<id>` plus the `why.class.<id>` pitch), class and subclass feature up to the chosen level, subclass, Fighting Style/Order, ability, skill, background, language, tool, kit choice and alignment. Features and traits are keyed by name, artisan's tools, gaming sets and instruments share one line per group.
 - Add SRD content to `rules/data/` and `why.test.ts` fails until its line is in `explain.en.ts`; `i18n.test.ts` then asks for the Hebrew in `explain.he.ts`. Homebrew has no line and shows "ask your DM".
