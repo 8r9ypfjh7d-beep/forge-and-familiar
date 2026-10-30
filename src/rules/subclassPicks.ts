@@ -4,7 +4,8 @@ import type { Character } from '../model/character'
 import { classOptions, registerClassOptions, type ClassOption, type ClassOptionPick } from './classOptions'
 import { SUBCLASS_OPTIONS, SUBCLASS_PICK_LISTS } from './data/books/subclassPicks'
 import { rulesEdition } from './edition'
-import { activeSubclasses } from './subclass'
+import { CUSTOM_SUBCLASS } from './data/subclasses'
+import { activeSubclasses, blankSubclass } from './subclass'
 import type { SubclassPickList } from './types'
 
 registerClassOptions('subclass', SUBCLASS_OPTIONS)
@@ -46,6 +47,21 @@ export function stalePicks(c: Owner): ClassOptionPick[] {
   const lists = subclassPickLists(c)
   const subKinds = new Set(SUBCLASS_PICK_LISTS.map(l => l.kind))
   return (c.classOptions ?? []).filter(p => subKinds.has(p.kind) && !lists.some(l => l.classId === p.classId && l.list.kind === p.kind))
+}
+
+/**
+ * Sets one class's subclass and drops the old subclass's list picks (maneuvers, runes...).
+ * Picking Custom also starts a blank custom subclass for that class if it has none yet.
+ */
+export function setSubclass(c: Owner, classId: string, subclassId: string): Owner {
+  const classes = (c.classes ?? []).map(cl => (cl.classId === classId ? { ...cl, subclassId } : cl))
+  const stale = stalePicks({ ...c, classes })
+  const needsBlank = subclassId === CUSTOM_SUBCLASS && !c.customSubclasses?.some(s => s.classId === classId)
+  return {
+    classes,
+    ...(needsBlank ? { customSubclasses: [...(c.customSubclasses ?? []), blankSubclass(classId)] } : {}),
+    ...(stale.length ? { classOptions: (c.classOptions ?? []).filter(p => !stale.includes(p)) } : {}),
+  }
 }
 
 /** Toggles an option on a list: picks it, or drops it when already picked. */

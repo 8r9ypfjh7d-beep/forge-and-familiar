@@ -592,7 +592,8 @@ export function derive(c: Character): DerivedStats {
     carriedWeight: Math.round(carriedWeight * 100) / 100,
     features: [
       ...classes.flatMap(({ def, level: l, subclass }) =>
-        [...def.features, ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).flatMap(f => {
+        // Once a subclass is picked its own features replace the "Martial Archetype" / "Artificer Subclass" placeholder row.
+        [...def.features.filter(f => !(subclass && (f.name === def.subclassTitle || / Subclass$/.test(f.name)))), ...(subclass?.features ?? []).map(f => ({ ...f, subclassId: subclass!.id }))].filter(f => f.level <= l).sort((a, b) => a.level - b.level).flatMap(f => {
           // A class choice shows its picks: "Divine Order (Protector)", "Favored Enemy (Undead, Fiends)".
           // Keeping the base rule adds nothing; a renamed version ("Primal Awareness (Tasha's)") replaces the name.
           const picked = choices.filter(x => x.classId === def.id && x.choice.name === f.name && x.picked && x.picked.id !== 'phb').map(x => x.picked!.name)
