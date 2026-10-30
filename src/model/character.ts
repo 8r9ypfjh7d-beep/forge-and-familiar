@@ -1,6 +1,7 @@
 // Saved character shape, shared by the builder (creates it) and the live sheet (plays it).
 // Everything not stored here (max HP, AC, modifiers, slots, resource maxima) is derived by src/rules.
 import type { QuickCastEntry } from '../quickcast/types'
+import type { ClassOptionPick } from '../rules/classOptions'
 import type { Abilities, Ability, ConditionId, InventoryEntry, ItemEffect, SkillId, SubclassData } from '../rules/types'
 
 export type AbilityMethod = 'standard' | 'pointBuy' | 'rolled' | 'manual'
@@ -158,6 +159,8 @@ export interface Character {
   traitChoices?: Record<string, string>
   /** Class choices, keyed `<classId>.<ClassChoice id>` → option id (2024 Fighting Style, Divine Order). */
   featureChoices?: Record<string, string>
+  /** Picks from class option lists: invocations, pact boons, metamagic, maneuvers, fighting styles, infusions (rules/classOptions). */
+  classOptions?: ClassOptionPick[]
   /** 2024 Human (Versatile): the Origin feat picked. */
   originFeatId?: string
   /** Ability Score Improvements or feats, one per slot the class levels grant. */
