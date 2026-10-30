@@ -20,6 +20,7 @@ import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
 import { RockSenseButton } from '../../rocksense'
 import { useSheetRolls } from '../dice'
+import { effectiveMaxHp } from '../engine'
 import type { CombatTab, SheetSection } from '../mode'
 import type { Apply } from '../types'
 import {
@@ -208,13 +209,25 @@ export function SkillsPanel({ character }: { character: Character }) {
 // ---------- Tabs ----------
 
 const TAB_KEYS: Record<CombatTab, MessageKey> = {
-  combat: 'cs.tab.combat', spells: 'cs.tab.spells', inventory: 'cs.tab.inventory', features: 'cs.tab.features', notes: 'cs.tab.notes',
+  combat: 'cs.tab.combat', checks: 'cs.tab.checks', spells: 'cs.tab.spells', inventory: 'cs.tab.inventory', features: 'cs.tab.features', notes: 'cs.tab.notes',
 }
 
-export function CombatTabs({ tabs, render }: { tabs: Record<CombatTab, SheetSection[]>; render: (s: SheetSection) => ReactNode }) {
+/**
+ * The combat page's tab bar and panel. `aside` sits beside the tabs (phones: the HP chip); with it
+ * the bar sticks to the top of the screen, and switching tabs while it is stuck shows the new tab from its start.
+ */
+export function CombatTabs({ tabs, render, aside }: { tabs: Partial<Record<CombatTab, SheetSection[]>>; render: (s: SheetSection) => ReactNode; aside?: ReactNode }) {
   const { t } = useI18n()
-  const [tab, setTab] = useState<CombatTab>('combat')
+  const [picked, setPicked] = useState<CombatTab>('combat')
+  const box = useRef<HTMLDivElement>(null)
   const ids = Object.keys(tabs) as CombatTab[]
+  // A tab that only exists on phones (Checks) falls back to Combat when the screen widens.
+  const tab = tabs[picked] ? picked : 'combat'
+  const setTab = (id: CombatTab) => {
+    setPicked(id)
+    const el = box.current
+    if (aside && el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' })
+  }
   const move = (e: React.KeyboardEvent, i: number) => {
     const by = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
     if (!by) return
@@ -224,20 +237,43 @@ export function CombatTabs({ tabs, render }: { tabs: Record<CombatTab, SheetSect
     setTab(next)
     document.getElementById(`cs-tab-${next}`)?.focus()
   }
+  const list = (
+    <div className="cs-tablist" role="tablist" aria-label={t('cs.tabs')}>
+      {ids.map((id, i) => (
+        <button key={id} id={`cs-tab-${id}`} type="button" role="tab" aria-selected={tab === id} aria-controls="cs-tabpanel"
+          tabIndex={tab === id ? 0 : -1} className={tab === id ? 'on' : ''} onClick={() => setTab(id)} onKeyDown={e => move(e, i)}>
+          {t(TAB_KEYS[id])}
+        </button>
+      ))}
+    </div>
+  )
   return (
-    <div className="cs-tabs">
-      <div className="cs-tablist" role="tablist" aria-label={t('cs.tabs')}>
-        {ids.map((id, i) => (
-          <button key={id} id={`cs-tab-${id}`} type="button" role="tab" aria-selected={tab === id} aria-controls="cs-tabpanel"
-            tabIndex={tab === id ? 0 : -1} className={tab === id ? 'on' : ''} onClick={() => setTab(id)} onKeyDown={e => move(e, i)}>
-            {t(TAB_KEYS[id])}
-          </button>
-        ))}
-      </div>
+    <div className="cs-tabs" ref={box}>
+      {aside ? <div className="cs-tabbar">{list}{aside}</div> : list}
       <div id="cs-tabpanel" role="tabpanel" aria-labelledby={`cs-tab-${tab}`} className="cs-tabpanel">
-        {tabs[tab].map(render)}
+        {(tabs[tab] ?? []).map(render)}
       </div>
     </div>
+  )
+}
+
+/** Phones: current HP in the sticky tab bar. Tapping it jumps to the HP card with the amount box ready. */
+export function HpChip({ character }: { character: Character }) {
+  const { t } = useI18n()
+  const { currentHp, tempHp } = character.state
+  const max = effectiveMaxHp(character)
+  const pct = max ? (currentHp / max) * 100 : 0
+  const go = () => {
+    const input = document.getElementById('hp-amount') as HTMLInputElement | null
+    input?.closest('section')?.scrollIntoView({ block: 'center' })
+    input?.focus({ preventScroll: true })
+  }
+  return (
+    <button type="button" className={`cs-hpchip ${pct <= 25 ? 'low' : pct <= 50 ? 'mid' : ''}`} onClick={go}
+      aria-label={t('cs.hpChip', { hp: currentHp, max, temp: tempHp })}>
+      <span aria-hidden="true">♥</span> {currentHp}<span className="of">/{max}</span>
+      {tempHp > 0 && <span className="temp">+{tempHp}</span>}
+    </button>
   )
 }
 
