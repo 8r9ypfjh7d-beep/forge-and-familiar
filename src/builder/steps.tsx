@@ -140,7 +140,7 @@ function RaceStep({ draft, update }: StepProps) {
             )}
             {race.subraces.map(s => (
               <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [], chosenSkills: [], freeAbilityBonuses: [], originFeatId: undefined, racialBonusTargets: undefined, originSwaps: undefined })}>
-                {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}
+                {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}{s.freeAbilityBonuses ? t('builder.race.freeBonus', { count: s.freeAbilityBonuses.count }) : ''}
               </button>
             ))}
           </div>
@@ -209,7 +209,7 @@ function RaceStep({ draft, update }: StepProps) {
                 </button>
               ))}
             </div>
-            {ch.options.filter(o => picked.includes(o.id) && o.detail).map(o => <p key={o.id} className="muted small" dir="auto">{o.name}: {o.detail}</p>)}
+            {ch.options.filter(o => picked.includes(o.id) && o.detail).map(o => <p key={o.id} className="muted small" dir="auto">{optionLabel(o)}: {o.detail}</p>)}
           </div>
         )
       })}
