@@ -730,7 +730,9 @@ function BackgroundBonuses({ draft, update }: StepProps) {
       <BackgroundExplain kind="bg2024" bg={bg} id={draft.backgroundId} />
       <BackgroundSource id={draft.backgroundId} edition="2024" />
       <p className="small">
-        {t('builder.bgBonus.intro', { total, background: bg ? term('background', bg.id, bg.name) : '', abilities: listed.map(a => ability(a)).join(', ') })}
+        {bg
+          ? t('builder.bgBonus.intro', { total, background: term('background', bg.id, bg.name), abilities: listed.map(a => ability(a)).join(', ') })
+          : t('builder.bgBonus.introNoBg', { total })}
         {' '}<Why id="bgBonus" />
       </p>
       {!onSuggestion && suggestion.length > 0 && (
@@ -939,6 +941,7 @@ function SkillsStep({ draft, update }: StepProps) {
 /** A book background's explanation, or a homebrew one's own text and what homebrew backgrounds are. */
 function BackgroundExplain({ kind, bg, id }: { kind: 'bg' | 'bg2024'; bg?: Background; id: string }) {
   const { t } = useI18n()
+  if (!id) return null
   if (!id.startsWith('hb:')) return <Explain kind={kind} id={id} />
   return (
     <p className="why-explain small" style={{ whiteSpace: 'pre-line' }}>

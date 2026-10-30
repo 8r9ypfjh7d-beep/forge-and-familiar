@@ -69,7 +69,6 @@ const PICKED_TOOL: Record<string, string[]> = { 'artisans-tools': ARTISAN_TOOLS,
 export function createCharacter(draft: CharacterDraft, now = new Date()): Character {
   const inventory: Character['inventory'] = []
   let wornArmor = false
-  let weapons = 0
   const gear: { itemId: string; item?: Item; qty?: number }[] = [
     ...startingItemIds(draft).map(itemId => ({ itemId })),
     ...(draft.purchases ?? []).filter(p => p.qty > 0),
@@ -77,20 +76,17 @@ export function createCharacter(draft: CharacterDraft, now = new Date()): Charac
   for (const { itemId, item: embedded, qty } of gear) {
     const stack = inventory.find(e => e.itemId === itemId && !e.item === !embedded)
     if (stack) {
-      stack.qty += qty ?? 1
+      stack.qty += qty ?? AMMO_BUNDLE[itemId] ?? 1
       continue
     }
-    // Equip the first body armor, a shield and up to two weapons.
+    // Equip the first body armor, a shield and every weapon, so each one shows under Attacks.
     const item = embedded ?? itemById(itemId)
     let equipped = false
     if (item?.kind === 'armor' && item.category === 'shield') equipped = true
     else if (item?.kind === 'armor') {
       equipped = !wornArmor
       wornArmor = true
-    } else if (item?.kind === 'weapon') {
-      equipped = weapons < 2
-      weapons += 1
-    }
+    } else if (item?.kind === 'weapon') equipped = true
     const picked = PICKED_TOOL[itemId] && draft.chosenTools?.find(t => PICKED_TOOL[itemId].includes(t))
     inventory.push({ uid: uid(), itemId, qty: qty ?? AMMO_BUNDLE[itemId] ?? 1, equipped, ...(embedded ? { item: embedded } : {}), ...(picked ? { name: picked } : {}) })
   }
