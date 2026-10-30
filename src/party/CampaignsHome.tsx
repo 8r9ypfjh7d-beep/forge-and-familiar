@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { CloudLinkNotice } from '../accounts'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
-import { campaignTarget, isPartyDm } from './active'
+import { campaignTarget, canEndParty, isPartyDm } from './active'
 import { listProfiles } from '../storage'
 import { fetchAccountNames } from './cloud'
+import { endParty, leaveParty } from './store'
 import type { Party } from './types'
 import './party.css'
 
@@ -55,7 +56,8 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
             const target = campaignTarget(p, userId, ownIds)
             const hero = target.kind === 'sheet' ? characters.find(c => c.id === target.id) : undefined
             return (
-              <button key={p.id} className={`glass party-card campaign-card${dm ? ' is-dm' : ''}`} onClick={() => onPlay(p)}>
+              <div key={p.id} className={`glass campaign-card${dm ? ' is-dm' : ''}`}>
+              <button className="campaign-open" onClick={() => onPlay(p)}>
                 <span className="campaign-top">
                   <h3>{p.name}</h3>
                   {current?.id === p.id && <span className="glass-chip">{t('home.playingNow')}</span>}
@@ -71,6 +73,8 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
                   </> : <span className="campaign-next">{t(dm ? 'home.runGame' : 'home.pickCharacter')}</span>}
                 </span>
               </button>
+              <CampaignManage party={p} userId={userId} />
+              </div>
             )
           })}
         </div>
@@ -81,6 +85,27 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
         <button className="glass-btn" onClick={onCharacters}>{t('home.myCharacters')}</button>
       </div>
     </section>
+  )
+}
+
+/** End (DM or admin: gone for everyone) and Leave (anyone but the DM: gone from your list only). Both ask
+ *  first; characters are never touched, so they stay in My characters. */
+export function CampaignManage({ party, userId }: { party: Party; userId: string }) {
+  const { t } = useI18n()
+  const [busy, setBusy] = useState(false)
+  const end = async () => {
+    if (!confirm(t('party.confirmEnd', { name: party.name }))) return
+    setBusy(true)
+    const ok = await endParty(party.id, userId)
+    setBusy(false)
+    if (!ok) alert(t('party.endFailed'))
+  }
+  const leave = () => { if (confirm(t('party.confirmLeave', { name: party.name }))) void leaveParty(party.id, userId) }
+  return (
+    <div className="campaign-manage">
+      {canEndParty(party, userId) && <button className="glass-btn small ghost campaign-end" disabled={busy} onClick={end}>{t('party.end')}</button>}
+      {!isPartyDm(party, userId) && <button className="glass-btn small ghost" disabled={busy} onClick={leave}>{t('party.leave')}</button>}
+    </div>
   )
 }
 

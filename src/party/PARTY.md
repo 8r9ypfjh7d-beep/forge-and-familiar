@@ -18,7 +18,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `PartyView.tsx` | Party list first, then one "New party" button that opens a panel to start (name + DM) or join with a code; read-only party table |
 | `active.ts` | The party in play: remembered pick per player (`ff.activeParty.v1.<id>`), `isPartyDm`, `campaignTarget` (where tapping a campaign leads) |
 | `useActiveParty.ts` | Hook for App: the player's parties, the one in play, whether to ask, whether they're its DM |
-| `CampaignsHome.tsx` | The app's first screen (Home tab): your campaigns, tap one to play it; empty state offers sign-in, join, start, build |
+| `CampaignsHome.tsx` | The app's first screen (Home tab): your campaigns, tap one to play it; empty state offers sign-in, join, start, build. `CampaignManage`: End / Leave buttons, also on the party page |
 | `PartySwitcher.tsx` | The Campaign switch in the player menu |
 | `feed.ts` | Party roll feed: merges members' dice histories (`mergePartyRolls`), live via `onMemberRollsChanged` |
 | `RollFeed.tsx` | "Party rolls" panel under the party table; `PartyRollRelay` (in App) sends each sheet roll to the cloud at once |
@@ -39,6 +39,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 - Garden Gang (`party-garden-gang`, code GAR-DEN) is seeded by `20261028100000_party_dm.sql` with every friend and Noa as DM.
 - Codes: 6 chars from `CODE_ALPHABET` (no 0/O/1/I/L), shown as `ABC-234`, typed loosely (case, spaces, dash ignored).
 - If the DM leaves, the longest-standing member becomes DM; the last member leaving deletes the party.
+- End campaign (`endParty`, server `end_party` in `20261030150000_end_party.sql`): its DM or the admin (`canEndParty`) deletes it for everyone, after a confirm. Everyone else gets Leave campaign, which only takes it off their own list. Characters are separate rows and never touched, so they stay in My characters.
 - The table is read-only: HP bar with temp HP and dying/stable/dead, AC, initiative, speed, passive Perception, spell DC, conditions. Stats come from `derive()`; nothing derived is stored on the party.
 - Party rolls: the 50 newest rolls across members, read from each player's own dice history (`ff.rolls.v1.<userId>`), nothing copied. A roll shows when it is tagged with the character that member brings and made after they joined. Watchers' rolls (the DM's) never show, and secret rolls never enter that history. Free rolls from the Dice tab carry no character, so only sheet rolls appear.
 - Secret rolls: below the table, players roll a skill, check or save that only the DM sees; the DM gets the log. Lives in `src/dice` (`secret.ts`, `ui/SecretRolls.tsx`).
@@ -58,7 +59,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 
 - When the open player is the account this device is signed in to (`getCloudAccountId()`), parties live on the server: create, join by code, switch character, leave and the stash all go there, and every member's screen updates live (realtime on `parties` and `party_members`). The last list is cached, so it still shows offline; changes need a connection.
 - Local profiles ("use this device only") and builds without the cloud keep parties in `ff.parties.v1`, same-device only, as before. Parties made on a device before the cloud stay local.
-- Server rules: only members read a party (codes can't be listed); creating, joining and leaving go through `create_party`, `join_party`, `leave_party` (DM hand-off and deleting the empty party happen there); join times are the server's clock. Members may change the stash (`stash`, `rev` columns only) and their own character.
+- Server rules: only members read a party (codes can't be listed); creating, joining, leaving and ending go through `create_party`, `join_party`, `leave_party`, `end_party` (DM hand-off and deleting the empty party happen there); join times are the server's clock. Members may change the stash (`stash`, `rev` columns only) and their own character.
 - Stash writes are conditional on `rev`; if someone else wrote first, the change is re-applied to the fresh stash (up to 4 tries).
 - Members read the character each other member brings (`characters_party_read`) and its rolls made since joining (`rolls_party_read`); the party table fetches the ones not on this device and watches them live. Player names come from `accounts` when the profile isn't on the device.
 - A party's DM answers requests from that party's members (`can_answer_request`); the account-wide `dm` role no longer does (`20261028100000_party_dm.sql`).

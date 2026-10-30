@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getCloudAccountId, getSupabase } from '../cloud'
 import { CACHE_KEY, cachedParties, cachedParty, cloudFor, fetchParty, PARTIES_CHANGED, refreshParties, watchParties } from './cloud'
 import { addMember, isMember, isValidCode, makeInviteCode, normalizeCode, removeMember, setMemberCharacter } from './code'
+import { canEndParty } from './active'
 import { applyStash, type StashAction, type StashResult } from './stash'
 import type { Party } from './types'
 
@@ -132,6 +133,20 @@ export async function leaveParty(partyId: string, userId: string): Promise<void>
   if (!db) { update(partyId, p => removeMember(p, userId)); return }
   await db.rpc('leave_party', { p_party: partyId })
   await refreshParties(db, userId)
+}
+
+/** Ends the campaign for everyone: only its DM (or the admin) can. Characters stay with their players. */
+export async function endParty(partyId: string, userId: string): Promise<boolean> {
+  const db = await cloudParty(partyId, userId)
+  if (!db) {
+    const found = readParties().find(p => p.id === partyId)
+    if (!found || !canEndParty(found, userId)) return false
+    update(partyId, () => null)
+    return true
+  }
+  const { error } = await db.rpc('end_party', { p_party: partyId })
+  await refreshParties(db, userId)
+  return !error
 }
 
 /** Changes the party's shared inventory or gold. Only members can, and every change is logged. */

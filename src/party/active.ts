@@ -1,5 +1,6 @@
 // The party (campaign) a player is playing in right now. Picked on entering the app; its DM gets the
 // DM pages, everyone else the player pages. The last pick is remembered per player for next time.
+import { isAdmin } from '../accounts/roster'
 import type { Party } from './types'
 
 const LAST = (userId: string) => `ff.activeParty.v1.${userId}`
@@ -43,6 +44,9 @@ export function activeParty(parties: readonly Party[], lastId: string | null): P
 
 /** Whether this player runs the party: the DM pages follow the party, not the account. */
 export const isPartyDm = (party: Party | undefined, userId: string) => !!party && party.dmId === userId
+
+/** Whether this player may end the campaign for everyone: its DM, or the admin. */
+export const canEndParty = (party: Party, userId: string) => isPartyDm(party, userId) || isAdmin(userId)
 
 /** Where tapping a campaign on the home screen leads: its DM runs the game, a player opens the sheet they
  *  bring when it is on this device, else the party page to pick (or find) their character. */
