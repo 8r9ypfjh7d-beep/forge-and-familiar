@@ -32,8 +32,8 @@ const ITEM: Record<NavKey, NavItem> = {
   admin: { key: 'admin', label: 'app.admin' },
 }
 
-/** Screens only the DM and the admin may open. */
-const DM_ONLY: readonly string[] = ['dm', 'combat']
+/** Screens only the DM and the admin may open; `watch` is a player's sheet opened by the DM. */
+const DM_ONLY: readonly string[] = ['dm', 'combat', 'watch']
 
 /** Everyday screens get a tab; reference and bookkeeping screens sit under More.
  *  Everyone starts with Home (campaigns) and Characters, since a DM often plays in another game too.

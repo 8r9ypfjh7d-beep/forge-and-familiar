@@ -4,8 +4,8 @@ The app's navigation. No brand header: the first tab, Home (your campaigns, `src
 
 | File | What |
 |------|------|
-| `items.ts` | Pure: `navItems({ isDm, partyDm, admin })` splits screens into tabs and the More menu; `canOpen(view.kind, ctx)` guards the DM pages (DM screen, Combat) and Admin so App bounces a blocked view home; `navKeyFor(view.kind)` picks the lit tab (character screens light Characters) |
-| `route.ts` | Pure: `View` (every screen App shows), `viewToHash`/`hashToView` (`#/`, `#/heroes`, `#/sheet/<id>`, `#/party/<id>`, `#/party/start`, `#/dm/requests`, `#/combat/<encounter>`...; unknown hashes open Home) |
+| `items.ts` | Pure: `navItems({ isDm, partyDm, admin })` splits screens into tabs and the More menu; `canOpen(view.kind, ctx)` guards the DM pages (DM screen, Combat, `watch`: a player's sheet opened by the DM) and Admin so App bounces a blocked view home; `navKeyFor(view.kind)` picks the lit tab (character screens light Characters) |
+| `route.ts` | Pure: `View` (every screen App shows), `viewToHash`/`hashToView` (`#/`, `#/heroes`, `#/sheet/<id>`, `#/party/<id>`, `#/party/start`, `#/dm/requests`, `#/combat/<encounter>`, `#/watch/<id>` (a player's sheet, view only, DM and admin)...; unknown hashes open Home) |
 | `useHashView.ts` | `[view, go]` for App: `go(view)` pushes a history entry, `go(view, true)` replaces it (used when bouncing a blocked view home); back/forward update the view |
 | `AppNav.tsx` | The bar: tabs, More menu, player menu (children from App, language, accessibility). DM tab shows a badge with waiting requests |
 | `icons.tsx` | Line icons per tab |

@@ -36,7 +36,15 @@ export function CharacterSheet({ characterId, onBack, onEdit, onLevelUp }: { cha
   return <Sheet character={character} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} onLevelUp={onLevelUp} />
 }
 
-function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit, onLevelUp }: {
+/** Someone else's sheet (the DM looking at a player's): nothing can be changed, and a tap that would says so. */
+export interface ViewOnly {
+  /** The player whose sheet this is. */
+  playerName: string
+  /** Set after a tap that would have changed the sheet, to call out the notice. */
+  noticed: boolean
+}
+
+export function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit, onLevelUp, viewOnly }: {
   character: Character
   apply: Apply
   undo: () => void
@@ -46,9 +54,11 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit, onLe
   onBack: () => void
   onEdit?: () => void
   onLevelUp?: () => void
+  viewOnly?: ViewOnly
 }) {
   const [mode, setMode] = useSheetMode(character.id)
   const narrow = useNarrow()
+  const { t } = useI18n()
   const layout = sheetLayout(mode, { dying: character.state.currentHp === 0, powerUp: canPowerUp(character), narrow })
   const p = { character, apply }
   const section = (s: SheetSection) => {
@@ -66,7 +76,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit, onLe
       case 'resources': return <Resources key={s} {...p} />
       case 'metamagic': return <Metamagic key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
-      case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
+      case 'history': return viewOnly ? null : <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
       case 'summary': return <CharacterCard key={s} character={character} apply={apply} onLevelUp={onLevelUp} vitals={(layout.vitals ?? []).map(section)} />
       case 'skills': return <SkillsPanel key={s} character={character} />
       case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} aside={narrow ? <HpChip character={character} /> : undefined} /> : null
@@ -76,8 +86,13 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit, onLe
     }
   }
   return (
-    <div className={`ff-sheet mode-${mode}`}>
+    <div className={`ff-sheet mode-${mode}${viewOnly ? ' view-only' : ''}`}>
       <Header character={character} onBack={onBack} onEdit={onEdit} />
+      {viewOnly && (
+        <p className={`view-only-bar${viewOnly.noticed ? ' noticed' : ''}`} role="status">
+          <span aria-hidden="true">👁</span> {t(viewOnly.noticed ? 'sheet.viewOnlyNotice' : 'sheet.viewOnly', { name: viewOnly.playerName })}
+        </p>
+      )}
       <ModeSwitch mode={mode} onChange={setMode} />
       {layout.top.map(section)}
       <div className="sheet-grid">

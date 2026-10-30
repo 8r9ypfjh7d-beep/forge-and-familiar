@@ -161,6 +161,8 @@ export const en = {
   'builder.edit.snapshot': 'Before edit',
   'list.edit': 'Edit',
   'sheet.edit': 'Edit character',
+  'sheet.viewOnly': '{name}\'s sheet. View only: it updates as {name} plays.',
+  'sheet.viewOnlyNotice': 'View only: only {name} can change this sheet.',
   'builder.step.race': 'Race',
   'builder.step.race2024': 'Species',
   'builder.step.race.blurb': 'Your ancestry sets ability bonuses, speed and traits.',
@@ -905,6 +907,7 @@ export const en = {
   'party.vital.stable': 'Stable',
   'party.vital.dead': 'Dead',
   'party.openMine': 'Open my sheet',
+  'party.openTheirs': 'Open {name}\'s sheet',
 
   // Hand-outs: kinds and the online table link
   'handouts.kind.note': 'Note',
@@ -1608,6 +1611,9 @@ export const en = {
   'dm.credit': 'Encounter budgets follow SRD 5.2 (CC-BY-4.0).',
   'dm.party': 'Party ({count} players)',
   'dm.fromParty': 'Fill from {name} ({count} characters)',
+  'dm.sheets': 'Party sheets',
+  'dm.sheetsHelp': 'Open a player\'s full sheet. It updates live; only the player can change it.',
+  'dm.sheetsNone': 'No one has brought a character yet.',
   'dm.players': 'Players',
   'dm.playersAtLevel': 'players at level',
   'dm.level': 'Level',

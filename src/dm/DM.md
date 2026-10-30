@@ -32,3 +32,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 - **Add a reference panel:** add its keys to both locales and a `RefCard` in `ReferenceTab`.
 - **Grow the NPC tables:** add `dm.npc.<table>.<n>` keys in both locales and raise `NPC_TABLES`; the test checks they match.
 - **Change what syncs:** `store.ts` owns it. DM data is private to the DM (and the admin); the DM screen never reads players' characters.
+
+## Party sheets (2026-10-30)
+
+The top card lists the campaign's characters (`usePartyHeroes`, the DM's own watching seat left out) under "Party sheets"; each button opens that player's sheet view only (`onOpenSheet` → `#/watch/<id>`, `src/sheet/WatchSheet.tsx`). The same list feeds the XP budget levels. The DM screen still never changes a player's character.
