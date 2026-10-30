@@ -9,6 +9,7 @@ import type { Character } from '../../model/character'
 import { derive } from '../../rules'
 import { editionOf, spellSourcesFor } from '../../spellbook/access'
 import { effectToggles, setActionActive, type EffectToggle } from '../combat/combat'
+import { spendSlot } from '../../quickcast/quickcast'
 import { endEffect, setEffectOn, startEffect } from '../effects'
 import type { Apply } from '../types'
 
@@ -22,7 +23,7 @@ export function toggleEffect(e: EffectToggle, value: boolean, apply: Apply, t: T
   const log = t(value ? 'cs.log.effectOn' : 'cs.log.effectOff', { name: e.name })
   if (e.id.startsWith('act:')) return apply(log, c => setActionActive(c, e.id.slice(4), value))
   if (e.live) return apply(log, c => setEffectOn(c, e.id, value))
-  if (e.start && value) return apply(log, c => startEffect(c, e.start!).character)
+  if (e.start && value) return apply(log, c => startEffect(e.slot ? spendSlot(c, e.slot) : c, e.start!).character)
   local()
 }
 

@@ -5,7 +5,7 @@ import { BUNDLED, loadKind, searchEntries, type Edition, type Equipment, type Ma
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import {
-  ABILITIES, ABILITY_NAMES, ALL_SKILLS, CONDITIONS, derive, isUsefulEffect, ITEMS, potionHealing, uses2024Spells, type AdvantageOn, type Ability, type InventoryEntry, type Item,
+  ABILITIES, ABILITY_NAMES, ALL_SKILLS, CONDITIONS, derive, isUsefulEffect, ITEMS, isPotion, potionEffect, potionHealing, uses2024Spells, type AdvantageOn, type Ability, type InventoryEntry, type Item,
   type ItemEffect, type MoveMode, type Recharge, type Sense, type SkillId, type WeaponProperty,
 } from '../rules'
 import type { Apply } from '../sheet/types'
@@ -46,12 +46,14 @@ export function Inventory({ character, apply }: { character: Character; apply: A
   const rolls = useSheetRolls(character)
   const [drank, setDrank] = useState<{ key: number; name: string; rolls: Shown[]; note: string } | null>(null)
 
-  /** One tap on a healing potion: roll it, heal, one fewer in the stack. */
-  const drink = (e: InventoryEntry, name: string, dice: string) => {
-    const roll = rolls.spell(name, { damage: dice, damageType: 'healing' }).damage
+  /** One tap on a potion: roll its healing, start its effect (Giant Strength, Resistance), one fewer in the stack. */
+  const drink = (e: InventoryEntry, name: string, dice?: string) => {
+    const roll = dice ? rolls.spell(name, { damage: dice, damageType: 'healing' }).damage : undefined
     const healed = roll?.total ?? 0
-    apply(t('use.log.drink', { name }), c => drinkPotion(c, e.uid, healed))
-    setDrank(d => ({ key: (d?.key ?? 0) + 1, name, rolls: roll ? [{ roll, what: t('cs.roll.healing') }] : [], note: t('cast.healed', { n: healed }) }))
+    const effect = potionEffect(e.uid, name, e.effects)
+    apply(t('use.log.drink', { name }), c => drinkPotion(c, e.uid, healed, effect))
+    const note = [healed ? t('cast.healed', { n: healed }) : '', effect ? t('cast.inEffect') : ''].filter(Boolean).join(' · ')
+    setDrank(d => ({ key: (d?.key ?? 0) + 1, name, rolls: roll ? [{ roll, what: t('cs.roll.healing') }] : [], note }))
   }
 
   const add = (fields: Omit<InventoryEntry, 'uid' | 'qty' | 'equipped'>, name: string, edit = false) => {
@@ -146,7 +148,7 @@ export function advantageName({ t, term, skill }: T, on: AdvantageOn): string {
   return t(`inv.adv.${on as 'saves'}`)
 }
 
-function Row({ entry: e, apply, onEdit, onDrink }: { entry: InventoryEntry; apply: Apply; onEdit: () => void; onDrink: (e: InventoryEntry, name: string, dice: string) => void }) {
+function Row({ entry: e, apply, onEdit, onDrink }: { entry: InventoryEntry; apply: Apply; onEdit: () => void; onDrink: (e: InventoryEntry, name: string, dice?: string) => void }) {
   const i18n = useI18n()
   const { t, term } = i18n
   const [open, setOpen] = useState(false)
@@ -154,6 +156,7 @@ function Row({ entry: e, apply, onEdit, onDrink }: { entry: InventoryEntry; appl
   const name = e.item || e.name ? item.name : term('item', item.id, item.name)
   const equippable = item.kind !== 'gear' || !!e.effects?.length
   const potion = potionHealing(e.itemId, item.name)
+  const drinkable = !!potion || isPotion(item.name)
   const active = e.equipped
   const effects = (e.effects ?? []).map(f => effectText(i18n, f)).join(' · ')
   const stat = item.kind === 'weapon'
@@ -179,7 +182,7 @@ function Row({ entry: e, apply, onEdit, onDrink }: { entry: InventoryEntry; appl
           )}
         </button>
         <div className="inv-actions">
-          {potion && (
+          {drinkable && (
             <button type="button" className="glass-btn small prominent" aria-label={t('use.drinkName', { name })} onClick={() => onDrink(e, name, potion)}>{t('use.drink')}</button>
           )}
           {equippable && (

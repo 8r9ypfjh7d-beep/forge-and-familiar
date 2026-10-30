@@ -21,13 +21,14 @@ type Owner = Partial<Pick<Character, 'inventory' | 'state' | 'customActions' | '
 /** An entry's effects work while it is equipped. */
 export const effectsActive = (e: InventoryEntry) => e.equipped
 
-export interface ActiveEffect { source: string; effect: ItemEffect }
+/** `itemUid`: the inventory entry it comes from, for an item's own effects (its spells spend its charges). */
+export interface ActiveEffect { source: string; effect: ItemEffect; itemUid?: string }
 
 export function activeItemEffects(c: Owner): ActiveEffect[] {
   const items = (c.inventory ?? []).flatMap(e => {
     if (!e.effects?.length || !effectsActive(e)) return []
     const source = entryItem(e)?.name ?? e.name ?? e.itemId
-    return e.effects.map(effect => ({ source, effect }))
+    return e.effects.map(effect => ({ source, effect, itemUid: e.uid }))
   })
   // A custom action's stat changes (Rage-like stances, a blessing) count while it is switched on.
   const actions = (c.customActions ?? []).flatMap(a => (a.active ? (a.stats ?? []).map(effect => ({ source: a.name, effect })) : []))
@@ -60,8 +61,8 @@ export const itemBonus = (c: Owner, kind: BonusEffectKind, unarmored = true, wea
   itemBonuses(c, kind, unarmored, weapon, armored).reduce((n, b) => n + b.value, 0)
 
 /** Every active effect of one kind, with the item (or action) it came from. */
-export function effectsOf<K extends ItemEffect['kind']>(c: Owner, ...kinds: K[]): { source: string; effect: EffectOf<K> }[] {
-  return activeItemEffects(c).filter((x): x is { source: string; effect: EffectOf<K> } => (kinds as string[]).includes(x.effect.kind))
+export function effectsOf<K extends ItemEffect['kind']>(c: Owner, ...kinds: K[]): { source: string; effect: EffectOf<K>; itemUid?: string }[] {
+  return activeItemEffects(c).filter((x): x is { source: string; effect: EffectOf<K>; itemUid?: string } => (kinds as string[]).includes(x.effect.kind))
 }
 
 /** An effect the editor can keep: numbers set where they matter, names filled in. */

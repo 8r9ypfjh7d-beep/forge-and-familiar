@@ -4,7 +4,8 @@ import type { ActionKind, Character, CustomAction, LiveEffect } from '../../mode
 import { classChoices, featureEffectId, getDamageRiders, getWeaponMasteryCount, hasRunningNumbers, planCast, spellEffectId, weaponMastery, type DerivedStats } from '../../rules'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { formatNotation, parseNotation } from '../../dice/notation'
-import { spellDamage } from '../../quickcast/quickcast'
+import { slotChoices, spellDamage } from '../../quickcast/quickcast'
+import type { SlotChoice } from '../../quickcast/types'
 import type { SpellEntry } from '../../quickcast/types'
 import { editionOf } from '../../spellbook/access'
 import { toQuickCast } from '../../spellbook/spellbook'
@@ -189,6 +190,8 @@ export interface EffectToggle {
   live?: LiveEffect
   /** What switching it on starts, for a known spell that isn't running yet (Hex before the fight). */
   start?: Omit<LiveEffect, 'on'>
+  /** Switching it on spends this slot (2014 Divine Smite). */
+  slot?: SlotChoice
 }
 
 /**
@@ -221,6 +224,17 @@ export function effectToggles(c: Character, stats: DerivedStats, spells: Spell[]
     const start = planCast(s, s.level, ctx).effect
     if (!start || out.some(e => e.id === start.id)) continue
     out.push({ id: start.id, name: s.name, ...fromLive(live ?? start), ...(live ? { live } : { start }) })
+  }
+  // 2014 Divine Smite: a feature that spends a slot for radiant damage on the next hit, so its switch spends the lowest free slot.
+  const paladin = c.classes.find(cl => cl.classId === 'paladin')
+  if (paladin && paladin.level >= 2 && editionOf(c) !== '2024' && !out.some(e => e.id === 'feature:divine-smite')) {
+    const live = running.find(e => e.id === 'feature:divine-smite')
+    const slot = slotChoices(c, 1)[0]
+    if (live || slot) {
+      const damage = live?.damage ?? `${Math.min(5, 1 + (slot?.level ?? 1))}d8`
+      const start = { id: 'feature:divine-smite', name: 'Divine Smite', from: 'feature' as const, damage, damageType: 'radiant', weaponOnly: true, once: true, ends: 'short' as const, ...(slot ? { level: slot.level } : {}) }
+      out.push({ id: start.id, name: start.name, damage, damageType: 'radiant', weaponOnly: true, ...(live ? { live } : { start, slot }) })
+    }
   }
   // Running effects from anything else: spells cast from an item or pinned under another name, features, items.
   for (const live of running) if (!out.some(e => e.id === live.id || e.live?.id === live.id)) out.push({ id: live.id, name: live.name, ...fromLive(live), live })

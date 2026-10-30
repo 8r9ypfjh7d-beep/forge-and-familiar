@@ -15,6 +15,7 @@ import type { SubclassDef } from './data/subclasses'
 import { ALL_SKILLS, SKILLS } from './data/skills'
 import { rulesEdition, uses2024Spells } from './edition'
 import { effectsOf, itemBonus } from './itemEffects'
+import { spellLimit } from './usables'
 import { racialSkills, racialWeapons } from './origin'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { naturalArmorAc, pickedOptions, raceProfile, raceUseId } from './race'
@@ -136,6 +137,23 @@ function usesMax(u: NonNullable<SubclassFeature['uses']>, level: number, prof: n
   return Math.max(u.min ?? 1, base * (u.mult ?? 1) + (u.add ?? 0))
 }
 
+export interface ItemSpell { spell: string; note?: string; source: string; useId?: string; charges?: { id: string; cost: number } }
+
+/** Spells from items, race and feats, with what a cast costs (see DerivedStats.itemSpells). */
+export function getItemSpells(c: Character): ItemSpell[] {
+  const charged = getItemCharges(c)
+  return effectsOf(c, 'spell').map(({ source, effect: f, itemUid }) => {
+    const spell = f.spell.trim()
+    const note = f.note?.trim()
+    const limit = spellLimit(note)
+    const out: ItemSpell = { spell, ...(note ? { note } : {}), source }
+    if (limit && 'max' in limit) out.useId = `spell:${slug(spell)}:${slug(source)}`
+    const pool = itemUid && charged.find(r => r.id === `item:${itemUid}`)
+    if (limit && 'charges' in limit && pool) out.charges = { id: pool.id, cost: limit.charges }
+    return out
+  })
+}
+
 export function getResources(c: Character): ResourceInfo[] {
   const mods = getAbilityMods(getAbilityScores(c))
   const out: ResourceInfo[] = []
@@ -185,6 +203,11 @@ export function getResources(c: Character): ResourceInfo[] {
     if (!u) continue
     const max = usesMax(u, level, prof, mods)
     if (max > 0) out.push({ id: `pick:${classId}:${choice.id}`, label: picked.name, max, recharge: u.recharge })
+  }
+  // Limited spells from race, items and feats (Hellish Rebuke once per long rest), so rests bring them back.
+  for (const s of getItemSpells(c)) {
+    const limit = spellLimit(s.note)
+    if (s.useId && limit && 'max' in limit && !out.some(o => o.id === s.useId)) out.push({ id: s.useId, label: `${s.spell} (${s.source})`, max: limit.max, recharge: limit.recharge })
   }
   return [...out, ...getItemCharges(c)]
 }
@@ -457,7 +480,11 @@ export interface DerivedStats {
   /** Every advantage from items, situational ones (with `when`) included. */
   advantages: { on: AdvantageOn; when?: string; source: string }[]
   /** Spells items let the character cast. */
-  itemSpells: { spell: string; note?: string; source: string }[]
+  /**
+   * Spells items, race and feats let the character cast. `useId`: a limited spell's own resource (once per long rest);
+   * `charges`: the item charges resource each cast spends, and how many.
+   */
+  itemSpells: ItemSpell[]
   armorClass: { value: number; source: string }
   maxHp: number
   baseMaxHp: number
@@ -601,7 +628,7 @@ export function derive(c: Character): DerivedStats {
     senses,
     defenses,
     advantages,
-    itemSpells: effectsOf(c, 'spell').map(({ source, effect: f }) => ({ spell: f.spell.trim(), ...(f.note?.trim() ? { note: f.note.trim() } : {}), source })),
+    itemSpells: getItemSpells(c),
     armorClass: getArmorClass(c),
     maxHp: getMaxHp(c),
     baseMaxHp: getMaxHp(c),

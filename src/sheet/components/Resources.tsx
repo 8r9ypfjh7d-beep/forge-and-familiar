@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { isValidNotation } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
-import { getResources, planUse, resourceClassLevel, rulesEdition, type ResourceInfo } from '../../rules'
+import { getMaxHp, getResources, planUse, resourceClassLevel, rulesEdition, type ResourceInfo } from '../../rules'
 import { LastRoll, type Shown } from '../combat/LastRoll'
 import { spendResource } from '../uses'
 import { DAWN_ITEMS } from '../../rules/data/dawnItems'
@@ -27,10 +27,22 @@ export function Resources({ character, apply }: { character: Character; apply: A
   const dawnItems = resources.filter(r => r.recharge === 'dawn').map(r => ({ ...r, used: character.state.resources[r.id]?.used ?? 0 }))
 
   const [out, setOut] = useState<{ key: number; name: string; rolls: Shown[]; note?: string } | null>(null)
+  const [pool, setPool] = useState<string | null>(null)
+
+  /** Spends points from a pool: on yourself they heal you, on an ally they are only spent. */
+  const spendPool = (r: ResourceInfo, label: string, n: number, self: boolean) => {
+    const left = r.max - (character.state.resources[r.id]?.used ?? 0)
+    const plan = planUse(r.id, label, { edition: rulesEdition(character), classLevel: resourceClassLevel(character, r.id) })
+    apply(t(self ? 'use.log.poolSelf' : 'use.log.pool', { label, n }), c => spendResource(c, r.id, plan, self ? { heal: n } : {}, n))
+    setOut(o => ({ key: (o?.key ?? 0) + 1, name: label, rolls: [], note: [self ? t('cast.healed', { n }) : t('use.spentPool', { n }), t('use.left', { n: Math.max(0, left - n), max: r.max })].join(' · ') }))
+    setPool(null)
+  }
 
   /** One tap: spends a use, rolls its healing (Second Wind) and starts its effect (Rage shows under Effects). */
   const use = (r: ResourceInfo, label: string) => {
     const plan = planUse(r.id, label, { edition: rulesEdition(character), classLevel: resourceClassLevel(character, r.id) })
+    // A pool (Lay on Hands) asks how many points first.
+    if (plan.pool && pool !== r.id) return setPool(r.id)
     const shown: Shown[] = []
     let healed: number | undefined
     if (plan.heal) {
@@ -72,7 +84,8 @@ export function Resources({ character, apply }: { character: Character; apply: A
                 ? <Pips total={r.max} used={used} label={label} onChange={set} />
                 : <Stepper value={r.max - used} max={r.max} label={label} onChange={v => set(r.max - v)} />}
               {r.max <= PIP_LIMIT && <span className="track-count">{r.max - used}/{r.max}</span>}
-              <button type="button" className="glass-btn small prominent track-use" aria-label={t('use.useName', { label })} onClick={() => use(r, label)}>{t('use.use')}</button>
+              <button type="button" className="glass-btn small prominent track-use" aria-label={t('use.useName', { label })} aria-expanded={pool === r.id || undefined} onClick={() => (pool === r.id ? setPool(null) : use(r, label))}>{t('use.use')}</button>
+              {pool === r.id && <PoolForm left={r.max - used} missing={Math.max(0, getMaxHp(character) - character.state.currentHp)} label={label} onSpend={(n, self) => spendPool(r, label, n, self)} />}
             </li>
           )
         })}
@@ -93,6 +106,20 @@ export function Resources({ character, apply }: { character: Character; apply: A
       )}
       <AddCounter onAdd={k => apply(t('sheet.log.addedTracker', { label: k.label }), c => upsertCounter(c, k))} />
     </section>
+  )
+}
+
+/** How many points to spend from a pool, then on me (heals) or on an ally. */
+function PoolForm({ left, missing, label, onSpend }: { left: number; missing: number; label: string; onSpend: (n: number, self: boolean) => void }) {
+  const { t } = useI18n()
+  const [n, setN] = useState(Math.max(1, Math.min(left, missing || 5)))
+  const amount = Math.max(1, Math.min(left, n))
+  return (
+    <div className="pool-form" role="group" aria-label={t('use.poolName', { label })}>
+      <Stepper value={amount} max={Math.max(1, left)} label={t('use.poolAmount')} onChange={setN} />
+      <button type="button" className="glass-btn small prominent" disabled={left <= 0} onClick={() => onSpend(amount, true)}>{t('use.poolSelf', { n: amount })}</button>
+      <button type="button" className="glass-btn small" disabled={left <= 0} onClick={() => onSpend(amount, false)}>{t('use.poolAlly', { n: amount })}</button>
+    </div>
   )
 }
 

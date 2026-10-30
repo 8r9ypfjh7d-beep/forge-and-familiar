@@ -6,7 +6,7 @@ import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { slotChoices, spellDamage } from '../quickcast/quickcast'
 import type { SlotChoice } from '../quickcast'
-import { derive } from '../rules'
+import { derive, getResources } from '../rules'
 import { withRollFromText } from '../sheet/combat/combat'
 import { LastRoll, type Shown } from '../sheet/combat/LastRoll'
 import { useSheetRolls } from '../sheet/dice'
@@ -24,8 +24,11 @@ export function useCast(character: Character, apply: Apply) {
   const rolls = useSheetRolls(character)
   const [out, setOut] = useState<{ key: number; value: CastOut } | null>(null)
 
-  /** `free`: cast without a slot (an item's or a race's spell), at `free.level` when it says so. */
-  const cast = (spell: Spell, chosen?: SlotChoice, free?: { level?: number }) => {
+  /**
+   * `free`: cast without a slot (an item's or a race's spell), at `free.level` when it says so, spending
+   * `free.spend` (its once-per-rest use or the item's charges) when it has a limit.
+   */
+  const cast = (spell: Spell, chosen?: SlotChoice, free?: { level?: number; spend?: { id: string; n: number } }) => {
     const slot = free ? undefined : chosen ?? defaultSlot(character, spell)
     const d = derive(character)
     const level = slot?.level ?? free?.level ?? spell.level
@@ -34,6 +37,11 @@ export function useCast(character: Character, apply: Apply) {
     const notes: string[] = []
     if (slot) notes.push(t(slot.source === 'pact' ? 'cs.usedPact' : 'cs.usedSlot', { level: slot.level }))
     else if (spell.level > 0 && !free) notes.push(t('cast.noSlot'))
+    if (free?.spend) {
+      const r = getResources(character).find(x => x.id === free.spend!.id)
+      const left = r ? r.max - (character.state.resources[r.id]?.used ?? 0) : 0
+      notes.push(left < free.spend.n ? t('use.noneLeft') : t('use.left', { n: left - free.spend.n, max: r?.max ?? 0 }))
+    }
 
     // Attack, save and damage or healing, as the attacks table rolls them.
     const entry = toQuickCast(withRollFromText(spell))
@@ -78,7 +86,7 @@ export function useCast(character: Character, apply: Apply) {
     const log = slot
       ? t(slot.source === 'pact' ? 'cs.log.castPact' : 'cs.log.cast', { name: spell.name, level: slot.level })
       : t('cast.log', { name: spell.name })
-    apply(log, c => castSpell(c, plan, { slot, tempHp, heal: healed }).character)
+    apply(log, c => castSpell(c, plan, { slot, tempHp, heal: healed, spend: free?.spend }).character)
     const value: CastOut = { name: spell.name, rolls: shown, note: notes.join(' · ') || undefined, ...(healMe ? { healMe } : {}) }
     setOut(o => ({ key: (o?.key ?? 0) + 1, value }))
     return value

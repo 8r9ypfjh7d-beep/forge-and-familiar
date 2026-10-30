@@ -264,6 +264,8 @@ form.inline input { width: 84px; }
 
 /* Use: one tap spends a use and starts the feature's effect (Resources card). */
 .track-use { margin-inline-start: auto; }
-.track-count + .track-use { margin-inline-start: 0; }
+.track-count:has(+ .track-use) { margin-inline-start: auto; margin-inline-end: 0; }
 .use-out { display: grid; gap: var(--sp-1); margin-block-end: var(--sp-2); }
 .use-out > .glass-btn { justify-self: start; }
+.pool-form { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-2); border-radius: var(--r-md); background: var(--glass-thin); border: 1px solid var(--glass-hairline); }
+.item-spells .track-count { justify-self: end; }
