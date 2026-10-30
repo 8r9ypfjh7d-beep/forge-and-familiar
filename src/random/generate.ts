@@ -35,7 +35,7 @@ function abilitiesFor(primary: Ability[], rng: Rng) {
 export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng: Rng = Math.random): CharacterDraft {
   const is2024 = edition === '2024'
   const race = pick(is2024 ? SPECIES : RACES, rng)
-  const cls = pick(classesFor(edition), rng)
+  const cls = pick(classesFor(edition).filter(c => !c.id.startsWith('hb:')), rng)
   const bg = pick(backgroundsFor(edition).filter(b => b.id !== CUSTOM_BACKGROUND), rng)
   const d: CharacterDraft = {
     ownerId,

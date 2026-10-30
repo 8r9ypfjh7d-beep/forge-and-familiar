@@ -29,15 +29,18 @@ const isMulticlass = (c: Classes) => classesOf(c).length > 1
 
 const minimums = (p: Partial<Abilities>) => Object.entries(p) as [Ability, number][]
 
+/** SRD minimums, or the ones a homebrew class sets. */
+const prereqOf = (classId: string): MulticlassPrereq => MULTICLASS_PREREQS[classId] ?? { all: classById(classId)?.multiclass?.prereq }
+
 /** "STR 13 and CHA 13", "STR 13 or DEX 13". */
 export function prereqLabel(classId: string): string {
-  const p: MulticlassPrereq = MULTICLASS_PREREQS[classId] ?? {}
+  const p = prereqOf(classId)
   const fmt = (list: [Ability, number][]) => list.map(([a, n]) => `${a.toUpperCase()} ${n}`)
   return [fmt(minimums(p.all ?? {})).join(' and '), fmt(minimums(p.any ?? {})).join(' or ')].filter(Boolean).join(', ')
 }
 
 export function meetsPrereq(classId: string, scores: Abilities): boolean {
-  const p = MULTICLASS_PREREQS[classId] ?? {}
+  const p = prereqOf(classId)
   const all = minimums(p.all ?? {}).every(([a, n]) => scores[a] >= n)
   const any = minimums(p.any ?? {})
   return all && (any.length === 0 || any.some(([a, n]) => scores[a] >= n))
@@ -65,7 +68,7 @@ export function getProficiencies(c: Classes & Partial<Pick<Character, 'featureCh
   const weaponIds = new Set<string>()
   const grants = rulesEdition(c) === '2024' ? MULTICLASS_PROFICIENCIES_2024 : MULTICLASS_PROFICIENCIES
   classesOf(c).forEach(({ def }, i) => {
-    const grant: Pick<ClassDef, 'armor' | 'weapons' | 'weaponIds'> = i === 0 ? def : (grants[def.id] ?? def)
+    const grant: Pick<ClassDef, 'armor' | 'weapons' | 'weaponIds'> = i === 0 ? def : (grants[def.id] ?? def.multiclass ?? def)
     grant.armor.forEach(a => armor.add(a))
     grant.weapons.forEach(w => weapons.add(w))
     grant.weaponIds?.forEach(id => weaponIds.add(id))
@@ -93,20 +96,25 @@ export interface CasterLevel {
 /**
  * Shared spell slot caster level. Pact magic is separate. 2014: a single half caster uses its own table (rounds up
  * from level 2); multiclassed half casters round down. 2024: half casters always round up and cast from level 1.
+ * One-third casters (homebrew) work the same way, from level 3.
  */
 export function getCasterLevel(c: Classes): CasterLevel {
-  const casters = classesOf(c).filter(x => x.def.caster === 'full' || x.def.caster === 'half')
-  const single = rulesEdition(c) === '2024' || (casters.length === 1 && casters[0].def.caster === 'half')
-  const parts = casters.map(({ def, level }) => ({
-    classId: def.id,
-    className: def.name,
-    level,
-    rounding: def.caster === 'half' ? (single ? 'up' as const : 'down' as const) : undefined,
-    counts: def.caster === 'full' ? level : single ? (level >= 2 || rulesEdition(c) === '2024' ? Math.ceil(level / 2) : 0) : Math.floor(level / 2),
-  }))
+  const casters = classesOf(c).filter(x => x.def.caster === 'full' || x.def.caster === 'half' || x.def.caster === 'third')
+  const single = rulesEdition(c) === '2024' || (casters.length === 1 && casters[0].def.caster !== 'full')
+  const parts = casters.map(({ def, level }) => {
+    const by = def.caster === 'third' ? 3 : 2
+    const from = def.caster === 'third' ? 3 : rulesEdition(c) === '2024' ? 1 : 2
+    return {
+      classId: def.id,
+      className: def.name,
+      level,
+      rounding: def.caster === 'full' ? undefined : single ? 'up' as const : 'down' as const,
+      counts: def.caster === 'full' ? level : single ? (level >= from ? Math.ceil(level / by) : 0) : Math.floor(level / by),
+    }
+  })
   const casterLevel = Math.min(MAX_CHARACTER_LEVEL, parts.reduce((n, p) => n + p.counts, 0))
   const terms = casters.map(({ def, level }) =>
-    def.caster === 'full' ? `${def.name} ${level}` : `${def.name} ${level} ÷ 2 (round ${single ? 'up' : 'down'})`)
+    def.caster === 'full' ? `${def.name} ${level}` : `${def.name} ${level} ÷ ${def.caster === 'third' ? 3 : 2} (round ${single ? 'up' : 'down'})`)
   const explanation = casters.length === 0 ? 'No spell slots.' : `${terms.join(' + ')} = caster level ${casterLevel}`
   return { casterLevel, parts, explanation }
 }
@@ -153,7 +161,7 @@ export function multiclassWarnings(c: MulticlassInput): string[] {
     if (from.length > 1) out.push(`${name} from ${from.map(x => x.def.name).join(' and ')} adds options, not extra uses.`)
   }
 
-  const shared = classes.filter(x => x.def.caster === 'full' || x.def.caster === 'half')
+  const shared = classes.filter(x => x.def.caster === 'full' || x.def.caster === 'half' || x.def.caster === 'third')
   const pact = classes.find(x => x.def.caster === 'pact')
   if (shared.length > 1) out.push('Prepare or learn spells for each class separately; slots are shared and can cast any of them.')
   if (pact && shared.length > 0) out.push('Pact Magic slots are separate from your other spell slots, but either kind can cast spells from both classes.')

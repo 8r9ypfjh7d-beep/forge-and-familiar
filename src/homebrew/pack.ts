@@ -3,17 +3,20 @@
 import { parseNotation } from '../dice/notation'
 import { HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
 import { sanitizeEffect } from '../rules/itemEffects'
-import { ABILITIES, ABILITY_NAMES, type Abilities, type Ability, type ArmorCategory, type ItemEffect, type SkillId, type UsesCount } from '../rules/types'
+import {
+  ABILITIES, ABILITY_NAMES, type Abilities, type Ability, type ArmorCategory, type CasterType, type ClassFeature, type ItemEffect, type SkillId, type UsesCount,
+  type WeaponCategory,
+} from '../rules/types'
 import { ALL_SKILLS, SKILLS } from '../rules/data/skills'
 import {
-  PACK_FORMAT, PACK_VERSION, RARITIES, SPELL_SCHOOLS,
+  HIT_DICE, PACK_FORMAT, PACK_VERSION, RARITIES, SPELL_SCHOOLS,
   BACKGROUND_EDITIONS,
-  type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClassOption, type HomebrewEntry, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace,
+  type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClass, type HomebrewClassOption, type HomebrewEntry, type HomebrewFeat, type HomebrewItem, type HomebrewPack, type HomebrewRace,
   type HomebrewSpell, type HomebrewSubclass,
 } from './types'
 
 /** Every entry in a pack, all kinds. */
-export const allEntries = (p: HomebrewPack): HomebrewEntry[] => [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds, ...p.classOptions]
+export const allEntries = (p: HomebrewPack): HomebrewEntry[] => [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds, ...p.classOptions, ...p.classes]
 
 export const SHARE_PREFIX = 'FFHB1.'
 export const LIMITS = { entries: 500, name: 80, text: 4000, short: 120 }
@@ -38,7 +41,7 @@ export function newPack(id: string, author: { id: string; displayName: string },
   return {
     format: PACK_FORMAT, version: PACK_VERSION, id, name, description: '',
     authorId: author.id, authorName: author.displayName, updatedAt: new Date().toISOString(),
-    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [],
+    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [], classes: [],
   }
 }
 
@@ -109,6 +112,40 @@ export function classOptionIssues(o: HomebrewClassOption): string[] {
   if (!o.name.trim()) out.push('Give it a name.')
   if (!o.text.trim()) out.push('Describe what it does.')
   if (o.classIds.length === 0) out.push('Pick at least one class that can choose it.')
+  return out
+}
+
+export function classIssues(c: HomebrewClass): string[] {
+  const out: string[] = []
+  if (!c.name.trim()) out.push('Give the class a name.')
+  if (c.caster !== 'none' && !c.spellAbility) out.push('Pick the ability it casts spells with.')
+  if (c.features.some(f => !f.name.trim())) out.push('Every feature needs a name.')
+  return out
+}
+
+/** A new class with the usual defaults: d8, two saves, ASIs at 4/8/12/16/19, subclass at 3. */
+export const blankClass = (): HomebrewClass => ({
+  id: '', name: '', hitDie: 8, primary: [], savingThrows: [], skillChoices: { count: 2, from: [] }, armor: [], weapons: ['simple'], tools: [],
+  caster: 'none', subclassLevel: 3, subclassTitle: '', asiLevels: [4, 8, 12, 16, 19], features: [],
+  multiclass: { prereq: {}, armor: [], weapons: [] },
+})
+
+/** "1:2, 3:3, 6:4" ⇄ [[1, 2], [3, 3], [6, 4]]. */
+export const stepsText = (steps: [number, number][]) => steps.map(([l, n]) => `${l}:${n}`).join(', ')
+export function parseSteps(text: string): [number, number][] {
+  return text.split(/[,;\n]+/).flatMap(part => {
+    const m = part.trim().match(/^(\d+)\s*[:=]\s*(\d+)$/)
+    return m ? [[Math.min(20, Math.max(1, Number(m[1]))), Number(m[2])] as [number, number]] : []
+  }).sort((a, b) => a[0] - b[0])
+}
+
+/** Unusual choices worth a second look; the class still saves (homebrew is never blocked for being odd). */
+export function classWarnings(c: HomebrewClass): { key: 'hb.cls.warn.saves' | 'hb.cls.warn.skills' | 'hb.cls.warn.knownEmpty' | 'hb.cls.warn.noFeatures'; vars?: Record<string, number> }[] {
+  const out: ReturnType<typeof classWarnings> = []
+  if (c.savingThrows.length !== 2) out.push({ key: 'hb.cls.warn.saves', vars: { count: c.savingThrows.length } })
+  if (c.skillChoices.count > c.skillChoices.from.length) out.push({ key: 'hb.cls.warn.skills', vars: { count: c.skillChoices.count, list: c.skillChoices.from.length } })
+  if (c.caster !== 'none' && c.spellcasting?.kind === 'known' && !c.spellcasting.known.length) out.push({ key: 'hb.cls.warn.knownEmpty' })
+  if (c.features.length === 0) out.push({ key: 'hb.cls.warn.noFeatures' })
   return out
 }
 
@@ -352,6 +389,81 @@ function cleanClassOption(v: Obj, packId: string, seen: Set<string>): HomebrewCl
   }
 }
 
+const WEAPONS = ['simple', 'martial'] as const
+const CASTERS = ['full', 'half', 'third', 'pact', 'none'] as const
+
+/** [class level, count] steps, sorted by level. */
+const cleanSteps = (v: unknown, max = 50): [number, number][] =>
+  list(v).filter((x): x is unknown[] => Array.isArray(x)).map(([l, n]) => [int(l, 1, 20, 1), int(n, 0, max)] as [number, number])
+    .sort((a, b) => a[0] - b[0]).slice(0, 20)
+
+function cleanFeatureUses(v: unknown): ClassFeature['uses'] {
+  if (!isObj(v)) return undefined
+  const count: UsesCount = typeof v.count === 'number' ? int(v.count, 0, 50, 1) : oneOf(v.count, USES, 'pb')
+  const steps = cleanSteps(v.steps)
+  return {
+    count, recharge: oneOf(v.recharge, ['short', 'long'] as const, 'long'),
+    ...(typeof v.add === 'number' && int(v.add, -5, 20) ? { add: int(v.add, -5, 20) } : {}),
+    ...(steps.length ? { steps } : {}),
+  }
+}
+
+function cleanFeature(v: Obj): ClassFeature {
+  const uses = cleanFeatureUses(v.uses)
+  const effects = list(v.effects).flatMap(e => sanitizeEffect(e) ?? []).slice(0, 20) as ItemEffect[]
+  return {
+    level: int(v.level, 1, 20, 1),
+    name: str(v.name, LIMITS.name) || 'Feature',
+    ...(optStr(v.text, LIMITS.text) ? { text: optStr(v.text, LIMITS.text) } : {}),
+    ...(uses ? { uses } : {}),
+    ...(effects.length ? { effects } : {}),
+  }
+}
+
+const abilityList = (v: unknown, max = 6) => [...new Set(list(v).filter((a): a is Ability => ABILITIES.includes(a as Ability)))].slice(0, max)
+const armorList = (v: unknown) => [...new Set(list(v).filter((a): a is ArmorCategory => ARMOR.includes(a as ArmorCategory)))]
+const weaponList = (v: unknown) => [...new Set(list(v).filter((a): a is WeaponCategory => WEAPONS.includes(a as WeaponCategory)))]
+
+function cleanClass(v: Obj, packId: string, seen: Set<string>): HomebrewClass {
+  const name = str(v.name, LIMITS.name) || 'Unnamed class'
+  const id = ownId(v.id, packId, name, seen)
+  const caster: CasterType = oneOf(v.caster, CASTERS, 'none')
+  const skills = isObj(v.skillChoices) ? v.skillChoices : {}
+  const from = [...new Set(list(skills.from).filter((x): x is SkillId => ALL_SKILLS.includes(x as SkillId)))]
+  const sc = isObj(v.spellcasting) ? v.spellcasting : {}
+  const mc = isObj(v.multiclass) ? v.multiclass : {}
+  const prereq: Partial<Abilities> = {}
+  if (isObj(mc.prereq)) for (const a of ABILITIES) if (typeof mc.prereq[a] === 'number') prereq[a] = int(mc.prereq[a], 1, 30)
+  const listId = str(sc.list, 120)
+  return {
+    id,
+    name,
+    hitDie: HIT_DICE.includes(v.hitDie as never) ? (v.hitDie as number) : 8,
+    primary: abilityList(v.primary, 2),
+    savingThrows: abilityList(v.savingThrows),
+    skillChoices: { count: int(skills.count, 0, 18, 2), from },
+    armor: armorList(v.armor),
+    weapons: weaponList(v.weapons),
+    tools: textList(v.tools, 10),
+    caster,
+    spellAbility: caster === 'none' ? undefined : optOneOf<Ability>(v.spellAbility, ABILITIES),
+    spellcasting: caster === 'none' ? undefined : {
+      list: /^[a-z0-9:-]+$/i.test(listId) ? listId : id,
+      kind: oneOf(sc.kind, ['known', 'prepared'] as const, 'prepared'),
+      cantrips: cleanSteps(sc.cantrips, 10),
+      known: cleanSteps(sc.known),
+    },
+    unarmoredDefense: optOneOf<Ability>(v.unarmoredDefense, ABILITIES),
+    subclassLevel: int(v.subclassLevel, 1, 20, 3),
+    subclassTitle: str(v.subclassTitle, LIMITS.name) || 'Subclass',
+    asiLevels: [...new Set(list(v.asiLevels).map(l => int(l, 1, 20)))].sort((a, b) => a - b),
+    features: list(v.features).filter(isObj).map(cleanFeature).slice(0, 60),
+    multiclass: { prereq, armor: armorList(mc.armor), weapons: weaponList(mc.weapons) },
+    startingGold: typeof v.startingGold === 'number' ? int(v.startingGold, 0, 10000) : undefined,
+    description: optStr(v.description, LIMITS.text),
+  }
+}
+
 /** Rebuilds a pack from unknown JSON. Throws PackError if it isn't a homebrew pack at all. */
 export function sanitizePack(raw: unknown): HomebrewPack {
   if (!isObj(raw) || raw.format !== PACK_FORMAT) throw new PackError("This isn't a Forge & Familiar homebrew pack.")
@@ -374,6 +486,7 @@ export function sanitizePack(raw: unknown): HomebrewPack {
     subclasses: list(raw.subclasses).filter(isObj).map(v => cleanSubclass(v, id, seen)),
     backgrounds: list(raw.backgrounds).filter(isObj).map(v => cleanBackground(v, id, seen)),
     classOptions: list(raw.classOptions).filter(isObj).map(v => cleanClassOption(v, id, seen)),
+    classes: list(raw.classes).filter(isObj).map(v => cleanClass(v, id, seen)),
     history: Array.isArray(raw.history) ? raw.history.slice(0, LIMITS.entries * 20) : undefined,
   }
 }
@@ -388,6 +501,7 @@ export function sanitizeEntry(kind: ContentKind, raw: unknown, packId: string): 
   if (kind === 'subclasses') return cleanSubclass(raw, packId, seen)
   if (kind === 'backgrounds') return cleanBackground(raw, packId, seen)
   if (kind === 'classOptions') return cleanClassOption(raw, packId, seen)
+  if (kind === 'classes') return cleanClass(raw, packId, seen)
   return cleanFeat(raw, packId, seen)
 }
 

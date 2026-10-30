@@ -229,7 +229,16 @@ export const CLASSES: ClassDef[] = [
   },
 ]
 
-/** SRD classes of an edition: CLASSES (2014) or CLASSES_2024. */
-export const classesFor = (edition: RulesEdition = '2014'): ClassDef[] => (edition === '2024' ? CLASSES_2024 : CLASSES)
+// Homebrew classes registered at runtime (ids namespaced `hb:<packId>:<slug>`), offered with both editions.
+let homebrew: ClassDef[] = []
+
+/** Replace the registered homebrew classes. SRD ids always win. */
+export function registerHomebrewClasses(list: ClassDef[]): void {
+  const srd = new Set([...CLASSES, ...CLASSES_2024].map(c => c.id))
+  homebrew = list.filter(c => !srd.has(c.id))
+}
+
+/** Classes of an edition: CLASSES (2014) or CLASSES_2024, then homebrew ones. */
+export const classesFor = (edition: RulesEdition = '2014'): ClassDef[] => [...(edition === '2024' ? CLASSES_2024 : CLASSES), ...homebrew]
 
 export const classById = (id: string, edition: RulesEdition = '2014') => classesFor(edition).find(c => c.id === id)

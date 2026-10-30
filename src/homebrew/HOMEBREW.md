@@ -10,6 +10,7 @@ Custom spells, items, feats, races (or subraces of any race), subclasses, backgr
 | `pack.ts` | Pure helpers: entry ids, editor validation, `sanitizePack`, share codes, `describeEffect` |
 | `store.ts` | Pack library in localStorage (`ff.homebrew.v1`), async API, registers content with the rules engine (`toBackground` maps a pack background) |
 | `ui/Homebrew.tsx` | Library, import, pack editor, share panel, "Give to" character |
+| `ui/ClassForm.tsx` | Class editor: hit die, saves, proficiencies, casting (type, ability, list, known/prepared, cantrip steps), unarmored defense, subclass level/title, ASI levels, features with uses (fixed, PB, level, modifier, or level steps) and any sheet effect, multiclass rules, why? tips | |
 | `ui/forms.tsx` | Spell, item, feat, race, subclass, background and class option editors; `EffectsField` is shared by feats and backgrounds; the class option editor reuses the inventory's `EffectsEditor` (every `ItemEffect`) and has why? bubbles |
 | `ui/homebrew.css` | Screen styles on the Liquid Glass standard (`src/design/DESIGN.md`): glass cards, segmented kind tabs, glass fields and buttons |
 | `homebrew.test.ts` | Ids, validation, share codes, sanitizing, derive() integration |

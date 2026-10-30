@@ -2,8 +2,10 @@
 // Pure: reads the class tables from the content library, so 2014 and 2024 rules each use their own numbers.
 import type { CharacterClass, Edition, Spell, Subclass } from '../content'
 import type { Character } from '../model/character'
+import { classById } from '../rules/data/classes'
+import { rulesEdition } from '../rules/edition'
 import { subclassSpellNames } from '../rules/subclass'
-import type { Abilities, Ability } from '../rules/types'
+import type { Abilities, Ability, ClassDef } from '../rules/types'
 
 export interface SpellAccess {
   classId: string
@@ -28,6 +30,8 @@ export interface SpellAccess {
   secrets?: { count?: number; lists?: string[] }
   /** Subclass spells that are always prepared and don't count against the limit. */
   alwaysPrepared: string[]
+  /** Class whose spell list it learns from, when not its own (homebrew classes borrow one). */
+  listClassId?: string
 }
 
 export const DEFAULT_EDITION: Edition = '2014'
@@ -56,9 +60,33 @@ const mod = (score: number) => Math.floor((score - 10) / 2)
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
+const step = (steps: [number, number][], level: number) => steps.reduce((n, [from, v]) => (level >= from ? v : n), 0)
+
+/** A homebrew class's access, from its own casting rules (the library has no table for it). */
+function homebrewAccess(def: ClassDef, level: number, scores: Abilities): Omit<SpellAccess, 'alwaysPrepared'> | undefined {
+  const sc = def.spellcasting
+  const ability = def.spellAbility
+  if (!sc || !ability || def.caster === 'none') return undefined
+  // Slot level from the class alone: full casters use their level, half and third casters a share of it, pact magic tops out at 5th.
+  const own = def.caster === 'full' ? level : def.caster === 'half' ? Math.ceil(level / 2) : def.caster === 'third' ? (level >= 3 ? Math.ceil(level / 3) : 0) : level
+  const maxLevel = def.caster === 'pact' ? Math.min(5, Math.ceil(level / 2)) : own > 0 ? Math.min(9, Math.ceil(own / 2)) : 0
+  const share = def.caster === 'half' ? Math.floor(level / 2) : def.caster === 'third' ? Math.floor(level / 3) : level
+  return {
+    classId: def.id,
+    className: def.name,
+    level,
+    ability,
+    maxLevel,
+    cantrips: step(sc.cantrips, level),
+    kind: sc.kind,
+    limit: sc.kind === 'known' ? step(sc.known, level) : Math.max(1, mod(scores[ability]) + share),
+    ...(sc.list !== def.id ? { listClassId: sc.list } : {}),
+  }
+}
+
 /**
- * Spell access for each spellcasting class the character has. Classes the library has no table for
- * (homebrew) are left out. `scores` are final ability scores; `halfCasters` the class ids that halve
+ * Spell access for each spellcasting class the character has. Homebrew classes the library has no table for
+ * use their own casting rules (ClassDef.spellcasting). `scores` are final ability scores; `halfCasters` the class ids that halve
  * their level for 2014 prepared counts (Paladin). `spells` resolves the spells the rules engine's
  * subclasses list by name (patrons from other books, custom subclasses); names the library lacks are skipped.
  */
@@ -74,8 +102,14 @@ export function spellAccess(
   const out: SpellAccess[] = []
   for (const cl of c.classes) {
     const def = classes.find(k => k.id === cl.classId)
-    const row = def?.levels.find(l => l.level === Math.min(cl.level, 20))
-    if (!def?.spellcasting || !row?.spellcasting || cl.level < def.spellcasting.fromLevel) continue
+    if (!def) {
+      const own = classById(cl.classId, rulesEdition(c))
+      const access = own && homebrewAccess(own, Math.min(cl.level, 20), scores)
+      if (access) out.push({ ...access, ...(cl.subclassId ? { subclassId: cl.subclassId } : {}), alwaysPrepared: [...new Set(subclassSpellNames(c, cl.classId).flatMap(n => byName.get(norm(n)) ?? []))] })
+      continue
+    }
+    const row = def.levels.find(l => l.level === Math.min(cl.level, 20))
+    if (!def.spellcasting || !row?.spellcasting || cl.level < def.spellcasting.fromLevel) continue
     const sc = row.spellcasting
     let maxLevel = sc.slots.reduce((m, n, i) => (n > 0 ? i + 1 : m), 0)
     if (cl.classId === 'warlock') maxLevel = Math.max(maxLevel, ARCANUM.find(([lvl]) => cl.level >= lvl)?.[1] ?? 0)
@@ -107,7 +141,7 @@ export function spellAccess(
 
 /** Whether a class can take this spell now: on its list (or its subclass's), and of a level it can cast. */
 export function canTake(spell: Spell, a: SpellAccess): boolean {
-  const onList = spell.classes.includes(a.classId) || (!!a.subclassId && spell.subclasses.includes(a.subclassId)) || a.alwaysPrepared.includes(spell.id)
+  const onList = spell.classes.includes(a.listClassId ?? a.classId) || (!!a.subclassId && spell.subclasses.includes(a.subclassId)) || a.alwaysPrepared.includes(spell.id)
     || !!a.secrets?.lists?.some(l => spell.classes.includes(l)) || (!!a.secrets?.count && spell.classes.length > 0)
   if (!onList) return false
   return spell.level === 0 ? a.cantrips > 0 : spell.level <= a.maxLevel

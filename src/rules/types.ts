@@ -142,7 +142,8 @@ export interface Race extends RaceRules {
 export type ArmorCategory = 'light' | 'medium' | 'heavy' | 'shield'
 export type WeaponCategory = 'simple' | 'martial'
 
-export type CasterType = 'full' | 'half' | 'pact' | 'none'
+/** `third`: a one-third caster (Eldritch Knight style), used by homebrew classes. */
+export type CasterType = 'full' | 'half' | 'third' | 'pact' | 'none'
 
 export type RestType = 'short' | 'long'
 
@@ -164,6 +165,10 @@ export interface ClassFeature {
   effects?: ItemEffect[]
   /** [class level, text] steps for what grows with the level ("d8", "CR 1", "3 attacks"); the sheet shows the latest. */
   detail?: [number, string][]
+  /** What it does (homebrew classes). */
+  text?: string
+  /** Uses tracked on the sheet's Resources, like a subclass feature's (homebrew classes). */
+  uses?: SubclassFeature['uses']
 }
 
 /** A pick a class makes at a level that changes the sheet: Fighting Style, Divine Order, Primal Order. */
@@ -238,6 +243,22 @@ export interface ClassDef {
   startingGold?: number
   /** 2014 "take gold instead": `dice`d4 × `multiplier` gp in place of the class and background gear. */
   startingWealth?: { dice: number; multiplier: number }
+  /** Homebrew casting rules the spellbook reads (official classes use the content library's tables). */
+  spellcasting?: ClassSpellcasting
+  /** Homebrew multiclass rules; official classes use the tables in data/multiclass.ts. */
+  multiclass?: { prereq: Partial<Abilities>; armor: ArmorCategory[]; weapons: WeaponCategory[] }
+  /** Homebrew pack classes: the author's description. */
+  description?: string
+}
+
+/** How a homebrew class picks spells. Steps are [class level, count]: the last step reached counts. */
+export interface ClassSpellcasting {
+  /** Class whose spell list it uses (an SRD class id); its own id when homebrew spells name it. */
+  list: string
+  kind: 'known' | 'prepared'
+  cantrips: [number, number][]
+  /** Spells known by level, for `known` casters. Prepared casters prepare modifier + level (half or third for those casters). */
+  known: [number, number][]
 }
 
 /** One starting-equipment choice. An option lists item ids; `any:<filter>` asks the player for one item. */
