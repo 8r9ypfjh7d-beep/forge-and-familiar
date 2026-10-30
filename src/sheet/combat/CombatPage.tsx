@@ -533,7 +533,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
                   <li key={e.id}>
                     <strong>{e.name}</strong>{' '}
                     <span>{[
-                      e.damage ? t('cs.effectDice', { dice: e.damage, type: e.damageType ? ` ${term('damage', e.damageType, e.damageType)}` : '' }) : '',
+                      e.damage ? t('cs.effectDice', { dice: e.damage.replace(/^\+/, ''), type: e.damageType ? ` ${term('damage', e.damageType, e.damageType)}` : '' }) : '',
                       ...e.stats.map(f => effectText(i18n, f)),
                     ].filter(Boolean).join(' · ')}</span>
                   </li>
