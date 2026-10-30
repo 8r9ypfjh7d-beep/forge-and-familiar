@@ -396,12 +396,23 @@ function cleanTool(v: Obj, packId: string, seen: Set<string>): HomebrewTool {
 
 function cleanSubclass(v: Obj, packId: string, seen: Set<string>): HomebrewSubclass {
   const name = str(v.name, LIMITS.name) || 'Unnamed subclass'
+  const weapons = weaponList(v.weapons)
+  const hp = int(v.hpPerLevel, 0, 5)
+  const unarmored = optOneOf<Ability>(v.unarmoredAbility, ABILITIES)
+  const spells = list(v.spells).filter(isObj)
+    .map(x => ({ level: int(x.level, 1, 20, 1), names: textList(x.names, 10) }))
+    .filter(x => x.names.length).slice(0, 20)
   return {
     id: ownId(v.id, packId, name, seen),
     name,
     classId: str(v.classId, 40),
-    features: list(v.features).filter(isObj).map(f => ({ level: int(f.level, 1, 20, 1), name: str(f.name, LIMITS.name) || 'Feature' })).slice(0, 40),
-    armor: [...new Set(list(v.armor).filter((a): a is ArmorCategory => ARMOR.includes(a as ArmorCategory)))],
+    features: list(v.features).filter(isObj).map(cleanFeature).slice(0, 40),
+    armor: armorList(v.armor),
+    ...(weapons.length ? { weapons } : {}),
+    ...(hp ? { hpPerLevel: hp } : {}),
+    ...(unarmored ? { unarmoredAbility: unarmored } : {}),
+    ...(spells.length ? { spells } : {}),
+    ...(v.castingWeapon === true ? { castingWeapon: true } : {}),
     description: optStr(v.description, LIMITS.text),
   }
 }

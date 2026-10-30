@@ -1,12 +1,13 @@
 // Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds, class options, languages and tools (classes are in ClassForm.tsx). Each edits a copy and hands it back on save.
 import { useState, type ReactNode } from 'react'
+import { SubclassMechanicsEditor } from '../../builder/CustomSubclassForm'
 import { FeatMechanics } from '../../builder/FeatEditor'
 import { Why } from '../../builder/Why'
 import { useI18n } from '../../i18n'
 import type { MessageKey } from '../../i18n/locales/en'
 import { EffectsEditor } from '../../inventory'
 import {
-  ABILITIES, ALL_SKILLS, CLASSES, classesFor, HOMEBREW_OPTION_KINDS, ITEMS, OPTION_KIND_CLASSES, SIZES, allFeats, allRaces, isUsefulEffect, itemById,
+  ABILITIES, ALL_SKILLS, CLASSES, classById, classesFor, HOMEBREW_OPTION_KINDS, ITEMS, OPTION_KIND_CLASSES, SIZES, allFeats, allRaces, isUsefulEffect, itemById,
   type Ability, type ArmorCategory, type Size, type SkillId, type UsesCount, type WeaponCategory, type WeaponProperty,
 } from '../../rules'
 import {
@@ -540,10 +541,9 @@ export function ToolForm({ initial, onSave, onCancel }: { initial: HomebrewTool;
 const ARMOR_TYPES: ArmorCategory[] = ['light', 'medium', 'heavy', 'shield']
 
 export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewSubclass; onSave: (s: HomebrewSubclass) => void; onCancel: () => void }) {
-  const { t, term, className } = useI18n()
+  const { t, className, term } = useI18n()
   const [sc, setSc] = useState(initial)
   const set = (patch: Partial<HomebrewSubclass>) => setSc(prev => ({ ...prev, ...patch }))
-  const setFeature = (i: number, f: { level: number; name: string }) => set({ features: sc.features.map((x, j) => (j === i ? f : x)) })
   return (
     <FormShell kind="subclasses" name={initial.name} value={sc} issues={subclassIssues(sc)} onSave={onSave} onCancel={onCancel}>
       <Field label={t('hb.f.name')} wide><input value={sc.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.subclassPlaceholder')} /></Field>
@@ -552,33 +552,17 @@ export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewS
           {classesFor().map(c => <option key={c.id} value={c.id}>{className(c.id)} ({term('feature', c.subclassTitle, c.subclassTitle)})</option>)}
         </select>
       </Field>
-      <div className="hb-field wide">
-        <span>{t('hb.f.armor')}</span>
-        <div className="row">
-          {ARMOR_TYPES.map(a => (
-            <Check key={a} label={t(`hb.cat.${a}`)} checked={sc.armor.includes(a)} onChange={on => set({ armor: on ? [...sc.armor, a] : sc.armor.filter(x => x !== a) })} />
-          ))}
-        </div>
-      </div>
-      <div className="hb-field wide">
-        <span>{t('hb.f.features')}</span>
-        {sc.features.map((f, i) => (
-          <div key={i} className="row hb-effect">
-            <input type="number" min={1} max={20} aria-label={t('hb.f.level')} className="hb-amount" value={f.level} onChange={e => setFeature(i, { ...f, level: numOr(e.target.value, 1) })} />
-            <input value={f.name} aria-label={t('hb.f.featureName')} placeholder={t('hb.f.featurePlaceholder')} onChange={e => setFeature(i, { ...f, name: e.target.value })} />
-            <button type="button" className="glass-btn small icon hb-ghost" onClick={() => set({ features: sc.features.filter((_, j) => j !== i) })} aria-label={t('hb.f.removeFeature')}>✕</button>
-          </div>
-        ))}
-        <div>
-          <button type="button" className="glass-btn small" onClick={() => set({ features: [...sc.features, { level: classLevel(sc.classId), name: '' }] })}>{t('hb.f.addFeature')}</button>
-        </div>
-      </div>
       <Field label={t('hb.f.description')} wide><textarea rows={4} value={sc.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+      <div className="hb-field wide custom-sub">
+        <SubclassMechanicsEditor sub={sc} set={patch => set({ ...patch, armor: patch.armor ?? sc.armor })} classId={sc.classId} from={classLevel(sc.classId)} idBase="hb-sub" />
+      </div>
     </FormShell>
   )
 }
 
-const classLevel = (classId: string) => classesFor().find(c => c.id === classId)?.subclassLevel ?? 3
+/** The lowest level the class gets its subclass in either edition (2014 Cleric 1, 2024 Cleric 3), since homebrew subclasses serve both. */
+const classLevel = (classId: string) =>
+  Math.min(...(['2014', '2024'] as const).map(e => classById(classId, e)?.subclassLevel ?? 3))
 
 export function BackgroundForm({ initial, pack, onSave, onCancel }: { initial: HomebrewBackground; pack: HomebrewPack; onSave: (b: HomebrewBackground) => void; onCancel: () => void }) {
   const { t, abilityShort, skill, term } = useI18n()

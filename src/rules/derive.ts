@@ -19,7 +19,7 @@ import { racialSkills, racialWeapons } from './origin'
 import { getCasterLevel, getProficiencies, multiclassWarnings } from './multiclass'
 import { naturalArmorAc, pickedOptions, raceProfile, raceUseId } from './race'
 import { optionPickSlots } from './optionPicks'
-import { slug, subclassFeatures, subclassOf } from './subclass'
+import { slug, subclassFeatures, subclassOf, subclassResourceId } from './subclass'
 import {
   ABILITIES, type Abilities, type Ability, type AdvantageOn, type ClassDef, type ConditionId, type InventoryEntry, type Item, type MoveMode, type Recharge,
   type Sense, type Size, type SkillId, type SubclassFeature,
@@ -149,7 +149,7 @@ export function getResources(c: Character): ResourceInfo[] {
   const prof = proficiencyBonus(totalLevel(c))
   const withUses = [
     ...classFeatures(c).map(({ level, def, feature }) => ({ level, feature, id: `class:${def.id}:${slug(feature.name)}` })),
-    ...subclassFeatures(c).map(({ level, subclass, feature }) => ({ level, feature, id: `sub:${subclass.id}:${slug(feature.name)}` })),
+    ...subclassFeatures(c).map(({ level, subclass, feature }) => ({ level, feature, id: subclassResourceId(subclass, feature) })),
   ]
   for (const { level, feature, id } of withUses) {
     const u = feature.uses

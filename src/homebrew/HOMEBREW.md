@@ -11,7 +11,7 @@ Custom spells, items, feats, races (or subraces of any race), subclasses, backgr
 | `store.ts` | Pack library in localStorage (`ff.homebrew.v1`), async API, registers content with the rules engine (`toBackground` maps a pack background, `toRace`/`toSubrace` a pack race) |
 | `ui/Homebrew.tsx` | Library, import, pack editor, share panel, "Give to" character |
 | `ui/ClassForm.tsx` | Class editor: hit die, saves, proficiencies, casting (type, ability, list, known/prepared, cantrip steps), unarmored defense, subclass level/title, ASI levels, features with uses (fixed, PB, level, modifier, or level steps) and any sheet effect, multiclass rules, why? tips | |
-| `ui/forms.tsx` | Spell, item, feat, race, subclass, background, class option, language and tool editors; `EffectsField` is shared by feats and backgrounds; the class option editor reuses the inventory's `EffectsEditor` (every `ItemEffect`) and has why? bubbles | Race, language and tool fields have EN/HE "why?" bubbles.
+| `ui/forms.tsx` | Spell, item, feat, race, subclass (name, class, description plus the builder's `SubclassMechanicsEditor`: feature text, uses, any sheet effect, bonus spells, armor/weapon proficiencies, HP per level, unarmored AC), background, class option, language and tool editors; `EffectsField` is shared by feats and backgrounds; the class option editor reuses the inventory's `EffectsEditor` (every `ItemEffect`) and has why? bubbles | Race, language and tool fields have EN/HE "why?" bubbles.
 | `ui/homebrew.css` | Screen styles on the Liquid Glass standard (`src/design/DESIGN.md`): glass cards, segmented kind tabs, glass fields and buttons |
 | `homebrew.test.ts` | Ids, validation, share codes, sanitizing, derive() integration |
 

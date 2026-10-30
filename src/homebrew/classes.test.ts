@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  addClassIssues, classById, classesFor, createCharacter, derive, getCasterLevel, getProficiencies, getSpellSlots, registerHomebrewClasses,
-  type CharacterDraft,
+  CUSTOM_SUBCLASS, addClassIssues, classById, classesFor, createCharacter, derive, getCasterLevel, getProficiencies, getSpellSlots, registerHomebrewClasses,
+  registerHomebrewSubclasses, subclassSpellNames, type CharacterDraft,
 } from '../rules'
+import { stepIssues, subclassSlots } from '../builder/validate'
 import { spellAccess } from '../spellbook/access'
 import { blankClass, classIssues, classWarnings, parseSteps, sanitizeEntry, sanitizePack } from './pack'
 import { toClass } from './store'
@@ -123,5 +124,56 @@ describe('homebrew classes in the rules engine', () => {
     const [b] = spellAccess({ classes: [{ classId: 'hb:abcd1234:rune-smith', level: 5 }] }, [], [], scores)
     expect(b).toMatchObject({ maxLevel: 3, cantrips: 0, kind: 'prepared', limit: 3 + 5 })
     expect(b.listClassId).toBeUndefined()
+  })
+})
+
+describe('subclasses for homebrew classes', () => {
+  it('a homebrew class with no listed subclasses still gets a subclass slot, with Custom', () => {
+    registerHomebrewClasses([toClass(runeSmith())])
+    const id = 'hb:abcd1234:rune-smith'
+    expect(subclassSlots(draft([{ classId: id, level: 2 }]))).toEqual([])
+    expect(subclassSlots(draft([{ classId: id, level: 3 }]))).toHaveLength(1)
+    expect(stepIssues('class', draft([{ classId: id, level: 3 }]))).toContain('Choose the Forge Tradition for your Rune Smith.')
+    const custom = draft([{ classId: id, level: 3, subclassId: CUSTOM_SUBCLASS }], {
+      customSubclasses: [{ classId: id, name: 'Ember Rites', features: [{ level: 3, name: 'Ember', uses: { count: 2, recharge: 'long' } }] }],
+    })
+    expect(stepIssues('class', custom)).toEqual([])
+    expect(derive(createCharacter(custom)).resources.find(r => r.label === 'Ember')).toMatchObject({ id: `sub:custom:${id}:ember`, max: 2 })
+  })
+})
+
+describe('homebrew pack subclasses', () => {
+  afterEach(() => registerHomebrewSubclasses([]))
+  const raw = {
+    format: 'ff-homebrew', version: 1, id: 'abcd1234', name: 'Oaths',
+    subclasses: [{
+      name: 'Oath of Embers', classId: 'paladin', armor: ['heavy'], weapons: ['martial', 'laser'], hpPerLevel: 9, unarmoredAbility: 'cha', castingWeapon: 'yes',
+      spells: [{ level: 3, names: ['Burning Hands', 42, ''] }, { level: 5, names: [] }],
+      features: [{
+        level: 3, name: 'Kindle', text: 'Light a flame.', uses: { count: 'pb', recharge: 'short', add: 1 },
+        effects: [{ kind: 'resistance', damage: 'fire' }, { kind: 'nonsense' }],
+      }],
+    }],
+  }
+
+  it('keeps text, uses, effects, spells and proficiencies, cleaned', () => {
+    const sc = sanitizePack(raw).subclasses[0]
+    expect(sc).toMatchObject({
+      id: 'hb:abcd1234:oath-of-embers', armor: ['heavy'], weapons: ['martial'], hpPerLevel: 5, unarmoredAbility: 'cha',
+      spells: [{ level: 3, names: ['Burning Hands'] }],
+      features: [{ level: 3, name: 'Kindle', text: 'Light a flame.', uses: { count: 'pb', recharge: 'short', add: 1 }, effects: [{ kind: 'resistance', damage: 'fire' }] }],
+    })
+    expect(sc.castingWeapon).toBeUndefined()
+  })
+
+  it('works on the sheet', () => {
+    registerHomebrewSubclasses(sanitizePack(raw).subclasses)
+    const c = createCharacter(draft([{ classId: 'paladin', level: 5, subclassId: 'hb:abcd1234:oath-of-embers' }]))
+    const d = derive(c)
+    expect(d.defenses.resistances).toContain('fire')
+    expect(d.features.find(f => f.name === 'Kindle')?.text).toBe('Light a flame.')
+    expect(d.resources.find(r => r.label === 'Kindle')).toMatchObject({ id: 'sub:hb:abcd1234:oath-of-embers:kindle', max: 4, recharge: 'short' })
+    expect([...getProficiencies(c).armor]).toContain('heavy')
+    expect(subclassSpellNames(c, 'paladin')).toEqual(['Burning Hands'])
   })
 })

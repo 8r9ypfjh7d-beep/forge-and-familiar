@@ -7,6 +7,7 @@ import {
   type Ability, type ArmorCategory, type CharacterDraft, type SubclassData, type SubclassFeature, type UsesCount, type WeaponCategory,
 } from '../rules'
 import { Why } from './Why'
+import './builder.css'
 
 const ARMOR: ArmorCategory[] = ['light', 'medium', 'heavy', 'shield']
 const WEAPONS: WeaponCategory[] = ['simple', 'martial']
@@ -17,21 +18,9 @@ const usesKind = (f: SubclassFeature): UsesKind => (!f.uses ? 'none' : typeof f.
 export function CustomSubclassForm({ draft, classId, update }: { draft: CharacterDraft; classId: string; update: (patch: Partial<CharacterDraft>) => void }) {
   const { t, term } = useI18n()
   const def = classById(classId, rulesEdition(draft))
-  const from = def?.subclassLevel ?? 1
   const sub = draft.customSubclasses?.find(s => s.classId === classId) ?? blankSubclass(classId)
   const set = (patch: Partial<SubclassData>) =>
     update({ customSubclasses: [...(draft.customSubclasses ?? []).filter(s => s.classId !== classId), { ...sub, ...patch }] })
-  const setFeature = (i: number, patch: Partial<SubclassFeature>) => set({ features: sub.features.map((f, j) => (j === i ? { ...f, ...patch } : f)) })
-  const toggle = <T,>(list: T[] | undefined, v: T) => (list?.includes(v) ? list.filter(x => x !== v) : [...(list ?? []), v])
-  const spells = sub.spells ?? []
-  const setSpells = (i: number, patch: Partial<{ level: number; names: string[] }>) => set({ spells: spells.map((s, j) => (j === i ? { ...s, ...patch } : s)) })
-  const level = (v: string) => Math.min(20, Math.max(from, Number(v) || from))
-
-  const setUses = (i: number, f: SubclassFeature, kind: UsesKind) => {
-    if (kind === 'none') return setFeature(i, { uses: undefined })
-    const count: UsesCount = kind === 'fixed' ? (typeof f.uses?.count === 'number' ? f.uses.count : 1) : kind
-    setFeature(i, { uses: { recharge: f.uses?.recharge ?? 'long', count, ...(kind !== 'fixed' && f.uses?.add ? { add: f.uses.add } : {}) } })
-  }
 
   return (
     <div className="custom-bg custom-sub">
@@ -46,7 +35,36 @@ export function CustomSubclassForm({ draft, classId, update }: { draft: Characte
           <input id={`cs-desc-${classId}`} value={sub.description ?? ''} placeholder={t('builder.cs.descriptionPlaceholder')} onChange={e => set({ description: e.target.value || undefined })} />
         </div>
       </div>
+      <SubclassMechanicsEditor sub={sub} set={set} classId={classId} from={def?.subclassLevel ?? 1} idBase={`cs-${classId}`} />
+    </div>
+  )
+}
 
+/** What a subclass does, without its name: features (text, uses, effects), spells, proficiencies, HP and AC. */
+export type SubclassMechanics = Pick<SubclassData, 'features' | 'armor' | 'weapons' | 'hpPerLevel' | 'unarmoredAbility' | 'spells' | 'castingWeapon'>
+
+/**
+ * The shared subclass editor, used by the builder's Custom subclass and Homebrew → Subclasses.
+ * `from` is the lowest level a feature can have; `idBase` keeps input ids unique on the page.
+ */
+export function SubclassMechanicsEditor({ sub, set, classId, from, idBase }: {
+  sub: SubclassMechanics; set: (patch: Partial<SubclassMechanics>) => void; classId: string; from: number; idBase: string
+}) {
+  const { t, term } = useI18n()
+  const setFeature = (i: number, patch: Partial<SubclassFeature>) => set({ features: sub.features.map((f, j) => (j === i ? { ...f, ...patch } : f)) })
+  const toggle = <T,>(list: T[] | undefined, v: T) => (list?.includes(v) ? list.filter(x => x !== v) : [...(list ?? []), v])
+  const spells = sub.spells ?? []
+  const setSpells = (i: number, patch: Partial<{ level: number; names: string[] }>) => set({ spells: spells.map((s, j) => (j === i ? { ...s, ...patch } : s)) })
+  const level = (v: string) => Math.min(20, Math.max(from, Number(v) || from))
+
+  const setUses = (i: number, f: SubclassFeature, kind: UsesKind) => {
+    if (kind === 'none') return setFeature(i, { uses: undefined })
+    const count: UsesCount = kind === 'fixed' ? (typeof f.uses?.count === 'number' ? f.uses.count : 1) : kind
+    setFeature(i, { uses: { recharge: f.uses?.recharge ?? 'long', count, ...(kind !== 'fixed' && f.uses?.add ? { add: f.uses.add } : {}) } })
+  }
+
+  return (
+    <>
       <p className="small strong">{t('builder.cs.features')}</p>
       {sub.features.length === 0 && <p className="muted small">{t('builder.cs.noFeatures')}</p>}
       {sub.features.map((f, i) => (
@@ -54,22 +72,22 @@ export function CustomSubclassForm({ draft, classId, update }: { draft: Characte
           <legend className="a11y-sr-only">{f.name || t('builder.cs.featureN', { n: i + 1 })}</legend>
           <div className="row custom-bg-fields">
             <div className="field custom-sub-level">
-              <label htmlFor={`cs-f-lvl-${classId}-${i}`}>{t('builder.cs.level')}</label>
-              <input id={`cs-f-lvl-${classId}-${i}`} type="number" min={from} max={20} value={f.level} onChange={e => setFeature(i, { level: level(e.target.value) })} />
+              <label htmlFor={`${idBase}-f-lvl-${i}`}>{t('builder.cs.level')}</label>
+              <input id={`${idBase}-f-lvl-${i}`} type="number" min={from} max={20} value={f.level} onChange={e => setFeature(i, { level: level(e.target.value) })} />
             </div>
             <div className="field">
-              <label htmlFor={`cs-f-name-${classId}-${i}`}>{t('builder.cs.featureName')}</label>
-              <input id={`cs-f-name-${classId}-${i}`} value={f.name} onChange={e => setFeature(i, { name: e.target.value })} />
+              <label htmlFor={`${idBase}-f-name-${i}`}>{t('builder.cs.featureName')}</label>
+              <input id={`${idBase}-f-name-${i}`} value={f.name} onChange={e => setFeature(i, { name: e.target.value })} />
             </div>
           </div>
           <div className="field">
-            <label htmlFor={`cs-f-text-${classId}-${i}`}>{t('builder.cs.featureText')}</label>
-            <textarea id={`cs-f-text-${classId}-${i}`} rows={2} value={f.text ?? ''} onChange={e => setFeature(i, { text: e.target.value || undefined })} />
+            <label htmlFor={`${idBase}-f-text-${i}`}>{t('builder.cs.featureText')}</label>
+            <textarea id={`${idBase}-f-text-${i}`} rows={2} value={f.text ?? ''} onChange={e => setFeature(i, { text: e.target.value || undefined })} />
           </div>
           <div className="row custom-bg-fields">
             <div className="field">
-              <label htmlFor={`cs-f-uses-${classId}-${i}`}>{t('builder.cs.uses')} <Why compact title={t('builder.cs.uses')} text={t('builder.cs.usesWhy')} /></label>
-              <select id={`cs-f-uses-${classId}-${i}`} value={usesKind(f)} onChange={e => setUses(i, f, e.target.value as UsesKind)}>
+              <label htmlFor={`${idBase}-f-uses-${i}`}>{t('builder.cs.uses')} <Why compact title={t('builder.cs.uses')} text={t('builder.cs.usesWhy')} /></label>
+              <select id={`${idBase}-f-uses-${i}`} value={usesKind(f)} onChange={e => setUses(i, f, e.target.value as UsesKind)}>
                 <option value="none">{t('builder.cs.uses.none')}</option>
                 <option value="fixed">{t('builder.cs.uses.fixed')}</option>
                 <option value="pb">{t('builder.cs.uses.pb')}</option>
@@ -80,8 +98,8 @@ export function CustomSubclassForm({ draft, classId, update }: { draft: Characte
             {f.uses && (
               <>
                 <div className="field custom-sub-level">
-                  <label htmlFor={`cs-f-n-${classId}-${i}`}>{typeof f.uses.count === 'number' ? t('builder.cs.uses.count') : t('builder.cs.uses.add')}</label>
-                  <input id={`cs-f-n-${classId}-${i}`} type="number" min={typeof f.uses.count === 'number' ? 1 : -5} max={50}
+                  <label htmlFor={`${idBase}-f-n-${i}`}>{typeof f.uses.count === 'number' ? t('builder.cs.uses.count') : t('builder.cs.uses.add')}</label>
+                  <input id={`${idBase}-f-n-${i}`} type="number" min={typeof f.uses.count === 'number' ? 1 : -5} max={50}
                     value={typeof f.uses.count === 'number' ? f.uses.count : (f.uses.add ?? 0)}
                     onChange={e => {
                       const n = Math.round(Number(e.target.value) || 0)
@@ -89,8 +107,8 @@ export function CustomSubclassForm({ draft, classId, update }: { draft: Characte
                     }} />
                 </div>
                 <div className="field">
-                  <label htmlFor={`cs-f-rest-${classId}-${i}`}>{t('builder.cs.recharge')}</label>
-                  <select id={`cs-f-rest-${classId}-${i}`} value={f.uses.recharge} onChange={e => setFeature(i, { uses: { ...f.uses!, recharge: e.target.value as 'short' | 'long' } })}>
+                  <label htmlFor={`${idBase}-f-rest-${i}`}>{t('builder.cs.recharge')}</label>
+                  <select id={`${idBase}-f-rest-${i}`} value={f.uses.recharge} onChange={e => setFeature(i, { uses: { ...f.uses!, recharge: e.target.value as 'short' | 'long' } })}>
                     <option value="short">{t('builder.cs.recharge.short')}</option>
                     <option value="long">{t('builder.cs.recharge.long')}</option>
                   </select>
@@ -110,12 +128,12 @@ export function CustomSubclassForm({ draft, classId, update }: { draft: Characte
       {spells.map((s, i) => (
         <div key={i} className="row custom-bg-fields">
           <div className="field custom-sub-level">
-            <label htmlFor={`cs-s-lvl-${classId}-${i}`}>{t('builder.cs.level')}</label>
-            <input id={`cs-s-lvl-${classId}-${i}`} type="number" min={from} max={20} value={s.level} onChange={e => setSpells(i, { level: level(e.target.value) })} />
+            <label htmlFor={`${idBase}-s-lvl-${i}`}>{t('builder.cs.level')}</label>
+            <input id={`${idBase}-s-lvl-${i}`} type="number" min={from} max={20} value={s.level} onChange={e => setSpells(i, { level: level(e.target.value) })} />
           </div>
           <div className="field">
-            <label htmlFor={`cs-s-names-${classId}-${i}`}>{t('builder.cs.spellNames')}</label>
-            <input id={`cs-s-names-${classId}-${i}`} value={s.names.join(', ')} placeholder={t('builder.cs.spellNamesPlaceholder')}
+            <label htmlFor={`${idBase}-s-names-${i}`}>{t('builder.cs.spellNames')}</label>
+            <input id={`${idBase}-s-names-${i}`} value={s.names.join(', ')} placeholder={t('builder.cs.spellNamesPlaceholder')}
               onChange={e => setSpells(i, { names: e.target.value.split(',').map(x => x.trimStart()) })}
               onBlur={() => setSpells(i, { names: s.names.map(x => x.trim()).filter(Boolean) })} />
           </div>
@@ -141,12 +159,12 @@ export function CustomSubclassForm({ draft, classId, update }: { draft: Characte
       </div>
       <div className="row custom-bg-fields">
         <div className="field custom-sub-level">
-          <label htmlFor={`cs-hp-${classId}`}>{t('builder.cs.hpPerLevel')}</label>
-          <input id={`cs-hp-${classId}`} type="number" min={0} max={5} value={sub.hpPerLevel ?? 0} onChange={e => set({ hpPerLevel: Math.min(5, Math.max(0, Number(e.target.value) || 0)) || undefined })} />
+          <label htmlFor={`${idBase}-hp`}>{t('builder.cs.hpPerLevel')}</label>
+          <input id={`${idBase}-hp`} type="number" min={0} max={5} value={sub.hpPerLevel ?? 0} onChange={e => set({ hpPerLevel: Math.min(5, Math.max(0, Number(e.target.value) || 0)) || undefined })} />
         </div>
         <div className="field">
-          <label htmlFor={`cs-ac-${classId}`}>{t('builder.cs.unarmored')}</label>
-          <select id={`cs-ac-${classId}`} value={sub.unarmoredAbility ?? ''} onChange={e => set({ unarmoredAbility: (e.target.value || undefined) as Ability | undefined })}>
+          <label htmlFor={`${idBase}-ac`}>{t('builder.cs.unarmored')}</label>
+          <select id={`${idBase}-ac`} value={sub.unarmoredAbility ?? ''} onChange={e => set({ unarmoredAbility: (e.target.value || undefined) as Ability | undefined })}>
             <option value="">{t('common.none')}</option>
             {ABILITIES.map(a => <option key={a} value={a}>{t('builder.cs.unarmoredWith', { ability: term('ability', a, ABILITY_NAMES[a]) })}</option>)}
           </select>
@@ -157,6 +175,6 @@ export function CustomSubclassForm({ draft, classId, update }: { draft: Characte
           <input type="checkbox" checked={!!sub.castingWeapon} onChange={e => set({ castingWeapon: e.target.checked || undefined })} /> {t('builder.cs.castingWeapon')}
         </label>
       )}
-    </div>
+    </>
   )
 }
