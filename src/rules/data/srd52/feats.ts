@@ -29,27 +29,27 @@ export const FEATS_2024: Feat[] = [
     effects: [{ kind: 'skillPicks', count: 3 }],
   },
   {
-    id: 'grappler', name: 'Grappler', category: 'general', minLevel: 4, prerequisite: 'Level 4+, Strength or Dexterity 13+',
+    id: 'grappler', name: 'Grappler', category: 'general', minLevel: 4, prerequisite: 'Level 4+, Strength or Dexterity 13+', requires: { abilities: { str: 13, dex: 13 } },
     description: '+1 Strength or Dexterity (up to 20). Punch and Grab: damage and grapple with one Unarmed Strike once per turn. Advantage on attacks against a creature you are grappling. Move a grappled creature at no extra cost if it is your size or smaller.',
     effects: [{ kind: 'abilityChoice', from: ['str', 'dex'], max: 20 }],
   },
   {
-    id: 'archery', name: 'Archery', category: 'fighting-style', prerequisite: 'Fighting Style feature',
+    id: 'archery', name: 'Archery', category: 'fighting-style', prerequisite: 'Fighting Style feature', requires: { feature: 'Fighting Style' },
     description: '+2 to attack rolls with ranged weapons.',
     effects: [{ kind: 'rangedAttack', amount: 2 }],
   },
   {
-    id: 'defense', name: 'Defense', category: 'fighting-style', prerequisite: 'Fighting Style feature',
+    id: 'defense', name: 'Defense', category: 'fighting-style', prerequisite: 'Fighting Style feature', requires: { feature: 'Fighting Style' },
     description: '+1 AC while you wear light, medium or heavy armor.',
     effects: [{ kind: 'armoredAc', amount: 1 }],
   },
   {
-    id: 'great-weapon-fighting', name: 'Great Weapon Fighting', category: 'fighting-style', prerequisite: 'Fighting Style feature',
+    id: 'great-weapon-fighting', name: 'Great Weapon Fighting', category: 'fighting-style', prerequisite: 'Fighting Style feature', requires: { feature: 'Fighting Style' },
     description: 'With a two-handed or versatile melee weapon held in two hands, treat any 1 or 2 on a damage die as a 3.',
     effects: [],
   },
   {
-    id: 'two-weapon-fighting', name: 'Two-Weapon Fighting', category: 'fighting-style', prerequisite: 'Fighting Style feature',
+    id: 'two-weapon-fighting', name: 'Two-Weapon Fighting', category: 'fighting-style', prerequisite: 'Fighting Style feature', requires: { feature: 'Fighting Style' },
     description: "Add your ability modifier to the damage of the extra attack from a Light weapon.",
     effects: [],
   },

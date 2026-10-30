@@ -140,6 +140,14 @@
 .asi-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-block: 6px; }
 .asi-row > .strong { min-inline-size: 6rem; }
 .asi-feat { flex-basis: 100%; margin: 0; }
+/* Feat picker details and the custom feat editor (FeatPicker.tsx, FeatEditor.tsx). */
+.feat-details { flex-basis: 100%; display: grid; gap: var(--sp-1); }
+.feat-details p { margin: 0; }
+.feat-warning { color: var(--warn); }
+.custom-feat { flex-basis: 100%; }
+.feat-mechanics { display: grid; gap: var(--sp-2); }
+.feat-fx { display: grid; gap: var(--sp-2); margin: 0; padding: var(--sp-3); border: 0; border-radius: var(--r-md); background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); }
+:root[data-contrast="high"] .feat-fx { box-shadow: inset 0 0 0 1px var(--line); }
 .kit-choices { display: grid; gap: var(--sp-2); margin-block: var(--sp-3); }
 .kit-choice { border: 0; border-radius: var(--r-md); padding-block: var(--sp-2) var(--sp-3); padding-inline: var(--sp-3); margin: 0; background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); }
 .kit-choice legend { float: inline-start; inline-size: 100%; margin-block-end: var(--sp-1); font-weight: 600; }

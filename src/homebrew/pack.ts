@@ -256,9 +256,24 @@ function cleanEffect(v: unknown): FeatEffect | undefined {
     case 'initiativeProficiency':
       return { kind: v.kind }
     case 'skillPicks':
-      return { kind: v.kind, count: int(v.count, 1, 6, 1) }
+      return { kind: v.kind, count: int(v.count, 1, 18, 1) }
+    case 'abilityChoice': {
+      const from = [...new Set(list(v.from).filter((a): a is Ability => ABILITIES.includes(a as Ability)))]
+      return from.length ? { kind: v.kind, from, max: v.max === 30 ? 30 : 20, ...(v.save === true ? { save: true } : {}) } : undefined
+    }
   }
   return undefined
+}
+
+function cleanFeatUses(v: unknown): HomebrewFeat['uses'] {
+  if (!isObj(v)) return undefined
+  const count = typeof v.count === 'number' ? int(v.count, 1, 50, 1) : optOneOf(v.count, ['pb', 'level', ...ABILITIES] as const)
+  if (count === undefined) return undefined
+  return {
+    count, recharge: v.recharge === 'short' ? 'short' : 'long',
+    ...(typeof v.add === 'number' && v.add ? { add: int(v.add, -5, 50, 0) } : {}),
+    ...(optStr(v.label, LIMITS.name) ? { label: optStr(v.label, LIMITS.name) } : {}),
+  }
 }
 
 function cleanFeat(v: Obj, packId: string, seen: Set<string>): HomebrewFeat {
@@ -269,8 +284,15 @@ function cleanFeat(v: Obj, packId: string, seen: Set<string>): HomebrewFeat {
     prerequisite: optStr(v.prerequisite),
     description: str(v.description, LIMITS.text),
     effects: list(v.effects).map(cleanEffect).filter((e): e is FeatEffect => !!e).slice(0, 20),
+    ...optList('stats', list(v.stats).map(sanitizeEffect).filter((e): e is ItemEffect => !!e).slice(0, 30)),
+    ...(cleanFeatUses(v.uses) ? { uses: cleanFeatUses(v.uses) } : {}),
+    ...optList('armor', [...new Set(list(v.armor).filter((a): a is ArmorCategory => ARMOR.includes(a as ArmorCategory)))]),
+    ...optList('weapons', [...new Set(list(v.weapons).filter((w): w is WeaponCategory => w === 'simple' || w === 'martial'))]),
   }
 }
+
+/** `{ key: values }` when there are any, so empty lists stay out of saved packs. */
+const optList = <K extends string, T>(key: K, values: T[]) => (values.length ? { [key]: values } as Record<K, T[]> : {})
 
 const SIZES = ['Small', 'Medium'] as const
 const ARMOR = ['light', 'medium', 'heavy', 'shield'] as const

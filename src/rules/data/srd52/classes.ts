@@ -22,6 +22,13 @@ const STYLES: ClassChoice['options'] = [
   { id: 'defense', name: 'Defense', featId: 'defense', detail: '+1 AC while wearing armor.' },
   { id: 'great-weapon-fighting', name: 'Great Weapon Fighting', featId: 'great-weapon-fighting', detail: 'Treat 1s and 2s on two-handed damage dice as 3s.' },
   { id: 'two-weapon-fighting', name: 'Two-Weapon Fighting', featId: 'two-weapon-fighting', detail: 'Add your modifier to the extra Light weapon attack.' },
+  // Player's Handbook (2024) styles outside the SRD; their feats are in books/feats.ts.
+  { id: 'blind-fighting', name: 'Blind Fighting', featId: 'blind-fighting', detail: 'Blindsight 10 ft.' },
+  { id: 'dueling', name: 'Dueling', featId: 'dueling', detail: '+2 damage with a one-handed melee weapon and no other weapon.' },
+  { id: 'interception', name: 'Interception', featId: 'interception', detail: 'Reaction: reduce damage to a nearby ally.' },
+  { id: 'protection', name: 'Protection', featId: 'protection', detail: 'Reaction with a shield: impose disadvantage on an attack against an ally.' },
+  { id: 'thrown-weapon-fighting', name: 'Thrown Weapon Fighting', featId: 'thrown-weapon-fighting', detail: '+2 damage with thrown weapons.' },
+  { id: 'unarmed-fighting', name: 'Unarmed Fighting', featId: 'unarmed-fighting', detail: 'Unarmed strikes deal 1d6 or 1d8.' },
 ]
 const expertise = (id: string, level: number, count: number, name = 'Expertise', from?: SkillId[]): ClassPick =>
   ({ id, name, level, kind: 'expertise', count, ...(from ? { from } : {}) })

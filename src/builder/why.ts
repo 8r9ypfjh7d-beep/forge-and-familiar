@@ -22,12 +22,12 @@ export type WhyId = (typeof WHY_TOPICS)[number]
 
 /**
  * What each explanation describes. race/race2024/class are the "why pick it" pitches; about is what a class is;
- * sub2014/sub2024 are subraces and 2024 lineages; bg/bg2024 backgrounds; feature and trait are keyed by name.
+ * sub2014/sub2024 are subraces and 2024 lineages; bg/bg2024 backgrounds; feat/feat2024 feats by id; feature and trait are keyed by name.
  */
 export type ExplainKind =
   | 'race' | 'race2024' | 'class' | 'about' | 'sub2014' | 'sub2024' | 'subclass'
   | 'feature' | 'subfeature' | 'invocation' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool'
-  | 'metamagic' | 'metamagic2024'
+  | 'metamagic' | 'metamagic2024' | 'feat' | 'feat2024'
   | 'pick' | 'opt'
 
 /** Message key that explains this option, or none (homebrew and other content without one). */
@@ -78,3 +78,7 @@ function toolGroup(tool: string): string {
   if (MUSICAL_INSTRUMENTS.includes(tool)) return 'instrument'
   return tool
 }
+
+/** The explanation of an official feat: 2024 and 2014 versions differ, so each edition has its own key; older book feats under 2024 rules read the 2014 one. */
+export const featExplainKey = (id: string, edition: string): MessageKey | undefined =>
+  (edition === '2024' ? explainKey('feat2024', id) : undefined) ?? explainKey('feat', id)

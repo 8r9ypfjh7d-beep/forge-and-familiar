@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Character } from '../model/character'
 import {
-  CLASSES_2024, SPECIES, allFeats, classById, createCharacter, derive, getAbilityScores, getArmorClass, getAttacks, getCasterLevel,
+  CLASSES_2024, SPECIES, allFeats, featById, classById, createCharacter, derive, getAbilityScores, getArmorClass, getAttacks, getCasterLevel,
   SUBCLASSES_2024, classPickSlots, getDamageRiders, getProficiencies, languagePickCount, weaponMastery, getSpellSlots, getWeaponMasteryCount, raceById, subclassesFor, type CharacterDraft,
 } from './index'
 
@@ -50,8 +50,10 @@ describe('2024 content', () => {
   })
 
   it('offers 2024 feats only to 2024 characters', () => {
-    expect(allFeats('2024').map(f => f.id)).toContain('alert')
-    expect(allFeats().map(f => f.id)).not.toContain('alert')
+    expect(allFeats('2024').map(f => f.id)).toContain('boon-of-fate')
+    expect(allFeats().map(f => f.id)).not.toContain('boon-of-fate')
+    expect(featById('alert')?.effects).toEqual([{ kind: 'initiative', amount: 5 }])
+    expect(featById('alert', '2024')?.effects).toEqual([{ kind: 'initiativeProficiency' }])
   })
 })
 

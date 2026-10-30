@@ -1,7 +1,7 @@
 import { translate, type Translate } from '../i18n/translate'
 import { coinText } from './shop'
 import {
-  ABILITIES, ALL_SKILLS, CUSTOM_BACKGROUND, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses,
+  ABILITIES, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_FEAT, classPickSlots, getProficiencies, getWeaponMasteryCount, MASTERY_WEAPONS, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, STANDARD_ARRAY, usesRolledPool, classById, classChoices, featById, featSkillPicks, fixedRacialBonuses, improvementBonuses, improvementFeat,
   fixedLanguages, fixedTools, getBackground, improvementSlots, languagePickCount, pointBuyCost,
   flexibleBonuses, pickedOptions, raceProfile, racialBonuses, racialSkills, racialLanguages, racialWeapons, bookOrigin, rulesEdition, startingCoins, SECRET_LANGUAGES, subclassOf, subclassPickLists, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type ClassPick, type SkillId,
@@ -84,8 +84,10 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
         const picked = pickedOptions(d, ch.id).filter(id => ch.options.some(o => o.id === id))
         if (picked.length !== Math.min(ch.count ?? 1, ch.options.length)) out.push(t('builder.issue.traitChoice', { trait: ch.name }))
       }
-      if (profile.featChoice === 'origin' && featById(d.originFeatId ?? '', edition)?.category !== 'origin') out.push(t('builder.issue.originFeat'))
-      if (profile.featChoice === 'any' && !featById(d.originFeatId ?? '', edition)) out.push(t('builder.issue.raceFeat'))
+      if (profile.featChoice) {
+        const ok = d.originFeatId === CUSTOM_FEAT ? !!d.customOriginFeat?.name.trim() : !!featById(d.originFeatId ?? '', edition)
+        if (!ok) out.push(t(profile.featChoice === 'origin' ? 'builder.issue.originFeat' : 'builder.issue.raceFeat'))
+      }
       break
     case 'class':
       if (!classById(d.classes[0]?.classId ?? '', edition)) out.push(t('builder.issue.class'))
@@ -129,7 +131,7 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       for (const slot of improvementSlots(d)) {
         const imp = d.improvements?.find(i => i.classId === slot.classId && i.level === slot.level)
         const points = ABILITIES.reduce((n, a) => n + (imp?.abilities?.[a] ?? 0), 0)
-        const feat = imp?.featId ? featById(imp.featId, edition) : undefined
+        const feat = imp?.featId && (imp.featId !== CUSTOM_FEAT || imp.customFeat?.name.trim()) ? improvementFeat(d, imp) : undefined
         const choice = feat?.effects.find(e => e.kind === 'abilityChoice')
         const done = imp?.featId ? !!feat && (!choice || (choice.kind === 'abilityChoice' && !!imp.featAbility && choice.from.includes(imp.featAbility))) : points === 2
         if (!done) out.push(t('builder.issue.asi', { className: className(slot.classId), level: slot.level }))

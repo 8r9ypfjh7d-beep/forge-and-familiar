@@ -1,6 +1,6 @@
 import type { Character } from '../model/character'
 import { getAbilityMods, getAbilityScores } from './abilities'
-import { classChoices } from './choices'
+import { classChoices, featProficiencies, type FeatInput } from './choices'
 import { classById } from './data/classes'
 import {
   MULTICLASS_PREREQS, MULTICLASS_PROFICIENCIES, MULTICLASS_PROFICIENCIES_2024, NON_STACKING_FEATURES, NON_STACKING_RESOURCES, type MulticlassPrereq,
@@ -15,7 +15,7 @@ type Classes = Pick<Character, 'classes'> & Partial<Pick<Character, 'rulesEditio
 
 /** The fields multiclass rules read; a builder draft has them too. */
 export type MulticlassInput = Pick<Character, 'classes' | 'baseAbilities' | 'raceId' | 'subraceId' | 'freeAbilityBonuses'> &
-  Partial<Pick<Character, 'rulesEdition' | 'backgroundId' | 'customBackground' | 'racialBonusTargets' | 'improvements' | 'originFeatId' | 'featureChoices'>>
+  Partial<Pick<Character, 'rulesEdition' | 'backgroundId' | 'customBackground' | 'racialBonusTargets' | 'improvements' | 'originFeatId' | 'customOriginFeat' | 'featureChoices'>>
 
 export const MAX_CHARACTER_LEVEL = 20
 
@@ -62,7 +62,7 @@ export function addClassIssues(c: MulticlassInput, classId: string): string[] {
 }
 
 /** Armor and weapon proficiencies: the first class in full, later classes only their multiclass grant, plus class choices (Divine Order). */
-export function getProficiencies(c: Classes & Partial<Pick<Character, 'featureChoices'>>) {
+export function getProficiencies(c: Classes & FeatInput) {
   const armor = new Set<ArmorCategory>()
   const weapons = new Set<WeaponCategory>()
   const weaponIds = new Set<string>()
@@ -81,6 +81,9 @@ export function getProficiencies(c: Classes & Partial<Pick<Character, 'featureCh
     picked?.armor?.forEach(a => armor.add(a))
     picked?.weapons?.forEach(w => weapons.add(w))
   }
+  const fromFeats = featProficiencies(c)
+  fromFeats.armor.forEach(a => armor.add(a))
+  fromFeats.weapons.forEach(w => weapons.add(w))
   return { armor, weapons, weaponIds }
 }
 

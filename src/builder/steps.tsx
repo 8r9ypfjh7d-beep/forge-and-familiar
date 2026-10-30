@@ -4,7 +4,7 @@ import type { AbilityMethod } from '../model/character'
 import type { CustomBackground, Improvement } from '../model/character'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, LANGUAGES, POINT_BUY_BUDGET, SKILLS, TOOLS,
-  ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
+  CUSTOM_FEAT, ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, improvementFeat, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, blankSubclass, stalePicks, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
   type Ability, type Background, type CharacterDraft, type RulesEdition, type SkillId, type TraitChoice,
@@ -19,11 +19,13 @@ import { Shop } from './Shop'
 import { ClassOptionPicker } from './ClassOptionPicker'
 import { CustomSubclassForm } from './CustomSubclassForm'
 import { MetamagicPicker } from './MetamagicPicker'
+import { CustomFeatForm } from './FeatEditor'
+import { FeatDetails, FeatSelect } from './FeatPicker'
 import { MulticlassPicker } from './MulticlassPicker'
 import { SpellsStep } from './SpellsStep'
 import { grantedSkills, skillPicks, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
-import { explainKey, featureKey, optionKey, optionName, pitchKey, type WhyId } from './why'
+import { explainKey, featExplainKey, featureKey, optionKey, optionName, pitchKey, type WhyId } from './why'
 import { groupKitItems } from './kit'
 import { PickOrWrite, useLanguageGroups, useToolGroups } from './ProficiencyPick'
 
@@ -80,7 +82,7 @@ function RaceStep({ draft, update }: StepProps) {
   // Legacy (2014) races under 2024 rules keep their 2014 pitch and subrace explanations.
   const racePitch = race && (pitchKey(edition === '2024' && !race.legacy ? 'race2024' : 'race', race.id))
   const subBonus = (b: Partial<Record<Ability, number>>) => (Object.keys(b).length ? ` (${bonusText(b, abilityShort)})` : '')
-  const originFeats = allFeats(edition).filter(f => f.category === 'origin')
+  const originFeats = allFeats(edition).filter(f => f.category === 'origin' || f.id.startsWith('hb:'))
   const profile = raceProfile(draft)
   const raceTraits = race ? profile.traits : []
   const featList = profile.featChoice === 'origin' ? originFeats : allFeats(edition)
@@ -155,13 +157,12 @@ function RaceStep({ draft, update }: StepProps) {
       {profile.featChoice && (
         <div className="field">
           <label htmlFor="origin-feat">{t(profile.featChoice === 'origin' ? 'builder.originFeat' : 'builder.race.feat')} <Why id="originFeat" /></label>
-          <select id="origin-feat" value={draft.originFeatId ?? ''} onChange={e => update({ originFeatId: e.target.value || undefined, chosenSkills: [] })}>
-            <option value="">{t('builder.asi.pickFeat')}</option>
-            {featList.map(f => <option key={f.id} value={f.id}>{term('feat', f.id, f.name)}</option>)}
-          </select>
-          {(() => {
+          <FeatSelect id="origin-feat" feats={featList} value={draft.originFeatId ?? ''} level={1} onChange={id => update({ originFeatId: id || undefined, chosenSkills: [] })} />
+          {draft.originFeatId === CUSTOM_FEAT ? (
+            <CustomFeatForm idPrefix="origin-feat-own" feat={draft.customOriginFeat} onChange={f => update({ customOriginFeat: f })} />
+          ) : (() => {
             const f = featById(draft.originFeatId ?? '', edition)
-            return f && <p className="muted small">{f.description}</p>
+            return f && <FeatDetails feat={f} draft={draft} level={1} />
           })()}
         </div>
       )}
@@ -338,7 +339,7 @@ function ClassStep({ draft, update }: StepProps) {
 
 /** 2024 class picks: Fighting Style, Divine Order, Primal Order. */
 function ClassChoices({ draft, update }: StepProps) {
-  const { term, className } = useI18n()
+  const { t, term, className } = useI18n()
   const list = classChoices(draft)
   if (list.length === 0) return null
   const pick = (classId: string, choiceId: string, optionId: string) =>
@@ -355,7 +356,7 @@ function ClassChoices({ draft, update }: StepProps) {
               </button>
             ))}
           </div>
-          {picked && <p className="muted small" dir="auto">{picked.detail}</p>}
+          {picked && <p className="muted small" dir="auto">{(picked.featId && featExplainKey(picked.featId, rulesEdition(draft)) && t(featExplainKey(picked.featId, rulesEdition(draft))!)) || picked.detail}</p>}
         </div>
       ))}
     </>
@@ -746,8 +747,10 @@ function Improvements({ draft, update }: StepProps) {
           for (const x of next) if (x) abilities[x] = (abilities[x] ?? 0) + 1
           save({ classId, level, abilities })
         }
-        const feat = isFeat ? feats.find(f => f.id === imp.featId) : undefined
+        const feat = isFeat ? improvementFeat(draft, imp) : undefined
         const choice = feat?.effects.find(e => e.kind === 'abilityChoice')
+        // Character level when this slot came: the other classes' levels plus this class's slot level.
+        const charLevel = draft.classes.reduce((n, cl) => n + cl.level, 0) - ((draft.classes.find(cl => cl.classId === classId)?.level ?? level) - level)
         return (
           <div key={`${classId}-${level}`} className="asi-row">
             <span className="small strong">{className(classId)} {level}{edition === '2024' && level === 19 && <> · {term('feature', 'Epic Boon', 'Epic Boon')} <Why id="epicBoon" /></>}</span>
@@ -766,30 +769,23 @@ function Improvements({ draft, update }: StepProps) {
               </select>
             ))}
             {isFeat && (
-              <select value={imp.featId} aria-label={t('builder.asi.feat')} onChange={e => save({ classId, level, featId: e.target.value })}>
-                <option value="">{t('builder.asi.pickFeat')}</option>
-                {feats.map(f => {
-                  const name = term('feat', f.id, f.name)
-                  return <option key={f.id} value={f.id}>{(f.minLevel ?? 0) > level ? t('builder.asi.featLevel', { feat: name, level: f.minLevel! }) : name}</option>
-                })}
-              </select>
+              <FeatSelect feats={feats} label={t('builder.asi.feat')} value={imp.featId ?? ''} level={charLevel}
+                onChange={id => save({ classId, level, featId: id, ...(id === CUSTOM_FEAT && imp.customFeat ? { customFeat: imp.customFeat } : {}) })} />
             )}
             {choice?.kind === 'abilityChoice' && (
-              <select value={imp?.featAbility ?? ''} aria-label={t('builder.asi.plusOne')} onChange={e => save({ classId, level, featId: imp!.featId, featAbility: (e.target.value || undefined) as Ability | undefined })}>
+              <select value={imp?.featAbility ?? ''} aria-label={t('builder.asi.plusOne')} onChange={e => save({ ...imp!, featAbility: (e.target.value || undefined) as Ability | undefined })}>
                 <option value="">+1 …</option>
                 {choice.from.map(a => <option key={a} value={a}>+1 {ability(a)}</option>)}
               </select>
             )}
-            {feat && (
-              <p className="muted small asi-feat">
-                {feat.prerequisite && <>{t('builder.asi.prereq', { prereq: feat.prerequisite })} </>}
-                {feat.description}
-              </p>
+            {imp?.featId === CUSTOM_FEAT && (
+              <CustomFeatForm idPrefix={`feat-own-${classId}-${level}`} feat={imp.customFeat} onChange={f => save({ ...imp, customFeat: f })} />
             )}
+            {feat && imp?.featId !== CUSTOM_FEAT && <FeatDetails feat={feat} draft={draft} level={charLevel} />}
           </div>
         )
       })}
-      <p className="muted small">{t(edition === '2024' ? 'builder.asi.homebrewHint2024' : 'builder.asi.homebrewHint')}</p>
+      <p className="muted small">{t('builder.asi.homebrewHint')}</p>
     </div>
   )
 }

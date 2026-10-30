@@ -348,25 +348,51 @@ export type FeatEffect =
   | { kind: 'initiativeProficiency' }
   /** Extra skill picks of any skill (2024 Skilled). */
   | { kind: 'skillPicks'; count: number }
-  /** +1 to one ability the player picks from `from`, up to `max` (2024 Grappler, Epic Boons). */
-  | { kind: 'abilityChoice'; from: Ability[]; max: number }
+  /** +1 to one ability the player picks from `from`, up to `max` (2024 Grappler, Epic Boons). `save`: also proficiency in that save (Resilient). */
+  | { kind: 'abilityChoice'; from: Ability[]; max: number; save?: boolean }
   /** Bonus to attack rolls with ranged weapons (Archery). */
   | { kind: 'rangedAttack'; amount: number }
   /** AC bonus while wearing armor (Defense). */
   | { kind: 'armoredAc'; amount: number }
 
-/** 2024 feat categories. 2014 feats have none. */
-export type FeatCategory = 'origin' | 'general' | 'fighting-style' | 'epic-boon'
+/** Feat groups shown in the picker. 2024 feats use the first four; 2014 book feats are general or racial. */
+export type FeatCategory = 'origin' | 'general' | 'fighting-style' | 'epic-boon' | 'racial'
+
+/** Prerequisites the builder checks. Unmet ones are a warning, never a block. */
+export interface FeatRequires {
+  /** At least one of these scores (Strength or Dexterity 13). */
+  abilities?: Partial<Record<Ability, number>>
+  /** Race or species ids (2014 racial feats). */
+  races?: string[]
+  /** Must be able to cast a spell (War Caster, Spell Sniper). */
+  spellcasting?: boolean
+  /** Proficiency with this armor (Heavy Armor Master: heavy). */
+  armor?: ArmorCategory
+  /** One of these feats first (Adept of the Black Robes needs Initiate of High Sorcery). */
+  feats?: string[]
+  /** A class feature (Fighting Style). */
+  feature?: string
+}
 
 export interface Feat {
   id: string
   name: string
   prerequisite?: string
+  /** What it does in English. Official feats leave it empty and use why.feat.<id> / why.feat2024.<id>. */
   description: string
   effects: FeatEffect[]
   category?: FeatCategory
   /** Lowest character level that may take it (2024 general feats 4, Epic Boons 19). */
   minLevel?: number
+  requires?: FeatRequires
+  /** Book it comes from ("Xanathar's Guide"). SRD feats have none. */
+  source?: string
+  /** Sheet changes shared with items and subclass features: saves, skills, resistances, senses, speeds, advantage, spells, bonuses. */
+  stats?: ItemEffect[]
+  /** Uses tracked on the sheet's Resources (Lucky, Chef's treats). */
+  uses?: SubclassFeature['uses'] & { label?: string }
+  armor?: ArmorCategory[]
+  weapons?: WeaponCategory[]
 }
 
 export interface Background {
