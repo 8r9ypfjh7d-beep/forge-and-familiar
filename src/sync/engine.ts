@@ -5,6 +5,7 @@ import { applyRemoteCharacter, getCharacter, listCharacters, removeRemoteCharact
 import { addSnapshots, applyRemoteSnapshots, snapshotsFor } from '../portability/store'
 import { BUILD_FIELDS, takeSnapshot, type Snapshot } from '../portability/snapshots'
 import { localHistoryStorage } from '../dice/history'
+import { migrateSubclassIds } from '../rules/subclass'
 import type { RollResult } from '../dice/types'
 import { readMeta, updateMeta } from './outbox'
 import { syncPacks } from './packs'
@@ -17,8 +18,11 @@ export const CONFLICT_LABEL = 'Before sync (other device)'
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
 
-/** True when two copies differ in more than play state, notes or gear. */
-export const buildDiffers = (a: Character, b: Character) => BUILD_FIELDS.some(k => !same(a[k], b[k]))
+/** True when two copies differ in more than play state, notes or gear. Both are compared after load migrations, so an old copy's renamed ids don't count. */
+export const buildDiffers = (a: Character, b: Character) => {
+  const [x, y] = [migrateSubclassIds(a), migrateSubclassIds(b)]
+  return BUILD_FIELDS.some(k => !same(x[k], y[k]))
+}
 
 /**
  * Picks the copy to keep when both sides changed. Edits beat deletes; otherwise the copy

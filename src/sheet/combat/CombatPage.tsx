@@ -11,7 +11,7 @@ import type { Character } from '../../model/character'
 import type { Ability, ItemEffect } from '../../rules/types'
 import { EffectsEditor, advantageName, effectText } from '../../inventory'
 import { spendSlot, slotChoices, spellDamage } from '../../quickcast/quickcast'
-import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, SKILLS, classOptionById, derive, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, xpForNextLevel, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
@@ -123,6 +123,9 @@ export function CharacterCard({ character, vitals, onEdit }: { character: Charac
         <div className="cs-who">
           <h1 id="cs-name">{character.name}</h1>
           <p className="cs-class">{classes}</p>
+          {missingSubclasses(character).map(cl => (
+            <p key={cl.classId} className="cs-warn" role="note">{t('cs.subclassMissing', { className: className(cl.classId), id: cl.subclassId! })}</p>
+          ))}
           <p>{[raceName(character.raceId, character.subraceId, character.rulesEdition), bg && term('background', bg.id, bg.name)].filter(Boolean).join(' · ')}</p>
           <p className="cs-xp">{next ? t('cs.xp', { xp: character.xp, next }) : t('cs.xpMax', { xp: character.xp })}</p>
         </div>

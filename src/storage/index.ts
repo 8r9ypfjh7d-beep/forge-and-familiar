@@ -1,6 +1,7 @@
 // Character and profile store. Async on purpose: today it is localStorage, later a hosted
 // backend with accounts can implement the same API. Owned by the live sheet thread.
 import type { Character, UserProfile } from '../model/character'
+import { migrateSubclassIds } from '../rules/subclass'
 import { markCharacterDeleted, markCharacterDirty } from '../sync/outbox'
 
 const KEY = 'ff.characters.v1'
@@ -27,7 +28,8 @@ function write(key: string, value: unknown) {
 
 function readCharacters(): Character[] {
   const list = read<unknown>(KEY, [])
-  return Array.isArray(list) ? (list as Character[]) : []
+  // Old saves and other devices' copies are read through the same migrations.
+  return Array.isArray(list) ? (list as Character[]).map(migrateSubclassIds) : []
 }
 
 function writeCharacters(list: Character[], changedId: string) {

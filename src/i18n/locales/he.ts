@@ -333,6 +333,7 @@ const messages: Messages = {
   'builder.warn.featLevel': 'בדרך כלל לוקחים את {feat} מדרגה {level}. זה בסדר אם השה"מ מסכים.',
   'builder.warn.picks': '{feature} ({className}): בוחרים {max}, נבחרו עד עכשיו {picked}.',
   'builder.warn.picksOver': '{feature} ({className}): נבחרו {picked}, החוקים נותנים {max}. זה בסדר אם השה"מ מסכים.',
+  'builder.warn.subclassMissing': '{className}: תת-המחלקה השמורה "{id}" לא נמצאה כאן, ולכן היכולות שלה כבויות. בחרו אותה שוב או הוסיפו את חבילת ההומברו שלה.',
   'builder.warn.pickLevel': 'בדרך כלל לומדים את {option} מדרגה {level}. זה בסדר אם השה"מ מסכים.',
   'builder.warn.skillsOffList': 'חלק מהמיומנויות אינן ברשימת המקצוע או הרקע. זה בסדר אם השה"מ מסכים.',
   'builder.warn.toolsOffList': 'חלק מהכלים אינם ברשימה הרגילה. זה בסדר אם השה"מ מסכים.',
@@ -1245,6 +1246,7 @@ const messages: Messages = {
   // Combat page (src/sheet/combat)
   'cs.level': 'דרגה {n}',
   'cs.xp': 'נ״ח: {xp}/{next}',
+  'cs.subclassMissing': '{className}: תת-המחלקה "{id}" לא נמצאה במכשיר הזה, ולכן היכולות שלה כבויות. פתחו עריכה כדי לבחור אותה שוב.',
   'cs.xpMax': 'נ״ח: {xp}',
   'cs.levelUp': 'עלייה בדרגה',
   'cs.initiative': 'יוזמה {bonus}',

@@ -334,6 +334,7 @@ export const en = {
   'builder.warn.featLevel': '{feat} is usually taken from level {level}. Fine if your DM agrees.',
   'builder.warn.picks': '{feature} ({className}): pick {max}, {picked} chosen so far.',
   'builder.warn.picksOver': '{feature} ({className}): {picked} chosen, the rules give {max}. Fine if your DM agrees.',
+  'builder.warn.subclassMissing': '{className}: the saved subclass "{id}" isn\'t found here, so its features are off. Pick it again, or add its homebrew pack.',
   'builder.warn.pickLevel': '{option} is usually learned from level {level}. Fine if your DM agrees.',
   'builder.warn.skillsOffList': 'Some skills are not on your class or background list. Fine if your DM agrees.',
   'builder.warn.toolsOffList': 'Some tools are not on the usual list. Fine if your DM agrees.',
@@ -1246,6 +1247,7 @@ export const en = {
   // Combat page (src/sheet/combat)
   'cs.level': 'Level {n}',
   'cs.xp': 'Exp: {xp}/{next}',
+  'cs.subclassMissing': '{className}: subclass "{id}" isn\'t found on this device, so its features are off. Open Edit to pick it again.',
   'cs.xpMax': 'Exp: {xp}',
   'cs.levelUp': 'Level Up',
   'cs.initiative': 'Initiative {bonus}',

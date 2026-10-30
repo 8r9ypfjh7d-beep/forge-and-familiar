@@ -1,7 +1,7 @@
 // Which subclass each of a character's classes has, including the player's own custom subclass, and what it adds.
 import type { Character, ClassLevel } from '../model/character'
 import { classById } from './data/classes'
-import { CUSTOM_SUBCLASS, subclassById, type SubclassDef } from './data/subclasses'
+import { CUSTOM_SUBCLASS, currentSubclassId, subclassById, type SubclassDef } from './data/subclasses'
 import { rulesEdition } from './edition'
 import type { ItemEffect, SubclassData, SubclassFeature } from './types'
 
@@ -17,6 +17,21 @@ export function subclassOf(c: Owner, cl: Pick<ClassLevel, 'classId' | 'subclassI
   const sub = subclassById(cl.subclassId, rulesEdition(c))
   return sub?.classId === cl.classId ? sub : undefined
 }
+
+/** The character with old subclass ids (2024 Bladesinging, Knowledge, Purple Dragon Knight) renamed to today's ids. Same object when nothing changed. */
+export function migrateSubclassIds<C extends Owner & Partial<Pick<Character, 'classes' | 'levelPlan'>>>(c: C): C {
+  const edition = rulesEdition(c)
+  const renamed = <T extends { subclassId?: string }>(x: T): T =>
+    x.subclassId && currentSubclassId(x.subclassId, edition) !== x.subclassId ? { ...x, subclassId: currentSubclassId(x.subclassId, edition) } : x
+  const classes = c.classes?.map(renamed)
+  const levelPlan = c.levelPlan?.map(renamed)
+  const changed = classes?.some((x, i) => x !== c.classes![i]) || levelPlan?.some((x, i) => x !== c.levelPlan![i])
+  return changed ? { ...c, ...(classes && { classes }), ...(levelPlan && { levelPlan }) } : c
+}
+
+/** Class entries whose saved subclass isn't found (homebrew not on this device, a removed id). The id is kept, never dropped. */
+export const missingSubclasses = (c: Owner & Partial<Pick<Character, 'classes'>>): Pick<ClassLevel, 'classId' | 'subclassId'>[] =>
+  (c.classes ?? []).filter(cl => cl.subclassId && !subclassOf(c, cl))
 
 /** Subclasses already in play (the class reached its subclass level), with that class's level. */
 export function activeSubclasses(c: Owner & Partial<Pick<Character, 'classes'>>): { classId: string; level: number; subclass: SubclassDef }[] {

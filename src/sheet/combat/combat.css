@@ -27,6 +27,7 @@
 .cs-who h1 { color: var(--s-accent); font-family: var(--font-lore); font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .cs-who p { margin: 2px 0 0; color: var(--s-muted); font-size: .9rem; }
 .cs-who .cs-class { color: var(--s-ink); font-weight: 600; }
+.cs-who .cs-warn { color: var(--warn); font-size: 0.85em; }
 
 /* AC, speed, proficiency and passive perception: four equal glass tiles under the name */
 .cs-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); margin: 0; }

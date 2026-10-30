@@ -1,4 +1,5 @@
 import type { RulesEdition, SubclassData } from '../types'
+import { FAERUN_RENAMED } from './books/faerun'
 import { BOOK_SUBCLASSES, BOOK_SUBCLASSES_2024 } from './books/subclasses'
 import { SUBCLASSES_2024 } from './srd52/subclasses'
 
@@ -47,5 +48,13 @@ const srdFor = (edition: RulesEdition) => (edition === '2024' ? [...SUBCLASSES_2
 export const subclassesFor = (classId: string, edition: RulesEdition = '2014'): SubclassDef[] =>
   [...srdFor(edition), ...homebrew].filter(s => s.classId === classId)
 
-export const subclassById = (id: string, edition: RulesEdition = '2014'): SubclassDef | undefined =>
-  srdFor(edition).find(s => s.id === id) ?? homebrew.find(s => s.id === id)
+/** Old saved subclass ids and the ids that replaced them, per edition. */
+const RENAMED: Record<RulesEdition, Record<string, string>> = { '2014': {}, '2024': FAERUN_RENAMED }
+
+/** A saved subclass id as it is called today (Bladesinging is Bladesinger in 2024). Unknown ids come back unchanged. */
+export const currentSubclassId = (id: string, edition: RulesEdition = '2014'): string => RENAMED[edition][id] ?? id
+
+export const subclassById = (id: string, edition: RulesEdition = '2014'): SubclassDef | undefined => {
+  const now = currentSubclassId(id, edition)
+  return srdFor(edition).find(s => s.id === now) ?? homebrew.find(s => s.id === now)
+}

@@ -30,3 +30,5 @@ export const FAERUN_2024: Def[] = [
 
 /** 2014 subclasses this book rewrote for 2024 rules. */
 export const FAERUN_REWRITTEN = ['knowledge', 'purple-dragon-knight', 'bladesinging']
+/** The rewritten ids' new 2024 ids, so 2024 characters saved before this book keep their subclass. */
+export const FAERUN_RENAMED: Record<string, string> = { knowledge: 'knowledge-domain', 'purple-dragon-knight': 'banneret', bladesinging: 'bladesinger' }
