@@ -22,6 +22,12 @@ export function startEffect(c: Character, effect: Omit<LiveEffect, 'on'> & { on?
   return { character: withEffects(c, [...kept, { ...effect, on: effect.on ?? true }]), ended }
 }
 
+/** A failed concentration save (or falling unconscious) ends the spell being concentrated on. */
+export function loseConcentration(c: Character): Character {
+  const e = concentration(c)
+  return e ? endEffect(c, e.id) : c
+}
+
 export function endEffect(c: Character, id: string): Character {
   return list(c).some(e => e.id === id) ? withEffects(c, list(c).filter(e => e.id !== id)) : c
 }

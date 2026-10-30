@@ -1,0 +1,31 @@
+// Taking damage on the sheet: damage types, concentration saves, reprisals and reactions, and the
+// player's conditions (src/sheet/components/HitPoints.tsx, AfterDamage.tsx, Conditions.tsx). Hebrew in hurt.he.ts.
+
+export const hurtEn = {
+  'hurt.type': 'Damage type',
+  'hurt.anyType': 'Any type',
+  'hurt.resistantMark': '{type} (½)',
+  'hurt.immuneMark': '{type} (immune)',
+  'hurt.resistant': 'resistant',
+  'hurt.immune': 'immune',
+  'hurt.typed': '{n} {type} → {taken} ({why})',
+  'hurt.plain': '{n} {type}',
+  'hurt.log.typed': 'Took {taken} {type} damage ({n}, {why})',
+  'hurt.log.type': 'Took {n} {type} damage',
+  'hurt.dismiss': 'Close',
+  'hurt.conc': 'Concentration save DC {dc} ({name})',
+  'hurt.conc.roll': 'Roll CON save',
+  'hurt.conc.lost': 'Lost it',
+  'hurt.conc.kept': 'Kept concentration on {name}',
+  'hurt.conc.broke': 'Lost concentration on {name}',
+  'hurt.log.lostConc': 'Lost concentration on {name}',
+  'hurt.reprisal': 'Melee hit? {name} deals {dice}{type} to the attacker',
+  'hurt.reaction': 'Reaction: {name}',
+  'cond.title': 'Conditions',
+  'cond.add': '+ Condition',
+  'cond.remove': 'Remove {name}',
+  'cond.immune': '{name} (immune)',
+  'cond.log.add': 'Became {name}',
+  'cond.log.remove': 'No longer {name}',
+  'cond.rulesOf': 'Rules for {name}',
+}

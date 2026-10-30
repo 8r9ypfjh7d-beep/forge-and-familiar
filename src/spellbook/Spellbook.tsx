@@ -366,7 +366,7 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
 }
 
 /** Item and race spells ("Hellish Rebuke (as 2nd level)") cast from the library without a slot, spending their use or charges. */
-function itemSpellCaster(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number; spend?: { id: string; n: number } }) => unknown): ItemSpellCaster {
+export function itemSpellCaster(spells: Spell[], cast: (s: Spell, slot?: undefined, free?: { level?: number; spend?: { id: string; n: number } }) => unknown): ItemSpellCaster {
   const find = (text: string) => { const { name, level } = itemSpellCast(text); const s = spells.find(x => x.name.toLowerCase() === name.toLowerCase()); return s && { s, level } }
   return {
     can: s => !!find(s.spell),

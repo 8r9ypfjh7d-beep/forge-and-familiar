@@ -3,7 +3,8 @@
 // Rules follow the SRD 5.1 sections on Hit Points, Death Saving Throws and Resting.
 import type { Character, CharacterState, HitDie } from '../model/character'
 import type { RestType } from '../rules/types'
-import { dropSpentTempHp, effectsAfterRest } from './effects'
+import type { ConditionId } from '../rules/types'
+import { dropSpentTempHp, effectsAfterRest, loseConcentration } from './effects'
 import { abilityMod, getAbilityScores, getHitDice, getMaxHp, getResources, getSpellSlots, migrateSubclassIds } from '../rules'
 
 
@@ -57,7 +58,9 @@ export function normalize(saved: Character): Character {
 
 export function takeDamage(c: Character, amount: number, opts: { critical?: boolean } = {}): Character {
   // Armor of Agathys and the like end with the temporary hit points they gave.
-  return dropSpentTempHp(damaged(c, amount, opts))
+  const hurt = dropSpentTempHp(damaged(c, amount, opts))
+  // Dropping to 0 HP knocks the character out, which ends concentration.
+  return hurt.state.currentHp === 0 ? loseConcentration(hurt) : hurt
 }
 
 function damaged(c: Character, amount: number, opts: { critical?: boolean }): Character {
@@ -101,6 +104,19 @@ export function grantTempHp(c: Character, amount: number, opts: { replace?: bool
 export function revive(c: Character, hp = 1): Character {
   return withState(c, { currentHp: clamp(hp, 1, effectiveMaxHp(c)), deathSaves: NO_SAVES })
 }
+
+// ---- Conditions ----
+
+/** Adds or removes one condition (poisoned, prone...); rolls pick it up through rules/rollMode. */
+export function setCondition(c: Character, id: ConditionId, on: boolean): Character {
+  const has = c.state.conditions.includes(id)
+  if (has === on) return c
+  const next = withState(c, { conditions: on ? [...c.state.conditions, id] : c.state.conditions.filter(x => x !== id) })
+  // Being incapacitated (stunned, paralyzed...) breaks concentration.
+  return on && INCAPACITATING.includes(id) ? loseConcentration(next) : next
+}
+
+export const INCAPACITATING: ConditionId[] = ['incapacitated', 'paralyzed', 'petrified', 'stunned', 'unconscious']
 
 // ---- Death saving throws ----
 
