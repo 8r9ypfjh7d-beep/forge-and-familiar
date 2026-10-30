@@ -238,3 +238,23 @@
 .dm-sheets { margin-block-start: var(--sp-4); padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
 .dm-sheet-list { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); }
 .dm-sheet-list li { display: flex; align-items: center; gap: var(--sp-2); }
+
+
+/* Rolls tab: player chips, kind filter and the live log */
+.ff-dm .dm-rolls { display: grid; gap: var(--sp-3); }
+.ff-dm .dm-rolls__players { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.ff-dm .dm-rolls__player { display: inline-grid; text-align: start; padding-block: 4px; line-height: 1.25; }
+.ff-dm .dm-rolls__stat { font-size: 0.75rem; font-weight: 400; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.ff-dm .dm-rolls__crit { color: var(--good, var(--accent)); font-weight: 700; }
+.ff-dm .dm-rolls__fumble { color: var(--bad); font-weight: 700; }
+.ff-dm .dm-rolls__bar { flex-wrap: wrap; gap: var(--sp-2); margin-block-end: 0; }
+.ff-dm .dm-rolls__kinds { flex-wrap: wrap; }
+.ff-dm .dm-rolls__kinds > button { padding-inline: var(--sp-3); min-height: 30px; font-size: 0.85rem; }
+.ff-dm .dm-rolls__hint { margin: 0; }
+.ff-dm .dm-rolls__list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-2); max-block-size: 60vh; overflow-y: auto; }
+.ff-dm .dm-rolls__list li { display: grid; gap: 2px; }
+.ff-dm .dm-rolls__list li + li { border-block-start: 1px solid var(--glass-hairline); padding-block-start: var(--sp-2); }
+.ff-dm .dm-rolls__list li.secret { padding-inline-start: var(--sp-2); border-inline-start: 3px solid var(--accent); border-radius: 2px; }
+.ff-dm .dm-rolls__meta { display: flex; justify-content: space-between; gap: var(--sp-2); }
+.ff-dm .dm-rolls__tag { margin-inline-start: 6px; padding: 0 6px; border-radius: var(--r-pill); background: var(--glass-tint); color: var(--accent); font-weight: 600; }
+.dm-badge--soft { background: var(--accent); }

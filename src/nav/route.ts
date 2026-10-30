@@ -7,7 +7,7 @@ export type View =
   | { kind: 'levels'; id: string } | { kind: 'plan'; id: string } | { kind: 'print'; id: string }
   /** A player's sheet opened by the DM, view only. */
   | { kind: 'watch'; id: string }
-  | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' }
+  | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' | 'rolls' } | { kind: 'requests' }
   | { kind: 'party'; partyId?: string; startWith?: 'start' | 'join' }
   | { kind: 'rules' } | { kind: 'homebrew' } | { kind: 'admin' }
 
@@ -40,7 +40,7 @@ export function hashToView(hash: string): View {
   if ((PLAIN as readonly string[]).includes(name)) return { kind: name as typeof PLAIN[number] }
   if ((WITH_ID as readonly string[]).includes(name)) return arg ? { kind: name as typeof WITH_ID[number], id: arg } : { kind: 'list' }
   if (name === 'combat') return arg ? { kind: 'combat', encounterId: arg } : { kind: 'combat' }
-  if (name === 'dm') return arg === 'requests' ? { kind: 'dm', tab: 'requests' } : { kind: 'dm' }
+  if (name === 'dm') return arg === 'requests' || arg === 'rolls' ? { kind: 'dm', tab: arg } : { kind: 'dm' }
   if (name === 'party') return arg === 'start' || arg === 'join' ? { kind: 'party', startWith: arg } : arg ? { kind: 'party', partyId: arg } : { kind: 'party' }
   return HOME
 }
