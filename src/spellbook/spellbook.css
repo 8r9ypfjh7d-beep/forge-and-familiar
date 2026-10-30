@@ -98,4 +98,8 @@
 .sb-running { color: var(--s-good, var(--accent)); }
 .sb-cast-out { display: grid; gap: var(--sp-1); margin-block: var(--sp-2); }
 .sb-cast-out > .glass-btn { justify-self: start; }
+.sb-edit { display: flex; justify-content: end; }
+.sb-take-off { display: grid; gap: var(--sp-1); }
+.sb-take-off p { margin: 0; }
+.sb-take-off .sb-actions { justify-content: start; }
 :root[data-contrast="high"] .sb-cast-levels { border: 2px solid var(--ink); }

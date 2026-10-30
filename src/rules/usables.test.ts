@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { loadKind } from '../content'
 import { rollAttack, rollSave } from '../dice'
 import { makeCharacter } from '../sheet/fixtures'
-import { derive, endsOn, getRollMode, planCast, SPELL_TEMPLATES, tempHpFromText, type SpellInfo } from '.'
+import { derive, endsOn, getRollMode, planCast, SPELL_TEMPLATES, tempHpFromText, wornArmor, type SpellInfo } from '.'
 import type { Character, LiveEffect } from '../model/character'
 
 const ctx = { edition: '2014' as const, mod: 3, speed: 30 }
@@ -72,6 +72,16 @@ describe('running effects in the rules', () => {
     expect(derive(running(c, { id: 'spell:mage-armor', name: 'Mage Armor', from: 'spell', acBase: 13 })).armorClass.value).toBe(15)
     expect(derive(running(c, { id: 'spell:barkskin', name: 'Barkskin', from: 'spell', acMin: 16 })).armorClass.value).toBe(16)
     expect(derive(running(c, { id: 'spell:sof', name: 'Shield of Faith', from: 'spell', stats: [{ kind: 'ac', value: 2 }] })).armorClass.value).toBe(14)
+  })
+
+  it('Mage Armor needs no body armor: wornArmor names what to take off', () => {
+    const mage = { id: 'spell:mage-armor', name: 'Mage Armor', from: 'spell' as const, acBase: 13 }
+    const c = { ...wizard(), inventory: [{ uid: 'la', itemId: 'leather', qty: 1, equipped: true }, { uid: 'sh', itemId: 'shield', qty: 1, equipped: true }] }
+    expect(wornArmor(c)).toEqual({ uid: 'la', name: 'Leather Armor' })
+    expect(derive(running(c, mage)).armorClass.value).toBe(15)
+    const off = { ...c, inventory: c.inventory.map(e => (e.uid === 'la' ? { ...e, equipped: false } : e)) }
+    expect(wornArmor(off)).toBeUndefined()
+    expect(derive(running(off, mage)).armorClass.value).toBe(17)
   })
 
   it('switched-off effects keep tracking without changing numbers', () => {
