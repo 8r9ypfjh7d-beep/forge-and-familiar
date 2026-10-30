@@ -3,8 +3,8 @@
 // the temporary HP or healing it gives, damage it deals now, and the effect it leaves running
 // (AC, advantage, resistance, extra damage on hits, dice on d20 rolls) with its concentration and duration.
 // Spells without known numbers still get a plan: cast, spend the slot, and track it while it lasts.
-import type { LiveEffect } from '../model/character'
-import type { ItemEffect } from './types'
+import type { ActionKind, LiveEffect } from '../model/character'
+import type { Ability, ItemEffect } from './types'
 
 /** The parts of a library spell the plans read (src/content's Spell has them all). */
 export interface SpellInfo {
@@ -183,6 +183,8 @@ export interface UseContext {
   edition: '2014' | '2024'
   /** Level in the class the resource belongs to (Second Wind heals 1d10 + fighter level). */
   classLevel: number
+  /** Ability modifiers, for features that add one (Dark One's Blessing adds CHA). */
+  mods?: Partial<Record<Ability, number>>
 }
 
 /** What using a feature does besides spending one use. */
@@ -210,6 +212,89 @@ export const FEATURE_TEMPLATES: Record<string, FeatureTemplate> = {
   'innate-sorcery': () => ({
     effectAs: { duration: '1 minute', ends: 'short', stats: [{ kind: 'spellDc', value: 1 }, { kind: 'advantage', on: 'attacks', when: 'with spells' }] },
   }),
+  // Features without uses, by feature id: used when they trigger.
+  'dark-ones-blessing': ({ classLevel, mods }) => ({ tempHp: String(Math.max(1, (mods?.cha ?? 0) + classLevel)) }),
+}
+
+// ---- What a turn costs ----
+
+/** "1 action", "1 bonus action", "1 reaction, which you take when..." → the group it goes under on the combat page. */
+export function castingKind(castingTime = ''): Exclude<ActionKind, 'free'> {
+  const t = castingTime.toLowerCase()
+  if (/bonus action/.test(t)) return 'bonus'
+  if (/reaction/.test(t)) return 'reaction'
+  if (/^\s*1 action|^\s*action|magic action/.test(t)) return 'action'
+  return 'other'
+}
+
+type Kind = ActionKind | { '2014': ActionKind; '2024': ActionKind }
+
+/** How a feature is used in a turn, by its name (resources go by their label too). `spend`: points it costs from a pool. */
+export interface FeatureAction { kind: Kind; spend?: { pools: string[]; n: number }; use?: string }
+
+const KI = { pools: ['ki', 'focus'], n: 1 }
+
+/** Features and resources by name. Anything with uses that is not listed goes under Other. */
+export const FEATURE_ACTIONS: Record<string, FeatureAction> = {
+  // Class features with uses
+  'Rage': { kind: 'bonus' },
+  'Bardic Inspiration': { kind: 'bonus' },
+  'Channel Divinity': { kind: 'action' },
+  'Divine Intervention': { kind: 'action' },
+  'Wild Shape': { kind: { '2014': 'action', '2024': 'bonus' } },
+  'Second Wind': { kind: 'bonus' },
+  'Action Surge': { kind: 'free' },
+  'Indomitable': { kind: 'free' },
+  'Divine Sense': { kind: 'action' },
+  'Lay on Hands': { kind: { '2014': 'action', '2024': 'bonus' } },
+  'Cleansing Touch': { kind: 'action' },
+  'Stroke of Luck': { kind: 'free' },
+  'Innate Sorcery': { kind: 'bonus' },
+  'Arcane Recovery': { kind: 'other' },
+  'Magical Cunning': { kind: 'other' },
+  // Subclass features with uses
+  "Hexblade's Curse": { kind: 'bonus' },
+  'Healing Light': { kind: 'bonus' },
+  "Dark One's Own Luck": { kind: 'free' },
+  'Hurl Through Hell': { kind: 'free' },
+  'Tides of Chaos': { kind: 'free' },
+  'Wrath of the Storm': { kind: 'reaction' },
+  'Warding Flare': { kind: 'reaction' },
+  'Combat Inspiration': { kind: 'reaction' },
+  'Arcane Ward': { kind: 'other' },
+  // Features without uses, or that spend a pool
+  'Cunning Action': { kind: 'bonus' },
+  'Uncanny Dodge': { kind: 'reaction' },
+  'Reckless Attack': { kind: 'free' },
+  'Flurry of Blows': { kind: 'bonus', spend: KI },
+  'Patient Defense': { kind: 'bonus', spend: KI },
+  'Step of the Wind': { kind: 'bonus', spend: KI },
+  'Stunning Strike': { kind: 'free', spend: KI },
+  'Deflect Missiles': { kind: 'reaction' },
+  'Deflect Attacks': { kind: 'reaction' },
+  "Dark One's Blessing": { kind: 'free', use: 'dark-ones-blessing' },
+  // Race and feat uses
+  'Breath Weapon': { kind: 'action' },
+  'Relentless Endurance': { kind: 'free' },
+  'Healing Hands': { kind: 'action' },
+  'Fey Step': { kind: 'bonus' },
+  'Shifting': { kind: 'bonus' },
+  'Hidden Step': { kind: 'bonus' },
+  "Stone's Endurance": { kind: 'reaction' },
+  'Fury of the Small': { kind: 'free' },
+  'Lucky': { kind: 'free' },
+}
+
+/** A feature's or resource's entry by its name: "Lay on Hands (HP pool)" and "Channel Divinity (2/rest)" match their base name. */
+export function featureAction(name: string): FeatureAction | undefined {
+  const base = name.replace(/\s*\(.*\)\s*$/, '').trim()
+  return FEATURE_ACTIONS[name] ?? FEATURE_ACTIONS[base]
+}
+
+/** The group a feature goes under for this edition, or undefined when it is not one the combat page lists by name. */
+export function featureActionKind(name: string, edition: '2014' | '2024'): ActionKind | undefined {
+  const k = featureAction(name)?.kind
+  return k === undefined ? undefined : typeof k === 'string' ? k : k[edition]
 }
 
 export const featureEffectId = (resourceId: string) => `feature:${resourceId}`

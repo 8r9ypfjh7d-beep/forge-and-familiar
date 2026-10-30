@@ -103,3 +103,14 @@ export function infusionStats(o: ClassOption): { magicBonus: number; effects: It
     ...(lib?.extraDamage ? { extraDamage: lib.extraDamage } : {}),
   }
 }
+
+/** Melee weapons a warlock can make their pact weapon (2014 and 2024 both say melee). */
+export const isMeleeWeapon = (i: Item | undefined): i is Extract<Item, { kind: 'weapon' }> =>
+  i?.kind === 'weapon' && !i.properties.includes('ammunition') && (!i.range || i.properties.includes('thrown'))
+
+/** Summons the pact weapon: an inventory weapon becomes it (bonded), or a new one is conjured; either way it is in hand. */
+export function summonPactWeapon(c: Character, pick: { uid: string } | { itemId: string }): Character {
+  if ('uid' in pick) return setEquipped(updateEntry(c, pick.uid, { pact: true }), pick.uid, true)
+  const added = addItem(c, { itemId: pick.itemId, pact: true })
+  return setEquipped(updateEntry(added.character, added.uid, { pact: true }), added.uid, true)
+}

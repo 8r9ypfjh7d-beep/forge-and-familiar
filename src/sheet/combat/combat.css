@@ -356,3 +356,10 @@
 .cs-effects > li.running { background: var(--glass-tint); border-radius: var(--r-sm); }
 .fx-live { position: relative; display: inline-flex; align-items: center; gap: var(--sp-2); margin-inline-start: auto; }
 .fx-live small { color: var(--muted); }
+
+/* Rows filled in from the character's spells and features (TurnRows), above the player's own actions. */
+.cs-turn-spells.sb-list { max-height: none; overflow: visible; margin-block-end: var(--sp-2); }
+.cs-turn .track-count { font-size: .85rem; color: var(--s-muted); }
+.cs-pact { display: grid; gap: var(--sp-2); padding-block: var(--sp-2); }
+.cs-pact-chips { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.cs-pact label { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
