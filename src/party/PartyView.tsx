@@ -10,11 +10,12 @@ import { vitals } from '../sheet/engine'
 import { getCharacter, listCharacters, listProfiles, onCharactersChanged } from '../storage'
 import { fetchAccountNames, fetchPartyCharacters, watchPartyCharacters } from './cloud'
 import { markPicked } from './active'
+import { CampaignManage } from './CampaignsHome'
 import { formatCode } from './code'
 import { PartyStash } from './PartyStash'
 import { GiveXp } from './GiveXp'
 import { RollFeed } from './RollFeed'
-import { chooseCharacter, createParty, getParty, joinParty, leaveParty, listParties, onPartiesChanged } from './store'
+import { chooseCharacter, createParty, getParty, joinParty, listParties, onPartiesChanged } from './store'
 import type { Party, PartyMember } from './types'
 import './party.css'
 
@@ -233,7 +234,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter }: {
           {mine.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           <option value="">{t('common.watching')}</option>
         </select>
-        <button className="glass-btn small ghost" onClick={() => confirm(t('party.confirmLeave', { name: party.name })) && leaveParty(party.id, userId)}>{t('party.leave')}</button>
+        <CampaignManage party={party} userId={userId} />
       </div>
 
       <SessionScheduler party={party} userId={userId} nameOf={nameOf} />

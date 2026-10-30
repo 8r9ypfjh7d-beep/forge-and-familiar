@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeParty, campaignTarget, isPartyDm, NO_PARTY } from './active'
+import { activeParty, campaignTarget, canEndParty, isPartyDm, NO_PARTY } from './active'
 import type { Party } from './types'
 
 const party = (id: string, dmId: string): Party => ({
@@ -43,5 +43,13 @@ describe('campaign home', () => {
   it('opens the party page when the player brings nothing or the sheet is elsewhere', () => {
     expect(campaignTarget(table, 'acct-tamir', ['other'])).toEqual({ kind: 'party', partyId: 'garden' })
     expect(campaignTarget(table, 'acct-roy', [])).toEqual({ kind: 'party', partyId: 'garden' })
+  })
+})
+
+describe('ending a campaign', () => {
+  it('is for its DM and the admin only', () => {
+    expect(canEndParty(garden, 'acct-noa')).toBe(true)
+    expect(canEndParty(garden, 'acct-ziv')).toBe(true)
+    expect(canEndParty(garden, 'acct-roy')).toBe(false)
   })
 })
