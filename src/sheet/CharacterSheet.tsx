@@ -13,9 +13,9 @@ import { Inventory } from '../inventory'
 import { Supplies } from '../supplies/Supplies'
 import type { Apply } from './types'
 import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
-import { sheetLayout, useSheetMode, type SheetMode, type SheetSection } from './mode'
+import { sheetLayout, useNarrow, useSheetMode, type SheetMode, type SheetSection } from './mode'
 import { Notes } from './components/Story'
-import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, SkillsPanel } from './combat/CombatPage'
+import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, HpChip, SkillsPanel } from './combat/CombatPage'
 import { canPowerUp, PowerUpCard } from '../powerup'
 import './sheet.css'
 
@@ -47,7 +47,8 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
   onEdit?: () => void
 }) {
   const [mode, setMode] = useSheetMode(character.id)
-  const layout = sheetLayout(mode, { dying: character.state.currentHp === 0, powerUp: canPowerUp(character) })
+  const narrow = useNarrow()
+  const layout = sheetLayout(mode, { dying: character.state.currentHp === 0, powerUp: canPowerUp(character), narrow })
   const p = { character, apply }
   const section = (s: SheetSection) => {
     switch (s) {
@@ -67,7 +68,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       case 'history': return <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
       case 'summary': return <CharacterCard key={s} character={character} onEdit={onEdit} vitals={(layout.vitals ?? []).map(section)} />
       case 'skills': return <SkillsPanel key={s} character={character} />
-      case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} /> : null
+      case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} aside={narrow ? <HpChip character={character} /> : undefined} /> : null
       case 'fight': return <Fight key={s} {...p} />
       case 'features': return <FeaturesTraits key={s} character={character} />
       case 'powerUp': return <PowerUpCard key={s} {...p} />
@@ -79,8 +80,7 @@ function Sheet({ character, apply, undo, undoTo, redo, log, onBack, onEdit }: {
       <ModeSwitch mode={mode} onChange={setMode} />
       {layout.top.map(section)}
       <div className="sheet-grid">
-        <div className="col">{layout.columns[0].map(section)}</div>
-        <div className="col">{layout.columns[1].map(section)}</div>
+        {layout.columns.map((col, i) => col.length > 0 && <div key={i} className="col">{col.map(section)}</div>)}
       </div>
     </div>
   )

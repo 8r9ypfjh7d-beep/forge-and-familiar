@@ -13,7 +13,7 @@ The sheet's combat mode, laid out like Roll20's character page. Only the layout 
 
 ## Rules
 
-- Tabs render existing sheet sections (`COMBAT_TABS` in `../mode.ts`); add a card to a tab there, don't duplicate it here. Nothing on the page shows twice: no Spells card or quick-cast bar beside the tabs, since the Spells tab has the slots and spells and the Combat tab rolls them.
+- Tabs render existing sheet sections (`COMBAT_TABS` in `../mode.ts`); add a card to a tab there, don't duplicate it here. Phones use `PHONE_COMBAT_TABS` (adds Checks with abilities and skills) and a sticky `.cs-tabbar` with the HP chip. Nothing on the page shows twice: no Spells card or quick-cast bar beside the tabs, since the Spells tab has the slots and spells and the Combat tab rolls them.
 - Every tap rolls through `useSheetRolls`, so results reach the dice history. A leveled spell in the attacks table spends the lowest free slot through `apply` (undoable) and rolls at that level.
 - Every roll result is labeled with what it is for (To hit with the AC it reaches, Damage with its type, the check or save), never shown bare.
 - Roll results sit in a `FadingResult` (`src/dice/ui`): they fade after 8 s, a tap or sideways swipe closes them now, hovering, pressing or keyboard focus holds them, and a new roll replaces the card. Every roll stays in the dice button's history.

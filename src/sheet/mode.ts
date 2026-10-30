@@ -1,6 +1,6 @@
 // Story and combat modes: which sheet sections show, and in what order.
 // Pure layout plus a small per-character preference kept on this device (not on Character).
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 
 export type SheetMode = 'story' | 'combat'
 
@@ -21,7 +21,7 @@ export type SheetSection =
   | 'powerUp'
 
 /** Tabs of the combat page's main panel, like Roll20's character sheet. */
-export type CombatTab = 'combat' | 'spells' | 'inventory' | 'features' | 'notes'
+export type CombatTab = 'combat' | 'checks' | 'spells' | 'inventory' | 'features' | 'notes'
 
 export interface SheetLayout {
   /** Full-width strip above the columns. */
@@ -30,16 +30,26 @@ export interface SheetLayout {
   /** Sections inside the character card's hit point block. */
   vitals?: SheetSection[]
   /** Combat page only: what each tab of the 'tabs' section shows. */
-  tabs?: Record<CombatTab, SheetSection[]>
+  tabs?: Partial<Record<CombatTab, SheetSection[]>>
 }
 
-export const COMBAT_TABS: Record<CombatTab, SheetSection[]> = {
+export const COMBAT_TABS: Partial<Record<CombatTab, SheetSection[]>> = {
   combat: ['fight'],
   spells: ['spells', 'metamagic'],
   inventory: ['inventory', 'supplies'],
   // Uses of class, subclass, race and feat features (Channel Divinity, Second Wind) sit above the features they belong to.
   features: ['resources', 'features'],
   notes: ['notes', 'history'],
+}
+
+/** Phones: abilities and skills move into a Checks tab, so the tabs sit right under HP and Rest. */
+export const PHONE_COMBAT_TABS: Partial<Record<CombatTab, SheetSection[]>> = {
+  combat: COMBAT_TABS.combat,
+  checks: ['abilities', 'skills'],
+  spells: COMBAT_TABS.spells,
+  inventory: COMBAT_TABS.inventory,
+  features: COMBAT_TABS.features,
+  notes: COMBAT_TABS.notes,
 }
 
 /** Widgets both modes show, identically and in the same place. */
@@ -54,11 +64,16 @@ const SHARED_SIDE: SheetSection[] = ['skills']
  * and notes, whose Spells tab already holds the slots and spells, so it has no Spells card.
  * Feature uses and trackers live only in combat's Features & Traits tab, since story mode leaves them out.
  * A character at 0 HP gets death saves on top in either mode. `powerUp` adds Tamir's strip card under the character card.
+ * On a phone (`narrow`) combat mode puts abilities and skills in a Checks tab, so a turn starts
+ * right under HP instead of below six abilities and eighteen skills.
  */
-export function sheetLayout(mode: SheetMode, { dying, powerUp }: { dying: boolean; powerUp?: boolean }): SheetLayout {
-  const shared: SheetSection[] = powerUp ? ['summary', 'powerUp', ...SHARED_TOP.slice(1)] : SHARED_TOP
+export function sheetLayout(mode: SheetMode, { dying, powerUp, narrow }: { dying: boolean; powerUp?: boolean; narrow?: boolean }): SheetLayout {
+  const phoneCombat = mode === 'combat' && !!narrow
+  const sharedTop = phoneCombat ? SHARED_TOP.filter(s => s !== 'abilities') : SHARED_TOP
+  const shared: SheetSection[] = powerUp ? ['summary', 'powerUp', ...sharedTop.slice(1)] : sharedTop
   const top = dying ? ['death' as const, ...shared] : shared
   const vitals: SheetSection[] = ['hp', 'rests']
+  if (phoneCombat) return { top, columns: [[], ['tabs']], vitals, tabs: PHONE_COMBAT_TABS }
   if (mode === 'combat') return { top, columns: [SHARED_SIDE, ['tabs']], vitals, tabs: COMBAT_TABS }
   return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'effects', 'attacks', 'inventory']], vitals }
 }
@@ -82,4 +97,20 @@ export function useSheetMode(characterId: string): [SheetMode, (m: SheetMode) =>
     try { localStorage.setItem(modeKey(characterId), m) } catch { /* private mode */ }
   }, [characterId])
   return [mode, setMode]
+}
+
+/** Below this width the sheet is one column (sheet.css .sheet-grid), so combat mode uses the phone layout. */
+export const NARROW_QUERY = '(max-width: 819px)'
+
+function subscribeNarrow(onChange: () => void) {
+  if (typeof matchMedia !== 'function') return () => {}
+  const q = matchMedia(NARROW_QUERY)
+  q.addEventListener('change', onChange)
+  return () => q.removeEventListener('change', onChange)
+}
+const isNarrow = () => typeof matchMedia === 'function' && matchMedia(NARROW_QUERY).matches
+
+/** True while the screen is phone-sized; follows rotation and window resizes. */
+export function useNarrow(): boolean {
+  return useSyncExternalStore(subscribeNarrow, isNarrow, () => false)
 }
