@@ -9,9 +9,13 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 | `types.ts` | `DmState` (party groups, encounter plans, NPCs), `emptyDmState` |
 | `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `groupsFromLevels`/`sameGroups` (budget from the campaign's characters), `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters`, NPC generator with an injected picker, `normalizeDm` |
 | `store.ts` | `loadDm` / `syncDm` / `saveDm` / `onDmChanged`: device cache `ff.dm.v1.<userId>` synced with Supabase `dm_state` |
-| `DmScreen.tsx` | Top card (party and budget tiles), story reminders (src/requests), and tabs: Encounters, Monsters, Quick rules, NPCs, Requests |
+| `DmScreen.tsx` | Top card (party and budget tiles), story reminders (src/requests), and tabs: Encounters, Rolls, Monsters, Quick rules, NPCs, Requests |
+| `rolls.ts` | Pure: `mergeDmRolls` (players' public and secret rolls in one newest-first log), `filterRolls` (player, kind), `playerSummary` (count, last roll, natural 20s and 1s), `unseenCount` for the tab badge |
+| `RollsTab.tsx` | Rolls tab: player chips, kind filter, live log grouped by action, Clear secret rolls |
+| `useDmRolls.ts` | `useDmRolls` keeps the log live (own history, other tabs, Supabase realtime on `rolls` and `secret_rolls`), `useUnseenRolls` counts rolls since the DM last opened the tab |
 | `dm.css` | Liquid Glass styles (src/design/DESIGN.md), scoped to `.ff-sheet.ff-dm`: the page keeps the sheet's layout helpers but its cards, tabs, buttons, fields and the request cards on it use the `--glass-*` tokens |
 | `dm.test.ts` | Budget, difficulty, plans, hand-off, search and generator tests; dm.css uses logical properties and glass tokens |
+| `rolls.test.ts` | Roll log merge, filters, player summary, badge count |
 
 ## How it works
 
@@ -20,6 +24,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 - **Monsters.** SRD 5.1 library monsters (`loadKind('monsters')`). Stat block bonuses, saves, skills, attacks and damage roll through `useDice`, so they land in the DM's own history. The party roll feed never shows the DM's rolls (watchers are skipped).
 - **Run in combat tracker.** Makes an encounter with one `npc` row per creature (average HP, first AC, DEX initiative, CON save) and opens it in src/combat. Players are added there as usual.
 - **Quick rules.** DCs, cover, travel pace, light, conditions, and a few rulings, as translated text (keys `dm.ref.*`, `dm.cond.*`). Exhaustion is left out on purpose (removed from the app).
+- **Rolls.** Every player's rolls in one place, so the DM never has to leave the screen: the public rolls the party feed shows (the character each member brings, since they joined; `src/party/feed.ts` rules) plus the party's secret rolls (`src/dice/secret.ts`, `secret_rolls`, readable only by the DM), newest first, attack and damage of one action as one card. Chips per player show their count, last roll and natural 20s/1s and filter the log; a segmented control narrows to attacks, checks, saves or secret rolls. The tab shows a badge with the rolls that landed since the DM last opened it (`ff.dm.rollsSeen.v1.<userId>`). Live through this device's history, other tabs (`storage` events) and Supabase realtime on `rolls` and `secret_rolls`. Without a campaign in play the tab says to open one from Home. The DM's own rolls never appear (the DM brings no character).
 - **Player requests.** Story reminders card and the Requests tab come from src/requests (see REQUESTS.md).
 - **NPCs.** Generator picks a made-up name plus a translated role, quirk and want (`dm.npc.*`, sizes in `NPC_TABLES`). Kept NPCs are editable text.
 
@@ -32,3 +37,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 - **Add a reference panel:** add its keys to both locales and a `RefCard` in `ReferenceTab`.
 - **Grow the NPC tables:** add `dm.npc.<table>.<n>` keys in both locales and raise `NPC_TABLES`; the test checks they match.
 - **Change what syncs:** `store.ts` owns it. DM data is private to the DM (and the admin); the DM screen never reads players' characters.
+
+## Party sheets (2026-10-30)
+
+The top card lists the campaign's characters (`usePartyHeroes`, the DM's own watching seat left out) under "Party sheets"; each button opens that player's sheet view only (`onOpenSheet` → `#/watch/<id>`, `src/sheet/WatchSheet.tsx`). The same list feeds the XP budget levels. The DM screen still never changes a player's character.

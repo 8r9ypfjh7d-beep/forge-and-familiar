@@ -1,4 +1,4 @@
-// The DM screen: party budget on top, then tabs for encounters, monsters, quick reference and NPCs.
+// The DM screen: party budget on top, then tabs for encounters, players' rolls, monsters, quick reference and NPCs.
 // Uses the sheet's card style (.ff-sheet) so it reads like the rest of the app.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createEncounter, addCombatant, saveEncounter } from '../combat'
@@ -18,6 +18,8 @@ import {
   groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
+import { RollsTab } from './RollsTab'
+import { useDmRolls, useUnseenRolls } from './useDmRolls'
 import { loadDm, onDmChanged, saveDm, syncDm } from './store'
 import { emptyDmState, type DmState, type EncounterPlan, type Npc, type PartyGroup } from './types'
 import '../sheet/sheet.css'
@@ -28,11 +30,11 @@ const newId = () => crypto.randomUUID()
 const SOURCE = 'srd-5.1'
 const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 
-export type DmTab = 'encounters' | 'monsters' | 'reference' | 'npcs' | 'requests'
+export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'reference' | 'npcs' | 'requests'
 type Tab = DmTab
-const TABS: Tab[] = ['encounters', 'monsters', 'reference', 'npcs', 'requests']
+const TABS: Tab[] = ['encounters', 'rolls', 'monsters', 'reference', 'npcs', 'requests']
 const TAB_KEYS: Record<Tab, MessageKey> = {
-  encounters: 'dm.tab.encounters', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests',
+  encounters: 'dm.tab.encounters', rolls: 'dm.tab.rolls', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests',
 }
 const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
   none: 'dm.diff.none', trivial: 'dm.diff.trivial', low: 'dm.diff.low', moderate: 'dm.diff.moderate', high: 'dm.diff.high', beyond: 'dm.diff.beyond',
@@ -41,7 +43,14 @@ const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
 type Update = (fn: (s: DmState) => DmState) => void
 
 /** The DM's own screen. It reads only the levels of the characters in the campaign being run, for the XP budget. */
-export function DmScreen({ userId, onRunEncounter, initialTab, party }: { userId: string; onRunEncounter: (encounterId: string) => void; initialTab?: DmTab; party?: Party }) {
+export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, party }: {
+  userId: string
+  onRunEncounter: (encounterId: string) => void
+  /** Opens a player's sheet view only. */
+  onOpenSheet?: (characterId: string) => void
+  initialTab?: DmTab
+  party?: Party
+}) {
   const { t } = useI18n()
   const [state, setState] = useState<DmState | null>(null)
   const [monsters, setMonsters] = useState<Monster[]>([])
@@ -50,6 +59,10 @@ export function DmScreen({ userId, onRunEncounter, initialTab, party }: { userId
   // Opened straight on a later tab (from a request link): bring it into view on narrow screens.
   useEffect(() => { if (initialTab) document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [initialTab, state])
   const [openMonster, setOpenMonster] = useState<string | null>(null)
+  // Players' rolls, live, so the Rolls tab can show a badge while the DM works on another tab.
+  const rolls = useDmRolls(party)
+  const { unseen, markSeen } = useUnseenRolls(userId, rolls)
+  useEffect(() => { if (tab === 'rolls') markSeen() }, [tab, rolls, markSeen])
 
   useEffect(() => {
     let live = true
@@ -73,7 +86,8 @@ export function DmScreen({ userId, onRunEncounter, initialTab, party }: { userId
     })
   }, [userId])
 
-  const fromParty = usePartyGroups(party)
+  const heroes = usePartyHeroes(party)
+  const fromParty = heroes && groupsFromLevels(heroes.map(h => h.level))
   // A budget never edited (the stock "4 players, level 1") follows the campaign's characters by itself.
   useEffect(() => {
     if (fromParty?.length && state && sameGroups(state.party, emptyDmState().party) && !sameGroups(fromParty, state.party)) update(s => ({ ...s, party: fromParty }))
@@ -108,7 +122,8 @@ export function DmScreen({ userId, onRunEncounter, initialTab, party }: { userId
 
   return (
     <div className="ff-sheet ff-dm">
-      <PartyCard state={state} update={update} plan={plan} fromParty={party && fromParty?.length ? { name: party.name, groups: fromParty } : undefined} />
+      <PartyCard state={state} update={update} plan={plan} fromParty={party && fromParty?.length ? { name: party.name, groups: fromParty } : undefined}
+        sheets={party && onOpenSheet ? { heroes: heroes ?? [], onOpen: onOpenSheet } : undefined} />
       {requests && <StoryReminders list={requests} onOpen={() => setTab('requests')} />}
       <div className="cs-tabs">
         <div className="cs-tablist" role="tablist" aria-label={t('dm.tabs')}>
@@ -117,10 +132,12 @@ export function DmScreen({ userId, onRunEncounter, initialTab, party }: { userId
               tabIndex={tab === id ? 0 : -1} className={tab === id ? 'on' : ''} onClick={() => setTab(id)} onKeyDown={e => move(e, i)}>
               {t(TAB_KEYS[id])}
               {id === 'requests' && requests && inbox(requests).length > 0 && <span className="dm-badge">{inbox(requests).length}</span>}
+              {id === 'rolls' && tab !== 'rolls' && unseen > 0 && <span className="dm-badge dm-badge--soft">{unseen > 99 ? '99+' : unseen}</span>}
             </button>
           ))}
         </div>
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
+          {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
           {tab === 'encounters' && <EncountersTab state={state} update={update} monsters={monsters} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} />}
           {tab === 'reference' && <ReferenceTab />}
@@ -136,9 +153,11 @@ export function DmScreen({ userId, onRunEncounter, initialTab, party }: { userId
 
 // ---------- Top card: the party and its XP budget ----------
 
-/** Level groups of the player characters in the campaign (the DM's own watching seat left out); null while loading. */
-function usePartyGroups(party?: Party): PartyGroup[] | null {
-  const [groups, setGroups] = useState<PartyGroup[] | null>(null)
+interface PartyHero { id: string; name: string; level: number }
+
+/** The player characters in the campaign (the DM's own watching seat left out), from this device or the cloud; null while loading. */
+function usePartyHeroes(party?: Party): PartyHero[] | null {
+  const [heroes, setHeroes] = useState<PartyHero[] | null>(null)
   const ids = party?.members.filter(m => m.userId !== party.dmId).flatMap(m => (m.characterId ? [m.characterId] : [])) ?? []
   const key = ids.join(',')
   useEffect(() => {
@@ -148,15 +167,22 @@ function usePartyGroups(party?: Party): PartyGroup[] | null {
       const local = await Promise.all(list.map(getCharacter))
       const missing = list.filter((_, i) => !local[i])
       const remote = new Map((missing.length ? await fetchPartyCharacters(missing).catch(() => []) : []).map(c => [c.id, c]))
-      const levels = list.flatMap((id, i) => { const c = local[i] ?? remote.get(id); return c ? [totalLevel(c)] : [] })
-      if (live) setGroups(groupsFromLevels(levels))
+      const found = list.flatMap((id, i) => { const c = local[i] ?? remote.get(id); return c ? [{ id, name: c.name, level: totalLevel(c) }] : [] })
+      if (live) setHeroes(found)
     })()
     return () => { live = false }
   }, [key])
-  return groups
+  return heroes
 }
 
-function PartyCard({ state, update, plan, fromParty }: { state: DmState; update: Update; plan?: EncounterPlan; fromParty?: { name: string; groups: PartyGroup[] } }) {
+function PartyCard({ state, update, plan, fromParty, sheets }: {
+  state: DmState
+  update: Update
+  plan?: EncounterPlan
+  fromParty?: { name: string; groups: PartyGroup[] }
+  /** The campaign's characters, each opening its sheet view only. */
+  sheets?: { heroes: PartyHero[]; onOpen: (id: string) => void }
+}) {
   const { t } = useI18n()
   const budget = partyBudget(state.party)
   const xp = plan ? planXp(plan) : 0
@@ -197,6 +223,24 @@ function PartyCard({ state, update, plan, fromParty }: { state: DmState; update:
           <button className="btn small" onClick={() => update(s => ({ ...s, party: fromParty.groups }))}>
             {t('dm.fromParty', { name: fromParty.name, count: partySize(fromParty.groups) })}
           </button>
+        )}
+        {sheets && (
+          <div className="dm-sheets">
+            <h2 className="sub-title">{t('dm.sheets')}</h2>
+            {sheets.heroes.length === 0
+              ? <p className="hint">{t('dm.sheetsNone')}</p>
+              : (
+                <ul className="plain dm-sheet-list">
+                  {sheets.heroes.map(h => (
+                    <li key={h.id}>
+                      <button className="btn small" onClick={() => sheets.onOpen(h.id)}>{h.name}</button>
+                      <span className="hint">{t('dm.level')} {h.level}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            <p className="hint">{t('dm.sheetsHelp')}</p>
+          </div>
         )}
       </div>
       <div className="dm-budget">

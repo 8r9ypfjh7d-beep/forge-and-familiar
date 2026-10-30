@@ -16,7 +16,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `xp.test.ts` | Award tests |
 | `stash.ts` | Shared inventory and gold: pure `applyStash(party, userId, action)`, coin maths, even split |
 | `PartyView.tsx` | Party list first, then one "New party" button that opens a panel to start (name + DM) or join with a code; read-only party table |
-| `active.ts` | The party in play: remembered pick per player (`ff.activeParty.v1.<id>`), `isPartyDm`, `campaignTarget` (where tapping a campaign leads) |
+| `active.ts` | The party in play: remembered pick per player (`ff.activeParty.v1.<id>`), `isPartyDm`, `canWatchSheets` (DM/admin open every member's sheet), `campaignTarget` (where tapping a campaign leads) |
 | `useActiveParty.ts` | Hook for App: the player's parties, the one in play, whether to ask, whether they're its DM |
 | `CampaignsHome.tsx` | The app's first screen (Home tab): your campaigns, tap one to play it; empty state offers sign-in, join, start, build. `CampaignManage`: End / Leave buttons, also on the party page |
 | `PartySwitcher.tsx` | The Campaign switch in the player menu |
@@ -41,6 +41,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 - If the DM leaves, the longest-standing member becomes DM; the last member leaving deletes the party.
 - End campaign (`endParty`, server `end_party` in `20261030150000_end_party.sql`): its DM or the admin (`canEndParty`) deletes it for everyone, after a confirm. Everyone else gets Leave campaign, which only takes it off their own list. Characters are separate rows and never touched, so they stay in My characters.
 - The table is read-only: HP bar with temp HP and dying/stable/dead, AC, initiative, speed, passive Perception, spell DC, conditions. Stats come from `derive()`; nothing derived is stored on the party.
+- Opening sheets: a player opens only their own ("Open my sheet"). The campaign's DM and the admin (`canWatchSheets`) get "Open <player>'s sheet" on every member card, which opens `src/sheet/WatchSheet.tsx` (`#/watch/<id>`): the full sheet, view only, live from the cloud. The DM screen lists the same characters under "Party sheets".
 - Party rolls: the 50 newest rolls across members, read from each player's own dice history (`ff.rolls.v1.<userId>`), nothing copied. A roll shows when it is tagged with the character that member brings and made after they joined. Watchers' rolls (the DM's) never show, and secret rolls never enter that history. Free rolls from the Dice tab carry no character, so only sheet rolls appear.
 - Secret rolls: below the table, players roll a skill, check or save that only the DM sees; the DM gets the log. Lives in `src/dice` (`secret.ts`, `ui/SecretRolls.tsx`).
 - Updates live via `onPartiesChanged` and `onCharactersChanged`, including other tabs.

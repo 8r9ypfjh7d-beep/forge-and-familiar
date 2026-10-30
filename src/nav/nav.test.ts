@@ -43,14 +43,14 @@ describe('navItems', () => {
 describe('canOpen', () => {
   const player = { isDm: false, partyDm: false }
   it('blocks the DM pages and the admin page for a player', () => {
-    for (const kind of ['dm', 'combat', 'admin']) expect(canOpen(kind, player)).toBe(false)
+    for (const kind of ['dm', 'combat', 'admin', 'watch']) expect(canOpen(kind, player)).toBe(false)
     for (const kind of ['list', 'party', 'requests', 'sheet', 'rules']) expect(canOpen(kind, player)).toBe(true)
   })
 
   it('opens the DM pages for the DM and the admin, the admin page only for the admin', () => {
     const dm = { isDm: true, partyDm: true }
     const admin = { isDm: true, partyDm: false, admin: true }
-    expect(canOpen('combat', dm) && canOpen('dm', dm)).toBe(true)
+    expect(canOpen('combat', dm) && canOpen('dm', dm) && canOpen('watch', dm)).toBe(true)
     expect(canOpen('admin', dm)).toBe(false)
     for (const kind of ['dm', 'combat', 'admin']) expect(canOpen(kind, admin)).toBe(true)
   })
@@ -70,8 +70,8 @@ describe('navKeyFor', () => {
 describe('hash routes', () => {
   const views: View[] = [
     { kind: 'campaigns' }, { kind: 'list' }, { kind: 'build' }, { kind: 'starters' }, { kind: 'sheet', id: 'abc-123' },
-    { kind: 'edit', id: 'x' }, { kind: 'levelup', id: 'x' }, { kind: 'levels', id: 'x' }, { kind: 'plan', id: 'x' }, { kind: 'print', id: 'x' },
-    { kind: 'combat' }, { kind: 'combat', encounterId: 'e1' }, { kind: 'dm' }, { kind: 'dm', tab: 'requests' }, { kind: 'requests' },
+    { kind: 'edit', id: 'x' }, { kind: 'levelup', id: 'x' }, { kind: 'levels', id: 'x' }, { kind: 'plan', id: 'x' }, { kind: 'print', id: 'x' }, { kind: 'watch', id: 'x' },
+    { kind: 'combat' }, { kind: 'combat', encounterId: 'e1' }, { kind: 'dm' }, { kind: 'dm', tab: 'requests' }, { kind: 'dm', tab: 'rolls' }, { kind: 'requests' },
     { kind: 'party' }, { kind: 'party', partyId: 'p1' }, { kind: 'party', startWith: 'join' }, { kind: 'party', startWith: 'start' },
     { kind: 'rules' }, { kind: 'homebrew' }, { kind: 'admin' },
   ]
