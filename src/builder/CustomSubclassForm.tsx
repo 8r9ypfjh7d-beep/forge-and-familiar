@@ -35,7 +35,7 @@ export function CustomSubclassForm({ draft, classId, update }: { draft: Characte
 
   return (
     <div className="custom-bg custom-sub">
-      <p className="small">{t('builder.cs.intro', { title: def?.subclassTitle ?? '' })} <Why title={t('builder.cs.why.title')} text={t('builder.cs.why.text')} /></p>
+      <p className="small">{t('builder.cs.intro', { title: def ? term('feature', def.subclassTitle, def.subclassTitle) : '' })} <Why title={t('builder.cs.why.title')} text={t('builder.cs.why.text')} /></p>
       <div className="row custom-bg-fields">
         <div className="field">
           <label htmlFor={`cs-name-${classId}`}>{t('builder.cs.name')}</label>

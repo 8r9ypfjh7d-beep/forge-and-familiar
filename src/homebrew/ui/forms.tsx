@@ -540,7 +540,7 @@ export function ToolForm({ initial, onSave, onCancel }: { initial: HomebrewTool;
 const ARMOR_TYPES: ArmorCategory[] = ['light', 'medium', 'heavy', 'shield']
 
 export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewSubclass; onSave: (s: HomebrewSubclass) => void; onCancel: () => void }) {
-  const { t, className } = useI18n()
+  const { t, term, className } = useI18n()
   const [sc, setSc] = useState(initial)
   const set = (patch: Partial<HomebrewSubclass>) => setSc(prev => ({ ...prev, ...patch }))
   const setFeature = (i: number, f: { level: number; name: string }) => set({ features: sc.features.map((x, j) => (j === i ? f : x)) })
@@ -549,7 +549,7 @@ export function SubclassForm({ initial, onSave, onCancel }: { initial: HomebrewS
       <Field label={t('hb.f.name')} wide><input value={sc.name} onChange={e => set({ name: e.target.value })} autoFocus placeholder={t('hb.f.subclassPlaceholder')} /></Field>
       <Field label={t('hb.f.class')}>
         <select value={sc.classId} onChange={e => set({ classId: e.target.value })}>
-          {classesFor().map(c => <option key={c.id} value={c.id}>{className(c.id)} ({c.subclassTitle})</option>)}
+          {classesFor().map(c => <option key={c.id} value={c.id}>{className(c.id)} ({term('feature', c.subclassTitle, c.subclassTitle)})</option>)}
         </select>
       </Field>
       <div className="hb-field wide">

@@ -18,6 +18,7 @@ import { explainRaces2014He, racesTerms2014He } from './explain.races2014.he'
 import { explainSettingsHe, settingTermsHe } from './explain.settings.he'
 import { itemsHe } from './items.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
+import { subfeatureTermsHe } from './subfeatures.he'
 
 const messages: Messages = {
   ...explainHe,
@@ -2532,6 +2533,7 @@ const messages: Messages = {
 }
 
 const terms: Terms = {
+  ...subfeatureTermsHe,
   ...proficiencyTermsHe,
   ...metamagicTermsHe,
   ...speciesTermsHe,
