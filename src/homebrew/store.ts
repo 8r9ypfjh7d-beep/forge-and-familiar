@@ -2,7 +2,7 @@
 // Every pack on this device is active: its items are registered with the rules engine so
 // characters holding them keep their attacks, AC and weight.
 import {
-  TOOLS, registerHomebrewBackgrounds, registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses,
+  TOOLS, registerClassOptions, registerHomebrewBackgrounds, registerHomebrewFeats, registerHomebrewItems, registerHomebrewRaces, registerHomebrewSubclasses,
   type HomebrewBackgroundDef, type Race, type Subrace,
 } from '../rules'
 import { sanitizePack } from './pack'
@@ -60,6 +60,7 @@ function register(packs: HomebrewPack[]) {
   registerHomebrewRaces(races.filter(r => !r.parentRaceId).map(toRace), races.filter(r => r.parentRaceId).map(toSubrace))
   registerHomebrewSubclasses(packs.flatMap(p => p.subclasses))
   registerHomebrewBackgrounds(packs.flatMap(p => p.backgrounds).map(toBackground))
+  registerClassOptions('homebrew', packs.flatMap(p => p.classOptions.map(o => ({ ...o, source: p.name }))))
 }
 
 function writePacks(packs: HomebrewPack[]) {

@@ -112,7 +112,7 @@ export function effectText({ t, term, skill }: T, f: ItemEffect): string {
     case 'charges': return t('inv.fx.text.charges', { n, recharge: t(RECHARGE_KEYS[f.recharge]) + (f.recharge === 'dawn' && f.regain ? ` +${f.regain}` : '') })
     case 'spell': return t(f.note?.trim() ? 'inv.fx.text.spellNote' : 'inv.fx.text.spell', { spell: f.spell, note: f.note?.trim() ?? '' })
     default: return t(`inv.fx.text.${f.kind}` as MessageKey, { n: signed })
-      + (f.unarmored ? ` ${t('inv.fx.text.unarmored')}` : '') + (f.only ? ` ${t(`inv.fx.text.${f.only}`)}` : '')
+      + (f.unarmored ? ` ${t('inv.fx.text.unarmored')}` : '') + (f.armored ? ` ${t('inv.fx.text.armored')}` : '') + (f.only ? ` ${t(`inv.fx.text.${f.only}`)}` : '')
   }
 }
 
@@ -469,10 +469,12 @@ export function EffectsEditor({ effects, onChange, legend }: { effects: ItemEffe
             </label>
           )}
           {f.kind === 'ac' && (
-            <label className="check">
-              <input type="checkbox" checked={!!f.unarmored} onChange={ev => put(i, { ...f, unarmored: ev.target.checked || undefined })} />
-              {t('inv.fx.unarmored')}
-            </label>
+            <select aria-label={t('inv.fx.wearing')} value={f.armored ? 'armored' : f.unarmored ? 'unarmored' : 'all'}
+              onChange={ev => put(i, { ...f, unarmored: ev.target.value === 'unarmored' || undefined, armored: ev.target.value === 'armored' || undefined })}>
+              <option value="all">{t('inv.fx.wearing.all')}</option>
+              <option value="unarmored">{t('inv.fx.unarmored')}</option>
+              <option value="armored">{t('inv.fx.armored')}</option>
+            </select>
           )}
           {(f.kind === 'attack' || f.kind === 'damage') && (
             <select aria-label={t('inv.fx.only')} value={f.only ?? 'all'} onChange={ev => put(i, { ...f, only: ev.target.value === 'all' ? undefined : ev.target.value as 'melee' | 'ranged' })}>

@@ -3,18 +3,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChangeHistory, deleteHistory, historyForSharing, importHistory, recordRevision, type RestoreMeta } from '../../history'
 import { useI18n, type Translate } from '../../i18n'
 import type { Character, UserProfile } from '../../model/character'
-import { featById, itemById, raceById } from '../../rules'
+import { OPTION_KIND_CLASSES, featById, itemById, raceById } from '../../rules'
+import { effectText } from '../../inventory'
 import { listCharacters, saveCharacter } from '../../storage'
 import { allEntries, decodePack, describeEffect, encodeShareCode, entryId, newPack, PackError, sanitizeEntry, slug } from '../pack'
 import { deletePack, importPack, listPacks, onPacksChanged, savePack } from '../store'
 import type { Ability } from '../../rules'
-import type { ContentKind, HomebrewBackground, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
-import { BackgroundForm, FeatForm, ItemForm, RaceForm, SpellForm, SubclassForm } from './forms'
+import type { ContentKind, HomebrewBackground, HomebrewClassOption, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewPack, HomebrewRace, HomebrewSpell, HomebrewSubclass } from '../types'
+import { BackgroundForm, ClassOptionForm, FeatForm, ItemForm, RaceForm, SpellForm, SubclassForm } from './forms'
 import './homebrew.css'
 
 const shortId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 
-const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds']
+const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds', 'classOptions']
 
 /** "2 spells · 1 item", or "Empty". */
 const packCounts = (t: Translate, p: HomebrewPack) =>
@@ -148,6 +149,7 @@ type Editing =
   | { kind: 'races'; entry: HomebrewRace }
   | { kind: 'subclasses'; entry: HomebrewSubclass }
   | { kind: 'backgrounds'; entry: HomebrewBackground }
+  | { kind: 'classOptions'; entry: HomebrewClassOption }
 
 function blank(kind: ContentKind): Editing {
   if (kind === 'spells') {
@@ -177,6 +179,7 @@ function blank(kind: ContentKind): Editing {
       },
     }
   }
+  if (kind === 'classOptions') return { kind, entry: { id: '', kind: 'invocation', name: '', text: '', classIds: OPTION_KIND_CLASSES.invocation, effects: [] } }
   return { kind, entry: { id: '', name: '', description: '', effects: [] } }
 }
 
@@ -201,6 +204,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
     else if (e.kind === 'races') next.races = upsert(pack.races, (entry = withId(e.entry)))
     else if (e.kind === 'subclasses') next.subclasses = upsert(pack.subclasses, (entry = withId(e.entry)))
     else if (e.kind === 'backgrounds') next.backgrounds = upsert(pack.backgrounds, (entry = withId(e.entry)))
+    else if (e.kind === 'classOptions') next.classOptions = upsert(pack.classOptions, (entry = withId(e.entry)))
     else next.feats = upsert(pack.feats, (entry = withId(e.entry)))
     await savePack(next)
     await recordRevision({ kind: e.kind, entry, authorId: profile.id, authorName: profile.displayName, ...meta })
@@ -213,7 +217,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   }
 
   const removeEntry = async (kind: ContentKind, id: string, name: string) => {
-    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'races' || kind === 'subclasses' || kind === 'backgrounds' ? t('hb.deleteWarnBonus') : ''
+    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'races' || kind === 'subclasses' || kind === 'backgrounds' || kind === 'classOptions' ? t('hb.deleteWarnBonus') : ''
     if (!confirm(t('hb.deleteConfirm', { name }) + warn)) return
     await savePack({ ...pack, [kind]: (pack[kind] as { id: string }[]).filter(x => x.id !== id) })
   }
@@ -233,6 +237,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
         originFeatId: b.originFeatId?.replace(`hb:${pack.id}:`, `hb:${id}:`),
         equipment: b.equipment.map(x => x.replace(`hb:${pack.id}:`, `hb:${id}:`)),
       })),
+      classOptions: pack.classOptions.map(rename),
     })
     onOpen(copy.id)
   }
@@ -296,6 +301,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
           {editing?.kind === 'feats' && <FeatForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'feats', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'races' && <RaceForm key={editing.entry.id || 'new'} initial={editing.entry} pack={pack} onSave={entry => saveEntry({ kind: 'races', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'backgrounds' && <BackgroundForm key={editing.entry.id || 'new'} initial={editing.entry} pack={pack} onSave={entry => saveEntry({ kind: 'backgrounds', entry })} onCancel={() => setEditing(null)} />}
+          {editing?.kind === 'classOptions' && <ClassOptionForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'classOptions', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'subclasses' && <SubclassForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'subclasses', entry })} onCancel={() => setEditing(null)} />}
 
           {!editing && (
@@ -393,6 +399,13 @@ function subtitle({ t, className }: I18n, kind: ContentKind, e: HomebrewEntry): 
     const b = e as HomebrewBackground
     return t('hb.sub.background', { editions: t(`hb.bg.editions.${b.editions}`), feature: b.feature })
   }
+  if (kind === 'classOptions') {
+    const o = e as HomebrewClassOption
+    return [
+      t(`hb.opt.kind.${o.kind}`), o.classIds.map(className).join('/'), o.minLevel && t('hb.opt.sub.level', { level: o.minLevel }),
+      o.edition && t(`hb.opt.edition.${o.edition}`), o.cost && t(o.costPerSpellLevel ? 'hb.opt.sub.costPerLevel' : 'hb.opt.sub.cost', { n: o.cost }),
+    ].filter(Boolean).join(' · ')
+  }
   const f = e as HomebrewFeat
   return f.prerequisite ? t('hb.sub.prereq', { text: f.prerequisite }) : t('hb.sub.feat')
 }
@@ -478,6 +491,20 @@ function EntryBody({ i18n, kind, entry }: { i18n: I18n; kind: ContentKind; entry
         {lines.map(l => <p key={l as string} className="small">{l}</p>)}
         {b.featureText && <p className="hb-text"><em>{b.feature}.</em> {b.featureText}</p>}
         {b.description && <p className="hb-text">{b.description}</p>}
+      </>
+    )
+  }
+  if (kind === 'classOptions') {
+    const o = entry as HomebrewClassOption
+    const fx = (o.item?.effects ?? o.effects ?? []).map(f => effectText(i18n, f))
+    if (o.item?.magicBonus) fx.unshift(t('hb.opt.sub.magicBonus', { n: o.item.magicBonus }))
+    const uses = o.uses && (typeof o.uses.count === 'number' ? t('hb.opt.sub.uses', { n: o.uses.count }) : t('hb.opt.sub.usesScaled'))
+    return (
+      <>
+        {o.prerequisite && <p className="small">{t('hb.sub.prereq', { text: o.prerequisite })}</p>}
+        <p className="hb-text">{o.text}</p>
+        {(fx.length > 0 || uses) && <p className="small">{[...(uses ? [`${uses} (${t(o.uses!.recharge === 'short' ? 'builder.cs.recharge.short' : 'builder.cs.recharge.long')})`] : []), ...fx].join(' · ')}</p>}
+        {o.repeatable && <p className="muted small">{t('hb.opt.repeatable')}</p>}
       </>
     )
   }

@@ -4,7 +4,7 @@ import {
   getFeats, getSkillProficiencies, itemById, registerHomebrewBackgrounds, registerHomebrewFeats, registerHomebrewItems, startingGold, toolPickGroups,
 } from '../rules'
 import { toBackground } from './store'
-import { backgroundIssues, decodePack, encodeShareCode, entryId, featIssues, itemIssues, newPack, PackError, sanitizeEntry, sanitizePack, spellIssues } from './pack'
+import { backgroundIssues, classOptionIssues, decodePack, encodeShareCode, entryId, featIssues, itemIssues, newPack, PackError, sanitizeEntry, sanitizePack, spellIssues } from './pack'
 import type { HomebrewItem, HomebrewPack, HomebrewSpell } from './types'
 
 const author = { id: 'u1', displayName: 'Ziv' }
@@ -199,5 +199,44 @@ describe('homebrew backgrounds', () => {
     expect(backgroundsFor('2024').map(b => b.id)).not.toContain('hb:abcd1234:sea-wanderer')
     registerHomebrewBackgrounds([])
     registerHomebrewFeats([])
+  })
+})
+
+describe('homebrew class options', () => {
+  const raw = {
+    ...newPack('abcd1234', author, 'Options'),
+    classOptions: [
+      { id: 'hb:other:steal', kind: 'invocation', name: 'Grave Sight', text: 'See the dead.', classIds: ['warlock', '<b>'], minLevel: 5, cost: 99,
+        uses: { count: 'pb', recharge: 'long' }, effects: [{ kind: 'sense', sense: 'darkvision', value: 120 }, { kind: 'bogus' }] },
+      { kind: 'infusion', name: 'Ember Blade', text: 'Hot.', classIds: ['artificer'], effects: [{ kind: 'ac', value: 5 }],
+        item: { magicBonus: 7, effects: [{ kind: 'resistance', damage: 'cold' }] } },
+      { kind: 'metamagic', name: 'Echo', text: 'Again.', classIds: ['sorcerer'], cost: 1, costPerSpellLevel: true, repeatable: true },
+      { kind: 'nonsense', name: 'X', text: 'Y', classIds: ['fighter'] },
+    ],
+  }
+
+  it('rebuilds options from untrusted packs', () => {
+    const [grave, ember, echo, x] = sanitizePack(raw).classOptions
+    expect(grave.id).toBe('hb:abcd1234:grave-sight')
+    expect(grave.classIds).toEqual(['warlock'])
+    expect(grave).toMatchObject({ minLevel: 5, cost: 20, uses: { count: 'pb', recharge: 'long' }, effects: [{ kind: 'sense', sense: 'darkvision', value: 120 }] })
+    // An infusion's effects belong to the item, never to the artificer.
+    expect(ember.effects).toBeUndefined()
+    expect(ember.item).toEqual({ magicBonus: 3, effects: [{ kind: 'resistance', damage: 'cold' }] })
+    expect(echo).toMatchObject({ cost: 1, costPerSpellLevel: true, repeatable: true })
+    expect(x.kind).toBe('invocation')
+  })
+
+  it('loads packs saved before class options existed', () => {
+    const { classOptions: _, ...old } = newPack('abcd1234', author, 'Old')
+    expect(sanitizePack(old).classOptions).toEqual([])
+  })
+
+  it('validates the editor and survives share codes', () => {
+    const p = sanitizePack(raw)
+    expect(classOptionIssues(p.classOptions[0])).toEqual([])
+    expect(classOptionIssues({ ...p.classOptions[0], name: '', classIds: [] })).toHaveLength(2)
+    expect(decodePack(encodeShareCode(p)).classOptions).toEqual(p.classOptions)
+    expect(sanitizeEntry('classOptions', p.classOptions[2], p.id)).toEqual(p.classOptions[2])
   })
 })
