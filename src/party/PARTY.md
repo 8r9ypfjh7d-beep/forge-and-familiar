@@ -12,9 +12,10 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `cloud.ts` | Supabase side: fetch and cache (`ff.parties.cloud.v1`), realtime, members' characters and rolls, `sendRoll` |
 | `stash.ts` | Shared inventory and gold: pure `applyStash(party, userId, action)`, coin maths, even split |
 | `PartyView.tsx` | Party list first, then one "New party" button that opens a panel to start (name + DM) or join with a code; read-only party table |
-| `active.ts` | The party in play: remembered pick per player (`ff.activeParty.v1.<id>`), asked once per visit (`ff.partyPicked.v1.<id>` in sessionStorage), `isPartyDm` |
+| `active.ts` | The party in play: remembered pick per player (`ff.activeParty.v1.<id>`), `isPartyDm`, `campaignTarget` (where tapping a campaign leads) |
 | `useActiveParty.ts` | Hook for App: the player's parties, the one in play, whether to ask, whether they're its DM |
-| `PartyPicker.tsx` | "Which campaign are you playing?" screen on entering the app, and the Campaign switch in the player menu |
+| `CampaignsHome.tsx` | The app's first screen (Home tab): your campaigns, tap one to play it; empty state offers sign-in, join, start, build |
+| `PartySwitcher.tsx` | The Campaign switch in the player menu |
 | `feed.ts` | Party roll feed: merges members' dice histories (`mergePartyRolls`), live via `onMemberRollsChanged` |
 | `RollFeed.tsx` | "Party rolls" panel under the party table; `PartyRollRelay` (in App) sends each sheet roll to the cloud at once |
 | `PartyStash.tsx` | Stash panel under the party table: coins, items, change log |
@@ -29,7 +30,8 @@ Join a party with an invite code and see everyone's character at a glance. First
 ## How it works
 
 - Creating a party means choosing its DM: the creator or any other player. Creator and DM join; the DM usually watches without a character. Players join with a code and pick which character they bring; anyone can switch or watch only.
-- The DM role is per party. On entering the app a player in more than one party picks the one they play now (a single party is picked for them; "Play without a party" gives the player pages). That party's DM gets the DM pages (DM screen, Combat, Party tabs); everyone else gets the player pages. The Campaign switch in the player menu changes it. Making or joining a party mid-game doesn't pop the picker up.
+- Every visit opens on the campaigns home (`CampaignsHome`, the Home tab): every campaign the player is in, their role, the DM and the character they bring. Tapping one makes it the party in play and opens it: its DM gets the DM screen, a player the sheet they bring, or the party page to pick a character when they bring none (or it isn't on this device). With no campaign: the sync sign-in (campaigns live on the server), join with a code, start one, build a character.
+- The DM role is per party. The party in play's DM gets the DM pages (DM screen, Combat, Party tabs); everyone else gets the player pages. A single party is in play without asking; the Campaign switch in the player menu changes it, and "Play without a party" gives the player pages.
 - Garden Gang (`party-garden-gang`, code GAR-DEN) is seeded by `20261028100000_party_dm.sql` with every friend and Noa as DM.
 - Codes: 6 chars from `CODE_ALPHABET` (no 0/O/1/I/L), shown as `ABC-234`, typed loosely (case, spaces, dash ignored).
 - If the DM leaves, the longest-standing member becomes DM; the last member leaving deletes the party.

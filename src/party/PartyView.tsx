@@ -17,11 +17,17 @@ import { chooseCharacter, createParty, getParty, joinParty, leaveParty, listPart
 import type { Party, PartyMember } from './types'
 import './party.css'
 
-/** Parties the player is in, plus create and join. Opens one party's read-only table view. */
-export function PartyView({ userId, onOpenCharacter }: { userId: string; onOpenCharacter: (id: string) => void }) {
+/** Parties the player is in, plus create and join. Opens one party's read-only table view.
+ *  The campaigns home opens it on one party (openId) or straight on start/join (startWith). */
+export function PartyView({ userId, onOpenCharacter, openId: initialOpen, startWith }: {
+  userId: string
+  onOpenCharacter: (id: string) => void
+  openId?: string
+  startWith?: 'start' | 'join'
+}) {
   const [parties, setParties] = useState<Party[] | null>(null)
-  const [openId, setOpenId] = useState<string | null>(null)
-  const [newParty, setNewParty] = useState(false)
+  const [openId, setOpenId] = useState<string | null>(initialOpen ?? null)
+  const [newParty, setNewParty] = useState(!!startWith)
   const { t } = useI18n()
 
   const refresh = useCallback(() => { listParties(userId).then(setParties) }, [userId])
@@ -49,15 +55,15 @@ export function PartyView({ userId, onOpenCharacter }: { userId: string; onOpenC
         )}
       {/* Your parties come first; start or join sit behind one "New party" button. */}
       {newParty
-        ? <NewParty userId={userId} onClose={() => setNewParty(false)} onOpen={id => { markPicked(userId); setNewParty(false); setOpenId(id) }} />
+        ? <NewParty userId={userId} mode={startWith} onClose={() => setNewParty(false)} onOpen={id => { markPicked(userId); setNewParty(false); setOpenId(id) }} />
         : <button className="glass-btn party-new" onClick={() => setNewParty(true)}>{t('party.new')}</button>}
     </section>
   )
 }
 
 /** One panel for a new party: pick start or join, then fill in that form. */
-function NewParty({ userId, onClose, onOpen }: { userId: string; onClose: () => void; onOpen: (partyId: string) => void }) {
-  const [mode, setMode] = useState<'start' | 'join'>('start')
+function NewParty({ userId, mode: initialMode = 'start', onClose, onOpen }: { userId: string; mode?: 'start' | 'join'; onClose: () => void; onOpen: (partyId: string) => void }) {
+  const [mode, setMode] = useState<'start' | 'join'>(initialMode)
   const { t } = useI18n()
   return (
     <div className="glass party-form" role="group" aria-label={t('party.newTitle')}>

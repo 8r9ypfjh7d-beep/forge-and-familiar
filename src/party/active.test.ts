@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeParty, isPartyDm, needsPartyPick, NO_PARTY } from './active'
+import { activeParty, campaignTarget, isPartyDm, NO_PARTY } from './active'
 import type { Party } from './types'
 
 const party = (id: string, dmId: string): Party => ({
@@ -18,16 +18,30 @@ describe('party in play', () => {
     expect(activeParty([garden], NO_PARTY)).toBeUndefined()
   })
 
-  it('asks on entering the app when there is more than one party', () => {
-    expect(needsPartyPick([garden, side], false)).toBe(true)
-    expect(needsPartyPick([garden, side], true)).toBe(false)
-    expect(needsPartyPick([garden], false)).toBe(false)
-    expect(needsPartyPick([], false)).toBe(false)
-  })
-
   it('makes the party\'s DM the DM, per party', () => {
     expect(isPartyDm(garden, 'acct-noa')).toBe(true)
     expect(isPartyDm(side, 'acct-noa')).toBe(false)
     expect(isPartyDm(undefined, 'acct-noa')).toBe(false)
+  })
+})
+
+describe('campaign home', () => {
+  const table: Party = {
+    ...garden,
+    members: [
+      { userId: 'acct-noa', joinedAt: '2026-01-01T00:00:00Z' },
+      { userId: 'acct-roy', characterId: 'grog', joinedAt: '2026-01-01T00:00:00Z' },
+      { userId: 'acct-tamir', joinedAt: '2026-01-01T00:00:00Z' },
+    ],
+  }
+  it('sends the DM to the DM screen', () => {
+    expect(campaignTarget(table, 'acct-noa', [])).toEqual({ kind: 'dm' })
+  })
+  it('opens the sheet a player brings, when it is on this device', () => {
+    expect(campaignTarget(table, 'acct-roy', ['grog'])).toEqual({ kind: 'sheet', id: 'grog' })
+  })
+  it('opens the party page when the player brings nothing or the sheet is elsewhere', () => {
+    expect(campaignTarget(table, 'acct-tamir', ['other'])).toEqual({ kind: 'party', partyId: 'garden' })
+    expect(campaignTarget(table, 'acct-roy', [])).toEqual({ kind: 'party', partyId: 'garden' })
   })
 })

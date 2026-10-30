@@ -11,7 +11,7 @@ import { DiceFab, DiceProvider } from './dice/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
-import { PartyPicker, PartyRollRelay, PartySwitcher, PartyView, useActiveParty } from './party'
+import { campaignTarget, CampaignsHome, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, type Party } from './party'
 import { RulesQA } from './rulesqa'
 import { ShareButton } from './share'
 import { PlanView } from './planner'
@@ -29,7 +29,7 @@ import {
   setActiveProfileId,
 } from './storage'
 
-type View = { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'plan'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
+type View = { kind: 'campaigns' } | { kind: 'list' } | { kind: 'build' } | { kind: 'edit'; id: string } | { kind: 'starters' } | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' } | { kind: 'requests' } | { kind: 'party'; partyId?: string; startWith?: 'start' | 'join' } | { kind: 'rules' } | { kind: 'sheet'; id: string } | { kind: 'levels'; id: string } | { kind: 'plan'; id: string } | { kind: 'print'; id: string } | { kind: 'homebrew' } | { kind: 'admin' }
 
 const newId = () => crypto.randomUUID()
 
@@ -41,7 +41,8 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId())
   const [session, setSession] = useState<Session | null>(getSession)
   const [characters, setCharacters] = useState<Character[]>([])
-  const [view, setView] = useState<View>({ kind: 'list' })
+  // Every visit opens on the campaigns home: pick a campaign, then play it.
+  const [view, setView] = useState<View>({ kind: 'campaigns' })
   const [diceOpen, setDiceOpen] = useState(false)
   const [askEdit, setAskEdit] = useState<Character | null>(null)
   const requests = useRequests()
@@ -65,7 +66,7 @@ export default function App() {
     setProfiles(await listProfiles())
     if (s) {
       setActiveId(s.id)
-      setView({ kind: 'list' })
+      setView({ kind: 'campaigns' })
     }
   }), [])
 
@@ -88,16 +89,23 @@ export default function App() {
   const partyDm = playing.isDm
   const isDm = partyDm || admin
   const nav = { isDm, partyDm, admin }
-  // Picking (or switching) the party opens its home screen: the DM screen for its DM, else Characters.
-  const playKey = playing.parties ? `${active?.id}:${playing.party?.id ?? ''}:${partyDm}` : null
-  useEffect(() => {
-    if (playKey) setView(partyDm ? { kind: 'dm' } : { kind: 'list' })
-  }, [playKey, partyDm])
+  // Tapping a campaign on the home screen plays it: the DM screen for its DM, else the sheet the player brings.
+  const playCampaign = (p: Party) => {
+    playing.choose(p.id)
+    const to = campaignTarget(p, active?.id ?? '', characters.map(c => c.id))
+    setView(to.kind === 'party' ? { kind: 'party', partyId: to.partyId } : to)
+  }
+  // The Campaign switch in the player menu plays the picked one, or the character list without a party.
+  const switchCampaign = (id: string | null) => {
+    const p = playing.parties?.find(x => x.id === id)
+    if (p) playCampaign(p)
+    else { playing.choose(null); setView({ kind: 'list' }) }
+  }
   // A screen this account may not open (a shortcut, a link, a switched profile) falls back to its home screen.
   const allowed = canOpen(view.kind, nav)
   useEffect(() => {
-    if (!allowed) setView(isDm ? { kind: 'dm' } : { kind: 'list' })
-  }, [allowed, isDm])
+    if (!allowed) setView({ kind: 'campaigns' })
+  }, [allowed])
 
   // Players edit a character only with the DM's OK (one edit per approval). The DM and the admin edit freely.
   const editsFreely = isDm
@@ -116,7 +124,7 @@ export default function App() {
   const switchProfile = (id: string) => {
     setActiveProfileId(id)
     setActiveId(id)
-    setView({ kind: 'list' })
+    setView({ kind: 'campaigns' })
   }
 
   // A request link opens the DM's Requests tab; an answer link opens the player's requests.
@@ -150,13 +158,26 @@ export default function App() {
       >
         <SyncBadge />
         <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
-        {playing.parties && <PartySwitcher parties={playing.parties} party={playing.party} onPick={playing.choose} />}
+        {playing.parties && <PartySwitcher parties={playing.parties} party={playing.party} onPick={switchCampaign} />}
       </AppNav>
       <AccessibilityDialog ref={a11yDialog} />
       <main id="main" ref={mainRef} tabIndex={-1}>
-        {ownProfile && <CloudLinkNotice />}
+        {ownProfile && view.kind !== 'campaigns' && <CloudLinkNotice />}
         {ownProfile && <DuplicatePrompt characters={characters} />}
-        {playing.mustPick && playing.parties ? <PartyPicker parties={playing.parties} userId={active.id} onPick={playing.choose} /> : <>
+        {view.kind === 'campaigns' && (
+          <CampaignsHome
+            userId={active.id}
+            playerName={active.displayName}
+            parties={playing.parties}
+            current={playing.party}
+            characters={characters}
+            onPlay={playCampaign}
+            onJoin={() => setView({ kind: 'party', startWith: 'join' })}
+            onStart={() => setView({ kind: 'party', startWith: 'start' })}
+            onBuild={() => setView({ kind: 'build' })}
+            onCharacters={() => setView({ kind: 'list' })}
+          />
+        )}
         {view.kind === 'list' && (
           <CharacterList
             owner={active}
@@ -249,8 +270,10 @@ export default function App() {
             onOpenCombat={() => setView({ kind: 'combat' })}
           />
         )}
-        {view.kind === 'party' && <PartyView userId={active.id} onOpenCharacter={id => setView({ kind: 'sheet', id })} />}
-        </>}
+        {view.kind === 'party' && (
+          <PartyView key={`${active.id}:${view.partyId ?? ''}:${view.startWith ?? ''}`} userId={active.id} openId={view.partyId} startWith={view.startWith}
+            onOpenCharacter={id => setView({ kind: 'sheet', id })} />
+        )}
       </main>
       <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}
         secretTo={playing.party && !playing.isDm ? { partyId: playing.party.id, userId: active.id } : undefined} />

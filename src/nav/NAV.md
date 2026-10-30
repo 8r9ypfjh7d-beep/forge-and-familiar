@@ -1,6 +1,6 @@
 # Top bar (src/nav)
 
-The app's navigation. No brand header: the first tab, Characters, is home.
+The app's navigation. No brand header: the first tab, Home (your campaigns, `src/party/CampaignsHome.tsx`), is where every visit opens.
 
 | File | What |
 |------|------|
@@ -11,4 +11,4 @@ The app's navigation. No brand header: the first tab, Characters, is home.
 
 Adding a screen: add its view kind to `NavKey` and `ITEM` in `items.ts`, put it in `main` (used every session) or `more` (reference, bookkeeping), add an icon path, and the label key in both locales. Removing one: drop it from the same places.
 
-Who sees what: the DM role comes from the party in play (picked on entering the app, `src/party/active.ts`), not the account. Players get Characters, Party, Ask the DM. The DM of the party in play gets only DM screen, Combat and Party. The admin account (Ziv) also gets Admin first under More; the admin page has buttons to open the DM screen and the combat tracker (`canOpen` lets the admin in). Rules and Homebrew sit under More for everyone. Roles follow the open profile: the admin opened as a player (switcher or Admin → Open as) sees exactly that player's tabs; switching back to their own profile restores everything.
+Who sees what: the DM role comes from the party in play (picked on the Home screen, `src/party/active.ts`), not the account. Everyone gets Home first. Players then get Characters, Party, Ask the DM. The DM of the party in play gets DM screen, Combat and Party. A view the account may not open falls back to Home. The admin account (Ziv) also gets Admin first under More; the admin page has buttons to open the DM screen and the combat tracker (`canOpen` lets the admin in). Rules and Homebrew sit under More for everyone. Roles follow the open profile: the admin opened as a player (switcher or Admin → Open as) sees exactly that player's tabs; switching back to their own profile restores everything.

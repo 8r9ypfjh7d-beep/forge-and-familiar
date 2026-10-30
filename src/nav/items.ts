@@ -1,7 +1,7 @@
 // Which screens the top bar offers, and which tab lights up for each view. Pure, no React.
 import type { MessageKey } from '../i18n'
 
-export type NavKey = 'list' | 'party' | 'combat' | 'requests' | 'dm' | 'homebrew' | 'rules' | 'admin'
+export type NavKey = 'campaigns' | 'list' | 'party' | 'combat' | 'requests' | 'dm' | 'homebrew' | 'rules' | 'admin'
 
 export interface NavItem {
   key: NavKey
@@ -21,6 +21,7 @@ export interface NavContext {
 }
 
 const ITEM: Record<NavKey, NavItem> = {
+  campaigns: { key: 'campaigns', label: 'nav.campaigns', short: 'nav.campaignsShort' },
   list: { key: 'list', label: 'nav.characters', short: 'nav.charactersShort' },
   party: { key: 'party', label: 'app.party' },
   combat: { key: 'combat', label: 'app.combat' },
@@ -35,9 +36,10 @@ const ITEM: Record<NavKey, NavItem> = {
 const DM_ONLY: readonly string[] = ['dm', 'combat']
 
 /** Everyday screens get a tab; reference and bookkeeping screens sit under More.
- *  Players: Characters, Party, Ask the DM. The party's DM: DM screen, Combat, Party. The admin adds Admin. */
+ *  Everyone starts with Campaigns (the home screen). Players: Characters, Party, Ask the DM.
+ *  The party's DM: DM screen, Combat, Party. The admin adds Admin. */
 export function navItems({ partyDm, admin }: NavContext): { main: NavItem[]; more: NavItem[] } {
-  const main: NavKey[] = partyDm ? ['dm', 'combat', 'party'] : ['list', 'party', 'requests']
+  const main: NavKey[] = ['campaigns', ...(partyDm ? ['dm', 'combat', 'party'] as const : ['list', 'party', 'requests'] as const)]
   const more: NavKey[] = ['rules', 'homebrew']
   if (admin) more.unshift('admin')
   return { main: main.map(k => ITEM[k]), more: more.map(k => ITEM[k]) }
