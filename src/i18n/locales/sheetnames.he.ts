@@ -136,6 +136,7 @@ export const sheetTermsHe: Terms = {
   'when.Strength checks': 'בבדיקות כוח',
   'when.moving silently': 'כשנעים בשקט',
   'when.that rely on sight': 'שנשענות על ראייה',
+  'when.with Strength melee attacks': 'בהתקפות קרב מגע בכוח',
   // Favored Enemy (2014): "to track <enemies>"
   'when.to track aberrations': 'כדי לעקוב אחרי יצורים זרים',
   'when.to track beasts': 'כדי לעקוב אחרי חיות',

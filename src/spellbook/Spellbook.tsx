@@ -268,7 +268,7 @@ function groupByLevel(spells: Spell[]) {
 }
 
 function Mine({ character, apply, access, spells, onBrowse }: { character: Character; apply: Apply; access: SpellAccess; spells: Spell[]; onBrowse: () => void }) {
-  const { t, term } = useI18n()
+  const { t, term, spellName } = useI18n()
   const casting = useCast(character, apply)
   const levelName = useLevelName()
   // Forgetting a spell sits behind Edit, away from Cast and Pin.
@@ -319,7 +319,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
                   <PreparedCast character={character} spell={s} cast={casting.cast} />
                   {book && s.level > 0 && !always && (
                     <button type="button" className={`glass-btn small${off.has(s.id) ? ' sb-add' : ''}`} aria-pressed={!off.has(s.id)} onClick={() => prepare(s, off.has(s.id))}
-                      aria-label={t(off.has(s.id) ? 'spells.prepareName' : 'spells.unprepareName', { name: s.name })}>
+                      aria-label={t(off.has(s.id) ? 'spells.prepareName' : 'spells.unprepareName', { name: spellName(s.id, s.name) })}>
                       {t(off.has(s.id) ? 'spells.prepare' : 'spells.preparedOn')}
                     </button>
                   )}
