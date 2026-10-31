@@ -8,7 +8,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 |------|---------|
 | `edition.ts` | `readDmEdition` / `writeDmEdition`: the rules edition the monster screens show, per device |
 | `types.ts` | `DmState` (party groups, encounter plans, NPCs), `emptyDmState` |
-| `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `groupsFromLevels`/`sameGroups` (budget from the campaign's characters), `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters` (English or translated name, CR, type, source group), `monsterGroups`, NPC generator with an injected picker, `normalizeDm` |
+| `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `groupsFromLevels`/`sameGroups` (budget from the campaign's characters), `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters` (English or translated name, CR, type, source group; summon/companion stat blocks only when searched by name or under the "summon" type), `typeGroups`/`monsterTypes` (swarms under their base type, "X or Y" split; labels `dm.ctype.*`), `monsterGroups`, NPC generator with an injected picker, `normalizeDm` |
 | `store.ts` | `loadDm` / `syncDm` / `saveDm` / `onDmChanged`: device cache `ff.dm.v1.<userId>` synced with Supabase `dm_state` |
 | `DmScreen.tsx` | Top card (party and budget tiles), story reminders (src/requests), and tabs: Encounters, Codex (src/lore), Rolls, Monsters (stat block from src/monsters), Maps (src/maps `MapsTab`), Quick rules, NPCs, Requests |
 | `rolls.ts` | Pure: `mergeDmRolls` (players' public and secret rolls in one newest-first log), `filterRolls` (player, kind), `playerSummary` (count, last roll, natural 20s and 1s), `unseenCount` for the tab badge |

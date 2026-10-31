@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { en } from '../i18n/locales/en'
 import { loadKind, type Monster } from '../content'
 import {
-  activePlan, groupsFromLevels, sameGroups, addMonster, addPlan, changeCount, crLabel, difficulty, findMonsters, monsterGroups, normalizeDm, NPC_TABLES,
+  activePlan, groupsFromLevels, sameGroups, addMonster, addPlan, changeCount, crLabel, difficulty, findMonsters, monsterGroups, monsterTypes, typeGroups, normalizeDm, NPC_TABLES,
   partyBudget, partySize, pickDm, planCombatants, planEntry, planXp, randomName, randomNpc, removePlan, XP_BUDGET,
 } from './logic'
 import { emptyDmState, type EncounterPlan } from './types'
@@ -160,5 +160,26 @@ describe('monster sources', () => {
     const he = (m: Monster) => (m.id === 'wolf' ? 'זאב' : m.name)
     expect(findMonsters(list, { text: 'זאב', minCr: null, maxCr: null, type: '' }, 60, he).map(m => m.id)).toEqual(['wolf'])
     expect(findMonsters(list, { text: 'זאב', minCr: null, maxCr: null, type: '' })).toHaveLength(0)
+  })
+})
+
+describe('monster types and summons', () => {
+  const mk = (id: string, type: string, tags?: string[]): Monster => ({ id, name: id, type, tags, challengeRating: 0, source: 'books-2014' } as unknown as Monster)
+  const list = [mk('aberrant-spirit', 'aberration', ['summon']), mk('steel-defender', 'construct', ['companion']), mk('rats', 'swarm of Tiny beasts'), mk('cambion', 'celestial or fiend'), mk('goblin', 'humanoid')]
+  const q = { text: '', minCr: null, maxCr: null, type: '' }
+  it('groups swarms under their base type, splits "X or Y" and files summons apart', () => {
+    expect(typeGroups(list[2])).toEqual(['beast'])
+    expect(typeGroups(list[3])).toEqual(['celestial', 'fiend'])
+    expect(typeGroups(list[0])).toEqual(['summon'])
+    expect(monsterTypes(list)).toEqual(['beast', 'celestial', 'fiend', 'humanoid', 'summon'])
+  })
+  it('keeps summons out of the list until searched for or picked as a type', () => {
+    expect(findMonsters(list, q).map(m => m.id)).toEqual(['cambion', 'goblin', 'rats'])
+    expect(findMonsters(list, { ...q, type: 'summon' }).map(m => m.id)).toEqual(['aberrant-spirit', 'steel-defender'])
+    expect(findMonsters(list, { ...q, text: 'steel' }).map(m => m.id)).toEqual(['steel-defender'])
+    expect(findMonsters(list, { ...q, type: 'fiend' }).map(m => m.id)).toEqual(['cambion'])
+  })
+  it('has a label for every SRD creature type', () => {
+    for (const x of ['aberration', 'beast', 'celestial', 'construct', 'dragon', 'elemental', 'fey', 'fiend', 'giant', 'humanoid', 'monstrosity', 'ooze', 'plant', 'undead', 'summon']) expect(en).toHaveProperty(`dm.ctype.${x}`)
   })
 })

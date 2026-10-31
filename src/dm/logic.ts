@@ -173,7 +173,7 @@ export function findMonsters(list: Monster[], q: MonsterQuery, limit = 60, local
       (!text || m.name.toLowerCase().includes(text) || (localName?.(m) ?? '').toLowerCase().includes(text)) &&
       (q.minCr == null || m.challengeRating >= q.minCr) &&
       (q.maxCr == null || m.challengeRating <= q.maxCr) &&
-      (!q.type || m.type.toLowerCase() === q.type) &&
+      (q.type ? typeGroups(m).includes(q.type) : text !== '' || !isSummon(m)) &&
       (!q.book || monsterGroup(m) === q.book))
     .sort((a, b) => a.challengeRating - b.challengeRating || a.name.localeCompare(b.name))
     .slice(0, limit)
@@ -188,8 +188,25 @@ export const monsterGroups = (list: Monster[]) => {
 /** Every CR in the list, smallest first, for the CR pickers. */
 export const crSteps = (list: Monster[]) => [...new Set(list.map(m => m.challengeRating))].sort((a, b) => a - b)
 
-/** Lower-case monster types, for the type picker. */
-export const monsterTypes = (list: Monster[]) => [...new Set(list.map(m => m.type.toLowerCase()))].sort()
+/** Spell summons and class companions (Tasha's spirits, Steel Defender): CR 0 stat blocks a DM never fields. */
+export const isSummon = (m: Pick<Monster, 'tags'>) => !!m.tags?.some(x => x === 'summon' || x === 'companion')
+
+const SWARM_BASE: Record<string, string> = { beasts: 'beast', aberrations: 'aberration', celestials: 'celestial', monstrosities: 'monstrosity', undead: 'undead', fiends: 'fiend', elementals: 'elemental', constructs: 'construct', plants: 'plant', oozes: 'ooze', dragons: 'dragon', humanoids: 'humanoid' }
+
+/** The type picker groups a monster sits in: summons under 'summon', a swarm under its base type, "X or Y" under both. */
+export function typeGroups(m: Pick<Monster, 'type' | 'tags'>): string[] {
+  if (isSummon(m)) return ['summon']
+  return m.type.toLowerCase().split(/\s+or\s+/).map(part => {
+    const swarm = /^swarm of \w+ (.+)$/.exec(part.trim())
+    return swarm ? SWARM_BASE[swarm[1]] ?? swarm[1] : part.trim()
+  })
+}
+
+/** Type picker values: base creature types A–Z, then 'summon' last when present. */
+export const monsterTypes = (list: Monster[]) => {
+  const set = new Set(list.flatMap(typeGroups))
+  return [...[...set].filter(x => x !== 'summon').sort(), ...(set.has('summon') ? ['summon'] : [])]
+}
 
 // ---------- NPC generator ----------
 
