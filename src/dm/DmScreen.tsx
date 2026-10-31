@@ -26,7 +26,7 @@ import {
 import { RollsTab } from './RollsTab'
 import { useDmRolls, useUnseenRolls } from './useDmRolls'
 import { loadDm, onDmChanged, saveDm, syncDm } from './store'
-import { emptyDmState, type DmState, type EncounterPlan, type Npc, type PartyGroup } from './types'
+import { emptyDmState, type DmState, type EncounterPlan, type Npc, type PartyGroup, type PlanMonster } from './types'
 import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
 import { NpcSheetList } from '../npc/ui/NpcSheetList'
@@ -326,9 +326,12 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
   onRun: (p: EncounterPlan) => void
   onOpenMonster: (id: string) => void
 }) {
-  const { t } = useI18n()
+  const { t, monsterName } = useI18n()
   const plan = activePlan(state)
   const budget = partyBudget(state.party)
+  // Plans store the English name; show the monster's name in the current language, NPC sheets keep their own.
+  const rowName = (m: PlanMonster) => m.npcId ? m.name
+    : monsterName(monsters.find(x => x.source === m.source && x.id === m.monsterId) ?? { id: m.monsterId, name: m.name, source: m.source })
   const create = () => update(s => addPlan(s, { id: newId(), name: t('dm.planName', { n: s.plans.length + 1 }), monsters: [] }))
 
   return (
@@ -355,19 +358,19 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
             <Meter xp={planXp(plan)} budget={budget} players={partySize(state.party)} />
             {plan.monsters.length === 0 ? <p className="hint">{t('dm.planEmpty')}</p> : (
               <ul className="plain dm-plan-list">
-                {plan.monsters.map(m => (
+                {plan.monsters.map(m => { const name = rowName(m); return (
                   <li key={`${m.source}:${m.monsterId}`}>
                     {m.npcId
-                      ? <a className="link-btn" href={`#/npc/${encodeURIComponent(m.npcId)}`}>{m.name}</a>
-                      : <button className="link-btn" onClick={() => onOpenMonster(monsterKey({ source: m.source, id: m.monsterId }))}>{m.name}</button>}
+                      ? <a className="link-btn" href={`#/npc/${encodeURIComponent(m.npcId)}`}>{name}</a>
+                      : <button className="link-btn" onClick={() => onOpenMonster(monsterKey({ source: m.source, id: m.monsterId }))}>{name}</button>}
                     <span className="muted small">{t('dm.crXp', { cr: crLabel(m.cr), xp: (m.xp * m.count).toLocaleString() })}</span>
                     <span className="dm-count">
-                      <button className="btn small" aria-label={t('dm.fewer', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, -1)))}>−</button>
+                      <button className="btn small" aria-label={t('dm.fewer', { name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, -1)))}>−</button>
                       <b aria-live="polite">{m.count}</b>
-                      {!m.npcId && <button className="btn small" aria-label={t('dm.more', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, 1)))}>+</button>}
+                      {!m.npcId && <button className="btn small" aria-label={t('dm.more', { name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, 1)))}>+</button>}
                     </span>
                   </li>
-                ))}
+                ) })}
               </ul>
             )}
             {npcs.length > 0 && (

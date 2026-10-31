@@ -9,6 +9,7 @@ The DM's combat maps: a 5-ft square grid, painted terrain or a picture under the
 | `types.ts` | `BattleMapDef` (grid, sparse `terrain`, `labels`, `picture`, `fog` cell keys, `partyEdge`, `diagonals`), `Terrain`, `MapToken` (structurally the live combat's token), size limits |
 | `logic.ts` | Pure: `createMap`/`normalizeMap`, painting (`paintRect`, `toggleDoor`, `setLabel`), fog (`coverCells`/`revealCells` on cell lists, `coverFog`/`revealFog` on a map), `resizeMap`, picture fit (`setPicture`, `fitPicture`, `gridFromPicture`), `footprintOf`, `fits`, `publicTokens`, `distanceFeet`/`tokenDistanceFeet`, `findPath` (Dijkstra), `checkMove`, `autoPlace`, `UNPLACED` |
 | `templates.ts` | The four starter maps (`buildTemplate`): tavern, forest clearing, dungeon corridor, open field |
+| `names.ts` | `mapName`: a saved map's name to show; template and "Untitled map" names in any language follow the current language |
 | `render.ts` | `drawMap(ctx, map, opts)` paints picture, terrain, grid, party edge, path, labels and fog on a canvas; `cellName` ("C4"), `describeCell`, `TERRAIN_GLYPH` |
 | `store.ts` | `listMaps`/`getMap`/`saveMap`/`deleteMap`/`syncMaps`/`onMapsChanged`: device cache `ff.maps.v1.<ownerId>` mirrored to Supabase `dm_maps` (one row per map, newest `updatedAt` wins, pending ids in `ff.maps.pending.v1.<ownerId>`) |
 | `MapEditor.tsx` | The editor (tools, settings, picture fit, canvas) and `MapThumb` for list rows |
