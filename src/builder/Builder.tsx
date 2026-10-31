@@ -14,6 +14,10 @@ import { STEPS } from './steps'
 import { stepIssues, stepWarnings, type StepId } from './validate'
 import { Summary } from './Summary'
 import { Why } from './Why'
+import { draftCard } from '../familiar/context'
+import type { FamiliarScreen } from '../familiar/screen'
+import { AskFamiliar } from '../familiar/ui/AskFamiliar'
+import { useFamiliarScreen } from '../familiar/ui/screen'
 import './builder.css'
 
 export function emptyDraft(ownerId: string, playerName = ''): CharacterDraft {
@@ -29,6 +33,28 @@ export function emptyDraft(ownerId: string, playerName = ''): CharacterDraft {
     baseAbilities: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 },
     freeAbilityBonuses: [],
     chosenSkills: [],
+  }
+}
+
+const STEP_CHIPS: Record<StepId, string[]> = {
+  race: ['familiar.chip.fits'],
+  class: ['familiar.chip.subclasses'],
+  abilities: ['familiar.chip.feat'],
+  skills: [],
+  spells: ['familiar.chip.spells'],
+  equipment: [],
+  details: [],
+}
+
+/** The draft for the Familiar: its card, the draft itself and the step on screen for builder_options. */
+function builderScreen(draft: CharacterDraft, step: StepId, characterId?: string): FamiliarScreen {
+  return {
+    context: { kind: 'builder', ...(characterId ? { characterId } : {}) },
+    card: draftCard(draft, step),
+    edition: rulesEdition(draft),
+    role: 'player',
+    data: { draft: () => draft, step: () => step },
+    chips: [...STEP_CHIPS[step], 'familiar.chip.missing'],
   }
 }
 
@@ -81,6 +107,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
   const firstBlocked = issues.findIndex(i => i.length > 0)
   const warnings = useMemo(() => stepWarnings(STEPS[step].id, draft, t, term), [step, draft, t, term])
   const Current = STEPS[step].Component
+  useFamiliarScreen(useMemo(() => builderScreen(draft, STEPS[step].id, editing?.id), [draft, step, editing?.id]))
   const isLast = step === STEPS.length - 1
   const gearChanged = !!editing && startingGearChanged(editing, draft)
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initial), [draft, initial])
@@ -167,7 +194,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
       <div className="builder-body">
         <section className="glass builder-step">
           <h2>{stepName(STEPS[step].id)}</h2>
-          <p className="muted">{t(draft.rulesEdition === '2024' && (STEPS[step].id === 'race' || STEPS[step].id === 'abilities') ? `builder.step.${STEPS[step].id as 'race' | 'abilities'}.blurb2024` : `builder.step.${STEPS[step].id}.blurb`)} <Why id={`step.${STEPS[step].id}`} /></p>
+          <p className="muted">{t(draft.rulesEdition === '2024' && (STEPS[step].id === 'race' || STEPS[step].id === 'abilities') ? `builder.step.${STEPS[step].id as 'race' | 'abilities'}.blurb2024` : `builder.step.${STEPS[step].id}.blurb`)} <Why id={`step.${STEPS[step].id}`} /> <AskFamiliar compact label={t('familiar.askStep')} prompt={t('familiar.prompt.step', { step: stepName(STEPS[step].id) })} /></p>
           <Current draft={draft} update={update} editing={!!editing} />
           {!editing && STEPS[step].id === 'details' && <BackstoryHook hookKey={hookKey} setHookKey={setHookKey} />}
           {issues[step].length > 0 && (

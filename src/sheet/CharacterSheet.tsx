@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useI18n } from '../i18n'
 import { ExportButton } from '../portability/ui'
 import type { Character } from '../model/character'
@@ -17,6 +17,12 @@ import { useLiveCharacter, type LogEntry } from './useLiveCharacter'
 import { sheetLayout, useNarrow, useSheetMode, type CombatTab, type SheetMode, type SheetSection } from './mode'
 import { CombatStartedNotice, LiveMapTab, useLiveCombat } from './combat/LiveMap'
 import { bringsCharacter } from './combat/liveMap'
+import { characterCard } from '../familiar/context'
+import type { FamiliarScreen } from '../familiar/screen'
+import { AskFamiliar } from '../familiar/ui/AskFamiliar'
+import { useFamiliarScreen } from '../familiar/ui/screen'
+import { getCharacter } from '../storage'
+import { rulesEdition } from '../rules'
 import type { Party } from '../party/types'
 import { Notes } from './components/Story'
 import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, HpChip, SkillsPanel } from './combat/CombatPage'
@@ -46,6 +52,24 @@ export function CharacterSheet({ characterId, party, userId, onBack, onEdit, onL
   }
 
   return <Sheet character={character} party={party} userId={userId} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} onLevelUp={onLevelUp} />
+}
+
+/** The open sheet for the Familiar: its card, the live character, and the player's other characters by id. */
+function sheetScreen(character: Character): FamiliarScreen {
+  return {
+    context: { kind: 'character', characterId: character.id },
+    card: characterCard(character),
+    edition: rulesEdition(character),
+    role: 'player',
+    data: {
+      character: () => character,
+      getCharacter: async (id: string) => {
+        const c = id === character.id ? character : await getCharacter(id)
+        return c && c.ownerId === character.ownerId ? c : undefined
+      },
+    },
+    chips: ['familiar.chip.explainFeatures', 'familiar.chip.combat', ...(character.spells?.length ? ['familiar.chip.spells'] : []), 'familiar.chip.nextLevel'],
+  }
 }
 
 /** Someone else's sheet (the DM looking at a player's): nothing can be changed, and a tap that would says so. */
@@ -91,6 +115,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
   const openMap = useCallback(() => { setMode('combat'); setWantTab('map'); setNotice(false) }, [setMode])
   const layout = sheetLayout(mode, { dying: character.state.currentHp === 0, powerUp: canPowerUp(character), narrow, liveMap: !!live })
   const p = { character, apply }
+  useFamiliarScreen(useMemo(() => (viewOnly ? null : sheetScreen(character)), [character, viewOnly]))
   const section = (s: SheetSection) => {
     switch (s) {
       case 'abilities': return <AbilitiesPanel key={s} character={character} />
@@ -118,7 +143,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
   }
   return (
     <div className={`ff-sheet mode-${mode}${viewOnly ? ' view-only' : ''}`}>
-      <Header character={character} onBack={onBack} onEdit={onEdit} />
+      <Header character={character} onBack={onBack} onEdit={onEdit} familiar={!viewOnly} />
       {viewOnly && (
         <p className={`view-only-bar${viewOnly.noticed ? ' noticed' : ''}`} role="status">
           <span aria-hidden="true">👁</span> {t(viewOnly.noticed ? 'sheet.viewOnlyNotice' : 'sheet.viewOnly', { name: viewOnly.playerName })}
@@ -151,12 +176,13 @@ function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMo
 }
 
 /** The character card below shows who the character is, so the header keeps only navigation, edit and export. */
-function Header({ character, onBack, onEdit }: { character: Character; onBack: () => void; onEdit?: () => void }) {
+function Header({ character, onBack, onEdit, familiar }: { character: Character; onBack: () => void; onEdit?: () => void; familiar?: boolean }) {
   const { t } = useI18n()
   return (
     <header className="sheet-header">
       <button type="button" className="btn ghost" onClick={onBack} aria-label={t('common.backToCharacters')}>{t('common.backArrow')}</button>
       <div className="who"><span className="sr-only">{character.name}</span></div>
+      {familiar && <AskFamiliar label={t('familiar.askAbout', { name: character.name })} />}
       {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
       <ExportButton character={character} />
     </header>

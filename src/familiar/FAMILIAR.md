@@ -11,7 +11,12 @@ An in-app assistant for players (plan characters, explain spells, features and r
 | `api.ts` | `edgeTransport`: POST to the Edge Function with the device's Supabase session, streaming (SSE) when `onText` is given; `parseSse`, `mergeChunks` |
 | `chat.ts` | `runTurn(history, text, prompt, env, transport, events)`: the tool loop (at most `MAX_TOOL_ROUNDS`, the last round has no tools); `trimHistory` |
 | `prompt.ts` | `systemInstruction`: persona, copyright rules, language (EN/HE), player or DM role, context card |
-| `context.ts` | `characterCard(c)`: compact text summary from `derive()` |
+| `context.ts` | `characterCard(c)`: compact text summary from `derive()`; `draftCard(draft, step?)`: the builder draft so far and what each step still misses |
+| `screen.ts` | What is on screen: `setFamiliarScreen` / `getFamiliarScreen` / `subscribeFamiliarScreen` (`FamiliarScreen`: context, card, edition, role, tool `data`, chip keys); `askFamiliar({ prompt })` opens the panel, which registers with `onFamiliarOpen` |
+| `ui/screen.ts` | Hooks: `useFamiliarScreen(screen)` (publish while mounted; pass a memoized object), `useFamiliarScreenValue()`, `useFamiliarAvailable()` |
+| `ui/AskFamiliar.tsx` | "✦ Ask the Familiar" button; renders only while a panel is registered |
+| `tools/character.ts` | `get_character` (sections summary, abilities, features, spells, inventory, state, plan), `explain_stat` (src/explain `explain()`), `builder_options` (per step: options, `stepIssues`, `stepWarnings`); `resolveCharacter`, `draftCharacter` |
+| `character.test.ts` | Player tools over a David Jones-like warlock and builder drafts, draft card, screen store |
 | `tools/registry.ts` | `registerTool`, `declarations(env)`, `runTool` (errors become a readable `error` result); `ToolEnv` carries who asks and what is on screen |
 | `tools/content.ts` | `search_content`, `get_entry`, `rules_lookup` over `src/content` and `src/rulesqa`; `sourceNote` says how a source may be used |
 | `tools/dm.ts` | DM only: `get_party`, `encounter_check`, `find_monsters`, `get_monster` (library monsters and `npc:<id>` NPC sheets); `dmAllowed(env)` gate; `DmToolData` |
@@ -36,6 +41,13 @@ An in-app assistant for players (plan characters, explain spells, features and r
 - **Gate.** The DM tools are offered and run only when `context.kind === 'dm'`, `data.dm` is present, and the asker is the campaign's DM or the admin (`canWatchSheets`; with no campaign, admin only, as `App.tsx` shows the DM screen). A `partyId` in the context must match the campaign. Every executor checks again, so a forced call from a player gets an error and no data.
 - **Wiring (UI).** On the DM screen: `data: { dm: await dmToolData(userId, campaign) }`, `role: 'dm'`, `card: dmCard({ campaign, dmState, npcSheets, characters })`, chips `DM_CHIPS` (`familiar.dm.chip.*`, EN+HE), header `familiar.dm.ask`.
 - **What it sees.** `get_party`: each brought character's class/level, AC, HP, conditions, concentration, passives, saves, spell DC; no notes, no rolls. Secret rolls never reach the Familiar. `encounter_check` uses the SRD 5.2 budget from `src/dm/logic` (the plan open on the DM screen, a "3 x goblin" list, or other levels) and adds table notes (CR above level, swarms, lone monsters). `find_monsters`/`get_monster` read `loadMonsters(edition)` (SRD, book summaries, packs) and the DM's NPC sheets; book monsters come back as our summaries with a usage note.
+
+## Screens and entry points
+
+- The sheet (`Sheet`, not view-only) publishes `{ context: character, card: characterCard, data: { character, getCharacter } }`; `getCharacter` returns only characters with the same owner. Its header has "Ask the Familiar about <name>".
+- The builder publishes `{ context: builder, card: draftCard, data: { draft, step } }`; each step's help line has a compact ✦ that asks about that step.
+- The panel (unit B) reads `useFamiliarScreenValue()`, builds `ToolEnv` from `context`, `edition`, `data` and `PromptInput` from `context`, `card`, `role`, `edition`, shows `chips` as `t(key)`, and calls `onFamiliarOpen` so the entry buttons appear.
+- Tools find the character by: `id` arg (through `data.getCharacter`), else `data.character()` on a sheet, else the builder draft (made a character with `createCharacter`). With none, the tool returns an error asking the user to open a sheet.
 
 ## Deploying the function
 
