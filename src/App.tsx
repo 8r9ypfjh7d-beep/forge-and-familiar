@@ -29,6 +29,7 @@ import { WatchSheet } from './sheet/WatchSheet'
 import { StarterPicker } from './starters'
 import './list/list.css'
 import { DuplicatePrompt, SyncBadge, useCloudSync } from './sync'
+import { RevealMoment } from './lore'
 import {
   deleteCharacter, getActiveProfileId, listCharacters, listProfiles, onCharactersChanged, saveCharacter, saveProfile,
   setActiveProfileId,
@@ -164,6 +165,7 @@ export default function App() {
     <DiceProvider key={active.id} userId={active.id}>
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <PartyRollRelay userId={active.id} />
+    {playing.party && <RevealMoment party={playing.party} userId={active.id} onOpen={() => setView({ kind: 'party', partyId: playing.party!.id })} />}
     {isDm && <DmRequestPopup onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
     <EditRequestDialog key={askEdit?.character.id} character={askEdit?.character ?? null} note={askEdit?.note} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
     <div className="app">

@@ -3,7 +3,7 @@
 // out through onChange; the Maps tab saves it.
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { PromptDialog } from '../builder/ConfirmDialog'
-import { shrinkImage } from '../handouts/image'
+import { shrinkImage } from '../lore/image'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import {

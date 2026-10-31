@@ -32,6 +32,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261030150000_end_party.sql
 \ir ../migrations/20261030210000_npc_sheets.sql
 \ir ../migrations/20261030210000_party_encounters.sql
+\ir ../migrations/20261030220000_lore.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -366,6 +367,18 @@ select pg_temp.check((select count(*) from handouts) = 0, 'a player not addresse
 set test.uid = '00000000-0000-0000-0000-00000000000a';
 select pg_temp.check((select count(*) from handout_seen) = 1, 'the DM sees read receipts');
 delete from handout_seen where handout_id = 'h-tamir';
+
+-- Codex chapters (src/lore): the DM writes, every member reads.
+insert into lore_chapters (id, party_id, data) values ('ch-1', 'p-2', '{"title":"The Barony","order":0,"teasers":1}');
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from lore_chapters where id = 'ch-1') = 1, 'a party member reads chapters');
+do $$ begin
+  insert into lore_chapters (id, party_id, data) values ('ch-x', 'p-2', '{}');
+  raise exception 'FAILED: player wrote a chapter';
+exception when insufficient_privilege then raise notice 'ok: only the DM writes chapters';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+delete from lore_chapters where id = 'ch-1';
 select pg_temp.check((select count(*) from handout_seen) = 0, 'the DM resets receipts on take back');
 
 -- Session polls.

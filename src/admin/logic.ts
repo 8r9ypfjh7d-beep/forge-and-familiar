@@ -45,6 +45,8 @@ const KINDS: [prefix: string, kind: string][] = [
   ['ff.rolls.secret.v1.', 'secretRolls'],
   ['ff.rolls.v1.', 'rolls'],
   ['ff.handouts.v1', 'handouts'],
+  ['ff.lore.chapters.v1', 'loreChapters'],
+  ['ff.lore.pins.v1', 'lorePins'],
   ['ff.sessions.v1', 'schedule'],
   ['ff.history.v1', 'history'],
 ]

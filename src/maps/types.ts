@@ -38,7 +38,7 @@ export interface MapLabel {
 
 /** A picture under the grid, with the grid fitted to it: `cell` is one square in picture pixels, offsets too. */
 export interface MapPicture {
-  /** Downscaled JPEG data URL (src/handouts/image.ts, 2048 px long side). */
+  /** Downscaled JPEG data URL (src/lore/image.ts, 2048 px long side). */
   src: string
   width: number
   height: number
