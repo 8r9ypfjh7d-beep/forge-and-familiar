@@ -5,10 +5,12 @@ import {
   allTools, registerClassOptions, registerHomebrewBackgrounds, registerHomebrewClasses, registerHomebrewFeats, registerHomebrewItems, registerHomebrewProficiencies,
   registerHomebrewRaces, registerHomebrewSubclasses, type ClassDef, type HomebrewBackgroundDef, type Race, type Subrace, type TraitChoice,
 } from '../rules'
+import { CONTENT_FORMAT, CONTENT_VERSION, listSources, registerContentPack, unregisterContentPack, type Monster } from '../content'
+import { toLibraryMonster } from '../monsters/model'
 import { markPackDirty } from '../sync/outbox'
 import { slug } from './pack'
 import { sanitizePack } from './pack'
-import type { HomebrewBackground, HomebrewClass, HomebrewPack, HomebrewRace } from './types'
+import type { HomebrewBackground, HomebrewClass, HomebrewMonster, HomebrewPack, HomebrewRace } from './types'
 
 const KEY = 'ff.homebrew.v1'
 /** Party members' packs from the cloud (src/sync), by `<ownerId>:<packId>`. Read-only, never edited here. */
@@ -104,6 +106,29 @@ export const toClass = ({ tools, ...c }: HomebrewClass): ClassDef => ({
   ...(c.spellcasting ? { spellcasting: { ...c.spellcasting, list: c.spellcasting.list || c.id } } : {}),
 })
 
+/** A pack monster as a library `Monster` with source `hb:<packId>`, so `{ source, id }` references find it. */
+export const toMonster = (m: HomebrewMonster, packId: string): Monster => toLibraryMonster(m, `hb:${packId}`)
+
+/**
+ * Monsters go to the content library as one content pack per homebrew pack (source `hb:<packId>`), so
+ * `loadKind('monsters')` lists them next to the SRD on the DM screen. Packs that lost their monsters, or
+ * were deleted, are unregistered.
+ */
+function registerMonsters(packs: HomebrewPack[]) {
+  const live = new Set<string>()
+  for (const p of packs) {
+    if (!p.monsters.length) continue
+    const id = `hb:${p.id}`
+    live.add(id)
+    registerContentPack({
+      format: CONTENT_FORMAT, version: CONTENT_VERSION,
+      source: { id, title: p.name, edition: '2014', license: 'homebrew', attribution: `Homebrew by ${p.authorName || 'a player'}` },
+      entries: { monsters: p.monsters.map(m => toMonster(m, p.id)) },
+    })
+  }
+  for (const s of listSources()) if (s.id.startsWith('hb:') && !live.has(s.id)) unregisterContentPack(s.id)
+}
+
 /** Hands every pack's content to the rules engine. */
 function register(packs: HomebrewPack[]) {
   // Languages and tools first: race tool picks list every tool, homebrew ones included.
@@ -116,6 +141,7 @@ function register(packs: HomebrewPack[]) {
   registerHomebrewBackgrounds(packs.flatMap(p => p.backgrounds).map(toBackground))
   registerClassOptions('homebrew', packs.flatMap(p => p.classOptions.map(o => ({ ...o, source: p.name }))))
   registerHomebrewClasses(packs.flatMap(p => p.classes).map(toClass))
+  registerMonsters(packs)
 }
 
 function write(key: string, value: unknown) {

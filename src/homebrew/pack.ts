@@ -3,6 +3,7 @@
 import { parseNotation } from '../dice/notation'
 import { HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
 import { sanitizeEffect } from '../rules/itemEffects'
+import { sanitizeMonsterBlock } from '../monsters/model'
 import {
   ABILITIES, ABILITY_NAMES, SIZES, type Abilities, type Ability, type ArmorCategory, type CasterType, type ClassFeature, type ItemEffect, type SkillId, type UsesCount,
   type WeaponCategory,
@@ -11,12 +12,12 @@ import { ALL_SKILLS, SKILLS } from '../rules/data/skills'
 import {
   BACKGROUND_EDITIONS, HIT_DICE, LANGUAGE_KINDS, PACK_FORMAT, PACK_VERSION, RARITIES, SPELL_SCHOOLS, TOOL_KINDS,
   type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClass, type HomebrewClassOption, type HomebrewEntry, type HomebrewFeat, type HomebrewItem,
-  type HomebrewLanguage, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type HomebrewTool,
+  type HomebrewLanguage, type HomebrewMonster, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type HomebrewTool,
 } from './types'
 
 /** Every entry in a pack, all kinds. */
 export const allEntries = (p: HomebrewPack): HomebrewEntry[] =>
-  [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds, ...p.classOptions, ...p.classes, ...p.languages, ...p.tools]
+  [...p.spells, ...p.items, ...p.feats, ...p.races, ...p.subclasses, ...p.backgrounds, ...p.classOptions, ...p.classes, ...p.languages, ...p.tools, ...p.monsters]
 
 export const SHARE_PREFIX = 'FFHB1.'
 export const LIMITS = { entries: 500, name: 80, text: 4000, short: 120 }
@@ -41,7 +42,7 @@ export function newPack(id: string, author: { id: string; displayName: string },
   return {
     format: PACK_FORMAT, version: PACK_VERSION, id, name, description: '',
     authorId: author.id, authorName: author.displayName, updatedAt: new Date().toISOString(),
-    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [], classes: [], languages: [], tools: [],
+    spells: [], items: [], feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [], classes: [], languages: [], tools: [], monsters: [],
   }
 }
 
@@ -560,6 +561,11 @@ function cleanClass(v: Obj, packId: string, seen: Set<string>): HomebrewClass {
   }
 }
 
+/** A monster from unknown JSON, with its id forced into the pack's namespace (src/monsters does the rest). */
+function cleanMonster(v: Obj, packId: string, seen: Set<string>): HomebrewMonster {
+  return sanitizeMonsterBlock(v, ownId(v.id, packId, str(v.name, LIMITS.name) || 'Unnamed monster', seen))
+}
+
 /** Rebuilds a pack from unknown JSON. Throws PackError if it isn't a homebrew pack at all. */
 export function sanitizePack(raw: unknown): HomebrewPack {
   if (!isObj(raw) || raw.format !== PACK_FORMAT) throw new PackError("This isn't a Forge & Familiar homebrew pack.")
@@ -585,6 +591,7 @@ export function sanitizePack(raw: unknown): HomebrewPack {
     classes: list(raw.classes).filter(isObj).map(v => cleanClass(v, id, seen)),
     languages: list(raw.languages).filter(isObj).map(v => cleanLanguage(v, id, seen)),
     tools: list(raw.tools).filter(isObj).map(v => cleanTool(v, id, seen)),
+    monsters: list(raw.monsters).filter(isObj).map(v => cleanMonster(v, id, seen)),
     history: Array.isArray(raw.history) ? raw.history.slice(0, LIMITS.entries * 20) : undefined,
   }
 }
@@ -602,6 +609,7 @@ export function sanitizeEntry(kind: ContentKind, raw: unknown, packId: string): 
   if (kind === 'classes') return cleanClass(raw, packId, seen)
   if (kind === 'languages') return cleanLanguage(raw, packId, seen)
   if (kind === 'tools') return cleanTool(raw, packId, seen)
+  if (kind === 'monsters') return cleanMonster(raw, packId, seen)
   return cleanFeat(raw, packId, seen)
 }
 

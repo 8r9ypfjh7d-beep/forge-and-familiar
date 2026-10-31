@@ -1,0 +1,41 @@
+/* Monster editor (src/monsters/MonsterForm.tsx) on the Liquid Glass standard (src/design/DESIGN.md).
+   Logical properties only, so Hebrew mirrors for free. */
+.mf { display: grid; gap: var(--sp-3); }
+.mf-section { margin: 0; padding: var(--sp-3); border: 0; border-radius: var(--r-md); background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); display: grid; gap: var(--sp-2); }
+.mf-section > legend { float: inline-start; inline-size: 100%; margin: 0 0 var(--sp-2); padding: 0; font-family: var(--font-display); font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
+.mf-section-actions { justify-content: flex-start; }
+.mf-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--sp-3); }
+.mf-field { display: grid; gap: var(--sp-1); align-content: start; font-size: 0.85rem; }
+.mf-field > span { font-weight: 600; color: var(--muted); }
+.mf-field.wide { grid-column: 1 / -1; }
+.mf-field input, .mf-field select, .mf-field textarea, .mf-section > textarea { inline-size: 100%; }
+.mf-field textarea, .mf-section > textarea { resize: vertical; }
+.mf-row { flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.mf-row > input, .mf-row > select { flex: 1 1 120px; inline-size: auto; }
+.mf-row > input.mf-num, .mf-row > .mf-num { flex: 0 0 72px; inline-size: 72px; }
+.mf-row > input.mf-dice { flex: 0 0 96px; inline-size: 96px; }
+.mf-static { flex: none; font-size: 0.85rem; }
+.mf-check { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 32px; font-size: 0.9rem; }
+.mf-check input { accent-color: var(--accent); inline-size: 18px; block-size: 18px; margin: 0; }
+.mf-chips { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.mf-chip { min-block-size: 32px; padding: 0 var(--sp-3); border: 1px solid var(--glass-hairline); border-radius: 999px; background: var(--glass-thin); color: inherit; font: inherit; font-size: 0.85rem; cursor: pointer; }
+.mf-chip.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.mf-abilities { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: var(--sp-2); }
+.mf-ability { display: grid; justify-items: center; gap: 2px; padding: var(--sp-2); border-radius: var(--r-md); background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); font-weight: 600; }
+.mf-ability input { inline-size: 64px; text-align: center; font-size: 1.1rem; }
+.mf-ability small { color: var(--muted); }
+.mf-grid-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--sp-1) var(--sp-3); }
+.mf-grid-rows .mf-row > .mf-check { flex: 1 1 120px; }
+.mf-skill { flex: 1 1 110px; font-size: 0.9rem; }
+.mf-lines { display: grid; gap: var(--sp-1); }
+.mf-action { display: grid; gap: var(--sp-2); padding: var(--sp-3); }
+.mf-empty { margin: 0; }
+.mf-spell-group { padding: var(--sp-2); border-radius: var(--r-md); box-shadow: inset 0 0 0 1px var(--glass-hairline); }
+.glass-btn.mf-add { justify-self: start; }
+.glass-btn.mf-danger { color: var(--bad); }
+:root[data-contrast="high"] .mf-section, :root[data-contrast="high"] .mf-ability, :root[data-contrast="high"] .mf-spell-group { box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-contrast="high"] .mf-chip { border-color: var(--line); }
+@media (max-width: 480px) {
+  .mf-fields { grid-template-columns: 1fr 1fr; }
+  .mf-grid-rows { grid-template-columns: 1fr; }
+}

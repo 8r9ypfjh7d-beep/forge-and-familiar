@@ -11,15 +11,17 @@ import { deletePack, importPack, listPacks, listPartyPacks, onPacksChanged, save
 import type { Ability } from '../../rules'
 import type {
   ContentKind, HomebrewBackground, HomebrewClass, HomebrewClassOption, HomebrewEntry, HomebrewFeat, HomebrewItem, HomebrewLanguage, HomebrewPack, HomebrewRace,
-  HomebrewSpell, HomebrewSubclass, HomebrewTool,
+  HomebrewMonster, HomebrewSpell, HomebrewSubclass, HomebrewTool,
 } from '../types'
-import { BackgroundForm, ClassOptionForm, FeatForm, ItemForm, LanguageForm, RaceForm, SpellForm, SubclassForm, ToolForm } from './forms'
+import { BackgroundForm, ClassOptionForm, FeatForm, ItemForm, LanguageForm, MonsterEntryForm, RaceForm, SpellForm, SubclassForm, ToolForm } from './forms'
+import { blankMonster } from '../../monsters/model'
+import { crLabel } from '../../monsters/format'
 import { ClassForm } from './ClassForm'
 import './homebrew.css'
 
 const shortId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 
-const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds', 'classOptions', 'classes', 'languages', 'tools']
+const KINDS: ContentKind[] = ['spells', 'items', 'feats', 'races', 'subclasses', 'backgrounds', 'classOptions', 'classes', 'languages', 'tools', 'monsters']
 
 /** "2 spells · 1 item", or "Empty". */
 const packCounts = (t: Translate, p: HomebrewPack) =>
@@ -179,6 +181,7 @@ type Editing =
   | { kind: 'classes'; entry: HomebrewClass }
   | { kind: 'languages'; entry: HomebrewLanguage }
   | { kind: 'tools'; entry: HomebrewTool }
+  | { kind: 'monsters'; entry: HomebrewMonster }
 
 function blank(kind: ContentKind): Editing {
   if (kind === 'spells') {
@@ -212,6 +215,7 @@ function blank(kind: ContentKind): Editing {
   if (kind === 'classes') return { kind, entry: blankClass() }
   if (kind === 'languages') return { kind, entry: { id: '', name: '', kind: 'standard' } }
   if (kind === 'tools') return { kind, entry: { id: '', name: '', kind: 'other' } }
+  if (kind === 'monsters') return { kind, entry: blankMonster() }
   return { kind, entry: { id: '', name: '', description: '', effects: [] } }
 }
 
@@ -240,6 +244,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
     else if (e.kind === 'classes') next.classes = upsert(pack.classes, (entry = withId(e.entry)))
     else if (e.kind === 'languages') next.languages = upsert(pack.languages, (entry = withId(e.entry)))
     else if (e.kind === 'tools') next.tools = upsert(pack.tools, (entry = withId(e.entry)))
+    else if (e.kind === 'monsters') next.monsters = upsert(pack.monsters, (entry = withId(e.entry)))
     else next.feats = upsert(pack.feats, (entry = withId(e.entry)))
     await savePack(next)
     await recordRevision({ kind: e.kind, entry, authorId: profile.id, authorName: profile.displayName, ...meta })
@@ -252,7 +257,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   }
 
   const removeEntry = async (kind: ContentKind, id: string, name: string) => {
-    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'races' || kind === 'subclasses' || kind === 'backgrounds' || kind === 'classOptions' || kind === 'classes' ? t('hb.deleteWarnBonus') : ''
+    const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'monsters' ? t('hb.deleteWarnMonster') : kind === 'races' || kind === 'subclasses' || kind === 'backgrounds' || kind === 'classOptions' || kind === 'classes' ? t('hb.deleteWarnBonus') : ''
     if (!confirm(t('hb.deleteConfirm', { name }) + warn)) return
     await savePack({ ...pack, [kind]: (pack[kind] as { id: string }[]).filter(x => x.id !== id) })
   }
@@ -276,6 +281,8 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
       subclasses: pack.subclasses.map(sc => ({ ...rename(sc), classId: sc.classId.replace(`hb:${pack.id}:`, `hb:${id}:`) })),
       classes: pack.classes.map(c => ({ ...rename(c), ...(c.spellcasting ? { spellcasting: { ...c.spellcasting, list: c.spellcasting.list.replace(`hb:${pack.id}:`, `hb:${id}:`) } } : {}) })),
       languages: pack.languages.map(rename), tools: pack.tools.map(rename),
+      // A monster's other forms point at monsters of the same pack, so they follow too.
+      monsters: pack.monsters.map(m => ({ ...rename(m), forms: m.forms.map(f => ({ ...f, id: f.id.replace(`hb:${pack.id}:`, `hb:${id}:`) })) })),
     })
     onOpen(copy.id)
   }
@@ -344,6 +351,7 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
           {editing?.kind === 'classes' && <ClassForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'classes', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'languages' && <LanguageForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'languages', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'tools' && <ToolForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'tools', entry })} onCancel={() => setEditing(null)} />}
+          {editing?.kind === 'monsters' && <MonsterEntryForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'monsters', entry })} onCancel={() => setEditing(null)} />}
 
           {!editing && (
             <EntryList
@@ -441,6 +449,10 @@ function subtitle(i18n: I18n, kind: ContentKind, e: HomebrewEntry): string {
   if (kind === 'tools') {
     const x = e as HomebrewTool
     return [t(`hb.toolKind.${x.kind}`), x.ability && i18n.ability(x.ability)].filter(Boolean).join(' · ')
+  }
+  if (kind === 'monsters') {
+    const m = e as HomebrewMonster
+    return [m.sizes.map(s => t(`mf.size.${s}`)).join('/'), m.type, t('hb.sub.monster', { cr: crLabel(m.challengeRating), xp: m.xp })].join(' · ')
   }
   if (kind === 'subclasses') {
     const sc = e as HomebrewSubclass
@@ -597,6 +609,24 @@ function EntryBody({ i18n, kind, entry }: { i18n: I18n; kind: ContentKind; entry
   if (kind === 'tools') {
     const x = entry as HomebrewTool
     return x.description ? <p className="hb-text">{x.description}</p> : null
+  }
+  if (kind === 'monsters') {
+    const m = entry as HomebrewMonster
+    const names = (xs: { name: string }[]) => xs.map(a => a.name).join(', ')
+    return (
+      <>
+        <dl className="hb-stats small">
+          <div><dt>{t('mf.f.acValue')}</dt><dd>{m.armorClass.map(a => `${a.value}${a.type ? ` (${a.type})` : ''}`).join(', ')}</dd></div>
+          <div><dt>{t('mf.f.hp')}</dt><dd>{m.hitPoints} ({m.hitPointsRoll})</dd></div>
+          <div><dt>{t('mf.speed.walk')}</dt><dd>{Object.entries(m.speed).filter(([, v]) => typeof v === 'string').map(([k, v]) => (k === 'walk' ? v : `${t(`mf.speed.${k as 'fly'}`)} ${v}`)).join(', ')}</dd></div>
+          {m.traits.length > 0 && <div><dt>{t('mf.group.traits')}</dt><dd>{names(m.traits)}</dd></div>}
+          {m.actions.length > 0 && <div><dt>{t('mf.group.actions')}</dt><dd>{names(m.actions)}</dd></div>}
+          {m.legendaryActions.length > 0 && <div><dt>{t('mf.group.legendaryActions')}</dt><dd>{names(m.legendaryActions)}</dd></div>}
+          {m.spellcasting && <div><dt>{t('mf.sec.spellcasting')}</dt><dd>{m.spellcasting.groups.flatMap(g => g.spells).join(', ')}</dd></div>}
+        </dl>
+        {m.description && <p className="hb-text">{m.description}</p>}
+      </>
+    )
   }
   const f = entry as HomebrewFeat
   return (

@@ -334,3 +334,44 @@ describe('homebrew species for 2024 and every trait type', () => {
     expect(toolIssues({ id: '', name: 'Dice', kind: 'gaming' })).toEqual([])
   })
 })
+
+describe('homebrew monsters', () => {
+  it('keeps a monster through a share code, namespaces its id and lists it in the content library', async () => {
+    const { blankMonster } = await import('../monsters/model')
+    const { toMonster } = await import('./store')
+    const { registerContentPack, loadKind, unregisterContentPack } = await import('../content')
+    const { findMonsters } = await import('../dm/logic')
+    const p: HomebrewPack = {
+      ...pack(),
+      monsters: [{
+        ...blankMonster(), id: 'hb:other:bog-hag', name: 'Bog Hag', challengeRating: 3, xp: 700, legendary: { actions: 2 },
+        actions: [{ name: 'Claw', description: 'Rakes.', attackBonus: 5, damage: [{ dice: '2d6+3', type: 'slashing' }] }],
+        legendaryActions: [{ name: 'Cackle', description: 'DC 13 WIS or frightened.', damage: [], save: { ability: 'wis', dc: 13, onSuccess: 'none' } }],
+        spellcasting: { ability: 'cha', saveDc: 13, groups: [{ label: 'At will', spells: ['Minor Illusion'] }] },
+      }],
+    }
+    const back = decodePack(encodeShareCode(p))
+    expect(back.monsters).toHaveLength(1)
+    const hag = back.monsters[0]
+    expect(hag.id).toBe('hb:abcd1234:bog-hag')
+    expect(hag.actions[0].attackBonus).toBe(5)
+    expect(hag.legendary).toEqual({ actions: 2 })
+    expect(hag.spellcasting?.groups[0].spells).toEqual(['Minor Illusion'])
+    expect(sanitizeEntry('monsters', { name: 'Restored', hitPointsRoll: '3d8' }, 'abcd1234')).toMatchObject({ id: 'hb:abcd1234:restored', hitPoints: 13 })
+
+    const m = toMonster(hag, back.id)
+    expect(m.source).toBe('hb:abcd1234')
+    registerContentPack({ format: 'ff-content', version: 1, source: { id: m.source, title: back.name, edition: '2014', license: 'homebrew', attribution: 'x' }, entries: { monsters: [m] } })
+    const all = await loadKind('monsters')
+    expect(all.find(x => x.id === 'hb:abcd1234:bog-hag')?.name).toBe('Bog Hag')
+    expect(findMonsters(all, { text: 'bog', minCr: 3, maxCr: 3, type: 'humanoid' })[0]?.source).toBe('hb:abcd1234')
+    const { loadMonsters } = await import('../content')
+    for (const ed of ['2014', '2024'] as const) expect((await loadMonsters(ed)).some(x => x.id === 'hb:abcd1234:bog-hag')).toBe(true)
+    unregisterContentPack(m.source)
+  })
+
+  it('loads packs saved before monsters existed with none', () => {
+    const { monsters: _drop, ...old } = pack()
+    expect(sanitizePack(old).monsters).toEqual([])
+  })
+})
