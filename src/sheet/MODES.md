@@ -6,7 +6,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 
 | File | Purpose |
 |------|---------|
-| `mode.ts` | `sheetLayout(mode, { dying })` (pure section order), `useSheetMode` (per-character choice) |
+| `mode.ts` | `sheetLayout(mode, { dying, narrow, liveMap })` (pure section order; `liveMap` adds combat's Map tab), `useSheetMode` (per-character choice) |
 | `mode.test.ts` | Layout tests |
 | `WatchSheet.tsx` | A player's sheet opened by the DM or admin (`#/watch/<id>`): `loadWatched` takes the newer of the device copy and the cloud party copy, re-reads on local and realtime changes, and renders `Sheet` with `viewOnly` (no Edit, Level up or history; a tap that would change something shows "View only: only <player> can change this sheet") |
 | `components/Story.tsx` | `Notes` |

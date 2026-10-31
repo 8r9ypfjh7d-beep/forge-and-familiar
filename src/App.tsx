@@ -269,6 +269,8 @@ export default function App() {
         {view.kind === 'sheet' && (
           <CharacterSheet
             characterId={view.id}
+            party={playing.party}
+            userId={active.id}
             onEdit={() => startEdit(view.id)}
             onLevelUp={() => startLevelUp(view.id)}
             onBack={() => {

@@ -49,6 +49,14 @@ describe('sheet modes', () => {
     expect(sheetLayout('story', { dying: false, narrow: true })).toEqual(sheetLayout('story', { dying: false }))
   })
 
+  it('a live combat adds a Map tab right after Combat, on desktop and phones, and only in combat mode', () => {
+    expect(Object.keys(sheetLayout('combat', { dying: false, liveMap: true }).tabs ?? {})).toEqual(['combat', 'map', 'spells', 'inventory', 'features', 'notes'])
+    expect(Object.keys(sheetLayout('combat', { dying: false, narrow: true, liveMap: true }).tabs ?? {})).toEqual(['combat', 'map', 'checks', 'spells', 'inventory', 'features', 'notes'])
+    expect(sheetLayout('combat', { dying: false, liveMap: true }).tabs?.map).toEqual(['map'])
+    expect(all('combat')).not.toContain('map')
+    expect(sheetLayout('story', { dying: false, liveMap: true })).toEqual(sheetLayout('story', { dying: false }))
+  })
+
   it('death saves show only at 0 HP, first in both modes', () => {
     expect(all('story')).not.toContain('death')
     expect(all('combat')).not.toContain('death')
