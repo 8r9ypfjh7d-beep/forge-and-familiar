@@ -400,26 +400,7 @@
 .cs-map-name { color: var(--s-muted); margin-inline-start: auto; }
 .cs-map-hint { margin: var(--sp-2) 0 0; color: var(--s-muted); font-size: .85rem; }
 .cs-map-hint.warn { color: var(--warn); }
-.cs-map-stage { block-size: min(60vh, 520px); border: 1px solid var(--glass-stroke); border-radius: var(--r-md); overflow: hidden; background: var(--glass-thin); }
-.cs-map-scroll { inline-size: 100%; block-size: 100%; overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y pinch-zoom; }
-.cs-map-scroll.picking { cursor: crosshair; }
-.cs-map-svg { display: block; }
-.cs-map-cell { fill: color-mix(in srgb, var(--s-ink) 4%, transparent); stroke: color-mix(in srgb, var(--s-ink) 18%, transparent); stroke-width: 1; }
-.cs-map-cell.fog { fill: color-mix(in srgb, var(--s-ink) 72%, transparent); }
-.cs-map-cell.target:hover { fill: color-mix(in srgb, var(--s-accent) 30%, transparent); }
-.cs-map-token circle { fill: var(--s-bad); stroke: var(--glass-thick); stroke-width: 2; }
-.cs-map-token.pc circle { fill: var(--s-accent); }
-.cs-map-token.ally circle { fill: var(--s-good); }
-.cs-map-token text { fill: var(--accent-ink); font-weight: 700; font-family: var(--font-display); pointer-events: none; }
-.cs-map-token.own { cursor: pointer; }
-.cs-map-token.own circle { stroke: var(--s-ink); stroke-width: 3; }
-.cs-map-token.picked circle { stroke: var(--warn); stroke-width: 4; stroke-dasharray: 6 4; }
-.cs-map-token.active circle { filter: drop-shadow(0 0 6px var(--s-accent)); }
-.cs-map-token.down circle { opacity: .45; }
-.cs-map-token:focus-visible { outline: none; }
-.cs-map-token:focus-visible circle { stroke: var(--warn); stroke-width: 4; }
-.cs-map-blood { fill: var(--s-bad); stroke: var(--glass-thick); stroke-width: 1.5; }
-.cs-map-down { fill: var(--s-ink); font-weight: 700; pointer-events: none; }
+.cs-map-stage { block-size: min(70vh, 600px); }
 /* Full screen: the map alone, with the round, the turn and the HP chip pinned on top. */
 .cs-map-full {
   position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column;
@@ -429,7 +410,6 @@
 .cs-map-full-bar { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-block-end: var(--sp-2); }
 .cs-map-full-bar .cs-map-status { flex: 1 1 auto; margin-block-end: 0; }
 .cs-map-full-bar .cs-hpchip { min-block-size: 36px; }
-.cs-map-full-stage { flex: 1 1 auto; min-block-size: 0; border: 1px solid var(--glass-stroke); border-radius: var(--r-md); overflow: hidden; background: var(--glass-thick); }
+.cs-map-full-stage { flex: 1 1 auto; min-block-size: 0; }
 .cs-map-full .cs-map-hint { margin-block-start: var(--sp-1); }
-:root[data-contrast="high"] .cs-map-cell { stroke: var(--s-ink); }
 :root[data-contrast="high"] .cs-map-turn { border-width: 2px; }

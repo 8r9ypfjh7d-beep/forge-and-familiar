@@ -46,8 +46,8 @@
 .bm-token:focus-visible { outline: none; }
 .bm-token:focus-visible .bm-ring { outline: 3px solid var(--accent); outline-offset: 3px; }
 .bm-token .bm-badge {
-  position: absolute; inset-block-start: -2px; inset-inline-end: -2px; min-width: 18px; height: 18px; padding-inline: 4px; border-radius: var(--r-pill);
-  display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--on-fill); background: var(--bad); box-shadow: var(--glass-shadow);
+  position: absolute; inset-block-start: -0.3em; inset-inline-end: -0.3em; min-width: 1.5em; height: 1.5em; padding-inline: 0.25em; border-radius: var(--r-pill);
+  display: grid; place-items: center; font-size: 0.6em; font-weight: 700; line-height: 1; color: var(--on-fill); background: var(--bad); box-shadow: var(--glass-shadow);
 }
 .bm-token .bm-badge.eye { inset-inline-end: auto; inset-inline-start: -2px; background: var(--ink); }
 .bm-token .bm-down { position: absolute; font-size: 1.6em; color: var(--ink); font-weight: 700; }
