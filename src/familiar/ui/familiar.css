@@ -182,3 +182,24 @@
 :root[data-contrast="high"] .fam-bubble { border: 2px solid var(--ink); }
 :root[data-contrast="high"] .fam-tool-chip, :root[data-contrast="high"] .fam-composer .fam-input { border: 2px solid var(--line); }
 :root[data-contrast="high"] .fam-shimmer { color: var(--ink); background: none; }
+
+/* Apply cards: a suggested change; nothing happens until the tap. */
+.fam-changes { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.fam-change {
+  display: grid; gap: var(--sp-1); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md);
+  border: 1px solid var(--glass-stroke); background: var(--glass-regular);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+.fam-change.applied { border-color: color-mix(in srgb, var(--good) 45%, var(--glass-stroke)); }
+.fam-change-kicker { margin: 0; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+.fam-change-title { margin: 0; font-weight: 600; line-height: 1.35; }
+.fam-change-note { margin: 0; padding-inline-start: var(--sp-2); border-inline-start: 3px solid var(--glass-hairline); color: var(--ink); white-space: pre-wrap; font-size: 0.9rem; }
+.fam-change-reason { margin: 0; font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+.fam-change-warns { margin: 0; padding-inline-start: var(--sp-4); font-size: 0.8rem; color: var(--ink); }
+.fam-change-warns li::marker { color: var(--warn); }
+.fam-change-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-block-start: 2px; }
+.fam-change-done { font-size: 0.85rem; font-weight: 600; color: var(--good); }
+.fam-change-undone, .fam-change-where, .fam-change-hint { font-size: 0.8rem; color: var(--muted); }
+.fam-change-hint { margin: 0; }
+:root[data-contrast="high"] .fam-change { border: 2px solid var(--line); }

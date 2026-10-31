@@ -13,6 +13,7 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 | `edit.ts` | `draftFrom()`, `applyEdit()`, `startingGearChanged()`: editing a saved character |
 | `CustomSubclassForm.tsx` | The player's own subclass editor (Custom chip in the subclass picker); its `SubclassMechanicsEditor` (features, uses, effects, spells, proficiencies, HP, AC) is shared with Homebrew → Subclasses |
 | `ConfirmDialog.tsx` | In-app glass yes/no dialog (Start over, Discard) |
+| `picks.ts` | Pure: what a pick changes in the draft, shared by the steps and the Familiar's Apply cards: `racePatch`, `subracePatch`, `classPatch`, `backgroundPatch` (2024 `bonusesAfterBackground`, `suggestedBonuses`), `improvementPatch` |
 | `steps.tsx` | Step components: Race (+ Dragonborn ancestry), Class (+ subclass), Abilities (+ ASI or feat), Background & skills (+ custom background, languages, tools), Equipment (SRD kit choices), Details |
 | `ClassPicks.tsx` | Class multi-picks: Expertise / Primal Knowledge skill chips (Background & skills step) and Weapon Mastery weapon chips (Equipment step). Off-list chips are dimmed and only warn |
 | `SpellsStep.tsx` | Spells step: per spellcasting class the cantrips and known/prepared/spellbook spells with counters, subclass always-prepared spells, race spells, and picks from spell feats (Magic Initiate) and the High Elf cantrip |

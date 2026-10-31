@@ -112,7 +112,7 @@ async function section(c: Character, which: Section): Promise<Record<string, unk
         ...(d.spellSlots.pact ? { pactSlotsLeft: d.spellSlots.pact.count - c.state.pactSlotsUsed } : {}),
       }
     case 'plan': {
-      if (!c.levelPlan?.length) return { plan: [], note: 'No build plan yet. The sheet\'s build planner (Plan to 20) lets the player plan every level; you can suggest one in words.' }
+      if (!c.levelPlan?.length) return { plan: [], note: 'No build plan yet. The sheet\'s build planner (Plan to 20) lets the player plan every level; you can suggest levels with propose_change kind plan_level.' }
       return {
         plan: planSteps(c).map(s => ({
           level: s.level, class: classById(s.entry.classId, edition)?.name ?? s.entry.classId, classLevel: s.classLevel,

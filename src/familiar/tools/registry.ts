@@ -1,6 +1,7 @@
 // Tools the model may call. They run in the browser over the app's own data, so the server never needs it.
 import type { FamiliarContext, FunctionDeclaration } from '../types'
 import type { DmToolData } from './dm'
+import type { ApplyOutcome, Proposal } from '../changes'
 
 /** What a tool may read: who is asking and what is on screen. Executors enforce access, not the model. */
 export interface ToolEnv {
@@ -24,6 +25,8 @@ export interface ToolData {
   /** Builder: the draft so far (a `CharacterDraft`) and the step on screen (a `StepId`). */
   draft?: () => unknown
   step?: () => string
+  /** Makes a tapped Apply card's change through the screen's own update path (sheet apply(), builder update()). */
+  applyChange?: (p: Proposal) => ApplyOutcome
   [key: string]: unknown
 }
 

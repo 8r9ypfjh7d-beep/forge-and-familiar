@@ -32,6 +32,7 @@ import { choiceOptionKey, choiceTopic, explainKey, featExplainKey, featureKey, o
 import { groupKitItems } from './kit'
 import { effectText } from '../inventory/Inventory'
 import { PickOrWrite, useLanguageGroups, useToolGroups } from './ProficiencyPick'
+import { backgroundPatch, classPatch, improvementPatch, racePatch, subracePatch, suggestedBonuses } from './picks'
 
 export interface StepProps {
   draft: CharacterDraft
@@ -121,7 +122,7 @@ function RaceStep({ draft, update }: StepProps) {
         label={t(edition === '2024' ? 'builder.step.race2024' : 'builder.step.race')}
         firstGroup={t('builder.compact.srd')}
         value={draft.raceId}
-        onPick={id => update({ raceId: id, subraceId: undefined, freeAbilityBonuses: edition === '2024' ? draft.freeAbilityBonuses : [], racialBonusTargets: undefined, originSwaps: undefined, chosenSkills: [], chosenLanguages: [], chosenTools: [], traitChoices: {}, originFeatId: undefined, sizeChoice: undefined })}
+        onPick={id => update(racePatch(draft, id))}
         items={allRaces(edition).map(r => ({
           id: r.id,
           name: term('race', r.id, r.name),
@@ -143,12 +144,12 @@ function RaceStep({ draft, update }: StepProps) {
           <label>{t(edition === '2024' ? 'builder.lineage' : 'builder.subrace')} <Why id="subrace" /></label>
           <div className="row">
             {race.subraceOptional && (
-              <button className={`glass-chip ${!draft.subraceId ? 'on' : ''}`} onClick={() => update({ subraceId: undefined, chosenLanguages: [], chosenSkills: [], freeAbilityBonuses: [], originFeatId: undefined, racialBonusTargets: undefined, originSwaps: undefined })}>
+              <button className={`glass-chip ${!draft.subraceId ? 'on' : ''}`} onClick={() => update(subracePatch(undefined))}>
                 {t('builder.race.noSubrace')}
               </button>
             )}
             {race.subraces.map(s => (
-              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update({ subraceId: s.id, chosenLanguages: [], chosenSkills: [], freeAbilityBonuses: [], originFeatId: undefined, racialBonusTargets: undefined, originSwaps: undefined })}>
+              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update(subracePatch(s.id))}>
                 {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}{s.freeAbilityBonuses ? t('builder.race.freeBonus', { count: s.freeAbilityBonuses.count }) : ''}
               </button>
             ))}
@@ -310,7 +311,7 @@ function ClassStep({ draft, update, editing }: StepProps) {
       <ChoicePicker
         label={t('builder.step.class')}
         value={current?.classId}
-        onPick={id => update({ classes: [{ classId: id, level }, ...extras.filter(x => x.classId !== id)], chosenSkills: [], chosenTools: [], equipmentPicks: [], startingWealth: undefined, improvements: [], featureChoices: {}, classPicks: {}, weaponMasteries: [], classOptions: (draft.classOptions ?? []).filter(p => p.classId !== current?.classId || p.classId === id) })}
+        onPick={id => update(classPatch(draft, id))}
         items={classesFor(edition).map(c => ({
           id: c.id,
           name: className(c.id),
@@ -700,18 +701,6 @@ function FlexibleRaceBonuses({ draft }: Pick<StepProps, 'draft'>) {
   return <p className="small">{t('builder.flexBonus.intro', { total: draft.freeAbilityBonuses.length })} <Why id="racial" /></p>
 }
 
-/** 2024: a new background keeps bonuses the player placed off the old list; otherwise it takes the new one's suggested +2/+1. */
-function bonusesAfterBackground(draft: CharacterDraft, backgroundId: string): Ability[] {
-  const listed = getBackground(draft)?.abilityScores ?? []
-  return draft.freeAbilityBonuses.some(a => !listed.includes(a)) ? draft.freeAbilityBonuses : suggestedBonuses({ ...draft, backgroundId })
-}
-
-/** 2024 suggestion: +2 and +1 to the background's two listed abilities with the best base scores. */
-function suggestedBonuses(draft: CharacterDraft): Ability[] {
-  const listed = [...(getBackground(draft)?.abilityScores ?? [])]
-  const [first, second] = listed.sort((a, b) => draft.baseAbilities[b] - draft.baseAbilities[a])
-  return first && second ? [first, first, second] : []
-}
 
 /**
  * 2024: pick the background here (it suggests the bonuses), then +2/+1 or +1/+1/+1 to any abilities
@@ -727,7 +716,7 @@ function BackgroundBonuses({ draft, update }: StepProps) {
   return (
     <div className="field bg-bonus">
       <label>{t('builder.background')} <Why id="background" /></label>
-      <BackgroundPicker edition="2024" value={draft.backgroundId} onPick={id => update({ backgroundId: id, freeAbilityBonuses: bonusesAfterBackground(draft, id), chosenSkills: [], chosenLanguages: [], chosenTools: [] })} />
+      <BackgroundPicker edition="2024" value={draft.backgroundId} onPick={id => update(backgroundPatch(draft, id))} />
       <BackgroundExplain kind="bg2024" bg={bg} id={draft.backgroundId} />
       <BackgroundSource id={draft.backgroundId} edition="2024" />
       <p className="small">
@@ -803,8 +792,7 @@ export function Improvements({ draft, update, only }: StepProps & { only?: { cla
   if (slots.length === 0) return null
   const feats = allFeats(edition)
   const find = (classId: string, level: number) => draft.improvements?.find(i => i.classId === classId && i.level === level)
-  const save = (next: Improvement) =>
-    update({ improvements: [...(draft.improvements ?? []).filter(i => i.classId !== next.classId || i.level !== next.level), next] })
+  const save = (next: Improvement) => update(improvementPatch(draft, next))
   return (
     <div className="field asi">
       <label>{t('builder.asi.title')} <Why id="asi" /></label>
@@ -878,14 +866,7 @@ function SkillsStep({ draft, update }: StepProps) {
   const edition = rulesEdition(draft)
   const custom = draft.backgroundId === CUSTOM_BACKGROUND && edition === '2014'
   const { t, term, skill, abilityShort } = useI18n()
-  const pickBackground = (id: string) => update({
-    backgroundId: id,
-    chosenSkills: [],
-    chosenLanguages: [],
-    chosenTools: [],
-    ...(edition === '2024' ? { freeAbilityBonuses: bonusesAfterBackground(draft, id) } : {}),
-    customBackground: id === CUSTOM_BACKGROUND ? draft.customBackground ?? { name: '', feature: '', skills: [], tools: [], languages: [] } : draft.customBackground,
-  })
+  const pickBackground = (id: string) => update(backgroundPatch(draft, id))
   return (
     <>
       <div className="field">

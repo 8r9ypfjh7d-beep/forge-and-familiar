@@ -65,10 +65,12 @@ export async function runTurn(
     for (const p of calls) {
       const { name, args = {}, id } = p.functionCall!
       const { result, ok, label } = await runTool(name, args, env)
-      const use = { name, args, label, ok }
+      // An Apply card is for the panel; the model gets the rest of the result.
+      const { proposal, ...response } = result
+      const use: ToolUse = { name, args, label, ok, ...(proposal ? { proposal: proposal as ToolUse['proposal'] } : {}) }
       tools.push(use)
       events.onTool?.(use)
-      responses.push({ functionResponse: { name, response: result, ...(id ? { id } : {}) } })
+      responses.push({ functionResponse: { name, response, ...(id ? { id } : {}) } })
     }
     contents.push({ role: 'user', parts: responses })
   }
