@@ -33,6 +33,13 @@ describe('casting plans', () => {
     expect(planCast(s, 2, { ...ctx, edition: '2024' }).hit).toEqual({ dice: '2d6', type: 'fire' })
   })
 
+  it('gives Friends and 2014 True Strike their advantage', () => {
+    expect(planCast(spell({ id: 'friends', level: 0, duration: '1 minute', concentration: true }), 0, ctx).effect?.stats).toEqual([{ kind: 'advantage', on: 'checks', when: 'with Charisma against the target' }])
+    const ts = spell({ id: 'true-strike', level: 0, duration: '1 round', concentration: true })
+    expect(planCast(ts, 0, ctx).effect?.stats?.[0]).toMatchObject({ kind: 'advantage', on: 'attacks' })
+    expect(planCast(ts, 0, { ...ctx, edition: '2024' }).effect?.stats).toBeUndefined()
+  })
+
   it('reads temporary hit points from book text it has no numbers for', () => {
     expect(tempHpFromText('You gain 1d4 + 4 temporary hit points.')).toBe('1d4+4')
     expect(planCast(spell({ id: 'new', description: 'You gain 10 temporary hit points.' }), 1, ctx).tempHp).toBe('10')
