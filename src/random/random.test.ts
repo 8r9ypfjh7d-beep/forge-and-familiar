@@ -4,7 +4,7 @@ import { STEPS } from '../builder/steps'
 import { stepIssues } from '../builder/validate'
 import { en } from '../i18n/locales/en'
 import { he } from '../i18n/locales/he'
-import { WEAPON_MASTERY, classById, createCharacter, getAbilityScores, getMaxHp, itemById } from '../rules'
+import { WEAPON_MASTERY, classById, createCharacter, derive, getAbilityScores, getMaxHp, itemById } from '../rules'
 import { spellAccess } from '../spellbook/access'
 import { HOOK_COUNT, hasPicks, kitItems, randomCharacterDraft, randomDraft, randomHookKey } from './generate'
 import { isAttackSpell, loadSpellLibrary, randomSpells } from './spells'
@@ -74,6 +74,20 @@ describe('random gear, styles and spells', () => {
         if (masteries.some(id => !kit.includes(id))) expect({ seed, kit, masteries, owned: ownedOptions.size }).toMatchObject({ owned: new Set(kit.filter(id => itemById(id)?.kind === 'weapon' && id in WEAPON_MASTERY)).size })
       }
     }
+  })
+
+  it('gives a 2024 Warlock one invocation it qualifies for', () => {
+    let warlocks = 0
+    for (let seed = 1; seed <= 400; seed++) {
+      const d = randomDraft('p1', '2024', seeded(seed))
+      const c = createCharacter(d)
+      if (d.classes[0].classId !== 'warlock') { expect(d.classOptions).toEqual([]); continue }
+      warlocks++
+      expect(d.classOptions).toHaveLength(1)
+      expect(derive(c).warnings.filter(w => w.includes('needs'))).toEqual([])
+    }
+    expect(warlocks).toBeGreaterThan(0)
+    for (let seed = 1; seed <= 100; seed++) expect(randomDraft('p1', '2014', seeded(seed)).classOptions).toEqual([])
   })
 
   it('never takes the coins-only kit', () => {
