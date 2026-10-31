@@ -46,7 +46,7 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
   const map = useMemo(() => resolveMap(mapId, enc.ownerId, saved, tplName, t('combat.map.blank')),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mapId, enc.ownerId, saved])
-  const { live, push, changeBoard, move, changeMap } = useLiveBoard(enc, act, partyId, map)
+  const { live, push, changeBoard, move, changeMap, deviceOnly } = useLiveBoard(enc, act, partyId, map)
 
   const sizeOf = (c: Combatant): 1 | 2 | 3 | 4 => footprintOf(monsterOf(c)?.sizes?.[0])
   const combatantKey = enc.combatants.map(c => c.id).join(',')
@@ -111,16 +111,18 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
       <div className="row spread encounter-map-head">
         <h3 className="glass-eyebrow">{map ? mapName(map.name, t) : t('combat.map.title')}</h3>
         <div className="row">
-          {partyId && (
+          {partyId && !deviceOnly && (
             live === 'on'
               ? <span className="tag live">{t('combat.map.live')}</span>
               : <button type="button" className="glass-btn small" onClick={push} disabled={!enc.round}>{t('combat.map.share')}</button>
           )}
-          {!partyId && <span className="tag">{t('combat.map.local')}</span>}
+          {(!partyId || deviceOnly) && <span className="tag">{t('combat.map.local')}</span>}
           {picker}
           {map && <button type="button" className="glass-btn small plain" onClick={() => changeMap(null, { ...(enc.board ?? EMPTY_BOARD), mapId: undefined })}>{t('combat.map.remove')}</button>}
         </div>
       </div>
+      {deviceOnly && <p className="muted small encounter-map-hint">{t('combat.map.deviceOnly')}</p>}
+      {partyId && !deviceOnly && live !== 'on' && !enc.round && <p className="muted small encounter-map-hint">{t('combat.map.shareAfterStart')}</p>}
       {map && board
         ? (
           <div className="encounter-map-stage">

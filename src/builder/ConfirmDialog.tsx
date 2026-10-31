@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useI18n } from '../i18n'
+import { typedMatches } from './typedMatches'
 
 /** In-app glass yes/no dialog, used instead of the browser's confirm box. Shown while `open`. */
 export function ConfirmDialog({ open, title, yes, onYes, onClose }: { open: boolean; title: string; yes: string; onYes: () => void; onClose: () => void }) {
@@ -79,3 +80,52 @@ export function PromptDialog({ open, title, yes, placeholder, onSubmit, onClose 
     </dialog>
   )
 }
+
+/**
+ * In-app dialog for a step that can't be undone: lists what is lost and only enables the danger button once
+ * the user types `phrase` (case and outer spaces ignored).
+ */
+export function TypedConfirmDialog({ open, title, body, phrase, yes, onYes, onClose }: {
+  open: boolean; title: string; body: string; phrase: string; yes: string
+  onYes: () => void; onClose: () => void
+}) {
+  const { t } = useI18n()
+  const ref = useRef<HTMLDialogElement>(null)
+  const [value, setValue] = useState('')
+  const [wasOpen, setWasOpen] = useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    if (open) setValue('')
+  }
+  useEffect(() => {
+    const d = ref.current
+    if (!d) return
+    if (open && !d.open) d.showModal?.()
+    if (!open && d.open) d.close()
+  }, [open])
+  const ok = typedMatches(value, phrase)
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    if (!ok) return
+    onClose()
+    onYes()
+  }
+  return (
+    <dialog ref={ref} className="confirm-dialog glass-sheet glass-dialog" aria-label={title} onCancel={e => { e.preventDefault(); onClose() }}>
+      {open && (
+        <form onSubmit={submit}>
+          <p className="confirm-dialog-title">{title}</p>
+          <p className="confirm-dialog-body small">{body}</p>
+          <label className="small" htmlFor="typed-confirm-field">{t('common.typeToConfirm', { phrase })}</label>
+          <input id="typed-confirm-field" className="glass-field prompt-dialog-field" autoFocus autoComplete="off" value={value}
+            onChange={e => setValue(e.target.value)} />
+          <div className="confirm-dialog-actions">
+            <button type="submit" className="glass-btn prominent" disabled={!ok}>{yes}</button>
+            <button type="button" className="glass-btn" onClick={onClose}>{t('common.cancel')}</button>
+          </div>
+        </form>
+      )}
+    </dialog>
+  )
+}
+

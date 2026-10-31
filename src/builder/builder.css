@@ -286,6 +286,7 @@
 /* In-app confirm (Start over, Discard). */
 .confirm-dialog { padding-block: var(--sp-4); padding-inline: var(--sp-4); }
 .confirm-dialog-title { display: block; margin-block: 0 var(--sp-4); font-weight: 600; line-height: 1.45; }
+.confirm-dialog-body { margin-block: calc(-1 * var(--sp-2)) var(--sp-3); line-height: 1.5; max-inline-size: 36em; }
 .prompt-dialog-field { inline-size: 100%; margin-block-end: var(--sp-3); }
 .prompt-dialog-error { color: var(--bad); margin-block: 0 var(--sp-3); }
 .confirm-dialog-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }

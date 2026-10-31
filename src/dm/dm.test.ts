@@ -183,3 +183,19 @@ describe('monster types and summons', () => {
     for (const x of ['aberration', 'beast', 'celestial', 'construct', 'dragon', 'elemental', 'fey', 'fiend', 'giant', 'humanoid', 'monstrosity', 'ooze', 'plant', 'undead', 'summon']) expect(en).toHaveProperty(`dm.ctype.${x}`)
   })
 })
+
+describe('DM tools without a campaign', () => {
+  it('counts planned fights or NPC ideas as DM data', async () => {
+    const { hasDmData } = await import('./dmTools')
+    const { emptyDmState } = await import('./types')
+    expect(hasDmData(emptyDmState())).toBe(false)
+    expect(hasDmData(addPlan(emptyDmState(), plan()))).toBe(true)
+  })
+
+  it('asks for the exact campaign name before ending it', async () => {
+    const { typedMatches } = await import('../builder/typedMatches')
+    expect(typedMatches('  garden gang ', 'Garden Gang')).toBe(true)
+    expect(typedMatches('Garden', 'Garden Gang')).toBe(false)
+    expect(typedMatches('', '  ')).toBe(false)
+  })
+})

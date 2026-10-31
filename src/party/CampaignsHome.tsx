@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CloudLinkNotice } from '../accounts'
+import { ConfirmDialog, TypedConfirmDialog } from '../builder/ConfirmDialog'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import { campaignTarget, canEndParty, isPartyDm } from './active'
@@ -11,7 +12,7 @@ import './party.css'
 
 /** The first screen on opening the app: the campaigns this player is in. Tapping one plays it: the DM gets
  *  the DM screen, a player their sheet. With no campaign yet: sign in, join with a code, start one, or build. */
-export function CampaignsHome({ userId, playerName, parties, current, characters, onPlay, onJoin, onStart, onBuild, onCharacters }: {
+export function CampaignsHome({ userId, playerName, parties, current, characters, onPlay, onJoin, onStart, onBuild, onCharacters, dmTools, onDmScreen }: {
   userId: string
   playerName: string
   /** Null while loading. */
@@ -24,6 +25,10 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
   onStart: () => void
   onBuild: () => void
   onCharacters: () => void
+  /** Whether this profile keeps the DM pages without running a campaign; undefined hides the button (already the DM). */
+  dmTools?: boolean
+  /** Opens the DM screen, turning DM tools on first. */
+  onDmScreen?: () => void
 }) {
   const { t, classLine } = useI18n()
   const names = useNames()
@@ -83,28 +88,34 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
       <div className="campaigns-foot">
         {parties.length > 0 && <button className="glass-btn" onClick={onJoin}>{t('home.joinAnother')}</button>}
         <button className="glass-btn" onClick={onCharacters}>{t('home.myCharacters')}</button>
+        {dmTools !== undefined && onDmScreen && <button className="glass-btn" onClick={onDmScreen}>{t(dmTools ? 'home.dmScreen' : 'home.iAmDm')}</button>}
       </div>
     </section>
   )
 }
 
-/** End (DM or admin: gone for everyone) and Leave (anyone but the DM: gone from your list only). Both ask
- *  first; characters are never touched, so they stay in My characters. */
+/** End (DM or admin: gone for everyone) and Leave (anyone but the DM: gone from your list only). End can't be
+ *  undone, so it says what is lost and asks for the campaign's name; Leave asks yes/no. Characters are never
+ *  touched, so they stay in My characters. */
 export function CampaignManage({ party, userId }: { party: Party; userId: string }) {
   const { t } = useI18n()
   const [busy, setBusy] = useState(false)
+  const [asking, setAsking] = useState<'end' | 'leave' | null>(null)
   const end = async () => {
-    if (!confirm(t('party.confirmEnd', { name: party.name }))) return
     setBusy(true)
     const ok = await endParty(party.id, userId)
     setBusy(false)
     if (!ok) alert(t('party.endFailed'))
   }
-  const leave = () => { if (confirm(t('party.confirmLeave', { name: party.name }))) void leaveParty(party.id, userId) }
+  const close = () => setAsking(null)
   return (
     <div className="campaign-manage">
-      {canEndParty(party, userId) && <button className="glass-btn small ghost campaign-end" disabled={busy} onClick={end}>{t('party.end')}</button>}
-      {!isPartyDm(party, userId) && <button className="glass-btn small ghost" disabled={busy} onClick={leave}>{t('party.leave')}</button>}
+      {canEndParty(party, userId) && <button className="glass-btn small ghost campaign-end" disabled={busy} onClick={() => setAsking('end')}>{t('party.end')}</button>}
+      {!isPartyDm(party, userId) && <button className="glass-btn small ghost" disabled={busy} onClick={() => setAsking('leave')}>{t('party.leave')}</button>}
+      <TypedConfirmDialog open={asking === 'end'} title={t('party.confirmEnd', { name: party.name })} body={t('party.confirmEndBody')}
+        phrase={party.name} yes={t('party.end')} onYes={() => void end()} onClose={close} />
+      <ConfirmDialog open={asking === 'leave'} title={t('party.confirmLeave', { name: party.name })} yes={t('party.leave')}
+        onYes={() => void leaveParty(party.id, userId)} onClose={close} />
     </div>
   )
 }

@@ -350,6 +350,7 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
 }) {
   const { t, monsterName } = useI18n()
   const plan = activePlan(state)
+  const [deleting, setDeleting] = useState(false)
   const budget = partyBudget(state.party)
   // Plans store the English name; show the monster's name in the current language, NPC sheets keep their own.
   const rowName = (m: PlanMonster) => m.npcId ? m.name
@@ -373,9 +374,11 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
               )}
               <input aria-label={t('dm.planNameLabel')} value={plan.name}
                 onChange={e => update(s => updatePlan(s, plan.id, p => ({ ...p, name: e.target.value })))} />
-              <button className="btn ghost small" onClick={() => confirm(t('dm.deletePlan', { name: plan.name })) && update(s => removePlan(s, plan.id))}>
+              <button className="btn ghost small" onClick={() => setDeleting(true)}>
                 {t('common.delete')}
               </button>
+              <ConfirmDialog open={deleting} title={t('dm.deletePlan', { name: plan.name })} yes={t('common.delete')}
+                onYes={() => update(s => removePlan(s, plan.id))} onClose={() => setDeleting(false)} />
             </div>
             <Meter xp={planXp(plan)} budget={budget} players={partySize(state.party)} />
             {plan.monsters.length === 0 ? <p className="hint">{t('dm.planEmpty')}</p> : (
