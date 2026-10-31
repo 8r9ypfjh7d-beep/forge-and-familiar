@@ -27,6 +27,7 @@ import { loadDm, onDmChanged, saveDm, syncDm } from './store'
 import { emptyDmState, type DmState, type EncounterPlan, type Npc, type PartyGroup } from './types'
 import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
+import { NpcSheetList } from '../npc/ui/NpcSheetList'
 import './dm.css'
 
 const newId = () => crypto.randomUUID()
@@ -47,11 +48,13 @@ const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
 type Update = (fn: (s: DmState) => DmState) => void
 
 /** The DM's own screen. It reads only the levels of the characters in the campaign being run, for the XP budget. */
-export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, party }: {
+export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initialTab, party }: {
   userId: string
   onRunEncounter: (encounterId: string) => void
   /** Opens a player's sheet view only. */
   onOpenSheet?: (characterId: string) => void
+  /** Opens one of the DM's NPC sheets. */
+  onOpenNpc?: (npcId: string) => void
   initialTab?: DmTab
   party?: Party
 }) {
@@ -158,6 +161,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
           {tab === 'encounters' && <EncountersTab state={state} update={update} monsters={monsters} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition} />}
           {tab === 'reference' && <ReferenceTab />}
+          {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} />}
           {tab === 'npcs' && <NpcsTab state={state} update={update} />}
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} />}
           {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <p className="hint">{t('lore.noCampaign')}</p>)}
