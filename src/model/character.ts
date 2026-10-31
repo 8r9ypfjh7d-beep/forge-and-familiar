@@ -219,6 +219,8 @@ export interface Character {
   hpRolls?: Record<string, number>
   /** Ids of the party XP awards (src/party/xp.ts) already added to `xp`, so each is added once. Newest 50. */
   appliedAwards?: string[]
+  /** Ids of the DM's live-combat hits (src/combat/hits.ts) already applied to HP, so each lands once. Newest 100. */
+  appliedHits?: string[]
   abilityMethod: AbilityMethod
   /** The six totals rolled in the builder (4d6, drop the lowest), kept so going back or editing never rerolls them. */
   rolledScores?: number[]
