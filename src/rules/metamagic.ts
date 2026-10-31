@@ -1,22 +1,34 @@
 // Metamagic: how many options a sorcerer knows, which ones are picked and what each use costs.
 // Picks are Character.classOptions entries of kind 'metamagic'; options come from the class option registry.
 import type { Character } from '../model/character'
+import { getFeats, type FeatInput } from './choices'
 import { classOptionById, classOptions, registerClassOptions, type ClassOption } from './classOptions'
 import { METAMAGIC, METAMAGIC_2024, METAMAGIC_COUNT } from './data/metamagic'
 import { rulesEdition } from './edition'
 
 registerClassOptions('metamagic', [...METAMAGIC, ...METAMAGIC_2024])
 
-type Input = Pick<Character, 'classes'> & Partial<Pick<Character, 'rulesEdition' | 'classOptions'>>
-
 /** Metamagic options offered to this character's edition (official first, then homebrew). */
 export const metamagicOptions = (c: Partial<Pick<Character, 'rulesEdition'>>) => classOptions('metamagic', rulesEdition(c))
 
-/** How many options the character's sorcerer levels let them know (0 before Metamagic). */
-export function metamagicCount(c: Input): number {
+/** Feats that teach two Metamagic options (Tasha's Metamagic Adept), any class. */
+export const METAMAGIC_FEATS = ['metamagic-adept']
+
+/** How many options the character knows: by sorcerer level (0 before Metamagic), +2 per Metamagic Adept. */
+export function metamagicCount(c: FeatInput): number {
   const level = c.classes.find(cl => cl.classId === 'sorcerer')?.level ?? 0
-  return METAMAGIC_COUNT[rulesEdition(c)].reduce((n, [at, count]) => (level >= at ? count : n), 0)
+  const fromClass = METAMAGIC_COUNT[rulesEdition(c)].reduce((n, [at, count]) => (level >= at ? count : n), 0)
+  return fromClass + 2 * getFeats(c).filter(f => METAMAGIC_FEATS.includes(f.id)).length
 }
+
+/** Resources that hold sorcery points, the class pool first: sorcerer's, then Metamagic Adept's (feat:metamagic-adept). */
+export const SORCERY_POOLS = ['sorcery-points', ...METAMAGIC_FEATS.map(id => `feat:${id}`)]
+
+/** Font of Magic (both editions): sorcery points to create a spell slot of level 1-5. Turning a slot back gives its level in points. */
+export const FONT_SLOT_COST = [2, 3, 5, 6, 7]
+
+/** Font of Magic comes at sorcerer level 2. */
+export const hasFontOfMagic = (c: Pick<Character, 'classes'>) => (c.classes.find(cl => cl.classId === 'sorcerer')?.level ?? 0) >= 2
 
 /** Picked option ids, in pick order. */
 export const metamagicIds = (c: Partial<Pick<Character, 'classOptions'>>) =>

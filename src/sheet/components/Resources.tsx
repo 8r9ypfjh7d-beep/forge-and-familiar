@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { isValidNotation } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
-import { featureUseContext, getMaxHp, getResources, getSpellSlots, planUse, type ResourceInfo, type UseOption, type UsePlan } from '../../rules'
+import { featureUseContext, getMaxHp, getResources, getSpellSlots, SORCERY_POOLS, planUse, type ResourceInfo, type UseOption, type UsePlan } from '../../rules'
 import { LastRoll, type Shown } from '../combat/LastRoll'
 import { fitsBudget, recoverableSlots, spendResource, withForm } from '../uses'
 import type { MessageKey } from '../../i18n'
@@ -12,7 +12,6 @@ import { DAWN_ITEMS } from '../../rules/data/dawnItems'
 import { dawn, dawnCounters, removeCounter, setResourceUsed, upsertCounter, type Counter } from '../engine'
 import { useSheetRolls } from '../dice'
 import type { Apply } from '../types'
-import { SORCERY_POINTS } from './Metamagic'
 import { Pips, Stepper } from './Pips'
 import { itemSpellCaster, useCast } from '../../spellbook/Cast'
 import { useSpells } from './Effects'
@@ -24,7 +23,7 @@ const PIP_LIMIT = 10
 
 export function Resources({ character, apply }: { character: Character; apply: Apply }) {
   // Sorcery points have their own pips on the Metamagic card, and custom actions' uses sit on the action's row, so neither shows twice.
-  const resources = getResources(character).filter(r => r.id !== SORCERY_POINTS && !r.id.startsWith('act:'))
+  const resources = getResources(character).filter(r => !SORCERY_POOLS.includes(r.id) && !r.id.startsWith('act:'))
   const counters = character.state.counters ?? []
   const { t, term } = useI18n()
   const rolls = useSheetRolls(character)

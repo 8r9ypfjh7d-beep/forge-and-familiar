@@ -295,3 +295,5 @@ form.inline input { width: 84px; }
   color: var(--s-muted); font-size: .9rem; transition: background .2s, color .2s;
 }
 .ff-sheet .view-only-bar.noticed { background: color-mix(in srgb, var(--s-accent) 28%, transparent); color: var(--s-ink); font-weight: 600; }
+.metamagic .mm-font { margin-block-start: var(--sp-3); }
+.metamagic .mm-font .mm-name { flex: 1 1 5rem; }
