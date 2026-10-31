@@ -3,7 +3,7 @@
 import { grantedSkills, skillPicks, subclassSlots, suggestedForPick, suggestedMasteryWeapons } from '../builder/validate'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, tableLanguages, RACES, SPECIES, STANDARD_ARRAY,
-  allFeats, anyFilter, classPickSlots, getWeaponMasteryCount, pickKey, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor, fixedLanguages, fixedTools,
+  allFeats, anyFilter, classOptions, classPickSlots, optionIssues, optionKindsFor, getWeaponMasteryCount, pickKey, anyOptions, backgroundsFor, choiceKey, classById, classChoices, classesFor, fixedLanguages, fixedTools,
   getBackground, itemById, languagePickCount, raceById, subclassesFor, toolPickGroups,
   type Ability, type CharacterDraft, type ClassChoiceOption, type ClassDef, type Item, type RulesEdition, type SkillId,
 } from '../rules'
@@ -153,6 +153,14 @@ export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng
   }
   for (const x of classChoices(d)) {
     d.featureChoices![choiceKey(x.classId, x.choice.id)] = (x.choice.pool === 'fightingStyle' ? pickStyle(x.choice.options, gear, rng) : pick(x.choice.options, rng)).id
+  }
+  // Eldritch Invocations (a 2024 Warlock has one at 1st level): official options it qualifies for, without extra choices.
+  d.classOptions = []
+  for (const cl of d.classes) {
+    for (const { kind, count } of optionKindsFor(d, cl.classId)) {
+      const fits = classOptions(kind, edition).filter(o => !o.id.startsWith('hb:') && !o.choiceKind && (!o.classIds || o.classIds.includes(cl.classId)) && optionIssues(d, o, cl.classId).length === 0)
+      d.classOptions.push(...pickSome(fits, count, rng).map(o => ({ kind, id: o.id, classId: cl.classId, level: cl.level })))
+    }
   }
   if (race.originFeatChoice) d.originFeatId = pick(allFeats(edition).filter(f => f.category === 'origin'), rng).id
 
