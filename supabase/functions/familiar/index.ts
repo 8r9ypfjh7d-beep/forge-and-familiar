@@ -7,7 +7,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.8-flash'
-/** Tried when Google retires the model above (404): its rolling alias for the current Flash. */
+/** Tried when Google retires the model above (404) or it is overloaded (503): its rolling alias for the current Flash. */
 const FALLBACK_MODEL = 'gemini-flash-latest'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -102,8 +102,8 @@ Deno.serve(async (req: Request) => {
   })
   let model = MODEL
   let upstream = await call(model)
-  if (upstream.status === 404 && model !== FALLBACK_MODEL) {
-    console.error('gemini 404 for', model, (await upstream.text().catch(() => '')).slice(0, 300))
+  if ((upstream.status === 404 || upstream.status === 503) && model !== FALLBACK_MODEL) {
+    console.error('gemini', upstream.status, 'for', model, (await upstream.text().catch(() => '')).slice(0, 300))
     model = FALLBACK_MODEL
     upstream = await call(model)
   }

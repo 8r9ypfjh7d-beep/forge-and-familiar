@@ -1274,6 +1274,7 @@ const messages: Messages = {
   'familiar.chip.fits': 'מה מתאים לקשת חמקן?',
   'familiar.chip.subclasses': 'השווה בין תת-המעמדות שאפשר לבחור',
   'familiar.chip.feat': 'איזה הישג (Feat) כדאי לקחת?',
+  'familiar.error.busy': "Gemini עמוס מאוד כרגע. נסו שוב בעוד דקה.",
   'familiar.error.unreachable': "אין גישה לפמיליאר. ייתכן שהוא עוד לא הוגדר בשרת, או שהחיבור נפל.",
   'familiar.error.limitSoon': "הפמיליאר נח. הוא יוכל לעזור שוב מחר.",
   'familiar.notConfiguredHint': "מנהל הקבוצה מגדיר אותו; כל השאר באפליקציה עובד כרגיל.",

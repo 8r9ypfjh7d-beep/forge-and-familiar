@@ -1095,6 +1095,7 @@ export const en = {
   'familiar.chip.fits': 'What fits a sneaky archer?',
   'familiar.chip.subclasses': 'Compare the subclasses I can pick',
   'familiar.chip.feat': 'Which feat should I take?',
+  'familiar.error.busy': "Gemini is very busy right now. Try again in a minute.",
   'familiar.error.unreachable': "The Familiar can't be reached. It may not be set up on the server yet, or the connection dropped.",
   'familiar.error.limitSoon': "The Familiar is resting. It can help again tomorrow.",
   'familiar.notConfiguredHint': "The group's admin is setting it up; everything else in the app works as usual.",
