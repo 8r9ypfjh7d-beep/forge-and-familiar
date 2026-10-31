@@ -15,9 +15,15 @@ export interface ToolEnv {
 
 /** App data the character and DM tools read; filled in by the UI layer (units C and D). */
 export interface ToolData {
+  /** Any of the asker's own characters by id (the app filters to what this user may open). */
   getCharacter?: (id: string) => Promise<unknown>
   /** DM screen data; the DM tools check access themselves (tools/dm.ts). */
   dm?: DmToolData
+  /** The character on the open sheet, live (a `Character`). */
+  character?: () => unknown
+  /** Builder: the draft so far (a `CharacterDraft`) and the step on screen (a `StepId`). */
+  draft?: () => unknown
+  step?: () => string
   [key: string]: unknown
 }
 
