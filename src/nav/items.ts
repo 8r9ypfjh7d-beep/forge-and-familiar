@@ -32,8 +32,8 @@ const ITEM: Record<NavKey, NavItem> = {
   admin: { key: 'admin', label: 'app.admin' },
 }
 
-/** Screens only the DM and the admin may open; `watch` is a player's sheet opened by the DM. */
-const DM_ONLY: readonly string[] = ['dm', 'combat', 'watch']
+/** Screens only the DM and the admin may open; `watch` is a player's sheet opened by the DM, `npc` an NPC's sheet (src/npc): players never see it. */
+const DM_ONLY: readonly string[] = ['dm', 'combat', 'watch', 'npc']
 
 /** Everyday screens get a tab; reference and bookkeeping screens sit under More.
  *  Everyone starts with Home (campaigns) and Characters, since a DM often plays in another game too.
@@ -53,7 +53,8 @@ export function canOpen(viewKind: string, { isDm, admin }: NavContext): boolean 
   return true
 }
 
-/** The tab for a view: anything about one character belongs to Characters. */
+/** The tab for a view: anything about one character belongs to Characters; an NPC's sheet to the DM screen. */
 export function navKeyFor(viewKind: string): NavKey {
+  if (viewKind === 'npc') return 'dm'
   return viewKind in ITEM ? (viewKind as NavKey) : 'list'
 }

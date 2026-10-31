@@ -1,21 +1,16 @@
 // Pure rules for the live battle map: what players may see, default token placement, move
 // checks. Mirrored by the SQL in supabase/migrations/20261030210000_party_encounters.sql
 // (project_public_encounter, project_public_board, move_token); keep the two in step.
-import type { Board, CellKey, Combatant, Encounter, Health, LiveMap, Token } from './types'
+import { playerView, type PlayerCombatant, type PlayerEncounter } from './playerView'
+import type { Board, CellKey, Combatant, Encounter, LiveMap, Token } from './types'
 
-/** Monster health as players see it: bloodied at half HP or less, down at 0. */
-export function healthOf(hp: { current: number; max: number } | undefined): Health | undefined {
-  if (!hp) return undefined
-  if (hp.current <= 0) return 'down'
-  if (hp.current * 2 <= hp.max) return 'bloodied'
-  return 'healthy'
-}
-
-/** A combatant as the live row carries it: monsters lose their HP numbers in the public copy. */
-export type LiveCombatant = Omit<Combatant, 'hp'> & { hp?: Combatant['hp']; health?: Health }
-
-/** The encounter as the live row carries it: no log (it stays on the DM's device), board kept apart. */
-export type LiveEncounter = Omit<Encounter, 'log' | 'board' | 'combatants'> & { combatants: LiveCombatant[] }
+/**
+ * The encounter as the live row carries it: `playerView` of the DM's encounter (no log, no AC or
+ * saves, monsters under their alias with a health look, hidden rows gone), so nothing DM-only ever
+ * leaves the DM's device. The board travels in its own column.
+ */
+export type LiveEncounter = PlayerEncounter
+export type LiveCombatant = PlayerCombatant
 
 export interface LiveCombat {
   partyId: string
@@ -34,45 +29,46 @@ export const cellKey = (x: number, y: number): CellKey => `${x},${y}`
 export const inFog = (t: { x: number; y: number }, fog: CellKey[] | undefined): boolean =>
   (fog ?? []).includes(cellKey(t.x, t.y))
 
-/** Whether players get this token: not hidden by the DM and not under fog. */
-export const isPublicToken = (t: Token, board: Board): boolean => !t.hidden && !inFog(t, board.fog)
+/**
+ * Whether players get this token: not hidden by the DM (on the token or on its combatant row, which
+ * `playerView` already dropped from `enc`) and not under fog.
+ */
+export const isPublicToken = (t: Token, board: Board, enc: LiveEncounter): boolean =>
+  !t.hidden && !inFog(t, board.fog) && enc.combatants.some(c => c.id === t.combatantId)
 
 /** The board as players see it. */
-export function projectPublicBoard(board: Board): Board {
+export function projectPublicBoard(board: Board, enc: LiveEncounter): Board {
   return {
     ...(board.mapId ? { mapId: board.mapId } : {}),
-    tokens: board.tokens.filter(t => isPublicToken(t, board)).map(({ hidden: _h, ...t }) => t),
+    tokens: board.tokens.filter(t => isPublicToken(t, board, enc)).map(({ hidden: _h, ...t }) => t),
     fog: board.fog ?? [],
     locked: board.locked ?? false,
   }
 }
 
-/** The encounter as players see it: hidden combatants gone, monster HP as a health word. */
+/** The encounter as players see it: on top of `playerView`, rows whose token is hidden or under fog go too. */
 export function projectPublicEncounter(enc: LiveEncounter, board: Board): LiveEncounter {
-  const hidden = new Set(board.tokens.filter(t => !isPublicToken(t, board)).map(t => t.combatantId))
+  const gone = new Set(board.tokens.filter(t => t.hidden || inFog(t, board.fog)).map(t => t.combatantId))
+  const combatants = enc.combatants.filter(c => !gone.has(c.id))
+  const shown = new Set(combatants.map(c => c.id))
   return {
     ...enc,
-    combatants: enc.combatants
-      .filter(c => !hidden.has(c.id))
-      .map(c => {
-        if (c.kind !== 'npc') return c
-        const { hp, ...rest } = c
-        return { ...rest, health: healthOf(hp) }
-      }),
+    activeId: enc.activeId && shown.has(enc.activeId) ? enc.activeId : null,
+    combatants,
+    effects: enc.effects
+      .map(e => ({ ...e, targetIds: e.targetIds.filter(id => shown.has(id)), ...(e.sourceId && !shown.has(e.sourceId) ? { sourceId: undefined } : {}) }))
+      .filter(e => e.targetIds.length || (e.sourceId && shown.has(e.sourceId))),
   }
 }
 
 export const projectPublic = (live: LiveCombat): LiveCombat => ({
   ...live,
   encounter: projectPublicEncounter(live.encounter, live.board),
-  board: projectPublicBoard(live.board),
+  board: projectPublicBoard(live.board, live.encounter),
 })
 
-/** The encounter column: everything but the log and the board (the board has its own column). */
-export function toLiveEncounter(enc: Encounter): LiveEncounter {
-  const { log: _l, board: _b, ...rest } = enc
-  return rest
-}
+/** The encounter column: `playerView` of the DM's encounter. The board has its own column. */
+export const toLiveEncounter = (enc: Encounter): LiveEncounter => playerView(enc)
 
 export const SIZE_CELLS: Record<string, 1 | 2 | 3 | 4> = {
   tiny: 1, small: 1, medium: 1, large: 2, huge: 3, gargantuan: 4,

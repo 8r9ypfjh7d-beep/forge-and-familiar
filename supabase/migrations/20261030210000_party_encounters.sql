@@ -33,7 +33,9 @@ create table public.party_encounters_public (
   updated_at timestamptz not null default now()
 );
 
--- healthy / bloodied (half HP or less) / down (0 HP). Mirrors healthOf in src/combat/liveLogic.ts.
+-- healthy / bloodied (half HP or less) / down (0 HP). Mirrors healthLook in src/combat/playerView.ts.
+-- The DM's device already writes playerView(encounter), so this is a second line of defence for a
+-- client that sent a raw Encounter: npc rows without a 'look' lose their HP numbers here.
 create function public.health_word(hp jsonb) returns text
 language sql immutable as $$
   select case
@@ -59,20 +61,25 @@ language sql immutable as $$
   )
   select (enc - 'log') || jsonb_build_object('combatants', coalesce((
     select jsonb_agg(
-      case when c->>'kind' = 'npc' then (c - 'hp') || jsonb_build_object('health', health_word(c->'hp')) else c end
+      case when c->>'kind' = 'npc' and not (c ? 'look')
+        then (c - 'hp' - 'ac' - 'conSave' - 'initBonus' - 'alias' - 'hidden' - 'revealHp') || jsonb_build_object('look', health_word(c->'hp'))
+        else c end
       order by ord)
     from jsonb_array_elements(coalesce(enc->'combatants', '[]'::jsonb)) with ordinality as e(c, ord)
     where c->>'id' not in (select cid from hidden where cid is not null)
+      and not (c->>'kind' = 'npc' and coalesce((c->>'hidden')::boolean, false))
   ), '[]'::jsonb))
 $$;
 
-create function public.project_public_board(board jsonb) returns jsonb
+-- Tokens players get: not hidden, not under fog, and belonging to a combatant players see.
+create function public.project_public_board(board jsonb, pub_enc jsonb) returns jsonb
 language sql immutable as $$
   select jsonb_build_object(
     'tokens', coalesce((
       select jsonb_agg(t - 'hidden' order by ord)
       from jsonb_array_elements(coalesce(board->'tokens', '[]'::jsonb)) with ordinality as e(t, ord)
       where not coalesce((t->>'hidden')::boolean, false) and not token_in_fog(t, board->'fog')
+        and exists (select 1 from jsonb_array_elements(coalesce(pub_enc->'combatants', '[]'::jsonb)) c where c->>'id' = t->>'combatantId')
     ), '[]'::jsonb),
     'fog', coalesce(board->'fog', '[]'::jsonb),
     'locked', coalesce(board->'locked', 'false'::jsonb)
@@ -81,14 +88,16 @@ $$;
 
 create function public.mirror_party_encounter() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare
+  pub_enc jsonb;
 begin
   if tg_op = 'DELETE' then
     delete from party_encounters_public where party_id = old.party_id;
     return old;
   end if;
+  pub_enc := project_public_encounter(new.encounter, new.board);
   insert into party_encounters_public (party_id, encounter, map, map_id, board, rev, started_at)
-  values (new.party_id, project_public_encounter(new.encounter, new.board), new.map, new.map_id,
-          project_public_board(new.board), new.rev, new.started_at)
+  values (new.party_id, pub_enc, new.map, new.map_id, project_public_board(new.board, pub_enc), new.rev, new.started_at)
   on conflict (party_id) do update set
     encounter = excluded.encounter, map = excluded.map, map_id = excluded.map_id,
     board = excluded.board, rev = excluded.rev, started_at = excluded.started_at, updated_at = now();
@@ -154,13 +163,13 @@ create policy party_encounters_public_read on public.party_encounters_public for
 revoke execute on function public.health_word(jsonb) from public, anon;
 revoke execute on function public.token_in_fog(jsonb, jsonb) from public, anon;
 revoke execute on function public.project_public_encounter(jsonb, jsonb) from public, anon;
-revoke execute on function public.project_public_board(jsonb) from public, anon;
+revoke execute on function public.project_public_board(jsonb, jsonb) from public, anon;
 revoke execute on function public.mirror_party_encounter() from public, anon, authenticated;
 revoke execute on function public.move_token(text, text, integer, integer) from public, anon;
 grant execute on function public.health_word(jsonb) to authenticated;
 grant execute on function public.token_in_fog(jsonb, jsonb) to authenticated;
 grant execute on function public.project_public_encounter(jsonb, jsonb) to authenticated;
-grant execute on function public.project_public_board(jsonb) to authenticated;
+grant execute on function public.project_public_board(jsonb, jsonb) to authenticated;
 grant execute on function public.move_token(text, text, integer, integer) to authenticated;
 
 alter publication supabase_realtime add table public.party_encounters, public.party_encounters_public;

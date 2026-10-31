@@ -158,6 +158,8 @@ function MapStage({ live, ownTokenId, onMove }: { live: LiveCombat; ownTokenId?:
   )
 }
 
+const HEALTH_KEYS = { healthy: 'cs.map.health.healthy', bloodied: 'cs.map.health.bloodied', down: 'cs.map.health.down' } as const
+
 function TokenMark({ token, live, own, picked, active, onTap }: { token: Token; live: LiveCombat; own: boolean; picked: boolean; active: boolean; onTap: () => void }) {
   const { t } = useI18n()
   const { hp, health } = tokenHealth(live, token)
@@ -166,7 +168,7 @@ function TokenMark({ token, live, own, picked, active, onTap }: { token: Token; 
   const cx = token.x * CELL + size / 2
   const cy = token.y * CELL + size / 2
   const r = size / 2 - 3
-  const healthText = hp ? t('cs.map.hp', { hp: hp.current, max: hp.max }) : health ? t(`cs.map.health.${health}`) : ''
+  const healthText = hp ? t('cs.map.hp', { hp: hp.current, max: hp.max }) : health ? t(HEALTH_KEYS[health]) : ''
   const state = hp ? (hp.current <= 0 ? 'down' : hp.current * 2 <= hp.max ? 'bloodied' : 'healthy') : health
   return (
     <g className={`cs-map-token ${token.kind}${own ? ' own' : ''}${picked ? ' picked' : ''}${active ? ' active' : ''}${state ? ` ${state}` : ''}`}

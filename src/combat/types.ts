@@ -22,6 +22,12 @@ export interface Combatant {
   conSave?: number
   /** npc only: conditions set by hand. For a pc they live on character.state.conditions. */
   conditions: ConditionId[]
+  /** npc only: what players are told this creature is ("Hooded figure"); the real name stays with the DM. */
+  alias?: string
+  /** npc only: not shown to players at all (an unseen ambusher, an invisible stalker). */
+  hidden?: boolean
+  /** npc only: players see the HP numbers and bar; otherwise only healthy / bloodied / down. */
+  revealHp?: boolean
 }
 
 /** A spell or effect with a duration. Ticks on its source's turn; with no source, at the top of each round. */
@@ -52,9 +58,6 @@ export interface PendingCheck {
   dc: number
 }
 
-/** Health as players see a monster: exact HP never leaves the DM's device. */
-export type Health = 'healthy' | 'bloodied' | 'down'
-
 /** A piece on the battle map. Cells count from the top-left corner; a token covers size × size cells. */
 export interface Token {
   id: string
@@ -69,7 +72,7 @@ export interface Token {
   y: number
   /** Footprint in cells: Medium 1, Large 2, Huge 3, Gargantuan 4. */
   size: 1 | 2 | 3 | 4
-  /** DM-only: the token (and its combatant) exist only on the DM's view. */
+  /** DM-only: the token (and its combatant) exist only on the DM's view. A hidden combatant row hides its token too. */
   hidden?: boolean
   color?: string
 }

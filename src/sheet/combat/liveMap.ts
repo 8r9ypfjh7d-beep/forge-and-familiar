@@ -41,9 +41,9 @@ export function mapStatus(live: LiveCombat, characterId: string, brings: boolean
 export const canMoveTo = (live: LiveCombat, characterId: string, tokenId: string, x: number, y: number) =>
   moveProblem(live.board, live.map, tokenId, x, y, { isDm: false, characterId })
 
-/** Monster health words and party HP for a token's badge, from the public combatant list. */
-export function tokenHealth(live: LiveCombat, token: Token): { health?: LiveCombatant['health']; hp?: { current: number; max: number } } {
+/** Party HP (or a monster's when the DM reveals it) and otherwise the monster's health look, for a token's badge. */
+export function tokenHealth(live: LiveCombat, token: Token): { health?: LiveCombatant['look']; hp?: { current: number; max: number } } {
   const c = live.encounter.combatants.find(c => c.id === token.combatantId)
   if (!c) return {}
-  return c.hp ? { hp: { current: c.hp.current, max: c.hp.max } } : { health: c.health }
+  return c.hp ? { hp: { current: c.hp.current, max: c.hp.max } } : { health: c.look }
 }

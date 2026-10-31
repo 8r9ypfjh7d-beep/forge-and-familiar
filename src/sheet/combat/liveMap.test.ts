@@ -6,12 +6,12 @@ import { bringsCharacter, canMoveTo, mapStatus, ownToken, tokenHealth } from './
 const live: LiveCombat = {
   partyId: 'p1',
   encounter: {
-    id: 'e1', ownerId: 'dm', schemaVersion: 1, name: 'Ambush', round: 2, activeId: 'c-vex',
+    id: 'e1', name: 'Ambush', round: 2, activeId: 'c-vex',
     combatants: [
-      { id: 'c-vex', name: 'Vex', kind: 'pc', characterId: 'ch-vex', initiative: 18, initBonus: 3, conditions: [], hp: { current: 12, max: 30, temp: 0 } },
-      { id: 'c-gob', name: 'Goblin', kind: 'npc', initiative: 10, initBonus: 2, conditions: [], health: 'bloodied' },
+      { id: 'c-vex', name: 'Vex', kind: 'pc', characterId: 'ch-vex', initiative: 18, conditions: [], hp: { current: 12, max: 30, temp: 0 }, active: true },
+      { id: 'c-gob', name: 'Goblin', kind: 'npc', initiative: 10, conditions: [], look: 'bloodied', active: false },
     ],
-    effects: [], pendingChecks: [], createdAt: '', updatedAt: '',
+    effects: [], updatedAt: '',
   },
   map: { id: 'm1', name: 'Clearing', width: 10, height: 8 },
   board: {
