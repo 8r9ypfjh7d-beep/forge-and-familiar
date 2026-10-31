@@ -4,7 +4,7 @@ import { SecretRolls } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { Character, UserProfile } from '../model/character'
 import { derive, formatMod } from '../rules'
-import { HandoutBadge, Handouts } from '../handouts'
+import { Codex, HandoutBadge } from '../lore'
 import { SessionScheduler } from '../schedule'
 import { vitals } from '../sheet/engine'
 import { getCharacter, listCharacters, listProfiles, onCharactersChanged } from '../storage'
@@ -280,7 +280,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
       <RollFeed party={party} nameOf={nameOf} />
       <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
       <PartyStash party={party} userId={userId} nameOf={nameOf} />
-      <Handouts party={party} userId={userId} nameOf={nameOf} />
+      <Codex party={party} userId={userId} nameOf={nameOf} />
     </section>
   )
 }

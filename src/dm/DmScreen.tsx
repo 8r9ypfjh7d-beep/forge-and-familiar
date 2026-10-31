@@ -10,6 +10,8 @@ import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { DmRequestsTab, inbox, StoryReminders, useRequests } from '../requests'
 import type { Party } from '../party'
+import { Codex } from '../lore'
+import { usePartyNames } from '../lore/useNames'
 import { fetchPartyCharacters } from '../party/cloud'
 import { StatBlock } from '../monsters'
 import { totalLevel } from '../rules'
@@ -32,11 +34,11 @@ const newId = () => crypto.randomUUID()
 const EDITION_KEY = 'ff.dm.edition.v1'
 const readEdition = (): Edition => { try { return localStorage.getItem(EDITION_KEY) === '2024' ? '2024' : '2014' } catch { return '2014' } }
 
-export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'reference' | 'npcs' | 'requests'
+export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'reference' | 'npcs' | 'requests' | 'lore'
 type Tab = DmTab
-const TABS: Tab[] = ['encounters', 'rolls', 'monsters', 'reference', 'npcs', 'requests']
+const TABS: Tab[] = ['encounters', 'lore', 'rolls', 'monsters', 'reference', 'npcs', 'requests']
 const TAB_KEYS: Record<Tab, MessageKey> = {
-  encounters: 'dm.tab.encounters', rolls: 'dm.tab.rolls', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests',
+  encounters: 'dm.tab.encounters', rolls: 'dm.tab.rolls', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests', lore: 'dm.tab.lore',
 }
 const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
   none: 'dm.diff.none', trivial: 'dm.diff.trivial', low: 'dm.diff.low', moderate: 'dm.diff.moderate', high: 'dm.diff.high', beyond: 'dm.diff.beyond',
@@ -55,6 +57,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
 }) {
   const { t } = useI18n()
   const { record } = useDice()
+  const nameOf = usePartyNames()
   const [state, setState] = useState<DmState | null>(null)
   const [monsters, setMonsters] = useState<LoadedMonster[]>([])
   const [edition, setEditionState] = useState<Edition>(readEdition)
@@ -157,6 +160,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
           {tab === 'reference' && <ReferenceTab />}
           {tab === 'npcs' && <NpcsTab state={state} update={update} />}
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} />}
+          {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <p className="hint">{t('lore.noCampaign')}</p>)}
         </div>
       </div>
       <p className="hint dm-credit">{t('dm.credit')}</p>

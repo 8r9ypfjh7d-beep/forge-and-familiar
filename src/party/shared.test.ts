@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { fromRows as handoutsFromRows, toRow as handoutRow } from '../handouts/cloud'
-import type { Handout } from '../handouts/types'
+import { fromRows as handoutsFromRows, toRow as handoutRow } from '../lore/cloud'
+import type { Handout } from '../lore/types'
 import { fromRows as pollsFromRows } from '../schedule/cloud'
 import { addOption, makePoll } from '../schedule/poll'
 
