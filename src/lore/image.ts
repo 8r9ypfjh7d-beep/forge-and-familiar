@@ -1,8 +1,6 @@
 // Shrinks an uploaded picture to a JPEG data URL small enough for local storage.
 // Maps keep more pixels than plain images so players can zoom in on them.
-import type { HandoutKind } from './types'
-
-const MAX_SIDE: Record<Exclude<HandoutKind, 'note' | 'table'>, number> = { image: 1280, map: 2048 }
+const MAX_SIDE: Record<'image' | 'map', number> = { image: 1280, map: 2048 }
 
 /** Width and height that fit inside max on the longer side, never upscaled. */
 export function fitWithin(width: number, height: number, max: number): { width: number; height: number } {
