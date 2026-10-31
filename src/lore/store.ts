@@ -126,9 +126,14 @@ export async function saveChapter(c: LoreChapter): Promise<LoreChapter> {
   const next = { ...c, updatedAt: new Date().toISOString() }
   const db = await cloudForParty(c.partyId)
   if (db) {
-    await saveChapterRemote(db, next)
-    await refreshHandouts(c.partyId)
-    return next
+    try {
+      await saveChapterRemote(db, next)
+      await refreshHandouts(c.partyId)
+      return next
+    } catch {
+      // Server without the chapters table yet (20261030220000_lore.sql): keep the chapter on this device.
+      // Players then see its entries under "Unsorted" until the migration runs.
+    }
   }
   writeChapters([...readChapters().filter(x => x.id !== c.id), next])
   return next
@@ -142,9 +147,8 @@ export async function deleteChapter(id: string): Promise<void> {
   const loose = readAll().filter(e => e.chapterId === id)
   if (db) {
     for (const e of loose) await saveRemote(db, { ...e, chapterId: undefined })
-    await deleteChapterRemote(db, id)
+    await deleteChapterRemote(db, id).catch(() => undefined)
     await refreshHandouts(c.partyId)
-    return
   }
   writeAll(readAll().map(e => (e.chapterId === id ? { ...e, chapterId: undefined } : e)))
   writeChapters(readChapters().filter(x => x.id !== id))
