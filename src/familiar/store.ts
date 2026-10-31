@@ -46,6 +46,14 @@ export function saveTurn(userId: string, thread: Thread, contents: Content[], to
   return next
 }
 
+/** Marks an Apply card tapped (or undone) on a saved thread. */
+export function setApplied(userId: string, thread: Thread, proposalId: string, state: 'applied' | 'undone'): Thread {
+  const saved = read(userId).find(t => t.id === thread.id) ?? thread
+  const next: Thread = { ...saved, applied: { ...saved.applied, [proposalId]: state } }
+  write(userId, [next, ...read(userId).filter(t => t.id !== thread.id)])
+  return next
+}
+
 export function deleteThread(userId: string, id: string) {
   write(userId, read(userId).filter(t => t.id !== id))
 }

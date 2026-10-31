@@ -7,8 +7,9 @@ import { listSources } from '../../content'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { FamiliarErrorKind } from '../types'
 import { ChatMarkdown } from './ChatMarkdown'
+import { ChangeCards } from './ChangeCard'
 import type { FamiliarChatState } from './useFamiliarChat'
-import { bubbles, canRetry, errorMessageKey, resetText, whenText, type Bubble } from './view'
+import { bubbles, canRetry, errorMessageKey, proposalsOf, resetText, whenText, type Bubble } from './view'
 import type { ToolUse } from '../types'
 
 export interface FamiliarChatProps {
@@ -105,7 +106,7 @@ export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, 
               </div>
             )}
             <ol className="fam-messages" aria-live="polite" aria-label={t('familiar.messages')}>
-              {shown.map(b => <Message key={b.index} bubble={b} />)}
+              {shown.map(b => <Message key={b.index} bubble={b} applied={chat.thread?.applied} onApplied={chat.markApplied} />)}
               {chat.pending && (
                 <>
                   <li className="fam-msg user"><div className="fam-bubble" dir="auto">{chat.pending.question}</div></li>
@@ -184,21 +185,26 @@ export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, 
   )
 }
 
-function Message({ bubble }: { bubble: Bubble }) {
+function Message({ bubble, applied, onApplied }: { bubble: Bubble; applied?: Record<string, 'applied' | 'undone'>; onApplied: (id: string, state: 'applied' | 'undone') => void }) {
   if (bubble.role === 'user') return <li className="fam-msg user"><div className="fam-bubble" dir="auto">{bubble.text}</div></li>
   return (
     <li className="fam-msg model">
       {bubble.tools.length > 0 && <ToolChips tools={bubble.tools} />}
       <div className="fam-answer" dir="auto"><ChatMarkdown text={bubble.text} /></div>
+      <ChangeCards proposals={proposalsOf(bubble.tools)} applied={applied} onApplied={onApplied} />
     </li>
   )
 }
+
+const PROPOSE = 'propose_change'
 
 /** "Looked up: Fireball · Grappled": what the answer read, so the reader can check it. */
 function ToolChips({ tools }: { tools: ToolUse[] }) {
   const { t } = useI18n()
   const seen = new Set<string>()
-  const unique = tools.filter(u => { const k = `${u.name}:${u.label}`; if (seen.has(k)) return false; seen.add(k); return true })
+  // Suggestions show as Apply cards, not as lookups.
+  const unique = tools.filter(u => { const k = `${u.name}:${u.label}`; if (u.name === PROPOSE || seen.has(k)) return false; seen.add(k); return true })
+  if (!unique.length) return null
   return (
     <div className="fam-tools" aria-label={t('familiar.lookedUp')}>
       <span className="fam-tools-label">{t('familiar.lookedUp')}</span>

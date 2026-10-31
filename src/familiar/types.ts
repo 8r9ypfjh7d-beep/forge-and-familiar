@@ -1,4 +1,5 @@
 // The Familiar's data shapes. Messages follow Gemini's `contents` format so they go to the API unchanged.
+import type { Proposal } from './changes'
 
 /** One part of a Gemini message: text, a tool call from the model, or our tool's answer. Unknown fields (thoughtSignature) are kept. */
 export interface Part {
@@ -28,6 +29,8 @@ export interface ToolUse {
   /** Short human label for the footnote chip. */
   label: string
   ok: boolean
+  /** propose_change: the Apply card (kept out of what goes back to the model). */
+  proposal?: Proposal
 }
 
 export interface Thread {
@@ -38,6 +41,8 @@ export interface Thread {
   contents: Content[]
   /** Tool uses per model answer, by index into `contents` of the final model text. */
   tools: Record<number, ToolUse[]>
+  /** Apply cards the user tapped, by proposal id: applied, or applied and then undone. */
+  applied?: Record<string, 'applied' | 'undone'>
   createdAt: string
   updatedAt: string
 }

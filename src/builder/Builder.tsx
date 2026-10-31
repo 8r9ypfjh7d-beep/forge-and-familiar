@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import { addSnapshots, takeSnapshot } from '../portability'
@@ -18,6 +18,7 @@ import { draftCard } from '../familiar/context'
 import type { FamiliarScreen } from '../familiar/screen'
 import { AskFamiliar } from '../familiar/ui/AskFamiliar'
 import { useFamiliarScreen } from '../familiar/ui/screen'
+import { applyInBuilder } from '../familiar/changes'
 import './builder.css'
 
 export function emptyDraft(ownerId: string, playerName = ''): CharacterDraft {
@@ -47,13 +48,14 @@ const STEP_CHIPS: Record<StepId, string[]> = {
 }
 
 /** The draft for the Familiar: its card, the draft itself and the step on screen for builder_options. */
-function builderScreen(draft: CharacterDraft, step: StepId, characterId?: string): FamiliarScreen {
+function builderScreen(draft: CharacterDraft, step: StepId, update: (patch: Partial<CharacterDraft>) => void, characterId?: string): FamiliarScreen {
   return {
     context: { kind: 'builder', ...(characterId ? { characterId } : {}) },
     card: draftCard(draft, step),
     edition: rulesEdition(draft),
     role: 'player',
-    data: { draft: () => draft, step: () => step },
+    // A tapped Apply card changes the draft as tapping that option on the step would (src/builder/picks.ts).
+    data: { draft: () => draft, step: () => step, applyChange: p => applyInBuilder(p, draft, update) },
     chips: [...STEP_CHIPS[step], 'familiar.chip.missing'],
   }
 }
@@ -78,10 +80,10 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
   const [replaceGear, setReplaceGear] = useState(true)
   const [hookKey, setHookKey] = useState<string | undefined>(resumed?.hookKey)
   // In Edit, levels gained take the picks saved in the build planner.
-  const update = (patch: Partial<CharacterDraft>) => setDraft(d => {
+  const update = useCallback((patch: Partial<CharacterDraft>) => setDraft(d => {
     const next = { ...d, ...patch }
     return editing && patch.classes ? followPlan(editing, d, next) : next
-  })
+  }), [editing])
   const { t, term } = useI18n()
   // 2024 calls the first step Species.
   const stepName = (id: StepId) => t(id === 'race' && draft.rulesEdition === '2024' ? 'builder.step.race2024' : `builder.step.${id}`)
@@ -107,7 +109,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
   const firstBlocked = issues.findIndex(i => i.length > 0)
   const warnings = useMemo(() => stepWarnings(STEPS[step].id, draft, t, term), [step, draft, t, term])
   const Current = STEPS[step].Component
-  useFamiliarScreen(useMemo(() => builderScreen(draft, STEPS[step].id, editing?.id), [draft, step, editing?.id]))
+  useFamiliarScreen(useMemo(() => builderScreen(draft, STEPS[step].id, update, editing?.id), [draft, step, update, editing?.id]))
   const isLast = step === STEPS.length - 1
   const gearChanged = !!editing && startingGearChanged(editing, draft)
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initial), [draft, initial])

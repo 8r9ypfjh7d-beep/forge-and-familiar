@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { edgeTransport, type FamiliarTransport } from '../api'
 import { runTurn } from '../chat'
 import type { PromptInput } from '../prompt'
-import { deleteThread, getThread, listThreads, newThread, saveTurn } from '../store'
+import { deleteThread, getThread, listThreads, newThread, saveTurn, setApplied } from '../store'
 import type { ToolData, ToolEnv } from '../tools/registry'
 import { FamiliarError, type FamiliarContext, type FamiliarErrorKind, type Thread, type ToolUse } from '../types'
 
@@ -135,7 +135,12 @@ export function useFamiliarChat(setup: ChatSetup) {
     setThread(t => (t?.id === id ? null : t))
   }, [userId, setThread])
 
-  return { thread, threads, pending, error, busy: !!pending, send, stop, startNew, open, remove, dismissError: () => setError(null) }
+  /** An Apply card was tapped (or undone): kept on the thread so it still reads "Applied" later. */
+  const markApplied = useCallback((proposalId: string, state: 'applied' | 'undone') => {
+    setThread(t => (t ? setApplied(userId, t, proposalId, state) : t))
+  }, [userId, setThread])
+
+  return { thread, threads, pending, error, busy: !!pending, send, stop, startNew, open, remove, markApplied, dismissError: () => setError(null) }
 }
 
 export type FamiliarChatState = ReturnType<typeof useFamiliarChat>

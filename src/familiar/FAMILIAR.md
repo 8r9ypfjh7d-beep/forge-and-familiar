@@ -17,6 +17,10 @@ An in-app assistant for players (plan characters, explain spells, features and r
 | `ui/AskFamiliar.tsx` | "✦ Ask the Familiar" button; renders only while a panel is registered |
 | `tools/character.ts` | `get_character` (sections summary, abilities, features, spells, inventory, state, plan), `explain_stat` (src/explain `explain()`), `builder_options` (per step: options, `stepIssues`, `stepWarnings`); `resolveCharacter`, `draftCharacter` |
 | `character.test.ts` | Player tools over a David Jones-like warlock and builder drafts, draft card, screen store |
+| `changes.ts` | Apply cards (unit E): `Change` kinds, `Proposal`, `applyCharacterChange` (with an exact undo), `applyDraftChange` (patch + undo patch through `src/builder/picks.ts`), `applyOnSheet`, `applyInBuilder`, `proposalFits` |
+| `tools/changes.ts` | `propose_change`: resolves names to ids, checks fit (warnings: offList, tooHigh, prereq, resets, replaces, skillCount, noBase), returns the card; offered only where the screen hands over `data.applyChange` |
+| `changes.test.ts` | Tool checks, apply and undo on a sheet and a draft, card text EN+HE |
+| `ui/ChangeCard.tsx`, `ui/changeText.ts` | `ChangeCards` under an answer: title through the app's term translations, reason, warnings, Apply / Applied + Undo / "Open X's sheet to apply" |
 | `tools/registry.ts` | `registerTool`, `declarations(env)`, `runTool` (errors become a readable `error` result); `ToolEnv` carries who asks and what is on screen |
 | `tools/content.ts` | `search_content`, `get_entry`, `rules_lookup` over `src/content` and `src/rulesqa`; `sourceNote` says how a source may be used |
 | `tools/dm.ts` | DM only: `get_party`, `encounter_check`, `find_monsters`, `get_monster` (library monsters and `npc:<id>` NPC sheets); `dmAllowed(env)` gate; `DmToolData` |
@@ -64,6 +68,14 @@ An in-app assistant for players (plan characters, explain spells, features and r
 - **States.** Before sending: no cloud build or a 404 from a function not deployed → not set up; a local-only profile → sign in with the activation code (inline form); offline → offline. After: `unreachable` (online but no answer, e.g. CORS on a missing function) and `server` offer Try again; `limit` shows the reset time; `tooLarge` offers a new chat. A failed or stopped question goes back into the box.
 - **Entry points.** The sheet (`FamiliarFab`) or page (`FamiliarPage`) registers `onFamiliarOpen`, so `AskFamiliar` buttons show; a request opens the sheet and fills the box (or sends when `send: true`).
 - **Display.** Only the user's questions and the final answers show; tool calls, tool responses, thoughts and "let me check" text stay in `contents`. Tools used appear as "Looked up" chips. Answers render with `dir="auto"`.
+
+## Apply cards (propose_change)
+
+- **The model only proposes.** `propose_change` returns `{ proposed, card, warnings, note, proposal }`; `runTurn` keeps `proposal` on the `ToolUse` (saved in `thread.tools`) and sends the rest to the model. Answers show the cards; "Looked up" chips skip them.
+- **Kinds.** Sheet: `learn_spell`, `forget_spell`, `prepare_spell` (wizard spellbook), `add_item` (equipment or magic item; magic weapons/armor take a `base`), `add_note`, `plan_level` (a future level's class, subclass, feat or `abilities` like "cha+2" in the build plan). Builder: `set_race`, `set_class`, `set_subclass` (only once the class reaches its subclass level), `set_background`, `set_feat` (ASI slot `<classId>:<level>` or `origin`), `set_skills`, `learn_spell`, `forget_spell`. Picks the builder only warns about stay possible; the card shows the warning.
+- **The tap.** A card applies only where it was made: the same character's sheet (`characterId`) or the builder; elsewhere it says where to go. The sheet's `applyChange` runs the change inside its `apply()` (saved, synced, in the change log as "Familiar suggestion"); the builder's goes through `update()` with the same patches the step buttons use. A tap with nothing to change says so.
+- **Undo.** The card's Undo takes back exactly that change (the spell, the added quantity, the note, the old plan entry; in the builder the touched picks), keeping other edits made since. Undo lives for the page session; after a reload the card still reads Applied (`thread.applied`, saved by `setApplied`) and points to the sheet or builder.
+- **Add a kind**: a `Change` variant and its apply/undo in `changes.ts`, building and checks in `tools/changes.ts` (with its kind list in `CHARACTER_KINDS`/`BUILDER_KINDS`), a `changeTitle` case and `familiar.change.*` keys in both locales, and a test.
 
 ## Deploying the function
 

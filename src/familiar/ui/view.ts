@@ -3,6 +3,7 @@ import type { MessageKey } from '../../i18n'
 import { textOf } from '../chat'
 import { DM_CHIPS } from '../dm'
 import { errorKey, type Content, type FamiliarContext, type FamiliarErrorKind, type ToolUse } from '../types'
+import type { Proposal } from '../changes'
 
 export interface Bubble {
   /** Index into `contents`, stable across renders. */
@@ -31,6 +32,9 @@ export function bubbles(contents: Content[], tools: Record<number, ToolUse[]> = 
   })
   return out
 }
+
+/** The Apply cards an answer carries, in the order the model proposed them. */
+export const proposalsOf = (tools: ToolUse[]): Proposal[] => tools.flatMap(u => (u.ok && u.proposal ? [u.proposal] : []))
 
 /** Starter questions per screen (i18n keys; the chip sends its translated text). */
 const CHIPS: Record<FamiliarContext['kind'] | 'dmGeneral', MessageKey[]> = {

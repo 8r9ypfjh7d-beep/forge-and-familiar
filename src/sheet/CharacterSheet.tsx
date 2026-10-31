@@ -21,6 +21,8 @@ import { characterCard } from '../familiar/context'
 import type { FamiliarScreen } from '../familiar/screen'
 import { AskFamiliar } from '../familiar/ui/AskFamiliar'
 import { useFamiliarScreen } from '../familiar/ui/screen'
+import { applyOnSheet } from '../familiar/changes'
+import { t as tr } from '../i18n'
 import { getCharacter } from '../storage'
 import { rulesEdition } from '../rules'
 import type { Party } from '../party/types'
@@ -55,7 +57,7 @@ export function CharacterSheet({ characterId, party, userId, onBack, onEdit, onL
 }
 
 /** The open sheet for the Familiar: its card, the live character, and the player's other characters by id. */
-function sheetScreen(character: Character): FamiliarScreen {
+function sheetScreen(character: Character, apply: Apply): FamiliarScreen {
   return {
     context: { kind: 'character', characterId: character.id },
     card: characterCard(character),
@@ -67,6 +69,8 @@ function sheetScreen(character: Character): FamiliarScreen {
         const c = id === character.id ? character : await getCharacter(id)
         return c && c.ownerId === character.ownerId ? c : undefined
       },
+      // A tapped Apply card goes through the sheet's own apply(), so it saves, syncs and shows in the change log.
+      applyChange: p => applyOnSheet(p, apply, { applied: tr('familiar.log.applied'), undone: tr('familiar.log.undone') }),
     },
     chips: ['familiar.chip.explainFeatures', 'familiar.chip.combat', ...(character.spells?.length ? ['familiar.chip.spells'] : []), 'familiar.chip.nextLevel'],
   }
@@ -115,7 +119,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
   const openMap = useCallback(() => { setMode('combat'); setWantTab('map'); setNotice(false) }, [setMode])
   const layout = sheetLayout(mode, { dying: character.state.currentHp === 0, powerUp: canPowerUp(character), narrow, liveMap: !!live })
   const p = { character, apply }
-  useFamiliarScreen(useMemo(() => (viewOnly ? null : sheetScreen(character)), [character, viewOnly]))
+  useFamiliarScreen(useMemo(() => (viewOnly ? null : sheetScreen(character, apply)), [character, apply, viewOnly]))
   const section = (s: SheetSection) => {
     switch (s) {
       case 'abilities': return <AbilitiesPanel key={s} character={character} />

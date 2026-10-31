@@ -22,7 +22,7 @@ const tools = { 3: [{ name: 'get_entry', args: {}, label: 'Fireball', ok: true }
 
 const chat = (over: Partial<FamiliarChatState> = {}): FamiliarChatState => ({
   thread: null, threads: [], pending: null, error: null, busy: false,
-  send: async () => true, stop: () => {}, startNew: () => {}, open: () => {}, remove: () => {}, dismissError: () => {},
+  send: async () => true, stop: () => {}, startNew: () => {}, open: () => {}, remove: () => {}, markApplied: () => {}, dismissError: () => {},
   ...over,
 })
 const thread = (contents: Content[]): Thread => ({ id: 'th-1', title: 'Fireball', context: { kind: 'general' }, contents, tools, createdAt: '2026-10-31T10:00:00Z', updatedAt: '2026-10-31T10:00:00Z' })
