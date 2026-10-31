@@ -1,0 +1,74 @@
+/* Battle map (src/combat/map). Liquid Glass chrome around a canvas; tokens are DOM buttons placed over it.
+   Logical properties only. The board itself is always LTR (grid coordinates), set with dir="ltr" on .bm-box;
+   the toolbar and status follow the page direction. */
+.battle-map { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: var(--sp-2); min-height: 0; height: 100%; }
+.battle-map .bm-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.battle-map .bm-spacer { flex: 1; }
+.battle-map .glass-segmented > button { min-height: 34px; padding-inline: var(--sp-3); }
+.battle-map .glass-segmented.small > button { min-height: 30px; min-width: 30px; padding-inline: var(--sp-2); }
+.battle-map .glass-btn.icon { min-width: 34px; padding-inline: 0; }
+
+.bm-box {
+  position: relative; overflow: hidden; min-height: 240px; border-radius: var(--r-lg); border: 1px solid var(--glass-stroke);
+  background: var(--glass-thin); box-shadow: var(--glass-inset); cursor: grab; user-select: none; -webkit-user-select: none;
+}
+.bm-box.mode-fog { cursor: crosshair; }
+.bm-box.mode-measure { cursor: cell; }
+.bm-canvas { position: absolute; inset-block-start: 0; inset-inline-start: 0; display: block; pointer-events: none; }
+.bm-loading { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
+
+/* Tokens: a round glass piece, HP as a conic ring, kind as the fill colour. */
+.bm-token {
+  --token: var(--accent); --hp: 1;
+  position: absolute; box-sizing: border-box; padding: 0; margin: 0; border: 0; background: none; font: inherit; color: var(--on-fill);
+  display: grid; place-items: center; border-radius: 50%; cursor: pointer; touch-action: none;
+  transition: left var(--dur-med) var(--ease-glass), top var(--dur-med) var(--ease-glass), width var(--dur-med) var(--ease-glass), height var(--dur-med) var(--ease-glass), transform var(--dur-fast) var(--ease-spring);
+}
+.bm-token.kind-npc { --token: var(--bad); }
+.bm-token.kind-ally { --token: var(--good); }
+.bm-token .bm-ring {
+  position: absolute; inset: 8%; border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--token) 70%, white) 0%, var(--token) 55%, color-mix(in srgb, var(--token) 70%, black) 100%) content-box,
+    conic-gradient(var(--good) calc(var(--hp) * 360deg), color-mix(in srgb, var(--ink) 25%, transparent) 0) border-box;
+  border: 3px solid transparent; box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+.bm-token.health-bloodied .bm-ring { background-image: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--token) 70%, white) 0%, var(--token) 55%, color-mix(in srgb, var(--token) 70%, black) 100%), conic-gradient(var(--warn) calc(var(--hp) * 360deg), color-mix(in srgb, var(--ink) 25%, transparent) 0); }
+.bm-token.health-down { opacity: 0.55; filter: grayscale(0.7); }
+.bm-token .bm-label { position: relative; font-weight: 800; letter-spacing: -0.02em; text-shadow: 0 1px 2px color-mix(in srgb, black 50%, transparent); pointer-events: none; }
+.bm-token.active { z-index: 2; }
+.bm-token.active .bm-ring { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 85%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent), var(--glass-highlight); }
+.bm-token.selected { z-index: 3; transform: scale(1.06); }
+.bm-token.selected .bm-ring { outline: 3px solid var(--ink); outline-offset: 2px; }
+.bm-token.mine .bm-label::after { content: ''; position: absolute; inset-block-end: -6px; inset-inline-start: 50%; width: 5px; height: 5px; margin-inline-start: -2.5px; border-radius: 50%; background: var(--on-fill); }
+.bm-token.hidden-token { opacity: 0.6; }
+.bm-token.hidden-token .bm-ring { border-style: dashed; border-color: var(--ink); background-image: none; background-color: color-mix(in srgb, var(--token) 55%, transparent); }
+.bm-token:focus-visible { outline: none; }
+.bm-token:focus-visible .bm-ring { outline: 3px solid var(--accent); outline-offset: 3px; }
+.bm-token .bm-badge {
+  position: absolute; inset-block-start: -0.3em; inset-inline-end: -0.3em; min-width: 1.5em; height: 1.5em; padding-inline: 0.25em; border-radius: var(--r-pill);
+  display: grid; place-items: center; font-size: 0.6em; font-weight: 700; line-height: 1; color: var(--on-fill); background: var(--bad); box-shadow: var(--glass-shadow);
+}
+.bm-token .bm-badge.eye { inset-inline-end: auto; inset-inline-start: -2px; background: var(--ink); }
+.bm-token .bm-down { position: absolute; font-size: 1.6em; color: var(--ink); font-weight: 700; }
+.bm-token.bench { position: static; width: 44px; height: 44px; font-size: 14px; }
+
+.bm-status { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; min-height: 34px; font-size: 0.9rem; }
+.bm-status .bm-status-text { flex: 1; min-width: 0; }
+.bm-status.tone-muted .bm-status-text { color: var(--muted); }
+.bm-status.tone-warn .bm-status-text { color: var(--warn); font-weight: 600; }
+.bm-status.tone-bad .bm-status-text { color: var(--bad); font-weight: 600; }
+.bm-status.tone-ok .bm-status-text { color: var(--ink); font-weight: 600; }
+.bm-dm-tools { display: inline-flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
+.bm-bench { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .battle-map .glass-segmented > button, .battle-map .glass-btn.small, .battle-map .glass-chip { min-height: 40px; }
+  /* Phones pinch to zoom, so the zoom buttons give their room to the map. */
+  .battle-map .glass-btn.bm-zoom { display: none; }
+}
+
+/* High contrast: glass is solid, so draw hard edges where state was colour. */
+:root[data-contrast="high"] .bm-token .bm-ring { border-color: var(--ink); box-shadow: none; }
+:root[data-contrast="high"] .bm-token.active .bm-ring { box-shadow: 0 0 0 4px var(--accent); }
+:root[data-contrast="high"] .bm-box { border: 2px solid var(--ink); }

@@ -11,6 +11,7 @@ import { useLiveHits } from './combat/ui/useLiveHits'
 import { DmScreen } from './dm'
 import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
+import { FamiliarFab, FamiliarPage, dmPrepare, screenFor } from './familiar/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
@@ -26,7 +27,7 @@ import type { MessageKey } from './i18n/locales/en'
 import { AppNav, canOpen, useHashView } from './nav'
 import { CharacterSheet } from './sheet/CharacterSheet'
 import { WatchSheet } from './sheet/WatchSheet'
-import { NpcSheet } from './npc/ui/NpcSheet'
+import { NpcBuilder, NpcScreen } from './npc/ui'
 import { StarterPicker } from './starters'
 import './list/list.css'
 import { DuplicatePrompt, SyncBadge, useCloudSync } from './sync'
@@ -50,6 +51,7 @@ export default function App() {
   // The screen lives in the address bar (#/sheet/<id>): back, refresh and links keep your place. A bare visit opens Home.
   const [view, setView] = useHashView()
   const [diceOpen, setDiceOpen] = useState(false)
+  const [familiarOpen, setFamiliarOpen] = useState(false)
   const [askEdit, setAskEdit] = useState<{ character: Character; note?: string } | null>(null)
   const requests = useRequests()
   const { t } = useI18n()
@@ -158,6 +160,15 @@ export default function App() {
 
   const onScreenId = 'id' in view ? view.id : undefined
   const onScreen = characters.find(c => c.id === onScreenId)
+  // The Familiar knows the screen it was opened from; it needs the profile's cloud account (activation code).
+  const dmCampaign = partyDm ? playing.party : undefined
+  const screen = screenFor(view, { character: onScreen, isDm, partyDm, campaign: dmCampaign })
+  const familiar = active && {
+    userId: active.id, signedIn: ownProfile, context: screen.context, role: screen.role, edition: screen.edition, card: screen.card,
+    subject: screen.subject && t(screen.subject.key, screen.subject.vars),
+    // On DM pages the campaign, plans and NPCs are read fresh for every question.
+    prepare: screen.context.kind === 'dm' ? () => dmPrepare(active.id, dmCampaign) : undefined,
+  }
 
   if (profiles === null) return null
   if (!active) return <ActivateScreen onLocal={addProfile} />
@@ -287,8 +298,12 @@ export default function App() {
         {view.kind === 'watch' && isDm && (
           <WatchSheet key={view.id} characterId={view.id} parties={playing.parties ?? undefined} onBack={() => setView(partyDm ? { kind: 'dm' } : { kind: 'party' })} />
         )}
-        {view.kind === 'npc' && isDm && (
-          <NpcSheet key={view.id} npcId={view.id} ownerId={active.id} onBack={() => setView({ kind: 'dm', tab: 'npcs' })} onOpenFight={id => setView({ kind: 'combat', encounterId: id })} />
+        {view.kind === 'npc' && isDm && view.id === 'new' && (
+          <NpcBuilder key={active.id} ownerId={active.id} partyId={partyDm ? playing.party?.id : undefined}
+            onSaved={npc => setView({ kind: 'npc', id: npc.id }, true)} onCancel={() => setView({ kind: 'dm', tab: 'npcs' })} />
+        )}
+        {view.kind === 'npc' && isDm && view.id !== 'new' && (
+          <NpcScreen key={view.id} npcId={view.id} ownerId={active.id} partyId={partyDm ? playing.party?.id : undefined} onBack={() => setView({ kind: 'dm', tab: 'npcs' })} onOpenFight={id => setView({ kind: 'combat', encounterId: id })} />
         )}
         {view.kind === 'levels' && (
           <LevelHistory
@@ -303,8 +318,10 @@ export default function App() {
         {view.kind === 'plan' && <PlanView characterId={view.id} onBack={() => { refresh(); setView({ kind: 'list' }) }} />}
         {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView({ kind: 'list' })} />}
         {view.kind === 'rules' && <RulesQA />}
+        {view.kind === 'familiar' && familiar && <FamiliarPage {...familiar} />}
         {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} campaign={partyDm ? playing.party : undefined} />}
-        {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} onOpenSheet={id => setView({ kind: 'watch', id })} onOpenNpc={id => setView({ kind: 'npc', id })} />}
+        {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} onOpenSheet={id => setView({ kind: 'watch', id })} onOpenNpc={id => setView({ kind: 'npc', id })}
+          onNewNpc={() => setView({ kind: 'npc', id: 'new' })} />}
         {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
         {view.kind === 'admin' && admin && (
@@ -322,6 +339,7 @@ export default function App() {
             onOpenCharacter={id => setView({ kind: 'sheet', id })} onWatchCharacter={isDm ? id => setView({ kind: 'watch', id }) : undefined} />
         )}
       </main>
+      {familiar && view.kind !== 'familiar' && <FamiliarFab {...familiar} open={familiarOpen} onOpenChange={o => { setFamiliarOpen(o); if (o) setDiceOpen(false) }} />}
       <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}
         secretTo={playing.party && !playing.isDm ? { partyId: playing.party.id, userId: active.id } : undefined} />
     </div>

@@ -6,6 +6,7 @@ import type { Party as Campaign } from '../../party'
 import { createEncounter, elapsedSeconds, endCombat, inCombat, nextTurn, rechargeAction, startCombat, setInitiative } from '../engine'
 import { deleteEncounter, listEncounters, saveEncounter } from '../storage'
 import type { Encounter } from '../types'
+import { EncounterMap } from '../map/EncounterMap'
 import { AddCombatants } from './AddCombatants'
 import { CombatantRow } from './CombatantRow'
 import { Effects } from './Effects'
@@ -70,12 +71,16 @@ export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: s
 }
 
 function EncounterView({ encounterId, campaign, onBack }: { encounterId: string; campaign?: Campaign; onBack: () => void }) {
-  const { encounter: enc, party, remote, act, undo, canUndo } = useEncounter(encounterId)
+  const { encounter: enc, party, remote, npcs, act, undo, canUndo } = useEncounter(encounterId)
   const rolls = useCombatRolls()
   const monsters = useMonsterIndex()
   const { t } = useI18n()
   const [editingName, setEditingName] = useState(false)
-  const monsterOf = (c: { monster?: { source: string; id: string } }) => (c.monster ? monsters.get(`${c.monster.source}:${c.monster.id}`) : undefined)
+  // Phones show the order or the map; wider screens show both.
+  const [pane, setPane] = useState<'order' | 'map'>('order')
+  // An NPC sheet row plays its own (edited) block; a library row the monster it came from.
+  const monsterOf = (c: { npcId?: string; monster?: { source: string; id: string } }) =>
+    (c.npcId ? npcs[c.npcId]?.block : undefined) ?? (c.monster ? monsters.get(`${c.monster.source}:${c.monster.id}`) : undefined)
 
   // Next turn, then the new active monster rolls to recharge its spent recharge actions (SRD: at the start of its turn).
   const next = () => act(e => {
@@ -133,14 +138,23 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
 
       <PendingChecks enc={enc} act={act} />
 
-      <div className="combat-grid">
+      <div className="glass-segmented combat-pane-switch" role="tablist">
+        <button type="button" role="tab" aria-selected={pane === 'order'} onClick={() => setPane('order')}>{t('combat.map.order')}</button>
+        <button type="button" role="tab" aria-selected={pane === 'map'} onClick={() => setPane('map')}>{t('combat.map.tab')}</button>
+      </div>
+
+      <div className={`combat-map-pane ${pane === 'map' ? 'on' : ''}`}>
+        <EncounterMap enc={enc} act={act} party={party} partyId={campaign?.id} monsterOf={monsterOf} />
+      </div>
+
+      <div className={`combat-grid ${pane === 'order' ? 'on' : ''}`}>
         <div>
           {enc.combatants.length === 0
             ? <div className="glass empty"><p>{t('combat.emptyOrder')}</p></div>
             : (
               <ol className="plain order" aria-label={t('combat.order')}>
                 {enc.combatants.map((c, i) => (
-                  <CombatantRow key={c.id} enc={enc} combatant={c} party={party} remote={remote} monster={monsterOf(c)} act={act}
+                  <CombatantRow key={c.id} enc={enc} combatant={c} party={party} remote={remote} npcs={npcs} monster={monsterOf(c)} act={act}
                     first={i === 0} last={i === enc.combatants.length - 1} />
                 ))}
               </ol>

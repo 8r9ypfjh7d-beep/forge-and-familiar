@@ -7,7 +7,13 @@ import { listNpcs, onNpcsChanged } from '../store'
 import type { NpcSheet } from '../types'
 import './npc.css'
 
-export function NpcSheetList({ ownerId, partyId, onOpen }: { ownerId: string; partyId?: string; onOpen: (id: string) => void }) {
+export function NpcSheetList({ ownerId, partyId, onOpen, onNew }: {
+  ownerId: string
+  partyId?: string
+  onOpen: (id: string) => void
+  /** Opens the NPC creator; with it the card shows even before the first NPC. */
+  onNew?: () => void
+}) {
   const { t, monsterName } = useI18n()
   const [list, setList] = useState<NpcSheet[] | null>(null)
   useEffect(() => {
@@ -17,12 +23,16 @@ export function NpcSheetList({ ownerId, partyId, onOpen }: { ownerId: string; pa
     const off = onNpcsChanged(load)
     return () => { live = false; off() }
   }, [ownerId, partyId])
-  if (!list?.length) return null
+  if (!list?.length && !onNew) return null
   return (
     <section className="card" aria-labelledby="npc-list-title">
-      <h2 id="npc-list-title">{t('npc.list', { count: list.length })}</h2>
+      <div className="card-head">
+        <h2 id="npc-list-title">{t('npc.list', { count: list?.length ?? 0 })}</h2>
+        {onNew && <button type="button" className="btn primary small" onClick={onNew}>{t('npc.build.newNpc')}</button>}
+      </div>
+      {!list?.length && <p className="hint">{t('npc.build.sheetsHint')}</p>}
       <ul className="plain npc-list">
-        {list.map(n => (
+        {(list ?? []).map(n => (
           <li key={n.id}>
             <button type="button" className="npc-list-row" onClick={() => onOpen(n.id)}>
               <b>{n.name}</b>

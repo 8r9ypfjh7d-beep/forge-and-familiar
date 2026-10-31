@@ -5,6 +5,7 @@ import { createEncounter, addCombatant, saveEncounter } from '../combat'
 import { campaignRows } from '../combat/campaign'
 import { BOOK_TITLES, loadMonsters, monsterKey, onContentChanged, sourceById, type Edition, type LoadedMonster, type Monster } from '../content'
 import { roll, rollD20 } from '../dice'
+import { listNpcs, onNpcsChanged, type NpcSheet } from '../npc'
 import { useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
@@ -18,7 +19,7 @@ import { StatBlock } from '../monsters'
 import { totalLevel } from '../rules'
 import { getCharacter } from '../storage'
 import {
-  activePlan, addMonster, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterGroups, monsterTypes,
+  activePlan, addMonster, npcPlanEntry, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterGroups, monsterTypes,
   groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
@@ -30,11 +31,11 @@ import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
 import { NpcSheetList } from '../npc/ui/NpcSheetList'
 import './dm.css'
+import { ConfirmDialog } from '../builder/ConfirmDialog'
+import { stashNpcPrefill, type NpcPrefill } from '../npc/ui/prefill'
+import { readDmEdition, writeDmEdition } from './edition'
 
 const newId = () => crypto.randomUUID()
-/** Which rules the Monsters tab shows, remembered on the device. Campaigns do not carry an edition yet. */
-const EDITION_KEY = 'ff.dm.edition.v1'
-const readEdition = (): Edition => { try { return localStorage.getItem(EDITION_KEY) === '2024' ? '2024' : '2014' } catch { return '2014' } }
 
 export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'maps' | 'reference' | 'npcs' | 'requests' | 'lore'
 type Tab = DmTab
@@ -49,9 +50,11 @@ const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
 type Update = (fn: (s: DmState) => DmState) => void
 
 /** The DM's own screen. It reads only the levels of the characters in the campaign being run, for the XP budget. */
-export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initialTab, party }: {
+export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpenNpc, initialTab, party }: {
   userId: string
   onRunEncounter: (encounterId: string) => void
+  /** Opens the NPC creator (#/npc/new); the prefill is already stashed. */
+  onNewNpc?: () => void
   /** Opens a player's sheet view only. */
   onOpenSheet?: (characterId: string) => void
   /** Opens one of the DM's NPC sheets. */
@@ -64,13 +67,30 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
   const nameOf = usePartyNames()
   const [state, setState] = useState<DmState | null>(null)
   const [monsters, setMonsters] = useState<LoadedMonster[]>([])
-  const [edition, setEditionState] = useState<Edition>(readEdition)
-  const setEdition = (e: Edition) => { setEditionState(e); try { localStorage.setItem(EDITION_KEY, e) } catch { /* private mode */ } }
+  const [edition, setEditionState] = useState<Edition>(readDmEdition)
+  const setEdition = (e: Edition) => { setEditionState(e); writeDmEdition(e) }
+  // The NPC creator opens prefilled: from a stat block, from a text NPC, or blank, in the campaign being run.
+  const makeNpc = onNewNpc && ((p: Omit<NpcPrefill, 'partyId'> = {}) => { stashNpcPrefill({ ...p, partyId: party?.id }); onNewNpc() })
   const [tab, setTab] = useState<Tab>(initialTab ?? 'encounters')
   const requests = useRequests()
   // Opened straight on a later tab (from a request link): bring it into view on narrow screens.
-  useEffect(() => { if (initialTab) document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [initialTab, state])
+  useEffect(() => {
+    if (!initialTab) return
+    // After saving an NPC the DM lands on the NPCs tab; wait for the app's focus move so the scroll sticks.
+    const go = () => document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: initialTab === 'npcs' ? 'start' : 'nearest', inline: 'nearest' })
+    const id = setTimeout(go, initialTab === 'npcs' ? 120 : 0)
+    return () => clearTimeout(id)
+  }, [initialTab, state])
   const [openMonster, setOpenMonster] = useState<string | null>(null)
+  // The DM's NPC sheets (src/npc) for this campaign, so a plan can field them.
+  const [npcs, setNpcs] = useState<NpcSheet[]>([])
+  useEffect(() => {
+    let live = true
+    const load = () => { listNpcs(userId, party?.id).then(list => { if (live) setNpcs(list) }) }
+    load()
+    const off = onNpcsChanged(load)
+    return () => { live = false; off() }
+  }, [userId, party?.id])
   // Players' rolls, live, so the Rolls tab can show a badge while the DM works on another tab.
   const rolls = useDmRolls(party)
   const { unseen, markSeen } = useUnseenRolls(userId, rolls)
@@ -117,12 +137,18 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
     return addPlan(s, addMonster({ id: newId(), name: t('dm.planName', { n: s.plans.length + 1 }), monsters: [] }, planEntry(m)))
   })
 
+  const addNpcToPlan = (n: NpcSheet) => update(s => {
+    const p = activePlan(s)
+    if (p) return updatePlan(s, p.id, x => (x.monsters.some(m => m.npcId === n.id) ? x : addMonster(x, npcPlanEntry(n))))
+    return addPlan(s, addMonster({ id: newId(), name: t('dm.planName', { n: s.plans.length + 1 }), monsters: [] }, npcPlanEntry(n)))
+  })
+
   // Start: monsters with their stat blocks, initiative rolled per group, HP average or rolled; then the campaign's party.
   const run = async (p: EncounterPlan) => {
     const rows = planCombatants(p, monsters, newId, {
       d20: (bonus, label) => record(rollD20(bonus, { label: `${label}: Initiative` }, 'initiative')).total,
       hp: dice => roll(dice).total,
-    })
+    }, npcs)
     const pcs = party ? await campaignRows(party, [], newId) : []
     const enc = [...rows, ...pcs].reduce((e, row) => addCombatant(e, row), createEncounter(newId(), userId, p.name))
     // The plan's map goes with the fight; the tracker places tokens on it when combat starts.
@@ -161,12 +187,13 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
         </div>
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
           {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
-          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
-          {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition} />}
+          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
+          {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition}
+            onMakeNpc={makeNpc && (m => makeNpc({ monster: { source: m.source, id: m.id } }))} />}
           {tab === 'maps' && <MapsTab ownerId={userId} />}
           {tab === 'reference' && <ReferenceTab />}
-          {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} />}
-          {tab === 'npcs' && <NpcsTab state={state} update={update} />}
+          {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} onNew={makeNpc && (() => makeNpc())} />}
+          {tab === 'npcs' && <NpcsTab state={state} update={update} onGiveStats={makeNpc && (n => makeNpc({ text: n }))} />}
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} />}
           {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <p className="hint">{t('lore.noCampaign')}</p>)}
         </div>
@@ -288,11 +315,13 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
 
 // ---------- Encounters ----------
 
-function EncountersTab({ userId, state, update, monsters, onAdd, onRun, onOpenMonster }: {
+function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd, onRun, onOpenMonster }: {
   userId: string
   state: DmState
   update: Update
   monsters: Monster[]
+  npcs: NpcSheet[]
+  onAddNpc: (n: NpcSheet) => void
   onAdd: (m: Monster) => void
   onRun: (p: EncounterPlan) => void
   onOpenMonster: (id: string) => void
@@ -328,16 +357,25 @@ function EncountersTab({ userId, state, update, monsters, onAdd, onRun, onOpenMo
               <ul className="plain dm-plan-list">
                 {plan.monsters.map(m => (
                   <li key={`${m.source}:${m.monsterId}`}>
-                    <button className="link-btn" onClick={() => onOpenMonster(monsterKey({ source: m.source, id: m.monsterId }))}>{m.name}</button>
+                    {m.npcId
+                      ? <a className="link-btn" href={`#/npc/${encodeURIComponent(m.npcId)}`}>{m.name}</a>
+                      : <button className="link-btn" onClick={() => onOpenMonster(monsterKey({ source: m.source, id: m.monsterId }))}>{m.name}</button>}
                     <span className="muted small">{t('dm.crXp', { cr: crLabel(m.cr), xp: (m.xp * m.count).toLocaleString() })}</span>
                     <span className="dm-count">
                       <button className="btn small" aria-label={t('dm.fewer', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, -1)))}>−</button>
                       <b aria-live="polite">{m.count}</b>
-                      <button className="btn small" aria-label={t('dm.more', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, 1)))}>+</button>
+                      {!m.npcId && <button className="btn small" aria-label={t('dm.more', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, 1)))}>+</button>}
                     </span>
                   </li>
                 ))}
               </ul>
+            )}
+            {npcs.length > 0 && (
+              <select className="dm-add-npc" aria-label={t('dm.addNpcLabel')} value=""
+                onChange={e => { const n = npcs.find(x => x.id === e.target.value); if (n) onAddNpc(n) }}>
+                <option value="">{t('dm.addNpc')}</option>
+                {npcs.filter(n => !plan.monsters.some(m => m.npcId === n.id)).map(n => <option key={n.id} value={n.id}>{n.name} ({n.block.name})</option>)}
+              </select>
             )}
             <label className="dm-notes">
               <span>{t('dm.notes')}</span>
@@ -450,7 +488,7 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }:
   )
 }
 
-function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdition }: {
+function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdition, onMakeNpc }: {
   monsters: LoadedMonster[]
   openId: string | null
   onOpen: (key: string) => void
@@ -458,6 +496,7 @@ function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdi
   planName?: string
   edition: Edition
   onEdition: (e: Edition) => void
+  onMakeNpc?: (m: Monster) => void
 }) {
   const { t } = useI18n()
   // A plan may name a monster by id only (older plans) or by source and id.
@@ -469,7 +508,10 @@ function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdi
         <MonsterBrowser monsters={monsters} onAdd={onAdd} onOpen={onOpen} openId={openId} edition={edition} onEdition={onEdition} />
       </section>
       {open
-        ? <StatBlock key={monsterKey(open)} m={open} legacy={open.legacy} actions={<button className="btn small primary" onClick={() => onAdd(open)} title={planName}>{t('dm.addToPlan')}</button>} />
+        ? <StatBlock key={monsterKey(open)} m={open} legacy={open.legacy} actions={<div className="row">
+            {onMakeNpc && <button className="btn small" onClick={() => onMakeNpc(open)}>{t('npc.build.makeNpc')}</button>}
+            <button className="btn small primary" onClick={() => onAdd(open)} title={planName}>{t('dm.addToPlan')}</button>
+          </div>} />
         : <section className="card"><p className="hint">{t('dm.pickMonster')}</p></section>}
     </div>
   )
@@ -543,15 +585,19 @@ function ideaText(idea: NpcIdea, t: (k: MessageKey) => string) {
   }
 }
 
-function NpcsTab({ state, update }: { state: DmState; update: Update }) {
+function NpcsTab({ state, update, onGiveStats }: { state: DmState; update: Update; onGiveStats?: (n: Npc) => void }) {
   const { t } = useI18n()
   const [idea, setIdea] = useState<NpcIdea>(() => randomNpc())
   const text = ideaText(idea, t)
   const save = (npc: Npc) => update(s => ({ ...s, npcs: [npc, ...s.npcs] }))
   const edit = (id: string, patch: Partial<Npc>) => update(s => ({ ...s, npcs: s.npcs.map(n => (n.id === id ? { ...n, ...patch } : n)) }))
 
+  const [deleting, setDeleting] = useState<Npc | null>(null)
+
   return (
     <>
+      <ConfirmDialog open={!!deleting} title={t('dm.npcDelete', { name: deleting?.name || t('dm.npcName') })} yes={t('common.delete')}
+        onYes={() => { const id = deleting?.id; setDeleting(null); if (id) update(s => ({ ...s, npcs: s.npcs.filter(x => x.id !== id) })) }} onClose={() => setDeleting(null)} />
       <section className="card dm-idea" aria-labelledby="dm-idea-title">
         <div className="card-head">
           <h2 id="dm-idea-title">{t('dm.npcIdea')}</h2>
@@ -574,9 +620,12 @@ function NpcsTab({ state, update }: { state: DmState; update: Update }) {
                 <div className="dm-npc-head">
                   <input value={n.name} onChange={e => edit(n.id, { name: e.target.value })} placeholder={t('dm.npcName')} aria-label={t('dm.npcName')} />
                   <input value={n.role} onChange={e => edit(n.id, { role: e.target.value })} placeholder={t('dm.npcRole')} aria-label={t('dm.npcRole')} />
-                  <button className="btn ghost small" onClick={() => confirm(t('dm.npcDelete', { name: n.name || t('dm.npcName') })) && update(s => ({ ...s, npcs: s.npcs.filter(x => x.id !== n.id) }))}>
-                    {t('common.delete')}
-                  </button>
+                  <div className="row dm-npc-btns">
+                    {onGiveStats && <button className="btn small" onClick={() => onGiveStats(n)}>{t('npc.build.giveStats')}</button>}
+                    <button className="btn ghost small" onClick={() => setDeleting(n)}>
+                      {t('common.delete')}
+                    </button>
+                  </div>
                 </div>
                 <textarea value={n.notes} rows={2} onChange={e => edit(n.id, { notes: e.target.value })} placeholder={t('dm.npcNotes')} aria-label={t('dm.npcNotes')} />
               </li>

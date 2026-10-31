@@ -10,11 +10,11 @@ import { formatMod } from '../../rules'
 import type { Ability } from '../../rules'
 import { addLog, critDice, legendaryCost, spendAction, rechargeAction, spendLegendary, type Party } from '../engine'
 import type { Combatant, Encounter } from '../types'
+import { legendaryCount } from '../../monsters/block'
 import { applyDamage } from './apply'
 import type { Act } from './useEncounter'
 
 const newId = () => crypto.randomUUID()
-const LEGENDARY_MAX = 3
 
 interface Hit {
   action: string
@@ -39,6 +39,8 @@ export function MonsterActions({ enc, combatant: c, monster: m, party: _party, a
   const [targetId, setTargetId] = useState('')
   const targets = enc.combatants.filter(x => x.id !== c.id)
   const target = targets.find(x => x.id === targetId)
+  // Legendary actions per round from the block ("can take 2 legendary actions"); 3 when it does not say.
+  const LEGENDARY_MAX = legendaryCount(m) || 3
   const legendaryLeft = LEGENDARY_MAX - (c.legendaryUsed ?? 0)
 
   const perform = (a: MonsterAction, group: 'action' | 'legendary') => {
@@ -66,9 +68,11 @@ export function MonsterActions({ enc, combatant: c, monster: m, party: _party, a
     })
   }
 
-  const apply = (amount: number) => {
-    if (!target || amount <= 0) return
-    act((e, p, remote) => applyDamage(e, p, remote, target.id, amount, newId()))
+  // Each damage part keeps its type, so an NPC sheet's resistances and immunities apply to it.
+  const apply = (half: boolean) => {
+    if (!hit || !target) return
+    const parts = hit.damage.map(d => ({ amount: half ? Math.floor(d.roll.total / 2) : d.roll.total, type: d.type }))
+    act((e, p, remote, npcs) => applyDamage(e, p, remote, target.id, parts, newId(), npcs))
     setHit(null)
   }
 
@@ -160,11 +164,11 @@ export function MonsterActions({ enc, combatant: c, monster: m, party: _party, a
           </div>
           {hit.damage.length > 0 && (
             <div className="row sb-apply">
-              <button type="button" className="glass-btn small danger" disabled={!target} title={target ? undefined : t('combat.noTarget')} onClick={() => apply(total(hit))}>
+              <button type="button" className="glass-btn small danger" disabled={!target} title={target ? undefined : t('combat.noTarget')} onClick={() => apply(false)}>
                 {target ? t('combat.applyTo', { amount: total(hit), name: target.name }) : t('combat.noTarget')}
               </button>
               {hit.save?.onSuccess === 'half' && (
-                <button type="button" className="glass-btn small" disabled={!target} onClick={() => apply(Math.floor(total(hit) / 2))}>
+                <button type="button" className="glass-btn small" disabled={!target} onClick={() => apply(true)}>
                   {t('combat.applyTo', { amount: Math.floor(total(hit) / 2), name: target?.name ?? '' })} · ½
                 </button>
               )}

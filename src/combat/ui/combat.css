@@ -111,7 +111,7 @@
   .combatant .controls select { min-width: 0; flex: 1; }
 }
 /* Phones: every control in a row is a full 44px touch target. */
-@media (max-width: 640px) {
+@media (max-width: 560px) {
   .combatant .controls :is(input, select, .glass-btn, .icon) { min-height: 44px; }
   .combatant .controls .icon { min-width: 44px; }
 }
@@ -175,4 +175,30 @@
 .statblock .sb-traits .sb-actions { margin-block-start: var(--sp-2); }
 @media (max-width: 560px) {
   .statblock .sb-target select { max-width: none; flex: 1; }
+}
+
+/* NPC sheet rows (src/npc): the name opens the sheet; a damage type picker lets its defenses apply. */
+.ff-combat .npc-link { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.ff-combat .controls .dmg-type { max-inline-size: 9rem; }
+/* Phones: the damage type gets its own line above the amount and buttons. */
+@media (max-width: 560px) {
+  .ff-combat .combatant .controls:has(.dmg-type) { flex-wrap: wrap; }
+  .ff-combat .combatant .controls .dmg-type { flex: 1 1 100%; max-inline-size: none; order: -1; }
+}
+
+/* Map pane (src/combat/map). Wide screens show it above the order; phones switch between the two. */
+.combat-pane-switch { display: none; justify-self: start; }
+.encounter-map { display: grid; gap: var(--sp-3); }
+.encounter-map-head { flex-wrap: wrap; gap: var(--sp-2); }
+.encounter-map-head .glass-eyebrow { margin: 0; }
+.encounter-map-head .row { gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
+.encounter-map .bm-picker { max-width: 200px; border-radius: var(--r-pill); }
+.encounter-map .tag.live { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
+.encounter-map-stage { height: min(68vh, 640px); min-height: 320px; }
+@media (max-width: 860px) {
+  .combat-pane-switch { display: inline-flex; }
+  .combat-map-pane:not(.on), .combat-grid:not(.on) { display: none; }
+  .encounter-map-stage { height: auto; min-height: 0; }
+  .encounter-map-stage .bm-box { aspect-ratio: var(--bm-ratio); max-height: 72dvh; min-height: 200px; }
+  .encounter-map.glass { padding: var(--sp-3); }
 }

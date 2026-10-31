@@ -42,7 +42,8 @@ export interface Thread {
   updatedAt: string
 }
 
-export type FamiliarErrorKind = 'offline' | 'signIn' | 'limit' | 'tooLarge' | 'server' | 'notConfigured'
+/** `unreachable`: online but the request never got an answer (function not deployed, CORS, network drop). */
+export type FamiliarErrorKind = 'offline' | 'signIn' | 'limit' | 'tooLarge' | 'server' | 'notConfigured' | 'unreachable'
 
 export class FamiliarError extends Error {
   readonly kind: FamiliarErrorKind
