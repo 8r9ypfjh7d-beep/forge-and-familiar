@@ -6,7 +6,9 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
-const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash'
+const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.8-flash'
+/** Tried when Google retires the model above (404): its rolling alias for the current Flash. */
+const FALLBACK_MODEL = 'gemini-flash-latest'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const ORIGINS = (Deno.env.get('FAMILIAR_ORIGINS') ?? 'https://forge-and-familiar.onrender.com,http://localhost:5173,http://localhost:4173').split(',')
@@ -87,16 +89,24 @@ Deno.serve(async (req: Request) => {
   await consume(1, 0, 0)
 
   const method = body.stream ? 'streamGenerateContent?alt=sse' : 'generateContent'
-  const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:${method}`, {
+  const payload = JSON.stringify({
+    contents: body.contents,
+    tools: body.tools,
+    systemInstruction: body.systemInstruction,
+    generationConfig: body.generationConfig ?? { temperature: 0.4 },
+  })
+  const call = (model: string) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
-    body: JSON.stringify({
-      contents: body.contents,
-      tools: body.tools,
-      systemInstruction: body.systemInstruction,
-      generationConfig: body.generationConfig ?? { temperature: 0.4 },
-    }),
+    body: payload,
   })
+  let model = MODEL
+  let upstream = await call(model)
+  if (upstream.status === 404 && model !== FALLBACK_MODEL) {
+    console.error('gemini 404 for', model, (await upstream.text().catch(() => '')).slice(0, 300))
+    model = FALLBACK_MODEL
+    upstream = await call(model)
+  }
   if (!upstream.ok) {
     const text = await upstream.text().catch(() => '')
     console.error('gemini', upstream.status, text.slice(0, 500))
@@ -110,7 +120,7 @@ Deno.serve(async (req: Request) => {
     const data = await upstream.json()
     const u = usageOf(data)
     if (u) await consume(0, u.tokensIn, u.tokensOut)
-    return json(200, { ...data, model: MODEL }, headers)
+    return json(200, { ...data, model }, headers)
   }
 
   // Stream: pass the SSE bytes through; the last chunk carries the usage, counted after the stream ends.
@@ -133,6 +143,6 @@ Deno.serve(async (req: Request) => {
     },
   })
   return new Response(upstream.body!.pipeThrough(pass), {
-    headers: { ...headers, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Familiar-Model': MODEL },
+    headers: { ...headers, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Familiar-Model': model },
   })
 })
