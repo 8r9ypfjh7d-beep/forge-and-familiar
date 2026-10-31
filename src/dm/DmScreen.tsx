@@ -9,6 +9,7 @@ import { useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { DmRequestsTab, inbox, StoryReminders, useRequests } from '../requests'
+import { getMap, MapPicker, MapsTab } from '../maps'
 import type { Party } from '../party'
 import { Codex } from '../lore'
 import { usePartyNames } from '../lore/useNames'
@@ -35,11 +36,11 @@ const newId = () => crypto.randomUUID()
 const EDITION_KEY = 'ff.dm.edition.v1'
 const readEdition = (): Edition => { try { return localStorage.getItem(EDITION_KEY) === '2024' ? '2024' : '2014' } catch { return '2014' } }
 
-export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'reference' | 'npcs' | 'requests' | 'lore'
+export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'maps' | 'reference' | 'npcs' | 'requests' | 'lore'
 type Tab = DmTab
-const TABS: Tab[] = ['encounters', 'lore', 'rolls', 'monsters', 'reference', 'npcs', 'requests']
+const TABS: Tab[] = ['encounters', 'lore', 'rolls', 'monsters', 'maps', 'reference', 'npcs', 'requests']
 const TAB_KEYS: Record<Tab, MessageKey> = {
-  encounters: 'dm.tab.encounters', rolls: 'dm.tab.rolls', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests', lore: 'dm.tab.lore',
+  encounters: 'dm.tab.encounters', rolls: 'dm.tab.rolls', monsters: 'dm.tab.monsters', maps: 'dm.tab.maps', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests', lore: 'dm.tab.lore',
 }
 const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
   none: 'dm.diff.none', trivial: 'dm.diff.trivial', low: 'dm.diff.low', moderate: 'dm.diff.moderate', high: 'dm.diff.high', beyond: 'dm.diff.beyond',
@@ -124,7 +125,9 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
     })
     const pcs = party ? await campaignRows(party, [], newId) : []
     const enc = [...rows, ...pcs].reduce((e, row) => addCombatant(e, row), createEncounter(newId(), userId, p.name))
-    const saved = await saveEncounter(enc)
+    // The plan's map goes with the fight; the tracker places tokens on it when combat starts.
+    const map = p.mapId ? await getMap(userId, p.mapId) : undefined
+    const saved = await saveEncounter(map ? { ...enc, board: { mapId: map.id, tokens: [], fog: map.fog, locked: false } } : enc)
     onRunEncounter(saved.id)
   }
 
@@ -158,8 +161,9 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
         </div>
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
           {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
-          {tab === 'encounters' && <EncountersTab state={state} update={update} monsters={monsters} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
+          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition} />}
+          {tab === 'maps' && <MapsTab ownerId={userId} />}
           {tab === 'reference' && <ReferenceTab />}
           {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} />}
           {tab === 'npcs' && <NpcsTab state={state} update={update} />}
@@ -284,7 +288,8 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
 
 // ---------- Encounters ----------
 
-function EncountersTab({ state, update, monsters, onAdd, onRun, onOpenMonster }: {
+function EncountersTab({ userId, state, update, monsters, onAdd, onRun, onOpenMonster }: {
+  userId: string
   state: DmState
   update: Update
   monsters: Monster[]
@@ -343,6 +348,7 @@ function EncountersTab({ state, update, monsters, onAdd, onRun, onOpenMonster }:
               <input type="checkbox" checked={!!plan.rollHp} onChange={e => update(s => updatePlan(s, plan.id, p => ({ ...p, rollHp: e.target.checked })))} />
               <span>{t('dm.rollHp')}</span>
             </label>
+            <MapPicker ownerId={userId} value={plan.mapId} onChange={mapId => update(s => updatePlan(s, plan.id, p => ({ ...p, mapId })))} />
             <div className="row">
               <button className="btn primary" disabled={!plan.monsters.length || !monsters.length} onClick={() => onRun(plan)}>{t('dm.start')}</button>
             </div>
