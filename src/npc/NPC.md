@@ -22,8 +22,8 @@ A named creature the DM runs, built on a monster stat block the way a hero is bu
 - **Damage types** read the block's free-text defense lines word by word, like the hero sheet (`rules/damage`): immunity beats resistance beats vulnerability (double). Petrified resists everything. Temp HP goes first.
 - **Uses** are keyed by action name; recharge actions hold 1 while spent until `rechargeRoll` meets the minimum. Short rest returns per-rest and recharge actions, long rest returns everything and heals to max.
 - **Sheet changes** go through the engine and save at once; Undo puts the previous sheet back. The stat block's Legendary Resistance trait pips are `legendaryResistanceUsed`, not `uses`.
-- **Add to fight** adds an `npc` row with `npcId` (HP, AC, CON save, initiative bonus from the block) to an open encounter or a new one, then opens the tracker. Linking that row's HP back to the sheet is the tracker's work (`Combatant.npcId`).
-- **Cloud.** `saveNpc` / `deleteNpc` mark the outbox; `src/sync/npcs.ts` keeps `npc_sheets` in step (owner or admin only). The tracker (src/combat) will link rows by `npcId` and write HP and conditions through this engine.
+- **Add to fight** adds an `npc` row with `npcId` (HP, AC, CON save, initiative bonus from the block) to an open encounter or a new one, then opens the tracker. The tracker (src/combat) keeps that row and the sheet in step: HP, conditions, uses and legendary actions go through this engine (COMBAT.md, `npcRows.ts`). NPCs also join from the tracker's "+ NPC sheet" picker and from a DM screen plan.
+- **Cloud.** `saveNpc` / `deleteNpc` mark the outbox; `src/sync/npcs.ts` keeps `npc_sheets` in step (owner or admin only).
 
 ## Known tasks
 

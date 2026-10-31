@@ -111,7 +111,7 @@
   .combatant .controls select { min-width: 0; flex: 1; }
 }
 /* Phones: every control in a row is a full 44px touch target. */
-@media (max-width: 640px) {
+@media (max-width: 560px) {
   .combatant .controls :is(input, select, .glass-btn, .icon) { min-height: 44px; }
   .combatant .controls .icon { min-width: 44px; }
 }
@@ -175,4 +175,13 @@
 .statblock .sb-traits .sb-actions { margin-block-start: var(--sp-2); }
 @media (max-width: 560px) {
   .statblock .sb-target select { max-width: none; flex: 1; }
+}
+
+/* NPC sheet rows (src/npc): the name opens the sheet; a damage type picker lets its defenses apply. */
+.ff-combat .npc-link { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.ff-combat .controls .dmg-type { max-inline-size: 9rem; }
+/* Phones: the damage type gets its own line above the amount and buttons. */
+@media (max-width: 560px) {
+  .ff-combat .combatant .controls:has(.dmg-type) { flex-wrap: wrap; }
+  .ff-combat .combatant .controls .dmg-type { flex: 1 1 100%; max-inline-size: none; order: -1; }
 }

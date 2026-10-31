@@ -70,12 +70,14 @@ export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: s
 }
 
 function EncounterView({ encounterId, campaign, onBack }: { encounterId: string; campaign?: Campaign; onBack: () => void }) {
-  const { encounter: enc, party, remote, act, undo, canUndo } = useEncounter(encounterId)
+  const { encounter: enc, party, remote, npcs, act, undo, canUndo } = useEncounter(encounterId)
   const rolls = useCombatRolls()
   const monsters = useMonsterIndex()
   const { t } = useI18n()
   const [editingName, setEditingName] = useState(false)
-  const monsterOf = (c: { monster?: { source: string; id: string } }) => (c.monster ? monsters.get(`${c.monster.source}:${c.monster.id}`) : undefined)
+  // An NPC sheet row plays its own (edited) block; a library row the monster it came from.
+  const monsterOf = (c: { npcId?: string; monster?: { source: string; id: string } }) =>
+    (c.npcId ? npcs[c.npcId]?.block : undefined) ?? (c.monster ? monsters.get(`${c.monster.source}:${c.monster.id}`) : undefined)
 
   // Next turn, then the new active monster rolls to recharge its spent recharge actions (SRD: at the start of its turn).
   const next = () => act(e => {
@@ -140,7 +142,7 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
             : (
               <ol className="plain order" aria-label={t('combat.order')}>
                 {enc.combatants.map((c, i) => (
-                  <CombatantRow key={c.id} enc={enc} combatant={c} party={party} remote={remote} monster={monsterOf(c)} act={act}
+                  <CombatantRow key={c.id} enc={enc} combatant={c} party={party} remote={remote} npcs={npcs} monster={monsterOf(c)} act={act}
                     first={i === 0} last={i === enc.combatants.length - 1} />
                 ))}
               </ol>
