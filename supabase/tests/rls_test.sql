@@ -33,6 +33,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261030210000_npc_sheets.sql
 \ir ../migrations/20261030210000_party_encounters.sql
 \ir ../migrations/20261030220000_lore.sql
+\ir ../migrations/20261031100000_assistant_usage.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -578,6 +579,16 @@ do $$ begin
   perform * from party_encounters_public;
   raise exception 'FAILED: anon read live combat';
 exception when insufficient_privilege then raise notice 'ok: anon cannot read live combat';
+end $$;
+do $$ begin
+  perform * from assistant_usage;
+  raise exception 'FAILED: anon read assistant usage';
+exception when insufficient_privilege then raise notice 'ok: anon cannot read assistant usage';
+end $$;
+do $$ begin
+  perform assistant_consume('acct-roy', 1, 0, 0);
+  raise exception 'FAILED: anon counted assistant usage';
+exception when insufficient_privilege then raise notice 'ok: anon cannot count assistant usage';
 end $$;
 reset role;
 select pg_temp.check(true, 'all RLS checks passed');
