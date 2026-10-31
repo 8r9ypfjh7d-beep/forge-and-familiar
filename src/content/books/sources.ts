@@ -36,6 +36,7 @@ export const BOOK_TITLES: Record<string, string> = {
   VGM: "Volo's Guide to Monsters",
   MTF: "Mordenkainen's Tome of Foes",
   MPMM: 'Mordenkainen Presents: Monsters of the Multiverse',
+  'MPMM-2': 'Mordenkainen Presents: Monsters of the Multiverse',
   BGG: 'Bigby Presents: Glory of the Giants',
   BAM: "Boo's Astral Menagerie",
   MPP: "Morte's Planar Parade",
