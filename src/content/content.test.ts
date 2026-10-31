@@ -198,7 +198,7 @@ describe('packs', () => {
       format: 'ff-homebrew', version: 1, id: 'abc123abc123', name: 'Frost', description: '', authorId: 'u', authorName: 'Dana', updatedAt: '',
       spells: [{ id: 'hb:abc123abc123:chill', name: 'Chill', level: 0, school: 'Evocation', castingTime: '1 action', range: '60 feet', components: { v: true, s: true, m: false }, duration: 'Instantaneous', concentration: false, ritual: false, classes: ['wizard'], description: 'Cold.', damage: '1d8', damageType: 'cold' }],
       items: [{ kind: 'weapon', id: 'hb:abc123abc123:frost-brand', name: 'Frost Brand', category: 'martial', damage: '1d10', damageType: 'cold', properties: ['versatile'], versatile: '1d12', weight: 3 }],
-      feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [], classes: [], languages: [], tools: [],
+      feats: [], races: [], subclasses: [], backgrounds: [], classOptions: [], classes: [], languages: [], tools: [], monsters: [],
     })
     expect(pack.source).toMatchObject({ id: 'hb:abc123abc123', attribution: 'Homebrew by Dana' })
     expect(pack.entries.spells![0]).toMatchObject({ school: 'evocation', damage: { type: 'cold', byCharacterLevel: { 1: '1d8' } } })

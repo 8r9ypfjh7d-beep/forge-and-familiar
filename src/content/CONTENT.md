@@ -75,6 +75,7 @@ Every screen that lists monsters (DM screen, combat tracker, NPC sheets, custom 
 - Bundled SRD entries come first, then registered packs. `getEntry` without a source returns the first match, so the SRD wins over a pack with the same id.
 - Packs: run anything from a file or another device through `sanitizePack` first. It refuses `srd-*` source ids and stamps each entry with the pack's source so imported text can never pose as SRD. The rules engine does not read pack numbers.
 - Homebrew (`src/homebrew`) keeps its own store. `fromHomebrewPack` turns a pack into a content pack for the compendium; registering it is up to the screen that lists content.
+- Homebrew monsters are the exception: `src/homebrew/store.ts` registers each pack's monsters as a content pack with source `hb:<packId>` on load and on every change, so `loadKind('monsters')` lists them after the SRD (the DM screen's Monsters tab). Only monsters go this way today.
 - The rules engine keeps its own curated data in `src/rules/data`. A test checks that every engine weapon and armor matches the SRD 5.1 library through `toRulesItem`.
 
 ## Licence

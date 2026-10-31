@@ -17,8 +17,9 @@ import {
   BACKGROUND_EDITIONS, LANGUAGE_KINDS, RARITIES, SPELL_SCHOOLS, TOOL_KINDS,
   type BackgroundEditions, type ContentKind, type FeatEffect, type HomebrewBackground, type HomebrewClassOption, type HomebrewFeat, type HomebrewItem,
   type HomebrewLanguage, type HomebrewOptionKind, type HomebrewPack, type HomebrewRace, type HomebrewSpell, type HomebrewSubclass, type HomebrewTool,
-  type LanguageKind, type Rarity, type SpellSchool, type ToolKind,
+  type HomebrewMonster, type LanguageKind, type Rarity, type SpellSchool, type ToolKind,
 } from '../types'
+import { MonsterForm, monsterIssues } from '../../monsters'
 
 const WEAPON_PROPS: WeaponProperty[] = ['finesse', 'light', 'heavy', 'reach', 'thrown', 'two-handed', 'versatile', 'ammunition', 'loading', 'ranged']
 
@@ -508,6 +509,16 @@ export function LanguageForm({ initial, onSave, onCancel }: { initial: HomebrewL
       <Field label={t('hb.f.speakers')} wide><input value={l.speakers ?? ''} placeholder={t('hb.f.speakersPlaceholder')} onChange={e => set({ speakers: opt(e.target.value) })} /></Field>
       <Field label={t('hb.f.description')} wide><textarea rows={4} value={l.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
       <p className="hb-field wide muted small">{t('hb.f.languageHint')}</p>
+    </FormShell>
+  )
+}
+
+/** The shared monster editor (src/monsters) inside the pack form shell. */
+export function MonsterEntryForm({ initial, onSave, onCancel }: { initial: HomebrewMonster; onSave: (m: HomebrewMonster) => void; onCancel: () => void }) {
+  const [m, setM] = useState(initial)
+  return (
+    <FormShell kind="monsters" name={initial.name} value={m} issues={monsterIssues(m)} onSave={onSave} onCancel={onCancel}>
+      <div className="hb-field wide"><MonsterForm value={m} onChange={setM} /></div>
     </FormShell>
   )
 }

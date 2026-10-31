@@ -1,5 +1,6 @@
 // Homebrew content: spells, items, feats, races, subclasses, backgrounds, class options, classes, languages and tools a group writes themselves, grouped into shareable packs.
 import type { ClassOption, HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
+import type { MonsterBlock } from '../monsters/model'
 import type {
   Abilities, Ability, ArmorCategory, CasterType, ClassFeature, ClassSpellcasting, Feat, FeatEffect, Item, ItemEffect, RulesEdition, Size, SkillId, SubclassFeature, WeaponCategory,
 } from '../rules/types'
@@ -197,6 +198,9 @@ export interface HomebrewClass {
   description?: string
 }
 
+/** A whole stat block (src/monsters): the content library's `Monster` without its source stamp. Registered as a content pack so the DM screen lists it. */
+export type HomebrewMonster = MonsterBlock
+
 /** A rules-engine Item plus flavour. Weapons and armor work in derive() once registered. */
 export type HomebrewItem = Item & { description?: string; rarity?: Rarity }
 
@@ -226,12 +230,14 @@ export interface HomebrewPack {
   /** Missing in packs saved before languages and tools existed; sanitizePack fills them in. */
   languages: HomebrewLanguage[]
   tools: HomebrewTool[]
+  /** Custom monsters. Missing in older packs; sanitizePack fills it in. */
+  monsters: HomebrewMonster[]
   /** Author's change history, only in downloaded pack files. Validated by src/history, never stored in the library. */
   history?: unknown[]
 }
 
-export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions' | 'classes' | 'languages' | 'tools'
+export type ContentKind = 'spells' | 'items' | 'feats' | 'races' | 'subclasses' | 'backgrounds' | 'classOptions' | 'classes' | 'languages' | 'tools' | 'monsters'
 
 export type HomebrewEntry =
   | HomebrewSpell | HomebrewItem | HomebrewFeat | HomebrewRace | HomebrewSubclass | HomebrewBackground | HomebrewClassOption | HomebrewClass
-  | HomebrewLanguage | HomebrewTool
+  | HomebrewLanguage | HomebrewTool | HomebrewMonster
