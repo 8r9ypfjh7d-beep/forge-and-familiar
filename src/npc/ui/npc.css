@@ -1,0 +1,59 @@
+/* NPC sheet (src/npc/ui/NpcSheet.tsx), on the Liquid Glass standard (src/design/DESIGN.md). Builds on .ff-sheet
+   cards from src/sheet/sheet.css; logical properties only, surfaces from glass tokens. */
+.ff-npc { max-inline-size: 1200px; }
+.npc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--sp-4); align-items: start; }
+.npc-col { display: grid; gap: var(--sp-4); min-width: 0; }
+@media (max-width: 860px) {
+  .npc-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.npc-hero { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-3) var(--sp-4); align-items: start; }
+.npc-portrait { inline-size: 88px; block-size: 96px; }
+.npc-portrait img, .npc-portrait .placeholder {
+  inline-size: 100%; block-size: 100%; border-radius: var(--r-md); object-fit: cover;
+  border: 1px solid var(--glass-stroke); box-shadow: var(--glass-highlight);
+}
+.npc-portrait .placeholder {
+  display: grid; place-items: center; font-family: var(--font-lore); font-size: 2.2rem; font-weight: 700;
+  background: var(--glass-tint); color: var(--s-accent);
+}
+.npc-who { min-width: 0; }
+.npc-who h1 { color: var(--s-accent); font-family: var(--font-lore); font-size: 1.6rem; font-weight: 700; overflow-wrap: anywhere; }
+.npc-who p { margin: 2px 0 0; color: var(--s-muted); font-size: .9rem; }
+.npc-who .npc-role { color: var(--s-ink); font-weight: 600; }
+.npc-edit { display: grid; gap: var(--sp-2); }
+.npc-edit label { display: grid; gap: 2px; font-size: .8rem; color: var(--s-muted); }
+.npc-edit input { min-block-size: 36px; }
+.npc-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); margin: 0; }
+.npc-stats > div {
+  display: grid; gap: 2px; justify-items: center; padding: var(--sp-2) 4px; border-radius: var(--r-md);
+  background: var(--s-tile); border: 1px solid var(--glass-hairline); min-width: 0;
+}
+.npc-stats dt { font-size: .7rem; font-weight: 600; color: var(--s-muted); text-align: center; overflow-wrap: anywhere; }
+.npc-stats dd { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+.npc-stats dd.npc-speed { font-family: inherit; font-size: .8rem; font-weight: 600; line-height: 1.3; }
+.npc-hero-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.npc-fights { grid-column: 1 / -1; }
+.npc-fights .row { margin-block-start: var(--sp-2); }
+
+.npc-legendary { display: grid; gap: var(--sp-2); margin-block-start: var(--sp-3); }
+.npc-pips { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); padding-block: 4px; }
+.npc-pips > span { font-size: .875rem; font-weight: 600; }
+.npc-pips .mon-pips { margin: 0; }
+.npc-notes { inline-size: 100%; min-block-size: 96px; resize: vertical; font: inherit; }
+
+@media (max-width: 520px) {
+  .npc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .npc-portrait { inline-size: 64px; block-size: 72px; }
+}
+
+/* NPC sheets list on the DM screen's NPCs tab */
+.npc-list { display: grid; gap: 6px; }
+.npc-list-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: var(--sp-2);
+  inline-size: 100%; padding: var(--sp-2) var(--sp-3); min-block-size: 44px; font: inherit; text-align: start; cursor: pointer;
+  border: 1px solid var(--glass-hairline); border-radius: var(--r-md); background: var(--glass-thin); color: var(--ink);
+}
+.npc-list-row:hover { background: var(--glass-tint); }
+.npc-list-row span { color: var(--muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.npc-list-row small { font-variant-numeric: tabular-nums; color: var(--muted); }

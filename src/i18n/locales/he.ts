@@ -19,6 +19,7 @@ import { explainSettingsHe, settingTermsHe } from './explain.settings.he'
 import { itemsHe } from './items.he'
 import { useHe } from './use.he'
 import { hurtHe } from './hurt.he'
+import { npcHe } from './npc.he'
 import { sheetTermsHe } from './sheetnames.he'
 import { suppliesHe } from './supplies.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
@@ -46,6 +47,7 @@ const messages: Messages = {
   ...itemsHe,
   ...useHe,
   ...hurtHe,
+  ...npcHe,
   ...suppliesHe,
   ...picks2014He,
   'common.back': 'חזרה',

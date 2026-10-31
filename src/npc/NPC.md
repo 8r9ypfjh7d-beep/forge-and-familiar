@@ -11,6 +11,9 @@ A named creature the DM runs, built on a monster stat block the way a hero is bu
 | `store.ts` | `listNpcs(ownerId, partyId?)`, `getNpc`, `saveNpc`, `deleteNpc`, `onNpcsChanged` in `ff.npcs.v1`; `localNpcs` / `applyRemoteNpc` for src/sync |
 | `fixtures.ts` | `makeBlock()`: a test stat block with limited, recharge and legendary actions and spellcasting |
 | `npc.test.ts` | Engine rules, against the fixture and SRD 5.1 blocks |
+| `ui/NpcSheet.tsx` | The DM's live sheet at `#/npc/<id>` (App renders it only for a DM): hero card (portrait, role, creature line, AC, speed, PB, passive Perception, Initiative roll, Add to fight), HP with damage types through the block's defenses, New turn (legendary back, recharge d6s), legendary pips, conditions (immunities refused), rests, spell slot and per-day pips, the shared `StatBlock` with use pips, DM notes (autosave), session log with Undo, Delete with `ConfirmDialog`. Edit is in place (name, role, max HP) until the creator's edit mode passes `onEdit` |
+| `ui/NpcSheetList.tsx` | "NPC sheets" card on the DM screen's NPCs tab (`#/dm/npcs`), for the campaign in play |
+| `ui/npc.css`, `ui/style.test.ts` | Sheet styles on the Liquid Glass standard over `.ff-sheet`; logical properties and glass tokens only. Labels in `i18n/locales/npc.en.ts` / `npc.he.ts` |
 
 ## Rules
 
@@ -18,6 +21,8 @@ A named creature the DM runs, built on a monster stat block the way a hero is bu
 - **Nothing derived is stored.** Modifiers, slot counts, legendary counts and per-day uses come from `src/monsters/block` at read time; `state` keeps only what was spent.
 - **Damage types** read the block's free-text defense lines word by word, like the hero sheet (`rules/damage`): immunity beats resistance beats vulnerability (double). Petrified resists everything. Temp HP goes first.
 - **Uses** are keyed by action name; recharge actions hold 1 while spent until `rechargeRoll` meets the minimum. Short rest returns per-rest and recharge actions, long rest returns everything and heals to max.
+- **Sheet changes** go through the engine and save at once; Undo puts the previous sheet back. The stat block's Legendary Resistance trait pips are `legendaryResistanceUsed`, not `uses`.
+- **Add to fight** adds an `npc` row with `npcId` (HP, AC, CON save, initiative bonus from the block) to an open encounter or a new one, then opens the tracker. Linking that row's HP back to the sheet is the tracker's work (`Combatant.npcId`).
 - **Cloud.** `saveNpc` / `deleteNpc` mark the outbox; `src/sync/npcs.ts` keeps `npc_sheets` in step (owner or admin only). The tracker (src/combat) will link rows by `npcId` and write HP and conditions through this engine.
 
 ## Known tasks

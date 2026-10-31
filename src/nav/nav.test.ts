@@ -75,7 +75,7 @@ describe('hash routes', () => {
   const views: View[] = [
     { kind: 'campaigns' }, { kind: 'list' }, { kind: 'build' }, { kind: 'starters' }, { kind: 'sheet', id: 'abc-123' },
     { kind: 'edit', id: 'x' }, { kind: 'levelup', id: 'x' }, { kind: 'levels', id: 'x' }, { kind: 'plan', id: 'x' }, { kind: 'print', id: 'x' }, { kind: 'watch', id: 'x' },
-    { kind: 'combat' }, { kind: 'combat', encounterId: 'e1' }, { kind: 'dm' }, { kind: 'dm', tab: 'requests' }, { kind: 'dm', tab: 'rolls' }, { kind: 'requests' },
+    { kind: 'combat' }, { kind: 'combat', encounterId: 'e1' }, { kind: 'dm' }, { kind: 'dm', tab: 'requests' }, { kind: 'dm', tab: 'rolls' }, { kind: 'dm', tab: 'npcs' }, { kind: 'requests' },
     { kind: 'party' }, { kind: 'party', partyId: 'p1' }, { kind: 'party', startWith: 'join' }, { kind: 'party', startWith: 'start' },
     { kind: 'rules' }, { kind: 'homebrew' }, { kind: 'admin' }, { kind: 'npc', id: 'npc-goblin-boss' },
   ]
