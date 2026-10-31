@@ -346,9 +346,11 @@ export const UNPLACED = -1
 
 /**
  * Lines up every token that is still off the board (x or y UNPLACED) along the party edge, or the south edge when
- * none is set, skipping walls and each other, so starting a combat never needs manual placement. Tokens already
+ * none is set, skipping walls, water, hazards and each other, so starting a combat never needs manual placement. Tokens already
  * on the board are kept where they are.
  */
+const UNSAFE = new Set<Terrain>(['water', 'hazard'])
+
 export function autoPlace(map: BattleMapDef, tokens: MapToken[]): MapToken[] {
   const edge = map.partyEdge ?? 's'
   const onBoard = (tk: MapToken) => tk.x !== UNPLACED && tk.y !== UNPLACED && inBounds(map, tk.x, tk.y)
@@ -367,12 +369,14 @@ export function autoPlace(map: BattleMapDef, tokens: MapToken[]): MapToken[] {
   }
   // Big tokens hang inwards from the edge cell they are given.
   const corner = (c: Cell, size: TokenSize): Cell => ({ x: c.x - (edge === 'e' ? size - 1 : 0), y: c.y - (edge === 's' ? size - 1 : 0) })
+  const open = (at: Cell, size: TokenSize) =>
+    fits(map, at.x, at.y, size) && !tokenCells({ ...at, size }).some(cell => taken.has(cellKey(cell.x, cell.y)))
+  // Nobody starts in water or on a hazard (pits, fire) when a dry square is free somewhere on the map.
+  const dry = (at: Cell, size: TokenSize) => tokenCells({ ...at, size }).every(cell => !UNSAFE.has(terrainAt(map, cell.x, cell.y)))
   return tokens.map(tk => {
     if (onBoard(tk)) return tk
-    const spot = candidates.find(c => {
-      const at = corner(c, tk.size)
-      return fits(map, at.x, at.y, tk.size) && !tokenCells({ ...at, size: tk.size }).some(cell => taken.has(cellKey(cell.x, cell.y)))
-    })
+    const spot = candidates.find(c => { const at = corner(c, tk.size); return open(at, tk.size) && dry(at, tk.size) })
+      ?? candidates.find(c => open(corner(c, tk.size), tk.size))
     const at = spot ? corner(spot, tk.size) : { x: 0, y: 0 }
     for (const cell of tokenCells({ ...at, size: tk.size })) taken.add(cellKey(cell.x, cell.y))
     return { ...tk, ...at }

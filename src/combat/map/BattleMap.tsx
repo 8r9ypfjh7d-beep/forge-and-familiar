@@ -11,7 +11,7 @@ import type { HealthLook as Health } from '../playerView'
 import type { Board, Token } from '../types'
 import { budgetLeft, canMove, coverFog, isPlaced, revealFog, spend, tokenCovering, withToken, type Spent } from './board'
 import { drawBoard, footprintInFog, type Palette } from './draw'
-import { CELL_PX, cellAt, cellRect, centreOn, clampPan, fitViewport, pan, pinch, zoomAt, type Viewport } from './viewport'
+import { CELL_PX, cellAt, cellRect, centreOn, clampPan, fitTappable, fitViewport, pan, pinch, zoomAt, type Viewport } from './viewport'
 import './battlemap.css'
 
 export type Viewer = { role: 'dm' } | { role: 'player'; characterId: string }
@@ -98,16 +98,17 @@ export function BattleMap({ map, board, encounter, viewer, onMove, onBoard, info
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+  // The viewer's own token (a player) or the active combatant's, when it is on the board.
+  const focusToken = () => {
+    const tk = (viewer.role === 'player' ? board.tokens.find(x => x.characterId === viewer.characterId) : undefined)
+      ?? board.tokens.find(x => x.combatantId === encounter.activeId)
+    return tk && isPlaced(tk) ? tk : undefined
+  }
   // A whole grid squeezed onto a phone makes tokens too small to tap: start closer, on the viewer's token.
   useEffect(() => {
     if (!box.w || !box.h || view) return
     const fitted = fitViewport(def.width, def.height, box.w, box.h)
-    if (fitted.scale * CELL_PX >= MIN_TAP_CELL) { setView(fitted); return }
-    const focus = (viewer.role === 'player' ? board.tokens.find(tk => tk.characterId === viewer.characterId) : undefined)
-      ?? board.tokens.find(tk => tk.combatantId === encounter.activeId)
-    const at = focus && isPlaced(focus) ? focus : { x: def.width / 2, y: def.height / 2, size: 1 }
-    const near = centreOn({ ...fitted, scale: START_CELL / CELL_PX }, at.x, at.y, at.size, at.size, box.w, box.h)
-    setView(clampPan(near, def.width, def.height, box.w, box.h))
+    setView(fitted.scale * CELL_PX >= MIN_TAP_CELL ? fitted : fitTappable(def.width, def.height, box.w, box.h, START_CELL, focusToken()))
   }, [box, def.width, def.height, view, viewer, board.tokens, encounter.activeId])
 
   const selectedToken = selected ? board.tokens.find(tk => tk.id === selected) ?? null : null
@@ -270,7 +271,8 @@ export function BattleMap({ map, board, encounter, viewer, onMove, onBoard, info
   }
 
   const zoomBy = (f: number) => setView(v => (v ? clampPan(zoomAt(v, f, box.w / 2, box.h / 2), def.width, def.height, box.w, box.h) : v))
-  const fit = () => setView(fitViewport(def.width, def.height, box.w, box.h))
+  // Fit shows the whole grid where it fits; on a phone it stops at a tappable square size and scrolls.
+  const fit = () => setView(fitTappable(def.width, def.height, box.w, box.h, MIN_TAP_CELL, focusToken()))
   const centreMe = () => {
     const mine = viewer.role === 'player' ? board.tokens.find(tk => tk.characterId === viewer.characterId) : board.tokens.find(tk => tk.combatantId === encounter.activeId)
     if (!mine || !isPlaced(mine)) return

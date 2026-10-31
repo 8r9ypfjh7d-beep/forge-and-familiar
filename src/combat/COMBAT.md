@@ -60,6 +60,8 @@ Design: `/mnt/project-files/combat-maps/brainstorm.md`. The map editor lives in 
 ### The map in the tracker
 
 - Each encounter has a map pane: above the order on wide screens, behind an Order / Map switch on phones. Picking a map writes `Encounter.board` (`mapId`, the map's own fog, tokens placed by `syncTokens`). Changing the map places everyone again; removing it keeps the board without a map.
-- Tokens follow the combatants: added rows get a token, removed rows lose theirs. Party members line up on the map's party edge, monsters on the far row (or along the opposite edge when that row is walled). Size comes from the monster's stat block (`footprintOf`) and the DM can change it.
+- Tokens follow the combatants: added rows get a token, removed rows lose theirs. Party members line up on the map's party edge and monsters along the opposite edge, both spreading out from the middle of the edge and skipping walls, water and hazards when a dry square is free (`autoPlace`). Fit never shrinks squares below 28px: a big grid on a phone stays at that size, centred on the active token, and scrolls. Size comes from the monster's stat block (`footprintOf`) and the DM can change it.
 - Moves cost what `src/maps/logic` `checkMove` says (difficult terrain double, walls block); going past the speed left this turn warns but never blocks. Budgets reset when the turn changes; Dash doubles them.
 - Rows hidden from players (`Combatant.hidden`) show as hidden tokens on the DM's map.
+- Monster rows show the stat block's attack result against the picked target's AC ("19 vs AC 19: hit"); a natural 20 is a critical hit with doubled dice, a natural 1 a miss, and on a miss Apply turns into "Apply anyway". Every monster row has a damage-type picker; typed damage meets a library monster's immunities, resistances and vulnerabilities (`applyDamage`'s `block`), as on NPC sheets.
+- End combat, Remove row and Delete encounter ask through the in-app `ConfirmDialog`.

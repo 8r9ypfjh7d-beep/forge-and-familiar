@@ -6,7 +6,8 @@ import type { Monster, MonsterAction } from '../../content'
 import { roll, rollD20, type RollResult } from '../../dice'
 import { RollView, useDice } from '../../dice/ui'
 import { useI18n } from '../../i18n'
-import { formatMod } from '../../rules'
+import { derive, formatMod } from '../../rules'
+import { crLabel } from '../../monsters/format'
 import type { Ability } from '../../rules'
 import { addLog, critDice, legendaryCost, spendAction, rechargeAction, spendLegendary, type Party } from '../engine'
 import type { Combatant, Encounter } from '../types'
@@ -25,20 +26,34 @@ interface Hit {
 
 const total = (h: Hit) => h.damage.reduce((n, d) => n + d.roll.total, 0)
 
-export function MonsterActions({ enc, combatant: c, monster: m, party: _party, act, onClose }: {
+export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party, act, onClose }: {
   enc: Encounter
   combatant: Combatant
   monster: Monster
+  /** Stat blocks of other rows, so damage on a monster target meets its defenses. */
+  monsterOf?: (c: Combatant) => Monster | undefined
   party: Party
   act: Act
   onClose?: () => void
 }) {
-  const { t, abilityShort } = useI18n()
+  const { t, term, abilityShort, locale, dir } = useI18n()
   const { record } = useDice()
   const [hit, setHit] = useState<Hit | null>(null)
   const [targetId, setTargetId] = useState('')
   const targets = enc.combatants.filter(x => x.id !== c.id)
   const target = targets.find(x => x.id === targetId)
+  const targetPc = target?.characterId ? party[target.characterId] : undefined
+  const targetAc = targetPc ? derive(targetPc).armorClass.value : target?.ac
+  // An attack roll against the target's AC: a natural 20 always hits (dice already doubled), a natural 1 always misses.
+  const verdict = (() => {
+    const r = hit?.toHit
+    if (!r || !target || targetAc === undefined) return null
+    const crit = !!r.d20?.crit
+    const fumble = !!r.d20?.fumble
+    const hits = crit || (!fumble && r.total >= targetAc)
+    const text = crit ? t('combat.critHit') : fumble ? t('combat.natOneMiss') : t(hits ? 'combat.hitVs' : 'combat.missVs', { total: r.total, ac: targetAc })
+    return { hits, text }
+  })()
   // Legendary actions per round from the block ("can take 2 legendary actions"); 3 when it does not say.
   const LEGENDARY_MAX = legendaryCount(m) || 3
   const legendaryLeft = LEGENDARY_MAX - (c.legendaryUsed ?? 0)
@@ -72,7 +87,7 @@ export function MonsterActions({ enc, combatant: c, monster: m, party: _party, a
   const apply = (half: boolean) => {
     if (!hit || !target) return
     const parts = hit.damage.map(d => ({ amount: half ? Math.floor(d.roll.total / 2) : d.roll.total, type: d.type }))
-    act((e, p, remote, npcs) => applyDamage(e, p, remote, target.id, parts, newId(), npcs))
+    act((e, p, remote, npcs) => applyDamage(e, p, remote, target.id, parts, newId(), npcs, target.npcId ? undefined : monsterOf?.(target)))
     setHit(null)
   }
 
@@ -145,7 +160,7 @@ export function MonsterActions({ enc, combatant: c, monster: m, party: _party, a
       <div className="sb-head">
         <div>
           <strong>{m.name}</strong>
-          <span className="muted small"> · {m.sizes.join(' or ')} {m.type}{m.subtype ? ` (${m.subtype})` : ''} · CR {m.challengeRating} · {t('stat.ac')} {m.armorClass[0]?.value}</span>
+          <span className="muted small" lang={locale} dir={dir}> · {m.sizes.map(x => term('size', x, x)).join(' / ')} {term('creature', m.type, m.type)}{m.subtype ? ` (${m.subtype})` : ''} · {t('dm.cr', { cr: crLabel(m.challengeRating) })} · {t('stat.ac')} {m.armorClass[0]?.value}</span>
         </div>
         {onClose && <button type="button" className="icon" onClick={onClose} aria-label={t('combat.hideBlock')}>✕</button>}
       </div>
@@ -162,10 +177,13 @@ export function MonsterActions({ enc, combatant: c, monster: m, party: _party, a
             {hit.toHit && <RollView roll={hit.toHit} compact />}
             {hit.damage.map((d, i) => <RollView key={i} roll={d.roll} compact />)}
           </div>
+          {verdict && <p className={`sb-verdict ${verdict.hits ? 'hit' : 'miss'}`} lang={locale} dir={dir}><strong>{verdict.text}</strong></p>}
           {hit.damage.length > 0 && (
-            <div className="row sb-apply">
-              <button type="button" className="glass-btn small danger" disabled={!target} title={target ? undefined : t('combat.noTarget')} onClick={() => apply(false)}>
-                {target ? t('combat.applyTo', { amount: total(hit), name: target.name }) : t('combat.noTarget')}
+            <div className="row sb-apply" lang={locale} dir={dir}>
+              <button type="button" className={`glass-btn small ${verdict && !verdict.hits ? 'plain' : 'danger'}`} disabled={!target} title={target ? undefined : t('combat.noTarget')} onClick={() => apply(false)}>
+                {!target ? t('combat.noTarget')
+                  : verdict && !verdict.hits ? t('combat.applyAnyway', { amount: total(hit), name: target.name })
+                    : t('combat.applyTo', { amount: total(hit), name: target.name })}
               </button>
               {hit.save?.onSuccess === 'half' && (
                 <button type="button" className="glass-btn small" disabled={!target} onClick={() => apply(true)}>
