@@ -19,6 +19,7 @@ import { itemsEn } from './items.en'
 import { useEn } from './use.en'
 import { hurtEn } from './hurt.en'
 import { npcEn } from './npc.en'
+import { npcBuildEn } from './npcbuild.en'
 import { suppliesEn } from './supplies.en'
 import { picks2014En } from './picks2014.en'
 
@@ -42,6 +43,7 @@ export const en = {
   ...useEn,
   ...hurtEn,
   ...npcEn,
+  ...npcBuildEn,
   ...suppliesEn,
   ...picks2014En,
   // Shared

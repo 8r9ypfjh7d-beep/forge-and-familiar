@@ -90,6 +90,8 @@ describe('hash routes', () => {
     expect(hashToView('#/nope')).toEqual({ kind: 'campaigns' })
     expect(hashToView('#/sheet')).toEqual({ kind: 'list' })
     expect(viewToHash({ kind: 'npc', id: 'n1' })).toBe('#/npc/n1')
+    expect(hashToView('#/npc/new')).toEqual({ kind: 'npc', id: 'new' })
+    expect(hashToView('#/dm/npcs')).toEqual({ kind: 'dm', tab: 'npcs' })
     expect(hashToView('#/npc')).toEqual({ kind: 'dm' })
     expect(hashToView('#/sheet/%E0%A4%A')).toEqual({ kind: 'campaigns' })
   })

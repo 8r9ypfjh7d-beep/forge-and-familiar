@@ -20,6 +20,7 @@ import { itemsHe } from './items.he'
 import { useHe } from './use.he'
 import { hurtHe } from './hurt.he'
 import { npcHe } from './npc.he'
+import { npcBuildHe } from './npcbuild.he'
 import { sheetTermsHe } from './sheetnames.he'
 import { suppliesHe } from './supplies.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
@@ -48,6 +49,7 @@ const messages: Messages = {
   ...useHe,
   ...hurtHe,
   ...npcHe,
+  ...npcBuildHe,
   ...suppliesHe,
   ...picks2014He,
   'common.back': 'חזרה',
