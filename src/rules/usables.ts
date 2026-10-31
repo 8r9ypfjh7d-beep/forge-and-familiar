@@ -120,6 +120,9 @@ export const SPELL_TEMPLATES: Record<string, Template> = {
   'holy-aura': () => ({ stats: [{ kind: 'advantage', on: 'saves' }] }),
   'greater-invisibility': () => ({ stats: [{ kind: 'advantage', on: 'attacks' }] }),
   'circle-of-power': () => ({ stats: [{ kind: 'advantage', on: 'saves', when: 'against spells and magical effects' }] }),
+  friends: () => ({ stats: [{ kind: 'advantage', on: 'checks', when: 'with Charisma against the target' }] }),
+  // 2014: advantage on your first attack next turn; 2024 is a weapon attack cast at once.
+  'true-strike': (_l, { edition }) => (edition === '2024' ? {} : { stats: [{ kind: 'advantage', on: 'attacks', when: 'on your first attack against the target' }] }),
   'pass-without-trace': () => ({ stats: [{ kind: 'skill', skill: 'stealth', value: 10 }] }),
   longstrider: () => ({ stats: [{ kind: 'speed', value: 10 }] }),
   fly: () => ({ stats: [{ kind: 'moveSpeed', mode: 'fly', value: 60 }] }),
