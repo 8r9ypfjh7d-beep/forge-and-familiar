@@ -2,10 +2,10 @@
 // No DOM, no storage, no randomness. The live-combat RPC mirrors `checkMove` on the server.
 import {
   CELL_FEET, DEFAULT_HEIGHT, DEFAULT_WIDTH, MAP_SCHEMA_VERSION, MAX_CELLS, MIN_CELLS, TERRAINS,
-  type BattleMapDef, type Cell, type Diagonals, type Edge, type MapLabel, type MapPicture, type MapToken, type Rect, type Terrain, type TokenSize,
+  type BattleMapDef, type Cell, type CellKey, type Diagonals, type Edge, type MapLabel, type MapPicture, type MapToken, type Rect, type Terrain, type TokenSize,
 } from './types'
 
-export const cellKey = (x: number, y: number) => `${x},${y}`
+export const cellKey = (x: number, y: number): CellKey => `${x},${y}`
 
 export function parseKey(key: string): Cell {
   const [x, y] = key.split(',').map(Number)
@@ -34,10 +34,10 @@ export function normalizeMap(raw: unknown): BattleMapDef | null {
   const base = createMap(r.id, r.ownerId, typeof r.name === 'string' ? r.name : '', typeof r.createdAt === 'string' ? r.createdAt : now,
     typeof r.width === 'number' ? r.width : DEFAULT_WIDTH, typeof r.height === 'number' ? r.height : DEFAULT_HEIGHT)
   const inside = (c: Cell) => Number.isInteger(c.x) && Number.isInteger(c.y) && c.x >= 0 && c.y >= 0 && c.x < base.width && c.y < base.height
-  const terrain: Record<string, Terrain> = {}
+  const terrain: Record<CellKey, Terrain> = {}
   if (r.terrain && typeof r.terrain === 'object') {
     for (const [k, v] of Object.entries(r.terrain as Record<string, unknown>)) {
-      if (isTerrain(v) && v !== 'floor' && inside(parseKey(k))) terrain[k] = v
+      if (isTerrain(v) && v !== 'floor' && inside(parseKey(k))) terrain[k as CellKey] = v
     }
   }
   const labels: MapLabel[] = Array.isArray(r.labels)
@@ -47,7 +47,7 @@ export function normalizeMap(raw: unknown): BattleMapDef | null {
         ? [{ id: o.id, x: o.x, y: o.y, text: o.text.slice(0, 40) }] : []
     })
     : []
-  const fog = Array.isArray(r.fog) ? [...new Set((r.fog as unknown[]).filter((k): k is string => typeof k === 'string' && inside(parseKey(k))))].sort() : []
+  const fog = Array.isArray(r.fog) ? [...new Set((r.fog as unknown[]).filter((k): k is CellKey => typeof k === 'string' && inside(parseKey(k))))].sort() : []
   let picture: MapPicture | undefined
   const p = r.picture as Record<string, unknown> | undefined
   if (p && typeof p.src === 'string' && typeof p.width === 'number' && typeof p.height === 'number') {
@@ -115,13 +115,13 @@ export const removeLabel = (map: BattleMapDef, id: string) => ({ ...map, labels:
 export const labelAt = (map: BattleMapDef, x: number, y: number) => map.labels.find(l => l.x === x && l.y === y)
 
 /** Fog as cell keys: the map holds the starting cover, the running combat's board holds the fog during play. */
-export function coverCells(fog: string[], rect: Rect, bounds: Pick<BattleMapDef, 'width' | 'height'>): string[] {
-  const set = new Set(fog)
+export function coverCells(fog: CellKey[], rect: Rect, bounds: Pick<BattleMapDef, 'width' | 'height'>): CellKey[] {
+  const set = new Set<CellKey>(fog)
   for (const c of cellsOf(rect)) if (inBounds(bounds, c.x, c.y)) set.add(cellKey(c.x, c.y))
   return [...set].sort()
 }
 
-export function revealCells(fog: string[], rect: Rect): string[] {
+export function revealCells(fog: CellKey[], rect: Rect): CellKey[] {
   const gone = new Set<string>()
   for (const c of cellsOf(rect)) gone.add(cellKey(c.x, c.y))
   return fog.filter(k => !gone.has(k))

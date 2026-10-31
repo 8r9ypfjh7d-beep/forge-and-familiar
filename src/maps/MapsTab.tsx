@@ -54,7 +54,7 @@ export function MapsTab({ ownerId, initialOpenId }: { ownerId: string; initialOp
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
     const name = template === 'blank' ? t('maps.untitled') : t(`maps.tpl.${template}` as MessageKey)
-    const map = template === 'blank' ? createMap(id, ownerId, name, now) : buildTemplate(template, id, ownerId, name, now)
+    const map = template === 'blank' ? createMap(id, ownerId, name, now) : buildTemplate(template, id, ownerId, name, now, slug => t(`maps.lbl.${slug}` as MessageKey))
     try {
       const saved = await saveMap(map)
       setMaps(prev => [saved, ...(prev ?? [])])

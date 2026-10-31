@@ -10,7 +10,7 @@ interface Template {
   height: number
   partyEdge: Edge
   paint: [Terrain, Rect][]
-  labels: [number, number, string][]
+  labels: [number, number, TemplateLabel][]
   fog?: Rect[]
 }
 
@@ -28,7 +28,7 @@ const TEMPLATES: Record<TemplateId, Template> = {
       // Tables (difficult to climb over).
       ['difficult', row(3, 5, 2, 2)], ['difficult', row(8, 5, 2, 2)], ['difficult', row(13, 7, 2, 2)], ['difficult', row(4, 9, 2, 2)], ['difficult', row(9, 9, 2, 2)],
     ],
-    labels: [[7, 1, 'Bar'], [17, 2, 'Stairs up'], [16, 1, 'Kitchen']],
+    labels: [[7, 1, 'bar'], [17, 2, 'stairsUp'], [16, 1, 'kitchen']],
   },
   forest: {
     width: 24, height: 18, partyEdge: 'w',
@@ -43,7 +43,7 @@ const TEMPLATES: Record<TemplateId, Template> = {
       ['water', row(0, 8, 9, 2)], ['water', row(9, 7, 6, 2)], ['water', row(15, 8, 9, 2)],
       ['difficult', row(10, 9, 2, 1)],
     ],
-    labels: [[11, 9, 'Ford'], [12, 4, 'Clearing']],
+    labels: [[11, 9, 'ford'], [12, 4, 'clearing']],
   },
   corridor: {
     width: 30, height: 12, partyEdge: 'w',
@@ -56,7 +56,7 @@ const TEMPLATES: Record<TemplateId, Template> = {
       ['hazard', row(14, 5, 2, 2)],
       ['stairs', row(28, 5, 1, 2)],
     ],
-    labels: [[8, 2, 'Guard room'], [21, 9, 'Shrine'], [14, 5, 'Pit 20 ft'], [28, 5, 'Stairs down']],
+    labels: [[8, 2, 'guardRoom'], [21, 9, 'shrine'], [14, 5, 'pit'], [28, 5, 'stairsDown']],
     fog: [row(18, 7, 8, 4), row(6, 1, 6, 4)],
   },
   field: {
@@ -65,15 +65,23 @@ const TEMPLATES: Record<TemplateId, Template> = {
       ['difficult', row(2, 3, 2, 1)], ['difficult', row(19, 10, 3, 1)],
       ['wall', row(11, 7, 2, 2)],
     ],
-    labels: [[11, 7, 'Boulder']],
+    labels: [[11, 7, 'boulder']],
   },
 }
 
-export function buildTemplate(id: TemplateId, mapId: string, ownerId: string, name: string, now: string): BattleMapDef {
+/** English text of every template label, keyed by its slug; the UI passes a translator (`maps.lbl.<slug>`). */
+export const TEMPLATE_LABELS = {
+  bar: 'bar', stairsUp: 'stairsUp', kitchen: 'kitchen', ford: 'ford', clearing: 'clearing', guardRoom: 'guardRoom',
+  shrine: 'shrine', pit: 'pit', stairsDown: 'stairsDown', boulder: 'boulder',
+} as const
+export type TemplateLabel = keyof typeof TEMPLATE_LABELS
+const english = (slug: TemplateLabel) => TEMPLATE_LABELS[slug]
+
+export function buildTemplate(id: TemplateId, mapId: string, ownerId: string, name: string, now: string, label: (slug: TemplateLabel) => string = english): BattleMapDef {
   const tpl = TEMPLATES[id]
   let map = createMap(mapId, ownerId, name, now, tpl.width, tpl.height)
   for (const [terrain, rect] of tpl.paint) map = paintRect(map, rect, terrain)
-  for (const [x, y, text] of tpl.labels) map = setLabel(map, { id: `${id}-${x}-${y}`, x, y, text })
+  for (const [x, y, text] of tpl.labels) map = setLabel(map, { id: `${id}-${x}-${y}`, x, y, text: label(text) })
   for (const rect of tpl.fog ?? []) map = coverFog(map, rect)
   return { ...map, partyEdge: tpl.partyEdge }
 }

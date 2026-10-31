@@ -6,6 +6,8 @@ import {
   tokenDistanceFeet, UNPLACED,
 } from './logic'
 import { buildTemplate, TEMPLATE_IDS } from './templates'
+import type { Board, LiveMap } from '../combat/types'
+import { coverCells, revealCells } from './logic'
 import type { BattleMapDef, MapToken } from './types'
 
 const NOW = '2026-10-30T20:00:00.000Z'
@@ -231,5 +233,17 @@ describe('maps.css', () => {
     const css = readFileSync(new URL('./maps.css', import.meta.url), 'utf8')
     expect(css).not.toMatch(/(margin|padding|border)-(left|right)|[^-]\b(left|right):/)
     expect(css).toMatch(/--glass-/)
+  })
+})
+
+describe('live combat hand-off', () => {
+  it('passes a saved map as the live map and edits the board fog with the same helpers', () => {
+    const map = buildTemplate('corridor', 'c', 'noa', 'Corridor', NOW)
+    const live: LiveMap = map
+    expect(live.fog).toEqual(map.fog)
+    const board: Board = { mapId: map.id, tokens: [], fog: map.fog, locked: false }
+    const revealed = revealCells(board.fog, { x: 18, y: 7, w: 8, h: 4 })
+    expect(revealed.length).toBeLessThan(board.fog.length)
+    expect(coverCells(revealed, { x: 18, y: 7, w: 8, h: 4 }, map)).toEqual(board.fog)
   })
 })

@@ -80,8 +80,8 @@ export function MapEditor({ map, onChange, onBack, status }: { map: BattleMapDef
   }
 
   const key = (e: KeyboardEvent<HTMLCanvasElement>) => {
-    const rtl = getComputedStyle(e.currentTarget).direction === 'rtl'
-    const dx = e.key === 'ArrowRight' ? (rtl ? -1 : 1) : e.key === 'ArrowLeft' ? (rtl ? 1 : -1) : 0
+    // The map is a picture of the room: it never mirrors in Hebrew, so arrows move the way they point.
+    const dx = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
     const dy = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0
     if (dx || dy) {
       e.preventDefault()
@@ -114,6 +114,12 @@ export function MapEditor({ map, onChange, onBack, status }: { map: BattleMapDef
         onChange={e => onChange(resizeMap(map, field === 'width' ? clampCells(+e.target.value) : map.width, field === 'height' ? clampCells(+e.target.value) : map.height))} />
     </label>
   )
+
+  const cellLine = (c: Cell) => {
+    const d = describeCell(map, c.x, c.y)
+    const what = [t(d.terrain === 'floor' ? 'maps.floor' : `maps.tool.${d.terrain}` as MessageKey), d.label, d.fog ? t('maps.fog') : ''].filter(Boolean).join(', ')
+    return t('maps.cell', { cell: cellName(c.x, c.y), what })
+  }
 
   const existing = labelCell ? labelAt(map, labelCell.x, labelCell.y) : undefined
   const canvasLabel = t('maps.canvas', { w: map.width, h: map.height })
@@ -182,7 +188,7 @@ export function MapEditor({ map, onChange, onBack, status }: { map: BattleMapDef
       <div className="maps-zoom">
         <button type="button" className="glass-btn" aria-label={t('maps.zoomOut')} disabled={zoom === 0} onClick={() => setZoom(z => z - 1)}>−</button>
         <button type="button" className="glass-btn" aria-label={t('maps.zoomIn')} disabled={zoom === ZOOMS.length - 1} onClick={() => setZoom(z => z + 1)}>+</button>
-        <span className="hint maps-cell" aria-live="polite">{t('maps.cell', { cell: cellName(cursor.x, cursor.y), what: describeCell(map, cursor.x, cursor.y) || t('maps.tool.floor') })}</span>
+        <span className="hint maps-cell" aria-live="polite">{cellLine(cursor)}</span>
       </div>
 
       <div className={`maps-scroll${tool === 'pan' ? ' is-pan' : ''}`}>

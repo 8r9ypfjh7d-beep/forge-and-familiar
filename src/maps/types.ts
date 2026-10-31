@@ -2,6 +2,10 @@
 // picture under the grid, DM-painted fog and the edge the party enters from. Tokens live in the running
 // combat (src/combat/live.ts), never in the map, so one map serves many fights.
 
+import type { CellKey, Token } from '../combat/types'
+
+export type { CellKey }
+
 export const MAP_SCHEMA_VERSION = 1
 
 export const MIN_CELLS = 5
@@ -43,7 +47,8 @@ export interface MapPicture {
   offsetY: number
 }
 
-export interface BattleMapDef {
+/** A type alias, not an interface, so a map passes as the live combat's `LiveMap` (which has an index signature). */
+export type BattleMapDef = {
   id: string
   ownerId: string
   schemaVersion: number
@@ -52,11 +57,11 @@ export interface BattleMapDef {
   width: number
   height: number
   /** Sparse: "x,y" → terrain for every cell that is not floor. */
-  terrain: Record<string, Terrain>
+  terrain: Record<CellKey, Terrain>
   labels: MapLabel[]
   picture?: MapPicture
   /** "x,y" keys of cells covered by fog. Players see dark glass there and no tokens. */
-  fog: string[]
+  fog: CellKey[]
   /** Where the party starts; auto-placement lines tokens up along it. */
   partyEdge?: Edge
   diagonals: Diagonals
@@ -67,24 +72,5 @@ export interface BattleMapDef {
 /** Cells on a side: Tiny/Small/Medium 1, Large 2, Huge 3, Gargantuan 4. */
 export type TokenSize = 1 | 2 | 3 | 4
 
-/**
- * A combatant on the board, structurally the same as the live combat's `Token` (src/combat/types.ts) so the
- * tracker passes its tokens straight in. Owned by the running combat; the map module only does the maths.
- */
-export interface MapToken {
-  id: string
-  /** Encounter combatant this token stands for. */
-  combatantId: string
-  /** Set for party rows: the player bringing this character may move it. */
-  characterId?: string
-  kind: 'pc' | 'npc' | 'ally'
-  /** Two or three characters shown on the token: initials or "G1". */
-  label: string
-  /** Top-start cell of the footprint. */
-  x: number
-  y: number
-  size: TokenSize
-  /** Known to the DM only until revealed. */
-  hidden?: boolean
-  color?: string
-}
+/** A combatant on the board: the live combat's token (src/combat/types.ts). The map module only does the maths. */
+export type MapToken = Token

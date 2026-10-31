@@ -160,11 +160,9 @@ export function cellAtPoint(px: number, x: number, y: number): Cell {
   return { x: Math.floor(x / px), y: Math.floor(y / px) }
 }
 
-/** Short description of a cell for screen readers: "C4, wall". */
-export function describeCell(map: BattleMapDef, x: number, y: number): string {
-  const t = terrainAt(map, x, y)
-  const label = map.labels.find(l => l.x === x && l.y === y)?.text
-  return [cellName(x, y), t === 'floor' ? '' : t, label ?? '', map.fog.includes(cellKey(x, y)) ? 'fog' : ''].filter(Boolean).join(', ')
+/** What is on a cell, for a screen-reader line: its terrain, its label and whether fog covers it. The UI translates. */
+export function describeCell(map: BattleMapDef, x: number, y: number): { terrain: Terrain; label?: string; fog: boolean } {
+  return { terrain: terrainAt(map, x, y), label: map.labels.find(l => l.x === x && l.y === y)?.text, fog: map.fog.includes(cellKey(x, y)) }
 }
 
 /** "A1" style cell names: columns as letters, rows as numbers from 1. */
