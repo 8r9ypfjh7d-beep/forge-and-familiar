@@ -23,6 +23,11 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 | `ui/rolls.ts` | Initiative and concentration rolls through `src/dice`, recorded in the dice history |
 | `ui/CombatTracker.tsx` | Encounter list and the open encounter (`initialOpenId` opens one straight away, used by the DM screen); `campaign` = the party in play; `ui/useMonsterIndex.ts` loads stat blocks; Next turn rolls the new monster's recharges |
 | `ui/CombatantRow.tsx`, `AddCombatants.tsx`, `Effects.tsx`, `PendingChecks.tsx` | Parts of the encounter screen |
+| `map/BattleMap.tsx` | The battle map view: canvas board with tokens as buttons on top; pinch, wheel and buttons zoom, drag pans; tap a token then a cell (or drag on desktop) to move with the path and its cost shown; measure; DM fog brush, hidden tokens, token size, Lock players. Props: `map`, `board`, `encounter`, `viewer` (`dm` or `player` + `characterId`), `onMove`, DM-only `onBoard`, `infoFor`. Reads no storage, so the player sheet can use it too |
+| `map/EncounterMap.tsx` | The tracker's map pane: map picker (starter maps, blank grid, saved maps once `src/maps` has a store), tokens for every combatant, live sync |
+| `map/useLiveBoard.ts` | DM side of the live row: Start pushes (`startLiveCombat`), changes mirror after 300 ms, board edits and moves go to both, players' moves come back from `watchLiveCombat`, End clears the row. A local party stays local; a "Share map with the party" button re-pushes a running fight |
+| `map/viewport.ts`, `map/board.ts`, `map/tokens.ts`, `map/resolve.ts`, `map/draw.ts` | Pure parts: camera maths, fog brushes and movement budget, token placement (party edge, monsters on the far side), map ids (`tpl:<id>`, `blank`, saved id), canvas painting from CSS tokens. Tested next to them |
+| `map/battlemap.css` | Map styles: glass chrome, round tokens with an HP ring, logical properties only; the grid itself is always left-to-right |
 | `ui/combat.css` | Liquid Glass styles (src/design/DESIGN.md): `.glass` cards, `.glass-btn` buttons, `.glass-chip` chips; logical properties only |
 | `ui/style.test.ts` | Keeps `combat.css` on logical properties and glass tokens |
 
@@ -50,3 +55,10 @@ Design: `/mnt/project-files/combat-maps/brainstorm.md`. The map editor lives in 
 - A trigger keeps `party_encounters_public`, the only table players read: no hidden tokens, no tokens under fog, no tokens of rows players don't see; a combatant whose token is hidden or fogged leaves the turn order too. As a second line of defence a raw npc row (no `look`) loses its HP and the `DM_ONLY_FIELDS` there. `projectPublic` in `liveLogic.ts` is the same rule in TypeScript; `live.test.ts` and `supabase/tests/rls_test.sql` both check it.
 - Moves go through the `move_token` RPC (`moveToken`): the DM moves any token; a player only the token whose `characterId` is the character they bring to the party, and not while `locked`; nothing leaves the map. `moveProblem` is the same check client-side for instant feedback. Moves bump `rev`, so a DM board write racing a player move is retried on the fresh board.
 - `watchLiveCombat(partyId, asDm, fn)` calls `fn` now and after every realtime change with the row (full for the DM, public for players) or null when the combat ended. Maps are cached by `map_id` so a token move doesn't re-download a picture.
+
+### The map in the tracker
+
+- Each encounter has a map pane: above the order on wide screens, behind an Order / Map switch on phones. Picking a map writes `Encounter.board` (`mapId`, the map's own fog, tokens placed by `syncTokens`). Changing the map places everyone again; removing it keeps the board without a map.
+- Tokens follow the combatants: added rows get a token, removed rows lose theirs. Party members line up on the map's party edge, monsters on the far row (or along the opposite edge when that row is walled). Size comes from the monster's stat block (`footprintOf`) and the DM can change it.
+- Moves cost what `src/maps/logic` `checkMove` says (difficult terrain double, walls block); going past the speed left this turn warns but never blocks. Budgets reset when the turn changes; Dash doubles them.
+- Rows hidden from players (`Combatant.hidden`) show as hidden tokens on the DM's map.
