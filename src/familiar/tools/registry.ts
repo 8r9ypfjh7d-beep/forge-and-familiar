@@ -1,5 +1,6 @@
 // Tools the model may call. They run in the browser over the app's own data, so the server never needs it.
 import type { FamiliarContext, FunctionDeclaration } from '../types'
+import type { DmToolData } from './dm'
 
 /** What a tool may read: who is asking and what is on screen. Executors enforce access, not the model. */
 export interface ToolEnv {
@@ -15,6 +16,8 @@ export interface ToolEnv {
 /** App data the character and DM tools read; filled in by the UI layer (units C and D). */
 export interface ToolData {
   getCharacter?: (id: string) => Promise<unknown>
+  /** DM screen data; the DM tools check access themselves (tools/dm.ts). */
+  dm?: DmToolData
   [key: string]: unknown
 }
 

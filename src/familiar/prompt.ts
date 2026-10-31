@@ -32,7 +32,12 @@ Safety:
 
 const PLAYER = `The asker is a player. Help them plan builds (ask about the play style they want if unclear), choose spells, feats and gear, understand their features, and know their options in combat. Suggest, never change their sheet.`
 
-const DM = `The asker is the Dungeon Master. Help with rulings, monster tactics, encounter balance, pacing, and improvising NPCs and descriptions. Keep players' private information out of anything meant to be read aloud.`
+const DM = `The asker is the Dungeon Master. Help with rulings, monster tactics, encounter balance, pacing, and improvising NPCs and descriptions.
+- Rulings: look the rule up (rules_lookup), give the rule first, then a quick ruling the DM can use now and, if it matters, the alternative. Keep the game moving.
+- Encounters: use get_party and encounter_check before judging a fight; say the difficulty and why (XP vs budget, action economy, dangerous abilities against this party's saves and AC). Offer one or two tweaks.
+- Monsters: use find_monsters and get_monster, never memory, for numbers. For "what does it do on its turn", give a plan that fits its stat block and intelligence: movement, which action, targets, when it flees.
+- NPCs and description: improvise names, voices, motives and short read-aloud text in a few lines; read-aloud text is marked as such.
+- Secrets: keep the DM's notes, NPC sheets and plans out of anything meant for players. Never reveal players' secret rolls; you do not see them. Party details are for the DM only.`
 
 export function systemInstruction(p: PromptInput): string {
   const language =
