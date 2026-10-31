@@ -427,6 +427,9 @@ function Meter({ xp, budget, players }: { xp: number; budget: { low: number; mod
 
 // ---------- Monsters ----------
 
+/** Types with a translated label (dm.ctype.*); homebrew types show as typed. */
+const CREATURE_TYPES = ['aberration', 'beast', 'celestial', 'construct', 'dragon', 'elemental', 'fey', 'fiend', 'giant', 'humanoid', 'monstrosity', 'ooze', 'plant', 'undead', 'summon']
+
 function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }: {
   monsters: LoadedMonster[]
   onAdd: (m: Monster) => void
@@ -442,6 +445,7 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }:
   const groups = useMemo(() => monsterGroups(monsters), [monsters])
   const found = useMemo(() => findMonsters(monsters, q, 60, monsterName) as LoadedMonster[], [monsters, q, monsterName])
   const cr = (v: string) => (v === '' ? null : Number(v))
+  const typeName = (x: string) => (CREATURE_TYPES.includes(x) ? t(`dm.ctype.${x}` as MessageKey) : x[0].toUpperCase() + x.slice(1))
   const groupName = (g: string) => (g === 'srd' ? t('dm.srdSource') : g === 'hb' ? t('dm.homebrewSource') : BOOK_TITLES[g] ?? g)
   if (!monsters.length) return <p className="hint">{t('common.loading')}</p>
   return (
@@ -471,7 +475,7 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }:
         </select>
         <select aria-label={t('dm.type')} value={q.type} onChange={e => setQ({ ...q, type: e.target.value })}>
           <option value="">{t('dm.anyType')}</option>
-          {types.map(x => <option key={x} value={x}>{x}</option>)}
+          {types.map(x => <option key={x} value={x}>{typeName(x)}</option>)}
         </select>
       </div>
       {found.length === 0 ? <p className="hint">{t('dm.noMonsters')}</p> : (

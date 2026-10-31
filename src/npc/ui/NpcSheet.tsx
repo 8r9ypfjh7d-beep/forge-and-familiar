@@ -7,6 +7,9 @@ import { announce } from '../../a11y'
 import { ConfirmDialog } from '../../builder/ConfirmDialog'
 import { addCombatant, createEncounter, listEncounters, saveEncounter, type Encounter } from '../../combat'
 import { npcCombatant } from '../../combat/npcRows'
+import { addMonster, npcPlanEntry, updatePlan } from '../../dm/logic'
+import { loadDm, saveDm } from '../../dm/store'
+import type { DmState, EncounterPlan } from '../../dm/types'
 import { rollD20 } from '../../dice'
 import { useDice } from '../../dice/ui'
 import { useI18n, type MessageKey } from '../../i18n'
@@ -135,12 +138,22 @@ function HeroCard({ npc, editing, apply, ownerId, onOpenFight }: { npc: Npc; edi
   const m = npc.block
   const [picking, setPicking] = useState(false)
   const [fights, setFights] = useState<Encounter[] | null>(null)
+  // Fights planned on the DM screen come first, then combats already in the tracker.
+  const [plans, setPlans] = useState<DmState | null>(null)
   useEffect(() => {
     if (!picking) return
     let live = true
     listEncounters(ownerId).then(l => { if (live) setFights(l) })
+    loadDm(ownerId).then(s => { if (live) setPlans(s) })
     return () => { live = false }
   }, [picking, ownerId])
+
+  const plan = async (p: EncounterPlan) => {
+    const state = await loadDm(ownerId)
+    await saveDm(ownerId, updatePlan(state, p.id, x => (x.monsters.some(m => m.npcId === npc.id) ? x : addMonster(x, npcPlanEntry(npc)))))
+    setPicking(false)
+    announce(t('npc.log.joined', { fight: p.name }))
+  }
 
   const rename = (patch: Partial<Pick<Npc, 'name' | 'role'>>) => apply(t('npc.log.edited'), n => ({ ...n, ...patch }))
   const join = async (fight?: Encounter) => {
@@ -190,8 +203,9 @@ function HeroCard({ npc, editing, apply, ownerId, onOpenFight }: { npc: Npc; edi
         {picking && (
           <div className="npc-fights" role="group" aria-label={t('npc.pickFight')}>
             <p className="hint">{t('npc.pickFight')}</p>
-            {fights === null ? <p className="hint">{t('common.loading')}</p> : (
+            {fights === null || plans === null ? <p className="hint">{t('common.loading')}</p> : (
               <div className="row">
+                {plans.plans.map(p => <button key={p.id} type="button" className="chip" onClick={() => void plan(p)}>{t('npc.plannedFight', { name: p.name })}</button>)}
                 {fights.map(f => <button key={f.id} type="button" className="chip" onClick={() => void join(f)}>{f.name}</button>)}
                 <button type="button" className="chip on" onClick={() => void join()}>{t('npc.newFight')}</button>
               </div>
