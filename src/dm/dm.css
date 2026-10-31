@@ -236,3 +236,5 @@
 /* Scenario notes and start options (Encounters tab) */
 .ff-sheet.ff-dm .dm-notes { display: grid; gap: 4px; margin-block-start: var(--sp-3); font-size: 0.85rem; font-weight: 600; color: var(--muted); }
 .ff-sheet.ff-dm .dm-check { display: flex; align-items: center; gap: var(--sp-2); margin-block: var(--sp-2); font-size: 0.9rem; }
+.ff-sheet.ff-dm .dm-map-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-block: var(--sp-2); font-size: 0.9rem; }
+.ff-sheet.ff-dm .dm-map-pick select { min-block-size: 36px; padding-inline: var(--sp-2); }

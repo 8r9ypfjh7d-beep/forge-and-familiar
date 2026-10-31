@@ -12,6 +12,7 @@ The DM's combat maps: a 5-ft square grid, painted terrain or a picture under the
 | `render.ts` | `drawMap(ctx, map, opts)` paints picture, terrain, grid, party edge, path, labels and fog on a canvas; `cellName` ("C4"), `describeCell`, `TERRAIN_GLYPH` |
 | `store.ts` | `listMaps`/`getMap`/`saveMap`/`deleteMap`/`syncMaps`/`onMapsChanged`: device cache `ff.maps.v1.<ownerId>` mirrored to Supabase `dm_maps` (one row per map, newest `updatedAt` wins, pending ids in `ff.maps.pending.v1.<ownerId>`) |
 | `MapEditor.tsx` | The editor (tools, settings, picture fit, canvas) and `MapThumb` for list rows |
+| `MapPicker.tsx` | Select of the DM's maps for an encounter plan (Encounters tab on the DM screen) |
 | `MapsTab.tsx` | Maps tab: templates, list, delete confirm, debounced saves |
 | `maps.css` | Liquid Glass layout for the tab and editor, logical properties only |
 | `maps.test.ts` | Painting, fog, pictures, distances, paths, move checks, auto-placement, normalizing, templates, CSS rules |
