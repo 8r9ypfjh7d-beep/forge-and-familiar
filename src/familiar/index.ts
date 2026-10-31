@@ -1,11 +1,14 @@
 // The Familiar: in-app AI assistant (Gemini through the `familiar` Supabase Edge Function). See FAMILIAR.md.
 import './tools/content'
 import './tools/dm'
+import './tools/character'
 
 export * from './types'
 export { edgeTransport, functionUrl, mergeChunks, parseSse, type FamiliarTransport } from './api'
 export { MAX_HISTORY, MAX_TOOL_ROUNDS, runTurn, textOf, trimHistory, type TurnEvents, type TurnResult } from './chat'
-export { characterCard } from './context'
+export { characterCard, draftCard } from './context'
+export { CHARACTER_SECTIONS, builderOptions, draftCharacter, resolveCharacter, statKeys } from './tools/character'
+export * from './screen'
 export { systemInstruction, type PromptInput } from './prompt'
 export { declarations, getTool, registerTool, runTool, type ToolData, type ToolDef, type ToolEnv } from './tools/registry'
 export { sourceNote } from './tools/content'
