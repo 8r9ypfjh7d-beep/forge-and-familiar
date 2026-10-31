@@ -3,8 +3,11 @@
 import type { CustomAction } from '../model/character'
 import type { ItemEffect } from '../rules/types'
 
-/** 'edit' asks to reopen the character in the builder; players can't edit without the DM's OK. */
-export type RequestKind = 'item' | 'effect' | 'ability' | 'other' | 'edit'
+/**
+ * 'edit' asks to reopen the character in the builder; players can't edit without the DM's OK.
+ * 'levelup' asks for the next level without the XP for it; the DM answers with XP or a milestone.
+ */
+export type RequestKind = 'item' | 'effect' | 'ability' | 'other' | 'edit' | 'levelup'
 /** The kinds a player picks on the "Ask the DM" form. Edit requests start from the Edit button. */
 export const REQUEST_KINDS: RequestKind[] = ['item', 'effect', 'ability', 'other']
 
@@ -33,6 +36,9 @@ export interface DmRequest {
   stats?: ItemEffect[]
   /** Limited uses ("once per day" boots): the granted action tracks them and refills on that rest. */
   uses?: CustomAction['uses']
+  /** levelup only: the character's level and XP when the player asked. */
+  level?: number
+  xp?: number
   createdAt: string
   status: RequestStatus
   /** The DM's answer to the player. */

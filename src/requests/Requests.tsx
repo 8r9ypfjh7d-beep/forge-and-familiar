@@ -5,14 +5,17 @@ import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { EffectsEditor, effectText } from '../inventory'
 import type { Character, CustomAction } from '../model/character'
-import { derive, type Ability, type ItemEffect, type Recharge } from '../rules'
+import { listParties, updateStash } from '../party/store'
+import type { Party } from '../party/types'
+import { derive, totalLevel, type Ability, type ItemEffect, type Recharge } from '../rules'
 import { resolveDice } from '../sheet/combat/combat'
 import { listCharacters } from '../storage'
 import { isDelivered, onDeliveryChanged, startRequestsCloud } from './cloud'
 import { applyGrants } from './grants'
 import {
-  answered, codeFrom, hasMechanics, decide, decodeShared, DETAILS_MAX, inbox, linkFor, mergeShared, mine, newEditRequest, newRequest,
-  openEditRequest, problems, reminders, removeRequest, setStoryNote, TITLE_MAX, type MergeOutcome, type Shared,
+  answered, codeFrom, hasMechanics, decide, decodeShared, DETAILS_MAX, inbox, levelUpNeed, linkFor, mergeShared, mine, newEditRequest,
+  newLevelUpRequest, newRequest, openEditRequest, openLevelUpRequest, problems, reminders, removeRequest, setStoryNote, TITLE_MAX,
+  type MergeOutcome, type Shared,
 } from './logic'
 import { useRequests } from './hooks'
 import { onRequestsChanged, updateRequests } from './store'
@@ -21,10 +24,10 @@ import '../sheet/sheet.css'
 import './requests.css'
 
 const KIND_KEYS: Record<RequestKind, MessageKey> = {
-  item: 'req.kind.item', effect: 'req.kind.effect', ability: 'req.kind.ability', other: 'req.kind.other', edit: 'req.kind.edit',
+  item: 'req.kind.item', effect: 'req.kind.effect', ability: 'req.kind.ability', other: 'req.kind.other', edit: 'req.kind.edit', levelup: 'req.kind.levelup',
 }
 const KIND_HINTS: Record<RequestKind, MessageKey> = {
-  item: 'req.kindHint.item', effect: 'req.kindHint.effect', ability: 'req.kindHint.ability', other: 'req.kindHint.other', edit: 'req.kindHint.edit',
+  item: 'req.kindHint.item', effect: 'req.kindHint.effect', ability: 'req.kindHint.ability', other: 'req.kindHint.other', edit: 'req.kindHint.edit', levelup: 'req.kindHint.levelup',
 }
 const STATUS_KEYS: Record<RequestStatus, MessageKey> = {
   pending: 'req.status.pending', later: 'req.status.later', granted: 'req.status.granted', denied: 'req.status.denied',
@@ -219,6 +222,7 @@ export function RequestsView({ userId, userName }: { userId: string; userName: s
 
 function playerStatus(r: DmRequest): MessageKey {
   if (r.kind === 'edit' && r.status === 'granted') return r.applied ? 'req.status.edited' : 'req.status.editOk'
+  if (r.kind === 'levelup' && r.status === 'granted') return 'req.status.levelGiven'
   if (r.status === 'granted' && !r.applied) return 'req.status.grantedElsewhere'
   return STATUS_KEYS[r.status]
 }
@@ -440,7 +444,7 @@ function RequestHead({ r, showWho }: { r: DmRequest; showWho?: boolean }) {
 // ---------- DM: requests tab and story reminders ----------
 
 /** The DM's Requests tab: new requests to answer, the "later" list, and past answers. */
-export function DmRequestsTab({ list }: { list: DmRequest[] }) {
+export function DmRequestsTab({ list, userId }: { list: DmRequest[]; userId: string }) {
   const { t } = useI18n()
   const waiting = inbox(list)
   const later = reminders(list)
@@ -450,7 +454,7 @@ export function DmRequestsTab({ list }: { list: DmRequest[] }) {
       <section className="card" aria-labelledby="req-inbox">
         <h2 id="req-inbox">{t('req.inbox', { count: waiting.length })}</h2>
         {waiting.length === 0 ? <p className="hint">{t('req.inboxEmpty')}</p> : (
-          <ul className="plain req-list">{waiting.map(r => <InboxCard key={r.id} r={r} />)}</ul>
+          <ul className="plain req-list">{waiting.map(r => <InboxCard key={r.id} r={r} userId={userId} />)}</ul>
         )}
         <PasteLink label={t('req.pasteRequest')} />
       </section>
@@ -486,11 +490,69 @@ export function DmRequestsTab({ list }: { list: DmRequest[] }) {
 
 /** How an answered request reads to the DM. */
 function dmStatus(r: DmRequest): MessageKey {
-  if (r.status === 'granted') return r.kind === 'edit' ? 'req.dm.editAllowed' : 'req.dm.granted'
+  if (r.status === 'granted') return r.kind === 'edit' ? 'req.dm.editAllowed' : r.kind === 'levelup' ? 'req.dm.levelGiven' : 'req.dm.granted'
   return r.status === 'later' ? 'req.dm.later' : 'req.dm.denied'
 }
 
-function InboxCard({ r, onAnswered }: { r: DmRequest; onAnswered?: (id: string) => void }) {
+function InboxCard({ r, userId, onAnswered }: { r: DmRequest; userId: string; onAnswered?: (id: string) => void }) {
+  if (r.kind === 'levelup') return <LevelUpCard r={r} userId={userId} onAnswered={onAnswered} />
+  return <AnswerCard r={r} onAnswered={onAnswered} />
+}
+
+/** The DM's campaign this request's character plays in, if the DM runs one with it. */
+const campaignOf = (parties: Party[], r: Pick<DmRequest, 'fromId' | 'characterId'>, dmId: string) =>
+  parties.find(p => p.dmId === dmId && p.members.some(m => m.userId === r.fromId && m.characterId === r.characterId))
+
+/** A level-up request: the DM gives the XP for the next level or a milestone level; it reaches the sheet as a party award. */
+function LevelUpCard({ r, userId, onAnswered }: { r: DmRequest; userId: string; onAnswered?: (id: string) => void }) {
+  const { t } = useI18n()
+  const id = useId()
+  const [reply, setReply] = useState('')
+  const [party, setParty] = useState<Party | null | undefined>(undefined)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let live = true
+    const who = { fromId: r.fromId, characterId: r.characterId }
+    listParties(userId).then(ps => { if (live) setParty(campaignOf(ps, who, userId) ?? null) }, () => { if (live) setParty(null) })
+    return () => { live = false }
+  }, [userId, r.fromId, r.characterId])
+  const need = levelUpNeed(r)
+  const give = async (milestone: boolean) => {
+    if (!party) return
+    setBusy(true)
+    const res = await updateStash(party.id, userId, {
+      type: 'award', ...(milestone || !need ? { milestone: true } : { xp: need.xp }),
+      to: [{ userId: r.fromId, characterId: r.characterId }], names: [r.characterName],
+    })
+    setBusy(false)
+    if (!res.ok) { setError(res.reason); return }
+    await updateRequests(l => decide(l, r.id, 'granted', nowIso(), reply))
+    onAnswered?.(r.id)
+  }
+  const deny = async () => {
+    await updateRequests(l => decide(l, r.id, 'denied', nowIso(), reply))
+    onAnswered?.(r.id)
+  }
+  return (
+    <li className="req-card st-pending k-edit">
+      <RequestHead r={r} showWho />
+      {typeof r.level === 'number' && <p className="hint">{t('req.levelup.has', { level: r.level, xp: r.xp ?? 0 })}</p>}
+      {r.details && <p className="req-details" dir="auto">{r.details}</p>}
+      {party === null && <p className="hint">{t('req.levelup.noCampaign', { character: r.characterName })}</p>}
+      <label htmlFor={id} className="sub-title">{t('req.replyLabel')}</label>
+      <textarea id={id} rows={2} maxLength={DETAILS_MAX} value={reply} onChange={e => setReply(e.target.value)} placeholder={t('req.replyPlaceholder')} />
+      <div className="req-actions">
+        {need && <button type="button" className="btn primary small" disabled={!party || busy} onClick={() => give(false)}>{t('req.levelup.giveXp', { xp: need.xp, level: need.level })}</button>}
+        <button type="button" className={`btn small ${need ? '' : 'primary'}`} disabled={!party || busy} onClick={() => give(true)}>{t('req.levelup.milestone')}</button>
+        <button type="button" className="btn ghost small" onClick={deny}>{t('req.deny')}</button>
+      </div>
+      {error && <p className="hint" role="alert">{error}</p>}
+    </li>
+  )
+}
+
+function AnswerCard({ r, onAnswered }: { r: DmRequest; onAnswered?: (id: string) => void }) {
   const { t } = useI18n()
   const id = useId()
   const [reply, setReply] = useState('')
@@ -630,7 +692,7 @@ function useModal(open: boolean) {
  * Mounted for the DM. Every new request pops up once, on any page: answer it right there,
  * then send the answer link. "Not now" leaves it in the Requests tab.
  */
-export function DmRequestPopup({ onOpenAll }: { onOpenAll: () => void }) {
+export function DmRequestPopup({ userId, onOpenAll }: { userId: string; onOpenAll: () => void }) {
   const { t } = useI18n()
   const list = useRequests()
   const [seen, setSeen] = useState(readSeen)
@@ -653,7 +715,9 @@ export function DmRequestPopup({ onOpenAll }: { onOpenAll: () => void }) {
       {shown && (
         <div className="ff-sheet ff-requests">
           <h2 id="req-pop-title">
-            {shown.kind === 'edit' ? t('req.pop.edit', { name: shown.fromName, character: shown.characterName }) : t('req.pop.new', { name: shown.fromName })}
+            {shown.kind === 'edit' ? t('req.pop.edit', { name: shown.fromName, character: shown.characterName })
+              : shown.kind === 'levelup' ? t('req.pop.levelup', { name: shown.fromName, character: shown.characterName })
+              : t('req.pop.new', { name: shown.fromName })}
           </h2>
           {done ? (
             <>
@@ -666,7 +730,7 @@ export function DmRequestPopup({ onOpenAll }: { onOpenAll: () => void }) {
             </>
           ) : next && (
             <>
-              <ul className="plain req-list"><InboxCard key={next.id} r={next} onAnswered={setAnsweredId} /></ul>
+              <ul className="plain req-list"><InboxCard key={next.id} r={next} userId={userId} onAnswered={setAnsweredId} /></ul>
               <div className="req-actions">
                 <button type="button" className="btn ghost small" onClick={dismiss}>{t('req.pop.notNow')}</button>
                 <button type="button" className="btn ghost small" onClick={() => { dismiss(); onOpenAll() }}>{t('req.manage')}</button>
@@ -683,20 +747,27 @@ export function DmRequestPopup({ onOpenAll }: { onOpenAll: () => void }) {
  * A player's Edit button opens this when they have no approved edit: say what to change and send
  * it to the DM. Once the DM approves, the player can edit that character once.
  */
-/** Asks the DM to edit (or level up) a character. `note` says why the OK is needed (Level Up without the XP). */
-export function EditRequestDialog({ character, note, userId, userName, onClose }: {
-  character: Character | null; note?: string; userId: string; userName: string; onClose: () => void
+/**
+ * Asks the DM to edit a character, or with `levelUp` for the next level (Level Up without the XP; `note` says why).
+ * A level-up request is answered with XP or a milestone level, which opens Level Up.
+ */
+export function EditRequestDialog({ character, note, levelUp, userId, userName, onClose }: {
+  character: Character | null; note?: string; levelUp?: boolean; userId: string; userName: string; onClose: () => void
 }) {
   const { t } = useI18n()
   const list = useRequests()
   const [details, setDetails] = useState('')
   const ref = useModal(!!character)
   const id = useId()
-  const open = character && list ? openEditRequest(list, userId, character.id) : undefined
+  const open = character && list ? (levelUp ? openLevelUpRequest : openEditRequest)(list, userId, character.id) : undefined
+  const k = levelUp ? 'levelup' : 'edit'
 
   const send = async () => {
     if (!character) return
-    const r = newEditRequest({ fromId: userId, fromName: userName, characterId: character.id, characterName: character.name, details }, crypto.randomUUID(), nowIso())
+    const input = { fromId: userId, fromName: userName, characterId: character.id, characterName: character.name, details }
+    const r = levelUp
+      ? newLevelUpRequest(input, totalLevel(character), character.xp, crypto.randomUUID(), nowIso())
+      : newEditRequest(input, crypto.randomUUID(), nowIso())
     await updateRequests(l => [...l, r])
     setDetails('')
   }
@@ -705,10 +776,10 @@ export function EditRequestDialog({ character, note, userId, userName, onClose }
     <dialog ref={ref} className="req-dialog glass-sheet glass-dialog" aria-labelledby="req-edit-title" onCancel={e => { e.preventDefault(); onClose() }}>
       {character && (
         <div className="ff-sheet ff-requests">
-          <h2 id="req-edit-title">{t(open ? 'req.edit.waitingTitle' : 'req.edit.title', { character: character.name })}</h2>
+          <h2 id="req-edit-title">{t(open ? `req.${k}.waitingTitle` : `req.${k}.title`, { character: character.name })}</h2>
           {open ? (
             <>
-              <p>{t('req.edit.waiting')}</p>
+              <p>{t(`req.${k}.waiting`)}</p>
               {open.details && <p className="req-details" dir="auto">{open.details}</p>}
               <div className="req-actions">
                 <ShareLink type="request" request={open} primary />
@@ -719,9 +790,9 @@ export function EditRequestDialog({ character, note, userId, userName, onClose }
           ) : (
             <form className="req-form" onSubmit={e => { e.preventDefault(); send() }}>
               {note && <p dir="auto">{note}</p>}
-              <p className="hint">{t('req.edit.intro')}</p>
-              <label htmlFor={id} className="sub-title">{t('req.edit.what')}</label>
-              <textarea id={id} rows={3} maxLength={DETAILS_MAX} value={details} onChange={e => setDetails(e.target.value)} placeholder={t('req.edit.placeholder')} autoFocus />
+              {!levelUp && <p className="hint">{t('req.edit.intro')}</p>}
+              <label htmlFor={id} className="sub-title">{t(`req.${k}.what`)}</label>
+              <textarea id={id} rows={3} maxLength={DETAILS_MAX} value={details} onChange={e => setDetails(e.target.value)} placeholder={t(`req.${k}.placeholder`)} autoFocus />
               <div className="req-actions">
                 <button className="btn primary small">{t('req.send')}</button>
                 <button type="button" className="btn ghost small" onClick={onClose}>{t('common.cancel')}</button>

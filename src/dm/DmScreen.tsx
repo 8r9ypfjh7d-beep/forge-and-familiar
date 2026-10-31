@@ -194,7 +194,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
           {tab === 'reference' && <ReferenceTab />}
           {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} onNew={makeNpc && (() => makeNpc())} />}
           {tab === 'npcs' && <NpcsTab state={state} update={update} onGiveStats={makeNpc && (n => makeNpc({ text: n }))} />}
-          {tab === 'requests' && <DmRequestsTab list={requests ?? []} />}
+          {tab === 'requests' && <DmRequestsTab list={requests ?? []} userId={userId} />}
           {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <p className="hint">{t('lore.noCampaign')}</p>)}
         </div>
       </div>

@@ -3,13 +3,15 @@ import { roll } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Translate } from '../../i18n/translate'
 import type { Party as Campaign } from '../../party'
-import { createEncounter, elapsedSeconds, endCombat, inCombat, nextTurn, rechargeAction, startCombat, setInitiative } from '../engine'
+import { createEncounter, elapsedSeconds, endCombat, inCombat, isDefeated, nextTurn, rechargeAction, startCombat, setInitiative } from '../engine'
 import { deleteEncounter, listEncounters, saveEncounter } from '../storage'
 import type { Encounter } from '../types'
 import { EncounterMap } from '../map/EncounterMap'
+import { fightCreatures } from '../xp'
 import { AddCombatants } from './AddCombatants'
 import { CombatantRow } from './CombatantRow'
 import { Effects } from './Effects'
+import { FightXp } from './FightXp'
 import { PendingChecks } from './PendingChecks'
 import { useCombatRolls } from './rolls'
 import { useEncounter } from './useEncounter'
@@ -78,6 +80,8 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
   const [editingName, setEditingName] = useState(false)
   // Phones show the order or the map; wider screens show both.
   const [pane, setPane] = useState<'order' | 'map'>('order')
+  // After End combat in a campaign fight: offer the XP of the creatures the party beat.
+  const [xpCard, setXpCard] = useState(false)
   // An NPC sheet row plays its own (edited) block; a library row the monster it came from.
   const monsterOf = (c: { npcId?: string; monster?: { source: string; id: string } }) =>
     (c.npcId ? npcs[c.npcId]?.block : undefined) ?? (c.monster ? monsters.get(`${c.monster.source}:${c.monster.id}`) : undefined)
@@ -132,9 +136,14 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
           ? <button className="glass-btn prominent next" onClick={next}>{t('combat.next')}</button>
           : <button className="glass-btn prominent next" disabled={!enc.combatants.length || unrolled.length > 0} onClick={() => act(startCombat)}
               title={unrolled.length ? t('combat.needInit') : undefined}>{t('combat.start')}</button>}
-        {fighting && <button className="glass-btn" onClick={() => confirm(t('combat.endConfirm')) && act(endCombat)}>{t('combat.end')}</button>}
+        {fighting && <button className="glass-btn" onClick={() => { if (confirm(t('combat.endConfirm'))) { act(endCombat); setXpCard(!!campaign) } }}>{t('combat.end')}</button>}
         <button className="glass-btn plain" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
       </div>
+
+      {xpCard && campaign && !fighting && (
+        <FightXp enc={enc} campaign={campaign} characters={party} onClose={() => setXpCard(false)}
+          creatures={fightCreatures(enc, c => monsterOf(c)?.xp, c => (c.npcId && npcs[c.npcId] ? npcs[c.npcId]!.state.currentHp <= 0 : isDefeated(c)))} />
+      )}
 
       <PendingChecks enc={enc} act={act} />
 
