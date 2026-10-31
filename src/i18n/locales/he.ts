@@ -1937,6 +1937,11 @@ const messages: Messages = {
   // DM screen
   'app.dm': 'מסך שה"מ',
   'dm.title': 'מסך שליט המבוך',
+  'dm.topShow': 'חבורה ותקציב',
+  'dm.topHide': 'קיפול',
+  'dm.topBudget': 'תקציב {low} / {moderate} / {high} נק"נ',
+  'dm.backToList': 'חזרה לרשימה',
+  'maps.setup': 'גודל, כללים ותמונה',
   'dm.intro': 'תכננו קרבות, חפשו מפלצות וחוקים ושמרו את הדמויות הלא-שחקניות שלכם. השחקנים לא רואים את הדף הזה.',
   'dm.tabs': 'חלקי מסך שה"מ',
   'dm.tab.encounters': 'קרבות',

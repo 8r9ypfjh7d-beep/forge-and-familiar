@@ -21,6 +21,7 @@ const ZOOMS = [16, 22, 30, 40, 52]
 export function MapEditor({ map, onChange, onBack, status }: { map: BattleMapDef; onChange: (m: BattleMapDef) => void; onBack: () => void; status?: string }) {
   const { t } = useI18n()
   const [tool, setTool] = useState<Tool>('wall')
+  const [phone] = useState(() => typeof matchMedia === 'function' && matchMedia('(max-width: 559px)').matches)
   const [zoom, setZoom] = useState(2)
   const [drag, setDrag] = useState<{ from: Cell; to: Cell } | null>(null)
   const [cursor, setCursor] = useState<Cell>({ x: 0, y: 0 })
@@ -133,6 +134,9 @@ export function MapEditor({ map, onChange, onBack, status }: { map: BattleMapDef
         {status && <span className="hint maps-status" role="status">{status}</span>}
       </div>
 
+      {/* Set once per map, so folded on phones: the tools and the grid share the first screen there. */}
+      <details className="maps-setup" open={!phone}>
+      <summary className="maps-setup-sum">{t('maps.setup')}</summary>
       <div className="maps-settings">
         {sizeField('width')}
         {sizeField('height')}
@@ -175,11 +179,13 @@ export function MapEditor({ map, onChange, onBack, status }: { map: BattleMapDef
         )}
       </div>
 
+      </details>
+
       <div className="maps-tools" role="toolbar" aria-label={t('maps.tools')}>
         {TOOLS.map(id => (
-          <button key={id} type="button" className={`glass-chip maps-tool${tool === id ? ' on' : ''}`} aria-pressed={tool === id} onClick={() => setTool(id)}>
+          <button key={id} type="button" className={`glass-chip maps-tool${tool === id ? ' on' : ''}`} title={t(`maps.tool.${id}` as MessageKey)} aria-pressed={tool === id} onClick={() => setTool(id)}>
             <span className="maps-tool-glyph" aria-hidden="true" data-terrain={id}>{TOOL_GLYPH[id]}</span>
-            {t(`maps.tool.${id}` as MessageKey)}
+            <span className="maps-tool-name">{t(`maps.tool.${id}` as MessageKey)}</span>
           </button>
         ))}
       </div>
