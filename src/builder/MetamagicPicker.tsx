@@ -5,13 +5,15 @@ import { Fold } from './Compact'
 import { ExplainList, Why } from './Why'
 import { metamagicKey } from './why'
 
-/** Sorcerer Metamagic picks: every option for the edition, with costs and why? lines. More than allowed only warns. */
+/** Metamagic picks (sorcerers, and anyone with Metamagic Adept): every option for the edition, with costs and why? lines. More than allowed only warns. */
 export function MetamagicPicker({ draft, update, classId }: StepProps & { classId: string }) {
   const { t, term } = useI18n()
   const edition = rulesEdition(draft)
-  if (classId !== 'sorcerer' || !draft.classes.some(cl => cl.classId === 'sorcerer')) return null
   const count = metamagicCount(draft)
   const ids = metamagicIds(draft)
+  const sorcerer = draft.classes.some(cl => cl.classId === 'sorcerer')
+  // A sorcerer picks on the sorcerer row; anyone else with Metamagic Adept picks on their first class.
+  if (sorcerer ? classId !== 'sorcerer' : classId !== draft.classes[0]?.classId || (count === 0 && ids.length === 0)) return null
   if (count === 0 && ids.length === 0) {
     return <p className="muted small">{t('builder.metamagicLater', { level: METAMAGIC_COUNT[edition][0][0] })}</p>
   }
