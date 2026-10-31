@@ -59,7 +59,7 @@ export function blockedReason(s: { cloud: boolean; signedIn: boolean; online: bo
 }
 
 /** Errors the user can fix by trying again (vs. ones that need sign-in, setup or a new chat). */
-export const canRetry = (kind: FamiliarErrorKind) => kind === 'server' || kind === 'unreachable' || kind === 'offline'
+export const canRetry = (kind: FamiliarErrorKind) => kind === 'server' || kind === 'unreachable' || kind === 'offline' || kind === 'busy'
 
 export const errorMessageKey = (kind: FamiliarErrorKind) => errorKey(kind) as MessageKey
 

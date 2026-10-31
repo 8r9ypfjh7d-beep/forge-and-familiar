@@ -38,8 +38,12 @@ export function parseSse(buffer: string): { events: string[]; rest: string } {
 
 export const functionUrl = () => (cloudConfig ? `${cloudConfig.url.replace(/\/$/, '')}/functions/v1/familiar` : null)
 
-async function errorFor(res: Response): Promise<FamiliarError> {
+/** Gemini statuses that mean "busy, try again soon", relayed in the function's 502 body. */
+const BUSY = [429, 500, 503, 504]
+
+export async function errorFor(res: Response): Promise<FamiliarError> {
   const body = await res.json().catch(() => ({} as Record<string, unknown>))
+  if (res.status === 502 && typeof body.status === 'number' && BUSY.includes(body.status)) return new FamiliarError('busy', String(body.message ?? 'busy'))
   if (res.status === 401) return new FamiliarError('signIn')
   if (res.status === 429) return new FamiliarError('limit', 'limit', typeof body.resetAt === 'string' ? body.resetAt : undefined)
   if (res.status === 413) return new FamiliarError('tooLarge')
@@ -48,8 +52,28 @@ async function errorFor(res: Response): Promise<FamiliarError> {
   return new FamiliarError('server', String(body.message ?? `HTTP ${res.status}`))
 }
 
-/** The real transport: POST to the Edge Function with this device's session. Streams when `onText` is given. */
-export const edgeTransport: FamiliarTransport = async (body, { signal, onText }) => {
+/** Waits before each automatic retry when Gemini is busy. */
+export const BUSY_RETRY_MS = [1500, 4000]
+
+const wait = (ms: number, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
+  const t = setTimeout(resolve, ms)
+  signal?.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')) }, { once: true })
+})
+
+/** The real transport: retries a busy Gemini a couple of times before giving up. */
+export const edgeTransport: FamiliarTransport = async (body, opts) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await edgeOnce(body, opts)
+    } catch (e) {
+      if (!(e instanceof FamiliarError) || e.kind !== 'busy' || attempt >= BUSY_RETRY_MS.length) throw e
+      await wait(BUSY_RETRY_MS[attempt], opts.signal)
+    }
+  }
+}
+
+/** One POST to the Edge Function with this device's session. Streams when `onText` is given. */
+const edgeOnce: FamiliarTransport = async (body, { signal, onText }) => {
   const url = functionUrl()
   if (!url || !cloudConfig) throw new FamiliarError('notConfigured')
   if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new FamiliarError('offline')

@@ -48,7 +48,8 @@ export interface Thread {
 }
 
 /** `unreachable`: online but the request never got an answer (function not deployed, CORS, network drop). */
-export type FamiliarErrorKind = 'offline' | 'signIn' | 'limit' | 'tooLarge' | 'server' | 'notConfigured' | 'unreachable'
+/** `busy`: Gemini itself is overloaded or rate limited (its 429/500/503, relayed as our 502); tried again automatically first. */
+export type FamiliarErrorKind = 'offline' | 'signIn' | 'limit' | 'tooLarge' | 'server' | 'notConfigured' | 'unreachable' | 'busy'
 
 export class FamiliarError extends Error {
   readonly kind: FamiliarErrorKind

@@ -147,3 +147,15 @@ describe('screen and route', () => {
     expect(navItems({ isDm: true, partyDm: true }).more.map(i => i.key)).toContain('familiar')
   })
 })
+
+describe('busy Gemini', () => {
+  it('reads a relayed 503 or 429 as busy, and other upstream errors as server', async () => {
+    const { errorFor } = await import('../api')
+    const res = (status: number, body: unknown) => new Response(JSON.stringify(body), { status })
+    expect((await errorFor(res(502, { error: 'server', status: 503 }))).kind).toBe('busy')
+    expect((await errorFor(res(502, { error: 'server', status: 429 }))).kind).toBe('busy')
+    expect((await errorFor(res(502, { error: 'server', status: 400 }))).kind).toBe('server')
+    expect((await errorFor(res(429, { error: 'limit' }))).kind).toBe('limit')
+    expect(canRetry('busy')).toBe(true)
+  })
+})
