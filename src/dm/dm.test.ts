@@ -2,9 +2,9 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { en } from '../i18n/locales/en'
-import { loadKind } from '../content'
+import { loadKind, type Monster } from '../content'
 import {
-  activePlan, groupsFromLevels, sameGroups, addMonster, addPlan, changeCount, crLabel, difficulty, findMonsters, normalizeDm, NPC_TABLES,
+  activePlan, groupsFromLevels, sameGroups, addMonster, addPlan, changeCount, crLabel, difficulty, findMonsters, monsterGroups, normalizeDm, NPC_TABLES,
   partyBudget, partySize, pickDm, planCombatants, planEntry, planXp, randomName, randomNpc, removePlan, XP_BUDGET,
 } from './logic'
 import { emptyDmState, type EncounterPlan } from './types'
@@ -127,5 +127,23 @@ describe('budget from the campaign', () => {
   it('compares players and levels however the groups are split', () => {
     expect(sameGroups([{ count: 2, level: 3 }], [{ count: 1, level: 3 }, { count: 1, level: 3 }])).toBe(true)
     expect(sameGroups([{ count: 4, level: 1 }], [{ count: 3, level: 1 }])).toBe(false)
+  })
+})
+
+describe('monster sources', () => {
+  const mk = (id: string, source: string, book?: string, cr = 1) => ({ id, name: id, source, book, challengeRating: cr, type: 'beast', xp: 100 }) as unknown as Monster
+  const list = [mk('wolf', 'srd-5.1'), mk('beholder', 'books-2014', 'MM', 13), mk('gloomfang', 'hb:pack'), mk('drake', 'books-2014', 'FTD', 5)]
+
+  it('groups by SRD, book code and homebrew', () => {
+    expect(monsterGroups(list)).toEqual(['srd', 'FTD', 'MM', 'hb'])
+    expect(findMonsters(list, { text: '', minCr: null, maxCr: null, type: '', book: 'MM' }).map(m => m.id)).toEqual(['beholder'])
+    expect(findMonsters(list, { text: '', minCr: null, maxCr: null, type: '', book: 'hb' }).map(m => m.id)).toEqual(['gloomfang'])
+    expect(findMonsters(list, { text: '', minCr: null, maxCr: null, type: '', book: '' })).toHaveLength(4)
+  })
+
+  it('searches the translated name too', () => {
+    const he = (m: Monster) => (m.id === 'wolf' ? 'זאב' : m.name)
+    expect(findMonsters(list, { text: 'זאב', minCr: null, maxCr: null, type: '' }, 60, he).map(m => m.id)).toEqual(['wolf'])
+    expect(findMonsters(list, { text: 'זאב', minCr: null, maxCr: null, type: '' })).toHaveLength(0)
   })
 })

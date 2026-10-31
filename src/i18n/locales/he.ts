@@ -24,6 +24,7 @@ import { suppliesHe } from './supplies.he'
 import { picks2014He, picks2014TermsHe } from './picks2014.he'
 import { subfeatureTermsHe } from './subfeatures.he'
 import { spellNamesHe } from './spells.he'
+import { monsterNamesHe } from './monsters.he'
 import { itemNamesHe, whenTermsHe } from './itemnames.he'
 
 const messages: Messages = {
@@ -1672,6 +1673,18 @@ const messages: Messages = {
   'dm.cr': 'דר"א {cr}',
   'dm.type': 'סוג',
   'dm.anyType': 'כל סוג',
+  'dm.rulesEdition': 'חוקים',
+  'dm.edition2014': 'חוקי 2014',
+  'dm.edition2024': 'חוקי 2024',
+  'dm.source': 'מקור',
+  'dm.anySource': 'כל מקור',
+  'dm.srdSource': 'SRD',
+  'dm.homebrewSource': 'תוצרת בית',
+  'dm.legacy': 'ספר 2014',
+  'dm.gear': 'ציוד',
+  'dm.habitat': 'בית גידול',
+  'dm.treasure': 'אוצר',
+  'dm.regionalEffects': 'השפעות אזוריות',
   'dm.noMonsters': 'אין מפלצת מתאימה.',
   'dm.add': '+ הוספה',
   'dm.addNamed': 'הוספת {name} לקרב',
@@ -2724,6 +2737,7 @@ const terms: Terms = {
   ...itemNamesHe,
   ...whenTermsHe,
   ...Object.fromEntries(Object.entries(spellNamesHe).map(([id, name]) => [`spell.${id}`, name])),
+  ...Object.fromEntries(Object.entries(monsterNamesHe).map(([id, name]) => [`monster.${id}`, name])),
   ...proficiencyTermsHe,
   ...metamagicTermsHe,
   ...speciesTermsHe,

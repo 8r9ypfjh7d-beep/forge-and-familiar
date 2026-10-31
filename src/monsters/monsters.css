@@ -38,3 +38,8 @@
 @media (max-width: 520px) {
   .mon-sb-abilities { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Hebrew name with the English under it, lore line, and the source line under the block */
+.mon-sb-en { font-size: 0.8rem; font-weight: 400; color: var(--muted); font-family: var(--font-body); }
+.mon-sb-lore { font-style: italic; color: var(--muted); }
+.mon-sb-source { margin-block-start: var(--sp-3); font-size: 0.75rem; }

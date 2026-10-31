@@ -1,7 +1,7 @@
-// Spells from the official books beyond the SRD. Names and game numbers only; every description is our own short summary.
+// Spells and monsters from the official books beyond the SRD. Names and game numbers only; every description is our own short summary.
 import type { Edition, SourceInfo } from '../types.ts'
 
-const NOTE = 'Spells from official Dungeons & Dragons books beyond the SRD. Names and game numbers only: each description is a short summary written for Forge & Familiar, not the book\'s text, so check the book for the full wording. Dungeons & Dragons and the book titles are trademarks of Wizards of the Coast LLC; this app is not affiliated with or endorsed by them.'
+const NOTE = 'Spells and monsters from official Dungeons & Dragons books beyond the SRD. Names and game numbers only: each description is a short summary written for Forge & Familiar, not the book\'s text, so check the book for the full wording. Dungeons & Dragons and the book titles are trademarks of Wizards of the Coast LLC; this app is not affiliated with or endorsed by them.'
 
 export const BOOK_SOURCES: SourceInfo[] = [
   { id: 'books-2014', title: 'Official books (2014 rules)', edition: '2014', license: 'summaries', attribution: NOTE },
@@ -10,7 +10,7 @@ export const BOOK_SOURCES: SourceInfo[] = [
 
 export const bookSourceFor = (edition: Edition) => (edition === '2024' ? 'books-2024' : 'books-2014')
 
-/** Book codes on book spells (`Spell.book`) and their titles. */
+/** Book codes on book spells and monsters (`Spell.book`, `Monster.book`) and their titles. */
 export const BOOK_TITLES: Record<string, string> = {
   PHB: "Player's Handbook (2014)",
   XPHB: "Player's Handbook (2024)",
@@ -30,4 +30,48 @@ export const BOOK_TITLES: Record<string, string> = {
   FRHoF: 'Forgotten Realms: Heroes of Faerûn',
   EFA: 'Eberron: Forge of the Artificer',
   AU: 'Arcana Unleashed',
+  // Monster books
+  MM: 'Monster Manual (2014)',
+  XMM: 'Monster Manual (2025)',
+  VGM: "Volo's Guide to Monsters",
+  MTF: "Mordenkainen's Tome of Foes",
+  MPMM: 'Mordenkainen Presents: Monsters of the Multiverse',
+  BGG: 'Bigby Presents: Glory of the Giants',
+  BAM: "Boo's Astral Menagerie",
+  MPP: "Morte's Planar Parade",
+  VRGR: "Van Richten's Guide to Ravenloft",
+  MOT: 'Mythic Odysseys of Theros',
+  ERLW: 'Eberron: Rising from the Last War',
+  DMG: "Dungeon Master's Guide (2014)",
+  XDMG: "Dungeon Master's Guide (2024)",
+  FRAG: "Forgotten Realms: Adventurer's Guide",
+  DD: 'Dragon Delves',
+  CoS: 'Curse of Strahd',
+  ToA: 'Tomb of Annihilation',
+  SKT: "Storm King's Thunder",
+  OotA: 'Out of the Abyss',
+  PotA: 'Princes of the Apocalypse',
+  HotDQ: 'Hoard of the Dragon Queen',
+  RoT: 'The Rise of Tiamat',
+  LMoP: 'Lost Mine of Phandelver',
+  BGDIA: "Baldur's Gate: Descent into Avernus",
+  WDH: 'Waterdeep: Dragon Heist',
+  WDMM: 'Waterdeep: Dungeon of the Mad Mage',
+  GoS: 'Ghosts of Saltmarsh',
+  WBtW: 'The Wild Beyond the Witchlight',
+  CRCotN: 'Critical Role: Call of the Netherdeep',
+  JttRC: 'Journeys through the Radiant Citadel',
+  DSotDQ: 'Dragonlance: Shadow of the Dragon Queen',
+  KftGV: 'Keys from the Golden Vault',
+  PaBTSO: 'Phandelver and Below: The Shattered Obelisk',
+  QftIS: 'Quests from the Infinite Staircase',
+  VEoR: 'Vecna: Eve of Ruin',
+  CM: 'Candlekeep Mysteries',
+  TftYP: 'Tales from the Yawning Portal',
+  ToD: 'Tyranny of Dragons',
+  SDW: 'Storm Lord\'s Wrath, Sleeping Dragon\'s Wake, Divine Contention',
+  IMR: 'Infernal Machine Rebuild',
+  HftT: 'Hunt for the Thessalhydra',
+  DIP: 'Dragon of Icespire Peak',
+  DC: 'Divine Contention',
 }
