@@ -31,11 +31,11 @@ import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
 import { NpcSheetList } from '../npc/ui/NpcSheetList'
 import './dm.css'
+import { ConfirmDialog } from '../builder/ConfirmDialog'
+import { stashNpcPrefill, type NpcPrefill } from '../npc/ui/prefill'
+import { readDmEdition, writeDmEdition } from './edition'
 
 const newId = () => crypto.randomUUID()
-/** Which rules the Monsters tab shows, remembered on the device. Campaigns do not carry an edition yet. */
-const EDITION_KEY = 'ff.dm.edition.v1'
-const readEdition = (): Edition => { try { return localStorage.getItem(EDITION_KEY) === '2024' ? '2024' : '2014' } catch { return '2014' } }
 
 export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'maps' | 'reference' | 'npcs' | 'requests' | 'lore'
 type Tab = DmTab
@@ -50,9 +50,11 @@ const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
 type Update = (fn: (s: DmState) => DmState) => void
 
 /** The DM's own screen. It reads only the levels of the characters in the campaign being run, for the XP budget. */
-export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initialTab, party }: {
+export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpenNpc, initialTab, party }: {
   userId: string
   onRunEncounter: (encounterId: string) => void
+  /** Opens the NPC creator (#/npc/new); the prefill is already stashed. */
+  onNewNpc?: () => void
   /** Opens a player's sheet view only. */
   onOpenSheet?: (characterId: string) => void
   /** Opens one of the DM's NPC sheets. */
@@ -65,12 +67,20 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
   const nameOf = usePartyNames()
   const [state, setState] = useState<DmState | null>(null)
   const [monsters, setMonsters] = useState<LoadedMonster[]>([])
-  const [edition, setEditionState] = useState<Edition>(readEdition)
-  const setEdition = (e: Edition) => { setEditionState(e); try { localStorage.setItem(EDITION_KEY, e) } catch { /* private mode */ } }
+  const [edition, setEditionState] = useState<Edition>(readDmEdition)
+  const setEdition = (e: Edition) => { setEditionState(e); writeDmEdition(e) }
+  // The NPC creator opens prefilled: from a stat block, from a text NPC, or blank, in the campaign being run.
+  const makeNpc = onNewNpc && ((p: Omit<NpcPrefill, 'partyId'> = {}) => { stashNpcPrefill({ ...p, partyId: party?.id }); onNewNpc() })
   const [tab, setTab] = useState<Tab>(initialTab ?? 'encounters')
   const requests = useRequests()
   // Opened straight on a later tab (from a request link): bring it into view on narrow screens.
-  useEffect(() => { if (initialTab) document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [initialTab, state])
+  useEffect(() => {
+    if (!initialTab) return
+    // After saving an NPC the DM lands on the NPCs tab; wait for the app's focus move so the scroll sticks.
+    const go = () => document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: initialTab === 'npcs' ? 'start' : 'nearest', inline: 'nearest' })
+    const id = setTimeout(go, initialTab === 'npcs' ? 120 : 0)
+    return () => clearTimeout(id)
+  }, [initialTab, state])
   const [openMonster, setOpenMonster] = useState<string | null>(null)
   // The DM's NPC sheets (src/npc) for this campaign, so a plan can field them.
   const [npcs, setNpcs] = useState<NpcSheet[]>([])
@@ -178,11 +188,12 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
           {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
           {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
-          {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition} />}
+          {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition}
+            onMakeNpc={makeNpc && (m => makeNpc({ monster: { source: m.source, id: m.id } }))} />}
           {tab === 'maps' && <MapsTab ownerId={userId} />}
           {tab === 'reference' && <ReferenceTab />}
-          {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} />}
-          {tab === 'npcs' && <NpcsTab state={state} update={update} />}
+          {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} onNew={makeNpc && (() => makeNpc())} />}
+          {tab === 'npcs' && <NpcsTab state={state} update={update} onGiveStats={makeNpc && (n => makeNpc({ text: n }))} />}
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} />}
           {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <p className="hint">{t('lore.noCampaign')}</p>)}
         </div>
@@ -477,7 +488,7 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }:
   )
 }
 
-function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdition }: {
+function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdition, onMakeNpc }: {
   monsters: LoadedMonster[]
   openId: string | null
   onOpen: (key: string) => void
@@ -485,6 +496,7 @@ function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdi
   planName?: string
   edition: Edition
   onEdition: (e: Edition) => void
+  onMakeNpc?: (m: Monster) => void
 }) {
   const { t } = useI18n()
   // A plan may name a monster by id only (older plans) or by source and id.
@@ -496,7 +508,10 @@ function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdi
         <MonsterBrowser monsters={monsters} onAdd={onAdd} onOpen={onOpen} openId={openId} edition={edition} onEdition={onEdition} />
       </section>
       {open
-        ? <StatBlock key={monsterKey(open)} m={open} legacy={open.legacy} actions={<button className="btn small primary" onClick={() => onAdd(open)} title={planName}>{t('dm.addToPlan')}</button>} />
+        ? <StatBlock key={monsterKey(open)} m={open} legacy={open.legacy} actions={<div className="row">
+            {onMakeNpc && <button className="btn small" onClick={() => onMakeNpc(open)}>{t('npc.build.makeNpc')}</button>}
+            <button className="btn small primary" onClick={() => onAdd(open)} title={planName}>{t('dm.addToPlan')}</button>
+          </div>} />
         : <section className="card"><p className="hint">{t('dm.pickMonster')}</p></section>}
     </div>
   )
@@ -570,15 +585,19 @@ function ideaText(idea: NpcIdea, t: (k: MessageKey) => string) {
   }
 }
 
-function NpcsTab({ state, update }: { state: DmState; update: Update }) {
+function NpcsTab({ state, update, onGiveStats }: { state: DmState; update: Update; onGiveStats?: (n: Npc) => void }) {
   const { t } = useI18n()
   const [idea, setIdea] = useState<NpcIdea>(() => randomNpc())
   const text = ideaText(idea, t)
   const save = (npc: Npc) => update(s => ({ ...s, npcs: [npc, ...s.npcs] }))
   const edit = (id: string, patch: Partial<Npc>) => update(s => ({ ...s, npcs: s.npcs.map(n => (n.id === id ? { ...n, ...patch } : n)) }))
 
+  const [deleting, setDeleting] = useState<Npc | null>(null)
+
   return (
     <>
+      <ConfirmDialog open={!!deleting} title={t('dm.npcDelete', { name: deleting?.name || t('dm.npcName') })} yes={t('common.delete')}
+        onYes={() => { const id = deleting?.id; setDeleting(null); if (id) update(s => ({ ...s, npcs: s.npcs.filter(x => x.id !== id) })) }} onClose={() => setDeleting(null)} />
       <section className="card dm-idea" aria-labelledby="dm-idea-title">
         <div className="card-head">
           <h2 id="dm-idea-title">{t('dm.npcIdea')}</h2>
@@ -601,9 +620,12 @@ function NpcsTab({ state, update }: { state: DmState; update: Update }) {
                 <div className="dm-npc-head">
                   <input value={n.name} onChange={e => edit(n.id, { name: e.target.value })} placeholder={t('dm.npcName')} aria-label={t('dm.npcName')} />
                   <input value={n.role} onChange={e => edit(n.id, { role: e.target.value })} placeholder={t('dm.npcRole')} aria-label={t('dm.npcRole')} />
-                  <button className="btn ghost small" onClick={() => confirm(t('dm.npcDelete', { name: n.name || t('dm.npcName') })) && update(s => ({ ...s, npcs: s.npcs.filter(x => x.id !== n.id) }))}>
-                    {t('common.delete')}
-                  </button>
+                  <div className="row dm-npc-btns">
+                    {onGiveStats && <button className="btn small" onClick={() => onGiveStats(n)}>{t('npc.build.giveStats')}</button>}
+                    <button className="btn ghost small" onClick={() => setDeleting(n)}>
+                      {t('common.delete')}
+                    </button>
+                  </div>
                 </div>
                 <textarea value={n.notes} rows={2} onChange={e => edit(n.id, { notes: e.target.value })} placeholder={t('dm.npcNotes')} aria-label={t('dm.npcNotes')} />
               </li>
