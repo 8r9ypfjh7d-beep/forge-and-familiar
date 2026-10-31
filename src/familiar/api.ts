@@ -43,7 +43,8 @@ async function errorFor(res: Response): Promise<FamiliarError> {
   if (res.status === 401) return new FamiliarError('signIn')
   if (res.status === 429) return new FamiliarError('limit', 'limit', typeof body.resetAt === 'string' ? body.resetAt : undefined)
   if (res.status === 413) return new FamiliarError('tooLarge')
-  if (res.status === 503) return new FamiliarError('notConfigured', String(body.message ?? 'not configured'))
+  // 404: the function is not deployed yet.
+  if (res.status === 404 || res.status === 503) return new FamiliarError('notConfigured', String(body.message ?? 'not configured'))
   return new FamiliarError('server', String(body.message ?? `HTTP ${res.status}`))
 }
 
@@ -65,7 +66,7 @@ export const edgeTransport: FamiliarTransport = async (body, { signal, onText })
     })
   } catch (e) {
     if ((e as Error).name === 'AbortError') throw e
-    throw new FamiliarError('offline')
+    throw new FamiliarError(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'unreachable')
   }
   if (!res.ok) throw await errorFor(res)
   if (!onText || !res.body) return mergeChunks([await res.json() as GeminiChunk])
