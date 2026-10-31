@@ -154,11 +154,15 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
           </Fold>
         )
         // Many books: the first group, then one "More books" fold holding the rest, so the page starts short.
-        if (all.length <= 4) return all.map((g, i) => fold(g, i === 0))
-        const rest = all.slice(1)
+        if (all.length <= 4) return all.map((g, i) => fold(g, i === 0 || g[1].every(it => it.id.startsWith('hb:'))))
+        // The group's own homebrew stays out of the fold, open, so it isn't buried among the books.
+        const isHomebrew = (g: [string, PickItem[]]) => g[1].every(it => it.id.startsWith('hb:'))
+        const homebrew = all.slice(1).filter(isHomebrew)
+        const rest = all.slice(1).filter(g => !isHomebrew(g))
         return (
           <>
             {fold(all[0], true)}
+            {homebrew.map(g => fold(g, true))}
             <Fold className="picker-group" title={t('builder.compact.moreBooks', { count: rest.length })} status={rest.reduce((n, [, its]) => n + its.length, 0)}
               defaultOpen={rest.some(([, its]) => its.some(it => it.id === value))}>
               <div className="picker-groups">{rest.map(g => fold(g, false))}</div>

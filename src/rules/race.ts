@@ -128,3 +128,10 @@ export const naturalArmorAc = (n: RaceProfile['naturalArmor'], mods: Record<Abil
 
 /** Resource id for a limited-use racial trait. */
 export const raceUseId = (trait: string) => `race:${slug(trait)}`
+
+/** A homebrew trait line "Name: what it does" split into its name and text; lines without one are just a name. */
+export function splitTrait(line: string): { name: string; text?: string } {
+  const i = line.indexOf(': ')
+  if (i <= 0 || i > 40 || line.slice(0, i).includes('(')) return { name: line }
+  return { name: line.slice(0, i).trim(), text: line.slice(i + 2).trim() || undefined }
+}

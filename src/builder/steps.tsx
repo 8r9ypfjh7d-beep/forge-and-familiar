@@ -6,7 +6,7 @@ import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, SKILLS, TOOLS, allLanguages, allTools, homebrewProficiencyText,
   CUSTOM_FEAT, ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, improvementFeat, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
-  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, setSubclass, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
+  ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, splitTrait, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, setSubclass, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
   type Ability, type Background, type CharacterDraft, type ClassChoiceOption, type RulesEdition, type SkillId, type TraitChoice,
   averageWealth, BACKGROUND_GOLD_2024, takesBackgroundGold, takesClassGold, wealthDice,
 } from '../rules'
@@ -237,7 +237,14 @@ function RaceStep({ draft, update }: StepProps) {
           {raceTraits.length === 0 && t('common.none')}
         </p>
       )}
-      {race && <ExplainList items={raceTraits.map(x => ({ name: term('trait', x, x), key: traitKey(x) }))} />}
+      {race && <ExplainList items={raceTraits.map(x => {
+        // Homebrew lines "Name: text" carry their own explanation; a homebrew pick shows the picked option's detail.
+        if (!race.id.startsWith('hb:') && !draft.subraceId?.startsWith('hb:')) return { name: term('trait', x, x), key: traitKey(x) }
+        const { name, text } = splitTrait(x)
+        const ch = profile.choices.find(c => c.name === x)
+        const picked = ch ? pickedOptions(draft, ch.id).map(id => ch.options.find(o => o.id === id)).filter(o => !!o) : []
+        return { name, key: traitKey(name), text: text ?? (picked.length ? picked.map(o => (o.detail ? `${o.name}: ${o.detail}` : o.name)).join(' · ') : undefined) }
+      })} />}
       {canSwapOrigin(draft) && <OriginSwapsPicker draft={draft} update={update} />}
     </>
   )

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   allLanguages, allRaces, allTools, backgroundsFor, createCharacter, derive, featSkillPicks, fixedLanguages, fixedTools, getAbilityScores, getArmorClass, getAttacks,
   getBackground, getFeats, raceProfile, getSkillProficiencies, homebrewProficiencyText, itemById, registerHomebrewBackgrounds, registerHomebrewFeats,
-  registerHomebrewItems, registerHomebrewProficiencies, registerHomebrewRaces, startingGold, toolPickGroups,
+  registerHomebrewItems, registerHomebrewProficiencies, registerHomebrewRaces, splitTrait, startingGold, toolPickGroups,
 } from '../rules'
 import { toBackground, toRace } from './store'
 import {
@@ -373,5 +373,15 @@ describe('homebrew monsters', () => {
   it('loads packs saved before monsters existed with none', () => {
     const { monsters: _drop, ...old } = pack()
     expect(sanitizePack(old).monsters).toEqual([])
+  })
+})
+
+describe('homebrew trait lines', () => {
+  it('splits "Name: text" and keeps long descriptions through sanitizing', () => {
+    expect(splitTrait('Shell: Pull in for +2 AC.')).toEqual({ name: 'Shell', text: 'Pull in for +2 AC.' })
+    expect(splitTrait('Keen Senses (Insight: or Perception)')).toEqual({ name: 'Keen Senses (Insight: or Perception)' })
+    expect(splitTrait('Darkvision')).toEqual({ name: 'Darkvision' })
+    const long = `Shell: ${'x'.repeat(200)}`
+    expect(sanitizePack({ format: 'ff-homebrew', version: 1, id: 'abcd1234', races: [{ name: 'S', traits: [long] }] }).races[0].traits).toEqual([long])
   })
 })

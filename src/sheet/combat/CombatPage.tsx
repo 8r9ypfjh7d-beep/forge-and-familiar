@@ -24,7 +24,7 @@ import { PoolForm, UsePanel, useResourceUse } from '../components/Resources'
 import { turnActions, type TurnRow } from './turn'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
-import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, classOptionById, derive, entryItem, planUse, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, totalLevel, xpForNextLevel, xpReady, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, classOptionById, derive, entryItem, planUse, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, splitTrait, subclassOf, totalLevel, xpForNextLevel, xpReady, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
@@ -1071,6 +1071,11 @@ export function FeaturesTraits({ character }: { character: Character }) {
   const source = BUNDLED.find(m => m.source.id === sourceFor(editionOf(character)))?.source
   // In another language our translated summary comes first; the SRD text is English.
   const traitText = (name: string) => {
+    // Homebrew traits written "Name: what it does".
+    if (character.raceId.startsWith('hb:') || character.subraceId?.startsWith('hb:')) {
+      const text = splitTrait(name).text
+      if (text) return text
+    }
     const own = explainKey('trait', name) ?? explainKey('trait', name.replace(/\s*\(.*$/, ''))
     if (translated && own) return t(own)
     const base = name.replace(/\s*\(.*$/, '').toLowerCase()
@@ -1109,7 +1114,7 @@ export function FeaturesTraits({ character }: { character: Character }) {
       </ul>
       <h3 className="cs-sub">{t('cs.racialTraits')}</h3>
       {d.traits.length
-        ? <ul className="cs-rows">{d.traits.map(x => <Described key={x} name={term('trait', x, x)} text={traitText(x)} />)}</ul>
+        ? <ul className="cs-rows">{d.traits.map(x => <Described key={x} name={term('trait', splitTrait(x).name, splitTrait(x).name)} text={traitText(x)} />)}</ul>
         : <p className="hint">{t('common.none')}</p>}
       {feats.length > 0 && <>
         <h3 className="cs-sub">{t('cs.feats')}</h3>
