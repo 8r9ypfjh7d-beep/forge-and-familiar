@@ -7,7 +7,7 @@ import { chromium } from 'playwright'
 
 const SITE = process.env.SITE ?? 'https://forge-and-familiar.onrender.com/'
 const EXPECTED = process.env.EXPECTED ?? ''
-const TIMEOUT_MIN = Number(process.env.TIMEOUT_MIN ?? 20)
+const TIMEOUT_MIN = Number(process.env.TIMEOUT_MIN ?? 15)
 
 function summary(lines) {
   console.log(lines.join('\n'))
@@ -36,7 +36,7 @@ if (EXPECTED && live !== EXPECTED) {
   process.exit(1)
 }
 
-const browser = await chromium.launch()
+const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {})
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
 const errors = []
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
