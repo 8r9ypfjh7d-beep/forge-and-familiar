@@ -60,8 +60,9 @@ An in-app assistant for players (plan characters, explain spells, features and r
 ## The panel
 
 - **Where.** A sparkle button above the dice on every screen (hidden while the dice window or a phone menu is open), Familiar under More for everyone, and the full page `#/familiar`. The sheet and the page continue the same conversation.
-- **What it knows.** `screenFor` in App: a character screen sends that character's card ("About Vex"), the builder says it is a draft, DM pages (DM, admin) send the DM card and tools through `dmPrepare`, anything else is general. Chips follow the context (`familiar.chip.*`, DM: `DM_CHIPS`).
+- **What it knows.** What a screen publishes (`useFamiliarScreenValue`: the sheet's character, the builder's draft, with their chips and tool data) wins; otherwise `screenFor` in App: a character screen sends that character's card ("About Vex"), the builder says it is a draft, DM pages (DM, admin) send the DM card and tools through `dmPrepare`, anything else is general. Chips follow the context (`familiar.chip.*`, DM: `DM_CHIPS`).
 - **States.** Before sending: no cloud build or a 404 from a function not deployed → not set up; a local-only profile → sign in with the activation code (inline form); offline → offline. After: `unreachable` (online but no answer, e.g. CORS on a missing function) and `server` offer Try again; `limit` shows the reset time; `tooLarge` offers a new chat. A failed or stopped question goes back into the box.
+- **Entry points.** The sheet (`FamiliarFab`) or page (`FamiliarPage`) registers `onFamiliarOpen`, so `AskFamiliar` buttons show; a request opens the sheet and fills the box (or sends when `send: true`).
 - **Display.** Only the user's questions and the final answers show; tool calls, tool responses, thoughts and "let me check" text stay in `contents`. Tools used appear as "Looked up" chips. Answers render with `dir="auto"`.
 
 ## Deploying the function

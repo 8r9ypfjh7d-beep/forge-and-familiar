@@ -23,9 +23,11 @@ export interface FamiliarChatProps {
   onClose?: () => void
   /** Moves focus into the composer when the panel opens. */
   autoFocus?: boolean
+  /** The latest "Ask the Familiar" request: fills the box, or sends when asked to. */
+  request?: { prompt?: string; send?: boolean; at: number } | null
 }
 
-export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, autoFocus }: FamiliarChatProps) {
+export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, autoFocus, request }: FamiliarChatProps) {
   const { t, locale } = useI18n()
   const [draft, setDraft] = useState('')
   const [showHistory, setShowHistory] = useState(false)
@@ -49,6 +51,16 @@ export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, 
     // A failed question goes back into the box so nothing typed is lost.
     void chat.send(text).then(ok => { if (!ok) setDraft(d => d || text) })
   }
+  // An entry point's question: sent right away when asked and possible, else put in the box to edit.
+  const handled = useRef(0)
+  useEffect(() => {
+    if (!request || request.at === handled.current) return
+    handled.current = request.at
+    setShowHistory(false)
+    if (!request.prompt) return
+    if (request.send && !blocked && !chat.busy) send(request.prompt)
+    else { setDraft(request.prompt); input.current?.focus() }
+  })
   const onSubmit = (e: FormEvent) => { e.preventDefault(); send(draft) }
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(draft) }
