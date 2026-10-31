@@ -1,14 +1,14 @@
 // 2024-rules subclasses from Forgotten Realms: Heroes of Faerûn (2025), names, levels and mechanics only.
-import { FRHOF, f, fx, halfSpells, long, resist, spells, spells2024, type Def } from './helpers'
+import { FRHOF, f, fx, halfSpells, long, resist, saveProf, spells, type Def } from './helpers'
 
 export const FAERUN_2024: Def[] = [
-  { id: 'college-of-the-moon', classId: 'bard', name: 'College of the Moon', source: FRHOF, spells: spells([6, 'Moonbeam']), features: [f(3, "Moon's Inspiration"), f(3, 'Primal Lore'), f(6, 'Blessing of Moonlight'), f(14, "Eventide's Splendor")] },
+  { id: 'college-of-the-moon', classId: 'bard', name: 'College of the Moon', source: FRHOF, features: [f(3, "Moon's Inspiration"), f(3, 'Primal Lore'), f(6, 'Blessing of Moonlight', long()), f(14, "Eventide's Splendor")] },
   {
     id: 'knowledge-domain', classId: 'cleric', name: 'Knowledge Domain', source: FRHOF,
-    spells: spells2024(['Command', 'Identify', 'Augury', 'Suggestion'], ['Nondetection', 'Speak with Dead'], ['Arcane Eye', 'Confusion'], ['Legend Lore', 'Scrying']),
-    features: [f(3, 'Blessings of Knowledge'), f(3, 'Knowledge Domain Spells'), f(3, 'Mind Magic'), f(6, 'Unfettered Mind'), f(17, 'Divine Foreknowledge', long())],
+    spells: spells([3, 'Command', 'Comprehend Languages', 'Detect Magic', 'Detect Thoughts', 'Identify', 'Mind Spike'], [5, 'Dispel Magic', 'Nondetection', 'Tongues'], [7, 'Arcane Eye', 'Banishment', 'Confusion'], [9, 'Legend Lore', 'Scrying', 'Synaptic Static']),
+    features: [f(3, 'Blessings of Knowledge'), f(3, 'Knowledge Domain Spells'), f(3, 'Mind Magic'), f(6, 'Unfettered Mind', fx(saveProf('int'))), f(17, 'Divine Foreknowledge', long())],
   },
-  { id: 'banneret', classId: 'fighter', name: 'Banneret', source: FRHOF, features: [f(3, 'Knightly Envoy'), f(3, 'Group Recovery'), f(7, 'Team Tactics'), f(10, 'Rallying Surge'), f(15, 'Shared Resilience'), f(18, 'Inspiring Commander')] },
+  { id: 'banneret', classId: 'fighter', name: 'Banneret', source: FRHOF, features: [f(3, 'Knightly Envoy'), f(3, 'Group Recovery'), f(7, 'Team Tactics'), f(10, 'Rallying Surge'), f(15, 'Shared Resilience'), f(18, 'Inspiring Commander', fx({ kind: 'conditionImmunity', condition: 'charmed' }, { kind: 'conditionImmunity', condition: 'frightened' }))] },
   {
     id: 'oath-of-the-noble-genies', classId: 'paladin', name: 'Oath of the Noble Genies', source: FRHOF,
     spells: halfSpells(['Chromatic Orb', 'Thunderous Smite'], ['Mirror Image', 'Phantasmal Force'], ['Fly', 'Gaseous Form'], ['Conjure Minor Elementals', 'Summon Elemental'], ['Banishing Smite', 'Contact Other Plane']),
@@ -17,7 +17,7 @@ export const FAERUN_2024: Def[] = [
   {
     id: 'winter-walker', classId: 'ranger', name: 'Winter Walker', source: FRHOF,
     spells: halfSpells(['Ice Knife'], ['Hold Person'], ['Remove Curse'], ['Ice Storm'], ['Cone of Cold']),
-    features: [f(3, 'Frigid Explorer', fx(resist('cold'))), f(3, "Hunter's Rime"), f(3, 'Winter Walker Spells'), f(7, 'Fortifying Soul'), f(11, 'Chilling Retribution', long('wis')), f(15, 'Frozen Haunt', long())],
+    features: [f(3, 'Frigid Explorer', fx(resist('cold'))), f(3, "Hunter's Rime"), f(3, 'Winter Walker Spells'), f(7, 'Fortifying Soul', long()), f(11, 'Chilling Retribution', long('wis')), f(15, 'Frozen Haunt', long())],
   },
   { id: 'scion-of-the-three', classId: 'rogue', name: 'Scion of the Three', source: FRHOF, features: [f(3, 'Bloodthirst'), f(3, 'Dread Allegiance'), f(9, 'Strike Fear'), f(13, 'Aura of Malevolence'), f(17, 'Dread Incarnate')] },
   {

@@ -66,6 +66,7 @@ describe('warlock patrons from every book', () => {
     const ids = BOOK_SUBCLASSES_2024.map(s => s.id)
     expect(ids).toEqual(expect.arrayContaining(['college-of-the-moon', 'knowledge-domain', 'banneret', 'oath-of-the-noble-genies', 'winter-walker', 'scion-of-the-three', 'spellfire-sorcery', 'bladesinger']))
     expect(ids.filter(id => ['knowledge', 'purple-dragon-knight', 'bladesinging'].includes(id))).toEqual([])
+    expect(subclassById('knowledge-domain', '2024')!.spells!.find(s => s.level === 9)!.names).toContain('Synaptic Static')
     expect(BOOK_SUBCLASSES.map(s => s.id)).not.toContain('spellfire-sorcery')
     expect(subclassById('spellfire-sorcery', '2024')!.spells!.find(s => s.level === 6)!.names).toEqual(['Counterspell'])
   })
