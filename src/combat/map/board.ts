@@ -45,3 +45,21 @@ export function canMove(token: Token, viewer: { role: 'dm' } | { role: 'player';
   if (viewer.role === 'dm') return true
   return !locked && !!token.characterId && token.characterId === viewer.characterId
 }
+
+/**
+ * The DM's board with token positions taken from the live row, where players moved them. Only positions
+ * of tokens both boards know change; fog, lock, sizes and hidden flags stay the DM's. Same object when
+ * nothing moved, so the caller can skip a write.
+ */
+export function mergeRemoteMoves(local: Board, remote: Board | undefined): Board {
+  if (!remote) return local
+  const pos = new Map(remote.tokens.map(t => [t.id, t]))
+  let changed = false
+  const tokens = local.tokens.map(t => {
+    const r = pos.get(t.id)
+    if (!r || (r.x === t.x && r.y === t.y)) return t
+    changed = true
+    return { ...t, x: r.x, y: r.y }
+  })
+  return changed ? { ...local, tokens } : local
+}

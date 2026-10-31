@@ -1294,6 +1294,7 @@ export const en = {
   'combat.map.bloodied': 'bloodied',
   'combat.map.down': 'down',
   'combat.map.live': 'Shared with the party',
+  'combat.map.share': 'Share map with the party',
   'combat.map.local': 'On this device only',
   'combat.log.noRecharge': '{name}: {action} stays spent ({total})',
   'combat.log.recharged': '{name}: {action} recharges ({total})',

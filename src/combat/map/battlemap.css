@@ -19,7 +19,7 @@
 /* Tokens: a round glass piece, HP as a conic ring, kind as the fill colour. */
 .bm-token {
   --token: var(--accent); --hp: 1;
-  position: absolute; box-sizing: border-box; padding: 0; margin: 0; border: 0; background: none; font: inherit; color: var(--on-fill, #fff);
+  position: absolute; box-sizing: border-box; padding: 0; margin: 0; border: 0; background: none; font: inherit; color: var(--on-fill);
   display: grid; place-items: center; border-radius: 50%; cursor: pointer; touch-action: none;
   transition: left var(--dur-med) var(--ease-glass), top var(--dur-med) var(--ease-glass), width var(--dur-med) var(--ease-glass), height var(--dur-med) var(--ease-glass), transform var(--dur-fast) var(--ease-spring);
 }
@@ -39,14 +39,14 @@
 .bm-token.active .bm-ring { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 85%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent), var(--glass-highlight); }
 .bm-token.selected { z-index: 3; transform: scale(1.06); }
 .bm-token.selected .bm-ring { outline: 3px solid var(--ink); outline-offset: 2px; }
-.bm-token.mine .bm-label::after { content: ''; position: absolute; inset-block-end: -6px; inset-inline-start: 50%; width: 5px; height: 5px; margin-inline-start: -2.5px; border-radius: 50%; background: var(--on-fill, #fff); }
+.bm-token.mine .bm-label::after { content: ''; position: absolute; inset-block-end: -6px; inset-inline-start: 50%; width: 5px; height: 5px; margin-inline-start: -2.5px; border-radius: 50%; background: var(--on-fill); }
 .bm-token.hidden-token { opacity: 0.6; }
 .bm-token.hidden-token .bm-ring { border-style: dashed; border-color: var(--ink); background-image: none; background-color: color-mix(in srgb, var(--token) 55%, transparent); }
 .bm-token:focus-visible { outline: none; }
 .bm-token:focus-visible .bm-ring { outline: 3px solid var(--accent); outline-offset: 3px; }
 .bm-token .bm-badge {
   position: absolute; inset-block-start: -2px; inset-inline-end: -2px; min-width: 18px; height: 18px; padding-inline: 4px; border-radius: var(--r-pill);
-  display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--on-fill, #fff); background: var(--bad); box-shadow: var(--glass-shadow);
+  display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--on-fill); background: var(--bad); box-shadow: var(--glass-shadow);
 }
 .bm-token .bm-badge.eye { inset-inline-end: auto; inset-inline-start: -2px; background: var(--ink); }
 .bm-token .bm-down { position: absolute; font-size: 1.6em; color: var(--ink); font-weight: 700; }

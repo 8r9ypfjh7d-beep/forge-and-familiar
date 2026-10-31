@@ -35,3 +35,16 @@ describe('board helpers', () => {
     expect(canMove(tok({ kind: 'npc', characterId: undefined }), { role: 'player', characterId: 'ch1' }, false)).toBe(false)
   })
 })
+
+describe('mergeRemoteMoves', () => {
+  it('takes moved positions only, and keeps the same board when nothing moved', async () => {
+    const { mergeRemoteMoves } = await import('./board')
+    const local = { tokens: [tok(), tok({ id: 't2', x: 5, y: 5, hidden: true })], fog: ['1,1' as const], locked: true }
+    expect(mergeRemoteMoves(local, { tokens: [tok()], fog: [], locked: false })).toBe(local)
+    const moved = mergeRemoteMoves(local, { tokens: [tok({ x: 7, y: 1, size: 1 })], fog: [], locked: false })
+    expect(moved.tokens[0]).toMatchObject({ x: 7, y: 1, size: 2 })
+    expect(moved.tokens[1]).toBe(local.tokens[1])
+    expect(moved.fog).toEqual(['1,1'])
+    expect(moved.locked).toBe(true)
+  })
+})

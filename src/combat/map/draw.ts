@@ -132,7 +132,11 @@ export function drawBoard(ctx: CanvasRenderingContext2D, boxW: number, boxH: num
     for (const c of o.path) ctx.fillRect(c.x * CELL_PX, c.y * CELL_PX, CELL_PX, CELL_PX)
     ctx.strokeStyle = tone; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round'
     ctx.beginPath()
-    o.path.forEach((c, i) => { const px = c.x * CELL_PX + CELL_PX / 2, py = c.y * CELL_PX + CELL_PX / 2; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py) })
+    o.path.forEach((c, i) => {
+      const px = c.x * CELL_PX + CELL_PX / 2, py = c.y * CELL_PX + CELL_PX / 2
+      if (i) ctx.lineTo(px, py)
+      else ctx.moveTo(px, py)
+    })
     ctx.stroke()
   }
   if (o.measure) {

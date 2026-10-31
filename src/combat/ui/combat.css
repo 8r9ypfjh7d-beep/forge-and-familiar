@@ -185,3 +185,19 @@
   .ff-combat .combatant .controls:has(.dmg-type) { flex-wrap: wrap; }
   .ff-combat .combatant .controls .dmg-type { flex: 1 1 100%; max-inline-size: none; order: -1; }
 }
+
+/* Map pane (src/combat/map). Wide screens show it above the order; phones switch between the two. */
+.combat-pane-switch { display: none; justify-self: start; }
+.encounter-map { display: grid; gap: var(--sp-3); }
+.encounter-map-head { flex-wrap: wrap; gap: var(--sp-2); }
+.encounter-map-head .glass-eyebrow { margin: 0; }
+.encounter-map-head .row { gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
+.encounter-map .bm-picker { max-width: 200px; border-radius: var(--r-pill); }
+.encounter-map .tag.live { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
+.encounter-map-stage { height: min(68vh, 640px); min-height: 320px; }
+@media (max-width: 860px) {
+  .combat-pane-switch { display: inline-flex; }
+  .combat-map-pane:not(.on), .combat-grid:not(.on) { display: none; }
+  .encounter-map-stage { height: calc(100dvh - 260px); min-height: 360px; }
+  .encounter-map.glass { padding: var(--sp-3); }
+}

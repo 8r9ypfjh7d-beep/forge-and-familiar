@@ -1475,6 +1475,7 @@ const messages: Messages = {
   'combat.map.bloodied': 'פצוע',
   'combat.map.down': 'מוטל',
   'combat.map.live': 'משותף עם החבורה',
+  'combat.map.share': 'שיתוף המפה עם החבורה',
   'combat.map.local': 'במכשיר הזה בלבד',
   'combat.log.noRecharge': '{name}: {action} עדיין מנוצל ({total})',
   'combat.log.recharged': '{name}: {action} נטען מחדש ({total})',
