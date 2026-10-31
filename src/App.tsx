@@ -7,6 +7,7 @@ import { Builder, EditCharacter, UnfinishedDraft } from './builder/Builder'
 import { PromptDialog } from './builder/ConfirmDialog'
 import { LevelUp } from './builder/LevelUp'
 import { CombatTracker } from './combat/ui/CombatTracker'
+import { useLiveHits } from './combat/ui/useLiveHits'
 import { DmScreen } from './dm'
 import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
@@ -93,6 +94,7 @@ export default function App() {
   const partyDm = playing.isDm
   const isDm = partyDm || admin
   useXpAwards(active?.id, playing.parties)
+  useLiveHits(active?.id, playing.parties)
   const nav = { isDm, partyDm, admin }
   // Tapping a campaign on the home screen plays it: the DM screen for its DM, else the sheet the player brings.
   const playCampaign = (p: Party) => {

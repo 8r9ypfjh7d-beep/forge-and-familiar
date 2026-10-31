@@ -6,7 +6,7 @@ import type { Character } from '../model/character'
 import type { ConditionId } from '../rules/types'
 import { concentrationDc } from '../rules/damage'
 import type { MessageKey } from '../i18n/locales/en'
-import { CONDITIONS, ENCOUNTER_SCHEMA_VERSION, type Combatant, type Effect, type Encounter, type LogLine } from './types'
+import { CONDITIONS, ENCOUNTER_SCHEMA_VERSION, type Combatant, type Effect, type Encounter, type Hit, type LogLine } from './types'
 
 const MAX_LOG = 60
 
@@ -229,6 +229,16 @@ export function damageNpc(enc: Encounter, id: string, amount: number, checkId: s
   let next = updateCombatant(enc, id, { hp: { ...c.hp, temp: c.hp.temp - absorbed, current } })
   next = log(next, line(current === 0 ? 'combat.log.takesDown' : 'combat.log.takes', { name: c.name, amount }))
   return noteDamage(next, id, amount, checkId)
+}
+
+// ---- Hits for characters on players' phones ----
+
+export const HIT_LIMIT = 50
+
+/** Queues damage or healing for a character the player's own device owns; it applies the hit once. */
+export function addHit(enc: Encounter, hit: Hit): Encounter {
+  if (hit.amount <= 0) return enc
+  return { ...enc, hits: [...(enc.hits ?? []), hit].slice(-HIT_LIMIT) }
 }
 
 // ---- Stat block actions ----

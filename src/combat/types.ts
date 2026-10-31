@@ -111,6 +111,19 @@ export interface LiveMap {
   [extra: string]: unknown
 }
 
+/**
+ * Damage or healing the DM dealt to a party member whose character lives on the player's phone.
+ * It rides the live row (playerView) and the player's own device applies it once (`Character.appliedHits`).
+ */
+export interface Hit {
+  id: string
+  characterId: string
+  kind: 'damage' | 'heal'
+  amount: number
+  critical?: boolean
+  at: string
+}
+
 export interface Encounter {
   id: string
   ownerId: string
@@ -128,6 +141,8 @@ export interface Encounter {
   log: LogLine[]
   /** Battle map state, once the combat has a map or tokens. */
   board?: Board
+  /** Hits for characters on players' phones, newest last, capped at HIT_LIMIT. */
+  hits?: Hit[]
   createdAt: string
   updatedAt: string
 }

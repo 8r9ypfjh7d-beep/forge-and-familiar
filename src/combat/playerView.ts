@@ -5,7 +5,7 @@
 // now or later (a pushed battle map, a party-facing initiative list), goes through playerView()
 // and never touches the Encounter itself. Party members' own rows need no redaction: members
 // already read each other's characters (characters_party_read).
-import type { Combatant, Effect, Encounter } from './types'
+import type { Combatant, Effect, Encounter, Hit } from './types'
 import type { ConditionId } from '../rules/types'
 
 /** How hurt a creature looks, without numbers. Bloodied is the table's word for half HP or less. */
@@ -46,6 +46,8 @@ export interface PlayerEncounter {
   /** In initiative order, hidden rows left out. */
   combatants: PlayerCombatant[]
   effects: PlayerEffect[]
+  /** Damage and healing for characters on players' phones; each owner's device applies its own once. */
+  hits?: Hit[]
   updatedAt: string
 }
 
@@ -109,6 +111,7 @@ export function playerView(e: Encounter): PlayerEncounter {
     activeId: e.activeId && shown.has(e.activeId) ? e.activeId : null,
     combatants,
     effects: e.effects.map(x => playerEffect(x, shown)).filter((x): x is PlayerEffect => x !== null),
+    ...(e.hits?.length ? { hits: e.hits.map(h => ({ ...h })) } : {}),
     updatedAt: e.updatedAt,
   }
 }
