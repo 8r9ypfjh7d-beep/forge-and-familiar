@@ -1,23 +1,30 @@
 import { useState } from 'react'
+import type { Monster } from '../../content'
 import { rollDeathSave as rollDeathSaveDice } from '../../dice'
 import { useDice } from '../../dice/ui'
 import { useI18n } from '../../i18n'
 import { derive } from '../../rules'
 import type { ConditionId } from '../../rules/types'
-import { effectiveMaxHp, heal, rollDeathSave, takeDamage, vitals } from '../../sheet/engine'
+import { effectiveMaxHp, rollDeathSave, vitals } from '../../sheet/engine'
 import {
-  addLog, concentrationOf, damageNpc, dropConcentration, effectConditions, healNpc, isDefeated, moveCombatant,
-  noteDamage, removeCombatant, setInitiative, statusOf, updateCombatant, type Party,
+  addLog, concentrationOf, dropConcentration, effectConditions, isBloodied, isDefeated, moveCombatant,
+  removeCombatant, setInitiative, statusOf, updateCombatant, type Party,
 } from '../engine'
 import { CONDITIONS, type Combatant, type Encounter } from '../types'
+import { applyDamage, applyHeal } from './apply'
+import { MonsterActions } from './MonsterActions'
 import type { Act } from './useEncounter'
 
 const newId = () => crypto.randomUUID()
 
-export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
+export function CombatantRow({ enc, combatant: c, party, remote, monster, act, first, last }: {
   enc: Encounter
   combatant: Combatant
   party: Party
+  /** Character ids that live on players' phones (read-only here). */
+  remote: ReadonlySet<string>
+  /** The row's stat block, when it came from the library. */
+  monster?: Monster
   act: Act
   first: boolean
   last: boolean
@@ -27,7 +34,9 @@ export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
   const rounds = (n: number | null) => (n === null ? '∞' : t('combat.rounds', { count: n }))
   const cond = (x: ConditionId) => term('condition', x, x)
   const [amount, setAmount] = useState('')
+  const [block, setBlock] = useState<boolean | null>(null)
   const n = Math.max(0, Math.floor(Number(amount) || 0))
+  const isRemote = !!c.characterId && remote.has(c.characterId)
   const ch = c.characterId ? party[c.characterId] : undefined
   const status = statusOf(enc, c, party)
   const fromEffects = effectConditions(enc, c.id)
@@ -46,18 +55,8 @@ export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
   const tiedAbove = !first && enc.combatants[idx - 1].initiative === c.initiative
   const tiedBelow = !last && enc.combatants[idx + 1].initiative === c.initiative
 
-  const damage = () => act((e, p) => {
-    const pc = c.characterId ? p[c.characterId] : undefined
-    if (c.kind === 'npc') return damageNpc(e, c.id, n, newId())
-    if (!pc) return e
-    return { encounter: noteDamage(addLog(e, 'combat.log.takes', { name: c.name, amount: n }), c.id, n, newId()), characters: [takeDamage(pc, n)] }
-  })
-  const healUp = () => act((e, p) => {
-    const pc = c.characterId ? p[c.characterId] : undefined
-    if (c.kind === 'npc') return healNpc(e, c.id, n)
-    if (!pc) return e
-    return { encounter: addLog(e, 'combat.log.heals', { name: c.name, amount: n }), characters: [heal(pc, n)] }
-  })
+  const damage = () => act((e, p, r) => applyDamage(e, p, r, c.id, n, newId()))
+  const healUp = () => act((e, p, r) => applyHeal(e, p, r, c.id, n))
   const deathSave = () => act((e, p) => {
     const pc = c.characterId ? p[c.characterId] : undefined
     if (!pc) return e
@@ -72,9 +71,11 @@ export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
     return { encounter: e, characters: [{ ...pc, state: { ...pc.state, conditions: next } }] }
   })
   const own = c.kind === 'pc' ? status.conditions : c.conditions
+  // The stat block unfolds by itself on the monster's turn; the DM can open or close it any time.
+  const showBlock = !!monster && c.kind === 'npc' && life !== 'dead' && (block ?? active)
 
   return (
-    <li className={`combatant glass${active ? ' active' : ''}${life === 'dead' ? ' out' : ''}`} aria-current={active ? 'true' : undefined}>
+    <li className={`combatant glass${active ? ' active' : ''}${life === 'dead' ? ' out' : ''}${showBlock ? ' unfolded' : ''}`} aria-current={active ? 'true' : undefined}>
       <div className="init">
         <label className="sr-only" htmlFor={`init-${c.id}`}>{t('combat.initFor', { name: c.name })}</label>
         <input id={`init-${c.id}`} inputMode="numeric" value={c.initiative ?? ''} placeholder="–"
@@ -98,6 +99,11 @@ export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
           {life === 'dying' && <span className="tag bad">{t('combat.dying')}</span>}
           {life === 'stable' && <span className="tag">{t('combat.stable')}</span>}
           {life === 'dead' && <span className="tag bad">{c.kind === 'pc' ? t('combat.dead') : t('combat.down')}</span>}
+          {c.kind === 'npc' && isBloodied(c.hp) && <span className="tag bad">{t('combat.bloodied')}</span>}
+          {isRemote && <span className="tag" title={t('combat.remoteHint', { name: c.name })}>{t('combat.remoteTag')}</span>}
+          {monster && c.kind === 'npc' && (
+            <button type="button" className="tag tag-btn" aria-expanded={showBlock} onClick={() => setBlock(!showBlock)}>{showBlock ? t('combat.hideBlock') : t('combat.statBlock')}</button>
+          )}
         </div>
         <div className="hp-line">
           <div className="hpbar" aria-hidden="true"><div className={pct <= 25 ? 'low' : pct <= 50 ? 'mid' : ''} style={{ width: `${pct}%` }} /></div>
@@ -133,6 +139,11 @@ export function CombatantRow({ enc, combatant: c, party, act, first, last }: {
         {active && life === 'dying' && <button className="glass-btn small prominent" onClick={deathSave}>{t('combat.deathSave')}</button>}
         <button className="icon" onClick={() => confirm(t('combat.removeConfirm', { name: c.name })) && act(e => removeCombatant(e, c.id))} aria-label={t('combat.removeName', { name: c.name })}>✕</button>
       </div>
+      {showBlock && monster && (
+        <div className="block-slot">
+          <MonsterActions enc={enc} combatant={c} monster={monster} party={party} act={act} onClose={() => setBlock(false)} />
+        </div>
+      )}
     </li>
   )
 }

@@ -7,15 +7,18 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 
 | File | Purpose |
 |------|---------|
-| `types.ts` | `Encounter`, `Combatant`, `Effect`, `PendingCheck`, `CONDITIONS` |
-| `engine.ts` | Every encounter change, pure. Tested in `engine.test.ts` |
+| `types.ts` | `Encounter`, `Combatant` (with `monster` stat block ref, `spent` uses, `legendaryUsed`, `npcId`), `Effect`, `PendingCheck`, `CONDITIONS` |
+| `engine.ts` | Every encounter change, pure: turns, timers, concentration, `spendAction` / `rechargeAction` / `spendLegendary` / `critDice` / `isBloodied`. Tested in `engine.test.ts` |
+| `campaign.ts` | `campaignRows`: the party in play as `pc` rows, from this device or read from the cloud |
 | `storage.ts` | Encounters in localStorage (`ff.encounters.v1`), async API, filtered by `ownerId` |
 | `playerView.ts` | Pure: `playerView(encounter)`, what the party may see of a fight (`PlayerEncounter`); `healthLook`, `DM_ONLY_FIELDS`. Tested in `playerView.test.ts` |
 | `liveLogic.ts` | Pure battle-map rules: `projectPublic` (what players see of the board), `placeTokens`, `tokenLabel`, `moveProblem`, `moveTokenOn`. Tested in `live.test.ts` |
 | `live.ts` | Live combat in Supabase: `startLiveCombat`, `mirrorEncounter`, `setLiveMap`, `updateBoard`, `moveToken`, `endLiveCombat`, `watchLiveCombat`, `pullLiveCombat` |
-| `ui/useEncounter.ts` | Loads an encounter and its party characters, saves both, undo |
+| `ui/useEncounter.ts` | Loads an encounter and its party characters, saves both, undo; `remote` = characters on players' phones (shown, never written) |
+| `ui/apply.ts` | `applyDamage` / `applyHeal` on any row: monsters through the encounter, party members through the sheet engine, remote ones only logged |
+| `ui/MonsterActions.tsx` | A monster row's stat block in the fight: one-tap attack + damage with a target picker, save DCs, recharge / X/Day / legendary tracking |
 | `ui/rolls.ts` | Initiative and concentration rolls through `src/dice`, recorded in the dice history |
-| `ui/CombatTracker.tsx` | Encounter list and the open encounter (`initialOpenId` opens one straight away, used by the DM screen) |
+| `ui/CombatTracker.tsx` | Encounter list and the open encounter (`initialOpenId` opens one straight away, used by the DM screen); `campaign` = the party in play; `ui/useMonsterIndex.ts` loads stat blocks; Next turn rolls the new monster's recharges |
 | `ui/CombatantRow.tsx`, `AddCombatants.tsx`, `Effects.tsx`, `PendingChecks.tsx` | Parts of the encounter screen |
 | `ui/combat.css` | Liquid Glass styles (src/design/DESIGN.md): `.glass` cards, `.glass-btn` buttons, `.glass-chip` chips; logical properties only |
 | `ui/style.test.ts` | Keeps `combat.css` on logical properties and glass tokens |
@@ -23,6 +26,8 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 ## Rules
 
 - **Party vs monsters.** A `pc` row links a Character: HP, death saves and conditions stay on the character and change through `src/sheet/engine` (`takeDamage`, `heal`, `rollDeathSave`), so the sheet and the tracker always agree. `npc` rows keep their own HP, AC, CON save and conditions.
+- **Stat blocks.** A monster row made from the library (`monster: { source, id }`, see src/dm `planCombatants`) unfolds its stat block on its turn (or on "Stat block"): tapping an action rolls to hit and every damage group at once (a natural 20 rolls the damage dice again), shows the result and an "Apply N to <target>" button (half for save-for-half actions). Recharge actions become spent and roll to recharge at the start of the creature's next turn; X/Day actions count down; legendary actions have a 3-pip counter refilled on the creature's turn ("Costs 2 Actions" spends 2). Bloodied is shown at half HP.
+- **Campaign party.** With a party in play, "Add the campaign's party" (and the DM screen's Start) adds every character the members bring. One not on this device is read from the cloud and marked "On the player's phone": its HP and conditions show live, but damage to it is only logged here until the live hits land (plan in plans/20261030_2055).
 - **Order.** Initiative high to low, ties to the higher modifier, then the table can swap tied rows (▲▼). Monsters at 0 HP are skipped; party members at 0 keep their turn for death saves.
 - **Timers.** An effect ticks on its source's turn, at the start (default: "1 minute" ends at the start of the caster's 11th turn) or at the end ("until the end of your next turn"; the end of the turn it was cast on does not count). No source: ticks when a new round starts. `remaining: null` lasts until ended. Ending combat ends every effect.
 - **Conditions from effects.** An effect's condition shows on its targets. For party members it is written to `character.state.conditions` when the effect starts and removed when it ends (`syncPartyConditions`), so `rules/rollMode` applies it to their rolls. Removing a condition by hand while its effect lasts is allowed.

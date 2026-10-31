@@ -2,7 +2,10 @@
 // Uses the sheet's card style (.ff-sheet) so it reads like the rest of the app.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createEncounter, addCombatant, saveEncounter } from '../combat'
+import { campaignRows } from '../combat/campaign'
 import { BOOK_TITLES, loadMonsters, monsterKey, onContentChanged, sourceById, type Edition, type LoadedMonster, type Monster } from '../content'
+import { roll, rollD20 } from '../dice'
+import { useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { DmRequestsTab, inbox, StoryReminders, useRequests } from '../requests'
@@ -51,6 +54,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
   party?: Party
 }) {
   const { t } = useI18n()
+  const { record } = useDice()
   const [state, setState] = useState<DmState | null>(null)
   const [monsters, setMonsters] = useState<LoadedMonster[]>([])
   const [edition, setEditionState] = useState<Edition>(readEdition)
@@ -106,9 +110,14 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, initialTab, part
     return addPlan(s, addMonster({ id: newId(), name: t('dm.planName', { n: s.plans.length + 1 }), monsters: [] }, planEntry(m)))
   })
 
+  // Start: monsters with their stat blocks, initiative rolled per group, HP average or rolled; then the campaign's party.
   const run = async (p: EncounterPlan) => {
-    const rows = planCombatants(p, monsters, newId)
-    const enc = rows.reduce((e, row) => addCombatant(e, row), createEncounter(newId(), userId, p.name))
+    const rows = planCombatants(p, monsters, newId, {
+      d20: (bonus, label) => record(rollD20(bonus, { label: `${label}: Initiative` }, 'initiative')).total,
+      hp: dice => roll(dice).total,
+    })
+    const pcs = party ? await campaignRows(party, [], newId) : []
+    const enc = [...rows, ...pcs].reduce((e, row) => addCombatant(e, row), createEncounter(newId(), userId, p.name))
     const saved = await saveEncounter(enc)
     onRunEncounter(saved.id)
   }
@@ -301,7 +310,7 @@ function EncountersTab({ state, update, monsters, onAdd, onRun, onOpenMonster }:
                 {t('common.delete')}
               </button>
             </div>
-            <Meter xp={planXp(plan)} budget={budget} />
+            <Meter xp={planXp(plan)} budget={budget} players={partySize(state.party)} />
             {plan.monsters.length === 0 ? <p className="hint">{t('dm.planEmpty')}</p> : (
               <ul className="plain dm-plan-list">
                 {plan.monsters.map(m => (
@@ -317,10 +326,19 @@ function EncountersTab({ state, update, monsters, onAdd, onRun, onOpenMonster }:
                 ))}
               </ul>
             )}
+            <label className="dm-notes">
+              <span>{t('dm.notes')}</span>
+              <textarea rows={3} value={plan.notes ?? ''} placeholder={t('dm.notesPh')}
+                onChange={e => update(s => updatePlan(s, plan.id, p => ({ ...p, notes: e.target.value })))} />
+            </label>
+            <label className="dm-check">
+              <input type="checkbox" checked={!!plan.rollHp} onChange={e => update(s => updatePlan(s, plan.id, p => ({ ...p, rollHp: e.target.checked })))} />
+              <span>{t('dm.rollHp')}</span>
+            </label>
             <div className="row">
-              <button className="btn primary" disabled={!plan.monsters.length || !monsters.length} onClick={() => onRun(plan)}>{t('dm.run')}</button>
+              <button className="btn primary" disabled={!plan.monsters.length || !monsters.length} onClick={() => onRun(plan)}>{t('dm.start')}</button>
             </div>
-            <p className="hint">{t('dm.runHelp')}</p>
+            <p className="hint">{t('dm.startHelp')}</p>
           </>
         )}
       </section>
@@ -332,7 +350,7 @@ function EncountersTab({ state, update, monsters, onAdd, onRun, onOpenMonster }:
   )
 }
 
-function Meter({ xp, budget }: { xp: number; budget: { low: number; moderate: number; high: number } }) {
+function Meter({ xp, budget, players }: { xp: number; budget: { low: number; moderate: number; high: number }; players: number }) {
   const { t } = useI18n()
   const d = difficulty(xp, budget)
   const pct = budget.high ? Math.min(100, (xp / budget.high) * 100) : 0
@@ -340,7 +358,7 @@ function Meter({ xp, budget }: { xp: number; budget: { low: number; moderate: nu
   return (
     <div className={`dm-meter diff-${d}`}>
       <div className="dm-meter-head">
-        <b>{t(DIFFICULTY_KEYS[d])}</b>
+        <b>{t('dm.diffFor', { diff: t(DIFFICULTY_KEYS[d]), count: players })}</b>
         <span className="muted small">{t('dm.xpOf', { xp: xp.toLocaleString(), high: budget.high.toLocaleString() })}</span>
       </div>
       <div className="dm-meter-bar" role="meter" aria-valuemin={0} aria-valuemax={budget.high} aria-valuenow={Math.min(xp, budget.high)} aria-label={t('dm.difficulty')}>

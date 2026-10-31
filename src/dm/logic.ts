@@ -101,21 +101,38 @@ export function changeCount(plan: EncounterPlan, m: Pick<PlanMonster, 'monsterId
 
 // ---------- Combat tracker hand-off ----------
 
-/** Tracker rows for a plan: one per creature, numbered when there are several, average HP. */
-export function planCombatants(plan: EncounterPlan, monsters: Monster[], newId: () => string): Omit<Combatant, 'conditions'>[] {
+/** Dice the hand-off needs: `d20` for initiative, `hp` for rolled hit points. Omit either to skip it (tests, average HP). */
+export interface StartDice {
+  /** Rolls d20 plus the bonus; one roll per monster group, as at the table. */
+  d20?: (bonus: number, label: string) => number
+  /** Rolls a hit-point formula like "2d6+2". */
+  hp?: (dice: string) => number
+}
+
+/**
+ * Tracker rows for a plan: one per creature, numbered when there are several, carrying the stat block reference.
+ * HP is the average unless the plan rolls it; initiative is rolled when a d20 is given (same roll per group).
+ */
+export function planCombatants(plan: EncounterPlan, monsters: Monster[], newId: () => string, dice: StartDice = {}): Omit<Combatant, 'conditions'>[] {
   return plan.monsters.flatMap(pm => {
     const m = monsters.find(x => sameMonster({ monsterId: x.id, source: x.source }, pm))
-    const hp = m?.hitPoints ?? 1
-    return Array.from({ length: pm.count }, (_, i) => ({
-      id: newId(),
-      name: pm.count > 1 ? `${pm.name} ${i + 1}` : pm.name,
-      kind: 'npc' as const,
-      initiative: null,
-      initBonus: m ? abilityMod(m.abilities.dex) : 0,
-      conSave: m ? m.savingThrows.con ?? abilityMod(m.abilities.con) : 0,
-      ac: m?.armorClass[0]?.value,
-      hp: { current: hp, max: hp, temp: 0 },
-    }))
+    const initBonus = m ? abilityMod(m.abilities.dex) : 0
+    const initiative = dice.d20 ? dice.d20(initBonus, pm.name) : null
+    return Array.from({ length: pm.count }, (_, i) => {
+      const hp = Math.max(1, (plan.rollHp && dice.hp && m?.hitPointsRoll ? dice.hp(m.hitPointsRoll) : m?.hitPoints) ?? 1)
+      return {
+        id: newId(),
+        name: pm.count > 1 ? `${pm.name} ${i + 1}` : pm.name,
+        kind: 'npc' as const,
+        ...(m ? { monster: { source: m.source, id: m.id } } : {}),
+        ...(pm.npcId ? { npcId: pm.npcId } : {}),
+        initiative,
+        initBonus,
+        conSave: m ? m.savingThrows.con ?? abilityMod(m.abilities.con) : 0,
+        ac: m?.armorClass[0]?.value,
+        hp: { current: hp, max: hp, temp: 0 },
+      }
+    })
   })
 }
 

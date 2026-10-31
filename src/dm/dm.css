@@ -232,3 +232,7 @@
 .ff-dm .dm-edition { display: flex; gap: var(--sp-1); margin-block-end: var(--sp-2); }
 .ff-dm .dm-filters .dm-source { grid-column: 1 / -1; }
 .ff-dm .dm-legacy { color: var(--muted); font-weight: 400; }
+
+/* Scenario notes and start options (Encounters tab) */
+.ff-sheet.ff-dm .dm-notes { display: grid; gap: 4px; margin-block-start: var(--sp-3); font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+.ff-sheet.ff-dm .dm-check { display: flex; align-items: center; gap: var(--sp-2); margin-block: var(--sp-2); font-size: 0.9rem; }

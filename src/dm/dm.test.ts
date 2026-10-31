@@ -66,7 +66,22 @@ describe('library monsters', async () => {
     let n = 0
     const rows = planCombatants(addMonster(plan(), planEntry(g), 2), monsters, () => `id${++n}`)
     expect(rows.map(r => r.name)).toEqual(['Goblin 1', 'Goblin 2'])
-    expect(rows[0]).toMatchObject({ kind: 'npc', ac: 15, initBonus: 2, conSave: 0, hp: { current: 7, max: 7, temp: 0 } })
+    expect(rows[0]).toMatchObject({ kind: 'npc', ac: 15, initBonus: 2, conSave: 0, hp: { current: 7, max: 7, temp: 0 }, monster: { source: 'srd-5.1', id: 'goblin' } })
+    expect(rows[0].initiative).toBeNull()
+  })
+  it('rolls initiative once per group and hit points per creature when the scenario asks', () => {
+    const g = monsters.find(m => m.id === 'goblin')!
+    let n = 0
+    const d20 = (bonus: number) => 10 + bonus
+    const rolled: string[] = []
+    const hp = (dice: string) => { rolled.push(dice); return rolled.length }
+    const rows = planCombatants({ ...addMonster(plan(), planEntry(g), 2), rollHp: true }, monsters, () => `id${++n}`, { d20, hp })
+    expect(rows.map(r => r.initiative)).toEqual([12, 12])
+    expect(rows.map(r => r.hp?.max)).toEqual([1, 2])
+    expect(rolled).toEqual(['2d6', '2d6'])
+    // Without the roll flag the average stays, and an NPC sheet keeps its id.
+    const avg = planCombatants({ ...plan([{ ...goblin, count: 1, npcId: 'npc-1' }]) }, monsters, () => 'x', { hp })
+    expect(avg[0]).toMatchObject({ hp: { max: 7 }, npcId: 'npc-1' })
   })
   it('searches by name, CR and type, easiest first', () => {
     const found = findMonsters(monsters, { text: '', minCr: 1, maxCr: 2, type: 'undead' })

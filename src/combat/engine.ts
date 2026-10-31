@@ -134,8 +134,13 @@ function tick(enc: Encounter, matches: (e: Effect) => boolean, phase: 'start' | 
   return log({ ...enc, effects }, ...expired)
 }
 
-const sourceTick = (enc: Encounter, id: string, at: 'start' | 'end') =>
-  tick(enc, e => e.sourceId === id && e.tick === at, at)
+const sourceTick = (enc: Encounter, id: string, at: 'start' | 'end') => {
+  const ticked = tick(enc, e => e.sourceId === id && e.tick === at, at)
+  // A legendary creature regains its legendary actions at the start of its turn (SRD).
+  return at === 'start' && byId(ticked, id)?.legendaryUsed
+    ? { ...ticked, combatants: ticked.combatants.map(c => (c.id === id ? { ...c, legendaryUsed: 0 } : c)) }
+    : ticked
+}
 
 /** Starts round 1 with the top of the order. Everyone needs an initiative first. */
 export function startCombat(enc: Encounter): Encounter {
@@ -224,6 +229,46 @@ export function damageNpc(enc: Encounter, id: string, amount: number, checkId: s
   let next = updateCombatant(enc, id, { hp: { ...c.hp, temp: c.hp.temp - absorbed, current } })
   next = log(next, line(current === 0 ? 'combat.log.takesDown' : 'combat.log.takes', { name: c.name, amount }))
   return noteDamage(next, id, amount, checkId)
+}
+
+// ---- Stat block actions ----
+
+/** Bloodied: at or below half of maximum HP (and above 0). */
+export const isBloodied = (hp: { current: number; max: number } | undefined) =>
+  !!hp && hp.current > 0 && hp.current * 2 <= hp.max
+
+/** Marks a stat block action used: a recharge action becomes spent, an X/Day action counts a use. */
+export function spendAction(enc: Encounter, id: string, action: string): Encounter {
+  const c = byId(enc, id)
+  if (!c) return enc
+  return updateCombatant(enc, id, { spent: { ...c.spent, [action]: (c.spent?.[action] ?? 0) + 1 } })
+}
+
+/** A recharge roll at the start of the creature's turn: at or above the minimum the action is ready again. */
+export function rechargeAction(enc: Encounter, id: string, action: string, total: number, minimum: number): Encounter {
+  const c = byId(enc, id)
+  if (!c?.spent?.[action]) return enc
+  if (total < minimum) return log(enc, line('combat.log.noRecharge', { name: c.name, action, total }))
+  const { [action]: _gone, ...spent } = c.spent
+  return log(updateCombatant(enc, id, { spent }), line('combat.log.recharged', { name: c.name, action, total }))
+}
+
+/** Spends legendary actions (1, or 2 for "Costs 2 Actions"); refused when fewer are left. */
+export function spendLegendary(enc: Encounter, id: string, action: string, cost: number, max = 3): Encounter {
+  const c = byId(enc, id)
+  if (!c) return enc
+  const used = c.legendaryUsed ?? 0
+  if (used + cost > max) return enc
+  return log(updateCombatant(enc, id, { legendaryUsed: used + cost }), line('combat.log.legendary', { name: c.name, action, left: max - used - cost }))
+}
+
+/** The dice of a damage roll without its flat bonus ("2d6+5" → "2d6"), rolled again on a critical hit. */
+export const critDice = (dice: string) => dice.replace(/\s/g, '').split(/(?=[+-])/).filter(t => /d/i.test(t)).join('') || null
+
+/** "Wing Attack (Costs 2 Actions)" → 2. */
+export function legendaryCost(name: string): number {
+  const m = /costs (\d+) actions?/i.exec(name)
+  return m ? Number(m[1]) : 1
 }
 
 export function healNpc(enc: Encounter, id: string, amount: number): Encounter {

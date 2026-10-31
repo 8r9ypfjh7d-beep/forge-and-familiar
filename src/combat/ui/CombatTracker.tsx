@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import { roll } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Translate } from '../../i18n/translate'
-import { createEncounter, elapsedSeconds, endCombat, inCombat, nextTurn, startCombat, setInitiative } from '../engine'
+import type { Party as Campaign } from '../../party'
+import { createEncounter, elapsedSeconds, endCombat, inCombat, nextTurn, rechargeAction, startCombat, setInitiative } from '../engine'
 import { deleteEncounter, listEncounters, saveEncounter } from '../storage'
 import type { Encounter } from '../types'
 import { AddCombatants } from './AddCombatants'
@@ -10,6 +12,7 @@ import { Effects } from './Effects'
 import { PendingChecks } from './PendingChecks'
 import { useCombatRolls } from './rolls'
 import { useEncounter } from './useEncounter'
+import { useMonsterIndex } from './useMonsterIndex'
 import './combat.css'
 
 const newId = () => crypto.randomUUID()
@@ -18,15 +21,15 @@ function elapsedText(seconds: number, t: Translate): string {
   return seconds < 60 ? t('combat.elapsedS', { s: seconds }) : t('combat.elapsedMin', { m: Math.floor(seconds / 60), s: seconds % 60 })
 }
 
-/** Encounter list, and the open encounter. Each player profile keeps its own encounters. */
-export function CombatTracker({ ownerId, initialOpenId }: { ownerId: string; initialOpenId?: string }) {
+/** Encounter list, and the open encounter. Each player profile keeps its own encounters. `campaign` is the party in play (its members join in one tap). */
+export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: string; initialOpenId?: string; campaign?: Campaign }) {
   const [list, setList] = useState<Encounter[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(initialOpenId ?? null)
   const { t } = useI18n()
   const refresh = useCallback(() => { listEncounters(ownerId).then(setList) }, [ownerId])
   useEffect(refresh, [refresh])
 
-  if (openId) return <EncounterView key={openId} encounterId={openId} onBack={() => { setOpenId(null); refresh() }} />
+  if (openId) return <EncounterView key={openId} encounterId={openId} campaign={campaign} onBack={() => { setOpenId(null); refresh() }} />
 
   const create = async () => {
     const e = await saveEncounter(createEncounter(newId(), ownerId, t('combat.defaultName', { n: (list?.length ?? 0) + 1 })))
@@ -66,11 +69,26 @@ export function CombatTracker({ ownerId, initialOpenId }: { ownerId: string; ini
   )
 }
 
-function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: () => void }) {
-  const { encounter: enc, party, act, undo, canUndo } = useEncounter(encounterId)
+function EncounterView({ encounterId, campaign, onBack }: { encounterId: string; campaign?: Campaign; onBack: () => void }) {
+  const { encounter: enc, party, remote, act, undo, canUndo } = useEncounter(encounterId)
   const rolls = useCombatRolls()
+  const monsters = useMonsterIndex()
   const { t } = useI18n()
   const [editingName, setEditingName] = useState(false)
+  const monsterOf = (c: { monster?: { source: string; id: string } }) => (c.monster ? monsters.get(`${c.monster.source}:${c.monster.id}`) : undefined)
+
+  // Next turn, then the new active monster rolls to recharge its spent recharge actions (SRD: at the start of its turn).
+  const next = () => act(e => {
+    const turned = nextTurn(e)
+    const c = turned.combatants.find(x => x.id === turned.activeId)
+    const m = c && monsterOf(c)
+    if (!c || !m) return turned
+    return m.actions.filter(a => a.usage?.type === 'recharge' && c.spent?.[a.name]).reduce((acc, a) => {
+      const u = a.usage as { dice: string; minimum: number }
+      const r = rolls.record(roll(u.dice, { label: `${c.name}: ${a.name} recharge` }))
+      return rechargeAction(acc, c.id, a.name, r.total, u.minimum)
+    }, turned)
+  })
 
   if (enc === undefined) return <p className="muted">{t('common.loading')}</p>
   if (enc === null) return <p>{t('combat.notFound')} <button className="glass-btn" onClick={onBack}>{t('common.back')}</button></p>
@@ -106,7 +124,7 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
       <div className="combat-actions row">
         {unrolled.length > 0 && <button className="glass-btn" onClick={rollMissing}>{t('combat.rollInit', { count: unrolled.length })}</button>}
         {fighting
-          ? <button className="glass-btn prominent next" onClick={() => act(nextTurn)}>{t('combat.next')}</button>
+          ? <button className="glass-btn prominent next" onClick={next}>{t('combat.next')}</button>
           : <button className="glass-btn prominent next" disabled={!enc.combatants.length || unrolled.length > 0} onClick={() => act(startCombat)}
               title={unrolled.length ? t('combat.needInit') : undefined}>{t('combat.start')}</button>}
         {fighting && <button className="glass-btn" onClick={() => confirm(t('combat.endConfirm')) && act(endCombat)}>{t('combat.end')}</button>}
@@ -122,12 +140,12 @@ function EncounterView({ encounterId, onBack }: { encounterId: string; onBack: (
             : (
               <ol className="plain order" aria-label={t('combat.order')}>
                 {enc.combatants.map((c, i) => (
-                  <CombatantRow key={c.id} enc={enc} combatant={c} party={party} act={act}
+                  <CombatantRow key={c.id} enc={enc} combatant={c} party={party} remote={remote} monster={monsterOf(c)} act={act}
                     first={i === 0} last={i === enc.combatants.length - 1} />
                 ))}
               </ol>
             )}
-          <AddCombatants enc={enc} act={act} />
+          <AddCombatants enc={enc} act={act} campaign={campaign} />
         </div>
         <div>
           <Effects enc={enc} act={act} />

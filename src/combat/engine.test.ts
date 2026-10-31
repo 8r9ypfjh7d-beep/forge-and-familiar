@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { makeCharacter } from '../sheet/fixtures'
 import {
   addCombatant, addEffect, breakConcentration, concentrationDc, concentrationOf, createEncounter, damageNpc,
-  effectConditions, elapsedSeconds, endCombat, nextTurn, removeCombatant, resolveCheck, setInitiative, startCombat,
-  statusOf, syncPartyConditions,
+  critDice, effectConditions, elapsedSeconds, endCombat, isBloodied, legendaryCost, nextTurn, rechargeAction, removeCombatant, resolveCheck,
+  setInitiative, spendAction, startCombat, statusOf, syncPartyConditions, spendLegendary,
 } from './engine'
 import type { Encounter } from './types'
 
@@ -179,5 +179,49 @@ describe('party members', () => {
   it('leaves characters alone when nothing changes', () => {
     const e = startCombat(withHero())
     expect(syncPartyConditions(e, nextTurn(e), { hero })).toEqual([])
+  })
+})
+
+describe('stat block actions', () => {
+  it('spends and recharges an action', () => {
+    let e = spendAction(party(), 'goblin', 'Fire Breath')
+    expect(e.combatants.find(c => c.id === 'goblin')?.spent).toEqual({ 'Fire Breath': 1 })
+    e = rechargeAction(e, 'goblin', 'Fire Breath', 3, 5)
+    expect(e.combatants.find(c => c.id === 'goblin')?.spent).toEqual({ 'Fire Breath': 1 })
+    e = rechargeAction(e, 'goblin', 'Fire Breath', 5, 5)
+    expect(e.combatants.find(c => c.id === 'goblin')?.spent).toEqual({})
+    expect(rechargeAction(e, 'goblin', 'Fire Breath', 6, 5)).toBe(e)
+  })
+
+  it('counts X/Day uses up', () => {
+    const e = spendAction(spendAction(party(), 'goblin', 'Enslave'), 'goblin', 'Enslave')
+    expect(e.combatants.find(c => c.id === 'goblin')?.spent?.Enslave).toBe(2)
+  })
+
+  it('limits legendary actions to three a round and refills them on the creature\'s turn', () => {
+    let e = startCombat(party()) // wizard's turn
+    e = spendLegendary(e, 'goblin', 'Tail Attack', 1)
+    e = spendLegendary(e, 'goblin', 'Wing Attack (Costs 2 Actions)', legendaryCost('Wing Attack (Costs 2 Actions)'))
+    expect(e.combatants.find(c => c.id === 'goblin')?.legendaryUsed).toBe(3)
+    const refused = spendLegendary(e, 'goblin', 'Detect', 1)
+    expect(refused).toBe(e)
+    e = nextTurn(e) // goblin's turn: legendary actions come back
+    expect(e.combatants.find(c => c.id === 'goblin')?.legendaryUsed).toBe(0)
+  })
+
+  it('knows bloodied', () => {
+    expect(isBloodied({ current: 5, max: 10 })).toBe(true)
+    expect(isBloodied({ current: 6, max: 10 })).toBe(false)
+    expect(isBloodied({ current: 0, max: 10 })).toBe(false)
+    expect(isBloodied(undefined)).toBe(false)
+  })
+})
+
+describe('critical hit dice', () => {
+  it('keeps only the dice of a damage formula', () => {
+    expect(critDice('2d6+5')).toBe('2d6')
+    expect(critDice('2d10 + 6')).toBe('2d10')
+    expect(critDice('1d8+1d6+3')).toBe('1d8+1d6')
+    expect(critDice('5')).toBeNull()
   })
 })

@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react'
 import { roll } from '../../dice'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
+import type { Party as Campaign } from '../../party'
 import { derive } from '../../rules'
 import { listCharacters, listProfiles } from '../../storage'
+import { campaignCharacterIds, campaignRows } from '../campaign'
 import { addCombatant } from '../engine'
 import type { Encounter } from '../types'
 import type { Act } from './useEncounter'
 
 const newId = () => crypto.randomUUID()
 
-/** Adds party members (any player's character on this device) and monsters or NPCs. */
-export function AddCombatants({ enc, act }: { enc: Encounter; act: Act }) {
+/** Adds the campaign's party in one tap, party members (any player's character on this device) and monsters or NPCs. */
+export function AddCombatants({ enc, act, campaign }: { enc: Encounter; act: Act; campaign?: Campaign }) {
   const { t } = useI18n()
   const [characters, setCharacters] = useState<{ owner: string; c: Character }[]>([])
   useEffect(() => {
@@ -22,6 +24,12 @@ export function AddCombatants({ enc, act }: { enc: Encounter; act: Act }) {
   }, [])
   const inFight = new Set(enc.combatants.map(c => c.characterId))
   const available = characters.filter(x => !inFight.has(x.c.id))
+  const campaignMissing = campaign ? campaignCharacterIds(campaign).filter(id => !inFight.has(id)).length : 0
+  const addCampaign = async () => {
+    if (!campaign) return
+    const rows = await campaignRows(campaign, inFight, newId)
+    act(e => rows.reduce((next, row) => addCombatant(next, row), e))
+  }
 
   const addPc = (c: Character) =>
     act(e => addCombatant(e, { id: newId(), name: c.name, kind: 'pc', characterId: c.id, initiative: null, initBonus: derive(c).initiative }))
@@ -29,6 +37,9 @@ export function AddCombatants({ enc, act }: { enc: Encounter; act: Act }) {
   return (
     <section className="glass add">
       <h3 className="glass-eyebrow">{t('combat.addTitle')}</h3>
+      {campaign && (campaignMissing > 0
+        ? <button className="glass-btn prominent" onClick={addCampaign}>{t('combat.addCampaign', { count: campaignMissing })}</button>
+        : <p className="muted small">{t('combat.campaignAdded')}</p>)}
       <div className="row">
         <select aria-label={t('combat.addParty')} value="" disabled={!available.length}
           onChange={ev => { const x = available.find(a => a.c.id === ev.target.value); if (x) addPc(x.c) }}>
