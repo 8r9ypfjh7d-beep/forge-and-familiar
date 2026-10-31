@@ -1,6 +1,8 @@
 // Pure DM screen logic: encounter budgets, plan edits, combat tracker hand-off, NPC generator.
 // Randomness comes in as an argument, so everything here is testable.
 import type { Combatant } from '../combat/types'
+import { npcCombatant } from '../combat/npcRows'
+import type { NpcSheet } from '../npc/types'
 import type { Monster } from '../content'
 import type { DmState, EncounterPlan, PartyGroup, PlanMonster } from './types'
 
@@ -99,6 +101,11 @@ export function changeCount(plan: EncounterPlan, m: Pick<PlanMonster, 'monsterId
   }
 }
 
+/** A plan entry for one of the DM's NPC sheets: always one of them, keyed by the sheet so it never stacks with its book monster. */
+export function npcPlanEntry(npc: NpcSheet): Omit<PlanMonster, 'count'> {
+  return { monsterId: npc.id, source: 'npc', name: npc.name, xp: npc.block.xp, cr: npc.block.challengeRating, npcId: npc.id }
+}
+
 // ---------- Combat tracker hand-off ----------
 
 /** Dice the hand-off needs: `d20` for initiative, `hp` for rolled hit points. Omit either to skip it (tests, average HP). */
@@ -113,8 +120,14 @@ export interface StartDice {
  * Tracker rows for a plan: one per creature, numbered when there are several, carrying the stat block reference.
  * HP is the average unless the plan rolls it; initiative is rolled when a d20 is given (same roll per group).
  */
-export function planCombatants(plan: EncounterPlan, monsters: Monster[], newId: () => string, dice: StartDice = {}): Omit<Combatant, 'conditions'>[] {
-  return plan.monsters.flatMap(pm => {
+export function planCombatants(plan: EncounterPlan, monsters: Monster[], newId: () => string, dice: StartDice = {}, npcs: NpcSheet[] = []): Omit<Combatant, 'conditions'>[] {
+  return plan.monsters.flatMap((pm): Omit<Combatant, 'conditions'>[] => {
+    // An NPC sheet plays itself: its own block, HP and conditions as the sheet has them.
+    const npc = pm.npcId ? npcs.find(n => n.id === pm.npcId) : undefined
+    if (npc) {
+      const row = npcCombatant(npc, newId())
+      return [{ ...row, initiative: dice.d20 ? dice.d20(row.initBonus, npc.name) : null }]
+    }
     const m = monsters.find(x => sameMonster({ monsterId: x.id, source: x.source }, pm))
     const initBonus = m ? abilityMod(m.abilities.dex) : 0
     const initiative = dice.d20 ? dice.d20(initBonus, pm.name) : null

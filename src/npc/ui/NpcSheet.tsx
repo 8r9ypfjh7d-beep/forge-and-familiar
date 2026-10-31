@@ -5,12 +5,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { announce } from '../../a11y'
 import { ConfirmDialog } from '../../builder/ConfirmDialog'
-import { addCombatant, createEncounter, listEncounters, saveEncounter, type Combatant, type Encounter } from '../../combat'
+import { addCombatant, createEncounter, listEncounters, saveEncounter, type Encounter } from '../../combat'
+import { npcCombatant } from '../../combat/npcRows'
 import { rollD20 } from '../../dice'
 import { useDice } from '../../dice/ui'
 import { useI18n, type MessageKey } from '../../i18n'
 import { CONDITIONS, DAMAGE_TYPES, formatMod, type ConditionId } from '../../rules'
-import { StatBlock, crLabel, initBonus, conSave, legendaryCount, legendaryResistance, limitedActions, passivePerception, perDayGroups, speedText, spellSlots, typeLine } from '../../monsters'
+import { StatBlock, crLabel, initBonus, legendaryCount, legendaryResistance, limitedActions, passivePerception, perDayGroups, speedText, spellSlots, typeLine } from '../../monsters'
 import {
   heal, isDown, longRest, maxHp, npcDefense, rechargeRoll, setCondition, setHp, setMaxHp, setTempHp, setUses, shortRest,
   spendLegendary, spendSlot, spendSpellUse, startTurn, takeDamage, useLegendaryResistance,
@@ -145,10 +146,7 @@ function HeroCard({ npc, editing, apply, ownerId, onOpenFight }: { npc: Npc; edi
   const join = async (fight?: Encounter) => {
     const enc = fight ?? createEncounter(crypto.randomUUID(), ownerId, t('combat.defaultName', { n: (fights?.length ?? 0) + 1 }))
     // `npcId` links the row back to this sheet for the tracker.
-    const row: Combatant = {
-      id: crypto.randomUUID(), name: npc.name, kind: 'npc', initiative: null, initBonus: initBonus(m), ac: m.armorClass[0]?.value,
-      conSave: conSave(m), hp: { current: npc.state.currentHp, max: maxHp(npc), temp: npc.state.tempHp }, conditions: npc.state.conditions, npcId: npc.id,
-    }
+    const row = npcCombatant(npc, crypto.randomUUID())
     const saved = await saveEncounter(addCombatant(enc, row))
     setPicking(false)
     announce(t('npc.log.joined', { fight: saved.name }))

@@ -238,3 +238,6 @@
 .ff-sheet.ff-dm .dm-check { display: flex; align-items: center; gap: var(--sp-2); margin-block: var(--sp-2); font-size: 0.9rem; }
 .ff-sheet.ff-dm .dm-map-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-block: var(--sp-2); font-size: 0.9rem; }
 .ff-sheet.ff-dm .dm-map-pick select { min-block-size: 36px; padding-inline: var(--sp-2); }
+
+/* NPC sheets in a plan */
+.ff-sheet.ff-dm .dm-add-npc { margin-block-start: var(--sp-2); max-inline-size: 100%; }

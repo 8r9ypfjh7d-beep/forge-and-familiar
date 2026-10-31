@@ -5,6 +5,7 @@ import { createEncounter, addCombatant, saveEncounter } from '../combat'
 import { campaignRows } from '../combat/campaign'
 import { BOOK_TITLES, loadMonsters, monsterKey, onContentChanged, sourceById, type Edition, type LoadedMonster, type Monster } from '../content'
 import { roll, rollD20 } from '../dice'
+import { listNpcs, onNpcsChanged, type NpcSheet } from '../npc'
 import { useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
@@ -18,7 +19,7 @@ import { StatBlock } from '../monsters'
 import { totalLevel } from '../rules'
 import { getCharacter } from '../storage'
 import {
-  activePlan, addMonster, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterGroups, monsterTypes,
+  activePlan, addMonster, npcPlanEntry, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterGroups, monsterTypes,
   groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
@@ -71,6 +72,15 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
   // Opened straight on a later tab (from a request link): bring it into view on narrow screens.
   useEffect(() => { if (initialTab) document.getElementById(`dm-tab-${initialTab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [initialTab, state])
   const [openMonster, setOpenMonster] = useState<string | null>(null)
+  // The DM's NPC sheets (src/npc) for this campaign, so a plan can field them.
+  const [npcs, setNpcs] = useState<NpcSheet[]>([])
+  useEffect(() => {
+    let live = true
+    const load = () => { listNpcs(userId, party?.id).then(list => { if (live) setNpcs(list) }) }
+    load()
+    const off = onNpcsChanged(load)
+    return () => { live = false; off() }
+  }, [userId, party?.id])
   // Players' rolls, live, so the Rolls tab can show a badge while the DM works on another tab.
   const rolls = useDmRolls(party)
   const { unseen, markSeen } = useUnseenRolls(userId, rolls)
@@ -117,12 +127,18 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
     return addPlan(s, addMonster({ id: newId(), name: t('dm.planName', { n: s.plans.length + 1 }), monsters: [] }, planEntry(m)))
   })
 
+  const addNpcToPlan = (n: NpcSheet) => update(s => {
+    const p = activePlan(s)
+    if (p) return updatePlan(s, p.id, x => (x.monsters.some(m => m.npcId === n.id) ? x : addMonster(x, npcPlanEntry(n))))
+    return addPlan(s, addMonster({ id: newId(), name: t('dm.planName', { n: s.plans.length + 1 }), monsters: [] }, npcPlanEntry(n)))
+  })
+
   // Start: monsters with their stat blocks, initiative rolled per group, HP average or rolled; then the campaign's party.
   const run = async (p: EncounterPlan) => {
     const rows = planCombatants(p, monsters, newId, {
       d20: (bonus, label) => record(rollD20(bonus, { label: `${label}: Initiative` }, 'initiative')).total,
       hp: dice => roll(dice).total,
-    })
+    }, npcs)
     const pcs = party ? await campaignRows(party, [], newId) : []
     const enc = [...rows, ...pcs].reduce((e, row) => addCombatant(e, row), createEncounter(newId(), userId, p.name))
     // The plan's map goes with the fight; the tracker places tokens on it when combat starts.
@@ -161,7 +177,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onOpenNpc, initi
         </div>
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
           {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
-          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
+          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition} />}
           {tab === 'maps' && <MapsTab ownerId={userId} />}
           {tab === 'reference' && <ReferenceTab />}
@@ -288,11 +304,13 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
 
 // ---------- Encounters ----------
 
-function EncountersTab({ userId, state, update, monsters, onAdd, onRun, onOpenMonster }: {
+function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd, onRun, onOpenMonster }: {
   userId: string
   state: DmState
   update: Update
   monsters: Monster[]
+  npcs: NpcSheet[]
+  onAddNpc: (n: NpcSheet) => void
   onAdd: (m: Monster) => void
   onRun: (p: EncounterPlan) => void
   onOpenMonster: (id: string) => void
@@ -328,16 +346,25 @@ function EncountersTab({ userId, state, update, monsters, onAdd, onRun, onOpenMo
               <ul className="plain dm-plan-list">
                 {plan.monsters.map(m => (
                   <li key={`${m.source}:${m.monsterId}`}>
-                    <button className="link-btn" onClick={() => onOpenMonster(monsterKey({ source: m.source, id: m.monsterId }))}>{m.name}</button>
+                    {m.npcId
+                      ? <a className="link-btn" href={`#/npc/${encodeURIComponent(m.npcId)}`}>{m.name}</a>
+                      : <button className="link-btn" onClick={() => onOpenMonster(monsterKey({ source: m.source, id: m.monsterId }))}>{m.name}</button>}
                     <span className="muted small">{t('dm.crXp', { cr: crLabel(m.cr), xp: (m.xp * m.count).toLocaleString() })}</span>
                     <span className="dm-count">
                       <button className="btn small" aria-label={t('dm.fewer', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, -1)))}>−</button>
                       <b aria-live="polite">{m.count}</b>
-                      <button className="btn small" aria-label={t('dm.more', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, 1)))}>+</button>
+                      {!m.npcId && <button className="btn small" aria-label={t('dm.more', { name: m.name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, 1)))}>+</button>}
                     </span>
                   </li>
                 ))}
               </ul>
+            )}
+            {npcs.length > 0 && (
+              <select className="dm-add-npc" aria-label={t('dm.addNpcLabel')} value=""
+                onChange={e => { const n = npcs.find(x => x.id === e.target.value); if (n) onAddNpc(n) }}>
+                <option value="">{t('dm.addNpc')}</option>
+                {npcs.filter(n => !plan.monsters.some(m => m.npcId === n.id)).map(n => <option key={n.id} value={n.id}>{n.name} ({n.block.name})</option>)}
+              </select>
             )}
             <label className="dm-notes">
               <span>{t('dm.notes')}</span>

@@ -5,6 +5,8 @@ import type { Character } from '../../model/character'
 import type { Party as Campaign } from '../../party'
 import { derive } from '../../rules'
 import { listCharacters, listProfiles } from '../../storage'
+import { listNpcs, onNpcsChanged, type NpcSheet } from '../../npc'
+import { npcCombatant } from '../npcRows'
 import { campaignCharacterIds, campaignRows } from '../campaign'
 import { addCombatant } from '../engine'
 import type { Encounter } from '../types'
@@ -22,6 +24,16 @@ export function AddCombatants({ enc, act, campaign }: { enc: Encounter; act: Act
       setCharacters(all.flat())
     })
   }, [])
+  // The DM's NPC sheets (src/npc) for the campaign in play, plus the ones with no campaign.
+  const [npcs, setNpcs] = useState<NpcSheet[]>([])
+  useEffect(() => {
+    const load = () => { listNpcs(enc.ownerId, campaign?.id).then(setNpcs) }
+    load()
+    return onNpcsChanged(load)
+  }, [enc.ownerId, campaign?.id])
+  const npcsInFight = new Set(enc.combatants.map(c => c.npcId))
+  const freeNpcs = npcs.filter(n => !npcsInFight.has(n.id))
+  const addNpc = (n: NpcSheet) => act(e => addCombatant(e, npcCombatant(n, newId())))
   const inFight = new Set(enc.combatants.map(c => c.characterId))
   const available = characters.filter(x => !inFight.has(x.c.id))
   const campaignMissing = campaign ? campaignCharacterIds(campaign).filter(id => !inFight.has(id)).length : 0
@@ -50,6 +62,15 @@ export function AddCombatants({ enc, act, campaign }: { enc: Encounter; act: Act
           <button className="glass-btn small" onClick={() => available.forEach(x => addPc(x.c))}>{t('combat.addEveryone')}</button>
         )}
       </div>
+      {npcs.length > 0 && (
+        <div className="row">
+          <select aria-label={t('combat.addNpcLabel')} value="" disabled={!freeNpcs.length}
+            onChange={ev => { const n = freeNpcs.find(x => x.id === ev.target.value); if (n) addNpc(n) }}>
+            <option value="">{freeNpcs.length ? t('combat.addNpc') : t('combat.noMoreNpcs')}</option>
+            {freeNpcs.map(n => <option key={n.id} value={n.id}>{n.name} ({n.block.name})</option>)}
+          </select>
+        </div>
+      )}
       <MonsterForm act={act} />
     </section>
   )
