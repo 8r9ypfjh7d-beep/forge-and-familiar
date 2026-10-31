@@ -14,6 +14,9 @@ An in-app assistant for players (plan characters, explain spells, features and r
 | `context.ts` | `characterCard(c)`: compact text summary from `derive()` |
 | `tools/registry.ts` | `registerTool`, `declarations(env)`, `runTool` (errors become a readable `error` result); `ToolEnv` carries who asks and what is on screen |
 | `tools/content.ts` | `search_content`, `get_entry`, `rules_lookup` over `src/content` and `src/rulesqa`; `sourceNote` says how a source may be used |
+| `tools/dm.ts` | DM only: `get_party`, `encounter_check`, `find_monsters`, `get_monster` (library monsters and `npc:<id>` NPC sheets); `dmAllowed(env)` gate; `DmToolData` |
+| `dm.ts` | `dmCard` (DM screen context card), `dmToolData(userId, campaign)` (fills `ToolEnv.data.dm`), `DM_CHIPS` |
+| `dm.test.ts` | DM gating, party, encounter math, monster tools, card, prompt, chips EN+HE |
 | `store.ts` | Conversations on the device only: `ff.familiar.v1.<userId>`, newest 20 |
 | `familiar.test.ts` | Tools over the bundled data, prompt, card, SSE, tool loop with a fake transport, store |
 | `../../supabase/functions/familiar/index.ts` | Deno Edge Function: auth, daily limits, Gemini proxy |
@@ -28,6 +31,12 @@ An in-app assistant for players (plan characters, explain spells, features and r
 - **Copyright.** Tools return only what the app ships: SRD text (CC-BY-4.0) and our own book summaries, each with a `usage` note; the system instruction forbids quoting books. Screens showing answers must show the SRD attribution, as `src/rulesqa` does.
 - **Language.** Answers follow the app locale; Hebrew answers add the English game term the first time. Tool calls stay English. Book spells return `descriptionHe` when the locale is Hebrew.
 
+## The DM side
+
+- **Gate.** The DM tools are offered and run only when `context.kind === 'dm'`, `data.dm` is present, and the asker is the campaign's DM or the admin (`canWatchSheets`; with no campaign, admin only, as `App.tsx` shows the DM screen). A `partyId` in the context must match the campaign. Every executor checks again, so a forced call from a player gets an error and no data.
+- **Wiring (UI).** On the DM screen: `data: { dm: await dmToolData(userId, campaign) }`, `role: 'dm'`, `card: dmCard({ campaign, dmState, npcSheets, characters })`, chips `DM_CHIPS` (`familiar.dm.chip.*`, EN+HE), header `familiar.dm.ask`.
+- **What it sees.** `get_party`: each brought character's class/level, AC, HP, conditions, concentration, passives, saves, spell DC; no notes, no rolls. Secret rolls never reach the Familiar. `encounter_check` uses the SRD 5.2 budget from `src/dm/logic` (the plan open on the DM screen, a "3 x goblin" list, or other levels) and adds table notes (CR above level, swarms, lone monsters). `find_monsters`/`get_monster` read `loadMonsters(edition)` (SRD, book summaries, packs) and the DM's NPC sheets; book monsters come back as our summaries with a usage note.
+
 ## Deploying the function
 
 Deploy `supabase/functions/familiar/index.ts` as `familiar` with JWT verification on (Supabase connector `deploy_edge_function`, or `supabase functions deploy familiar`). Set the secrets in the Supabase dashboard: Edge Functions → Secrets. `FAMILIAR_ORIGINS` (comma list) overrides the allowed origins.
@@ -37,3 +46,4 @@ Deploy `supabase/functions/familiar/index.ts` as `familiar` with JWT verificatio
 - **Add a tool**: `registerTool({ declaration, available?, label?, run })` in a file under `tools/`, imported from `index.ts`. Keep results small (cut long text), English, and add a test with real bundled data.
 - **Change limits**: edit `DEFAULT_LIMITS` in the function, or insert into `assistant_limits`.
 - **UI text**: `familiar.*` keys in both locales.
+- **Add a DM tool**: in `tools/dm.ts` with `available: dmAllowed` and `requireDm(env)` at the top of `run`; add a gating case to `dm.test.ts`.
