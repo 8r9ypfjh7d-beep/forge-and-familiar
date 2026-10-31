@@ -116,6 +116,13 @@ describe('Hebrew coverage', () => {
     expect(ITEMS.map(i => `item.${i.id}`).filter(k => !(k in he.terms))).toEqual([])
   })
 
+  // The planner lists the content library's class features by name, so each needs a Hebrew name too.
+  it('names every content-library class feature', async () => {
+    const features = await loadKind('features')
+    const ids = features.filter(f => f.classId && !f.parentId && !/^Ability Score Improvement/.test(f.name)).map(f => `feature.${f.name}`)
+    expect([...new Set(ids)].filter(k => !(k in he.terms))).toEqual([])
+  })
+
   it('names every 2024 background', () => {
     expect(backgroundsFor('2024').map(b => `background.${b.id}`).filter(k => !(k in he.terms))).toEqual([])
   })
