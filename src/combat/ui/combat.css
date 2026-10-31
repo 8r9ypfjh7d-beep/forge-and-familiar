@@ -90,7 +90,9 @@
 }
 .combatant.active .init input { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .combatant .tie { display: grid; }
-.combatant .tie .icon { min-width: 20px; min-height: 20px; font-size: 0.6rem; }
+/* Tie-break arrows beside the initiative: real 32px tap targets, stacked so they never cover the name. */
+.combatant .tie { gap: 2px; }
+.combatant .tie .icon { min-width: 32px; min-height: 32px; font-size: 0.8rem; padding: 0; }
 .combatant .name-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .combatant .name-line strong { font-family: var(--font-display); font-size: 1.05rem; letter-spacing: -0.015em; }
 .combatant .hp-line { display: flex; gap: var(--sp-2); align-items: center; margin-block-start: 6px; }
@@ -108,7 +110,7 @@
 .combatant .controls input { width: 56px; text-align: center; }
 .combatant .controls select { max-width: 140px; border-radius: var(--r-pill); }
 @media (max-width: 560px) {
-  .combatant.glass { grid-template-columns: 52px minmax(0, 1fr); }
+  .combatant.glass { grid-template-columns: auto minmax(0, 1fr); }
   .combatant .controls { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: nowrap; }
   .combatant .controls select { min-width: 0; flex: 1; }
 }
@@ -184,9 +186,16 @@
 .ff-combat .controls .dmg-type { max-inline-size: 9rem; }
 /* Phones: the damage type gets its own line above the amount and buttons. */
 @media (max-width: 560px) {
-  .ff-combat .combatant .controls:has(.dmg-type) { flex-wrap: wrap; }
-  .ff-combat .combatant .controls .dmg-type { flex: 1 1 100%; max-inline-size: none; order: -1; }
+  .ff-combat .combatant .controls { flex-wrap: wrap; }
+  .ff-combat .combatant .controls :is(.dmg-type, .add-cond) { flex: 1 1 40%; max-inline-size: none; order: -1; }
+  /* Room below the last row so the floating dice and Familiar buttons never sit on a row's HP or buttons. */
+  .ff-combat { padding-block-end: calc(140px + env(safe-area-inset-bottom)); }
 }
+
+/* Attack result against the target's AC. */
+.statblock .sb-verdict { margin: 0; font-size: 0.9rem; }
+.statblock .sb-verdict.hit { color: var(--bad); }
+.statblock .sb-verdict.miss { color: var(--muted); }
 
 /* Map pane (src/combat/map). Wide screens show it above the order; phones switch between the two. */
 .combat-pane-switch { display: none; justify-self: start; }

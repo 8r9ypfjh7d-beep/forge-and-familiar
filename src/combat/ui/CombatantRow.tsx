@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Monster } from '../../content'
 import { rollDeathSave as rollDeathSaveDice } from '../../dice'
 import { useDice } from '../../dice/ui'
+import { ConfirmDialog } from '../../builder/ConfirmDialog'
 import { useI18n } from '../../i18n'
 import { derive } from '../../rules'
 import { setCondition } from '../../npc'
@@ -20,7 +21,7 @@ import type { Act } from './useEncounter'
 
 const newId = () => crypto.randomUUID()
 
-export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, monster, act, first, last }: {
+export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, monster, monsterOf, act, first, last }: {
   enc: Encounter
   combatant: Combatant
   party: Party
@@ -30,6 +31,8 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
   npcs?: NpcSheets
   /** The row's stat block: the NPC sheet's own block, or the library monster it came from. */
   monster?: Monster
+  /** Any row's stat block, so an attack from this row meets the target's defenses. */
+  monsterOf?: (c: Combatant) => Monster | undefined
   act: Act
   first: boolean
   last: boolean
@@ -40,6 +43,7 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
   const cond = (x: ConditionId) => term('condition', x, x)
   const [amount, setAmount] = useState('')
   const [damageType, setDamageType] = useState('')
+  const [removing, setRemoving] = useState(false)
   const sheet = c.npcId ? npcs[c.npcId] : undefined
   const [block, setBlock] = useState<boolean | null>(null)
   const n = Math.max(0, Math.floor(Number(amount) || 0))
@@ -62,7 +66,7 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
   const tiedAbove = !first && enc.combatants[idx - 1].initiative === c.initiative
   const tiedBelow = !last && enc.combatants[idx + 1].initiative === c.initiative
 
-  const damage = () => act((e, p, r, sheets) => applyDamage(e, p, r, c.id, [{ amount: n, type: damageType || undefined }], newId(), sheets))
+  const damage = () => act((e, p, r, sheets) => applyDamage(e, p, r, c.id, [{ amount: n, type: damageType || undefined }], newId(), sheets, sheet ? undefined : monster))
   const healUp = () => act((e, p, r, sheets) => applyHeal(e, p, r, c.id, n, sheets))
   const deathSave = () => act((e, p) => {
     const pc = c.characterId ? p[c.characterId] : undefined
@@ -142,7 +146,7 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
         <input aria-label={t('combat.amountFor', { name: c.name })} inputMode="numeric" placeholder="0" value={amount}
           onChange={ev => setAmount(ev.target.value.replace(/\D/g, ''))}
           onKeyDown={ev => { if (ev.key === 'Enter' && n) { damage(); setAmount('') } }} />
-        {sheet && (
+        {c.kind === 'npc' && (
           <select className="dmg-type" aria-label={t('combat.damageType')} value={damageType} onChange={ev => setDamageType(ev.target.value)}>
             <option value="">{t('combat.anyType')}</option>
             {DAMAGE_TYPES.map(x => <option key={x} value={x}>{term('damage', x, x)}</option>)}
@@ -150,18 +154,20 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
         )}
         <button className="glass-btn small danger" disabled={!n || life === 'dead'} onClick={() => { damage(); setAmount('') }}>{t('combat.dmg')}</button>
         <button className="glass-btn small heal" disabled={!n || (c.kind === 'pc' && life === 'dead')} onClick={() => { healUp(); setAmount('') }}>{t('combat.heal')}</button>
-        <select aria-label={t('combat.addConditionTo', { name: c.name })} value="" onChange={ev => setConditions([...own, ev.target.value as ConditionId])}>
+        <select className="add-cond" aria-label={t('combat.addConditionTo', { name: c.name })} value="" onChange={ev => setConditions([...own, ev.target.value as ConditionId])}>
           <option value="">{t('combat.addCondition')}</option>
           {CONDITIONS.filter(x => !own.includes(x) && (!sheet || setCondition(sheet, x, true) !== sheet)).map(x => <option key={x} value={x}>{cond(x)}</option>)}
         </select>
         {active && life === 'dying' && <button className="glass-btn small prominent" onClick={deathSave}>{t('combat.deathSave')}</button>}
-        <button className="icon" onClick={() => confirm(t('combat.removeConfirm', { name: c.name })) && act(e => removeCombatant(e, c.id))} aria-label={t('combat.removeName', { name: c.name })}>✕</button>
+        <button className="icon" onClick={() => setRemoving(true)} aria-label={t('combat.removeName', { name: c.name })}>✕</button>
       </div>
       {showBlock && monster && (
         <div className="block-slot">
-          <MonsterActions enc={enc} combatant={c} monster={monster} party={party} act={act} onClose={() => setBlock(false)} />
+          <MonsterActions enc={enc} combatant={c} monster={monster} monsterOf={monsterOf} party={party} act={act} onClose={() => setBlock(false)} />
         </div>
       )}
+      <ConfirmDialog open={removing} title={t('combat.removeConfirm', { name: c.name })} yes={t('common.remove')}
+        onYes={() => act(e => removeCombatant(e, c.id))} onClose={() => setRemoving(false)} />
     </li>
   )
 }

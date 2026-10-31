@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { roll } from '../../dice'
+import { ConfirmDialog } from '../../builder/ConfirmDialog'
 import { useI18n } from '../../i18n'
 import type { Translate } from '../../i18n/translate'
 import type { Party as Campaign } from '../../party'
@@ -29,6 +30,7 @@ export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: s
   const [list, setList] = useState<Encounter[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(initialOpenId ?? null)
   const { t } = useI18n()
+  const [deleting, setDeleting] = useState<Encounter | null>(null)
   const refresh = useCallback(() => { listEncounters(ownerId).then(setList) }, [ownerId])
   useEffect(refresh, [refresh])
 
@@ -61,13 +63,13 @@ export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: s
             </div>
             <div className="row">
               <button className="glass-btn small" onClick={() => setOpenId(e.id)}>{t('combat.open')}</button>
-              <button className="glass-btn small plain" onClick={async () => {
-                if (confirm(t('combat.deleteConfirm', { name: e.name }))) { await deleteEncounter(e.id); refresh() }
-              }}>{t('common.delete')}</button>
+              <button className="glass-btn small plain" onClick={() => setDeleting(e)}>{t('common.delete')}</button>
             </div>
           </li>
         ))}
       </ul>
+      <ConfirmDialog open={!!deleting} title={t('combat.deleteConfirm', { name: deleting?.name ?? '' })} yes={t('common.delete')}
+        onYes={async () => { if (deleting) { await deleteEncounter(deleting.id); refresh() } }} onClose={() => setDeleting(null)} />
     </section>
   )
 }
@@ -78,6 +80,7 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
   const monsters = useMonsterIndex()
   const { t } = useI18n()
   const [editingName, setEditingName] = useState(false)
+  const [ending, setEnding] = useState(false)
   // Phones show the order or the map; wider screens show both.
   const [pane, setPane] = useState<'order' | 'map'>('order')
   // After End combat in a campaign fight: offer the XP of the creatures the party beat.
@@ -136,9 +139,11 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
           ? <button className="glass-btn prominent next" onClick={next}>{t('combat.next')}</button>
           : <button className="glass-btn prominent next" disabled={!enc.combatants.length || unrolled.length > 0} onClick={() => act(startCombat)}
               title={unrolled.length ? t('combat.needInit') : undefined}>{t('combat.start')}</button>}
-        {fighting && <button className="glass-btn" onClick={() => { if (confirm(t('combat.endConfirm'))) { act(endCombat); setXpCard(!!campaign) } }}>{t('combat.end')}</button>}
+        {fighting && <button className="glass-btn" onClick={() => setEnding(true)}>{t('combat.end')}</button>}
         <button className="glass-btn plain" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
       </div>
+
+      <ConfirmDialog open={ending} title={t('combat.endConfirm')} yes={t('combat.end')} onYes={() => { act(endCombat); setXpCard(!!campaign) }} onClose={() => setEnding(false)} />
 
       {xpCard && campaign && !fighting && (
         <FightXp enc={enc} campaign={campaign} characters={party} onClose={() => setXpCard(false)}
@@ -163,7 +168,7 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
             : (
               <ol className="plain order" aria-label={t('combat.order')}>
                 {enc.combatants.map((c, i) => (
-                  <CombatantRow key={c.id} enc={enc} combatant={c} party={party} remote={remote} npcs={npcs} monster={monsterOf(c)} act={act}
+                  <CombatantRow key={c.id} enc={enc} combatant={c} party={party} remote={remote} npcs={npcs} monster={monsterOf(c)} monsterOf={monsterOf} act={act}
                     first={i === 0} last={i === enc.combatants.length - 1} />
                 ))}
               </ol>

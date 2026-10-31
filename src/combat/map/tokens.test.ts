@@ -34,3 +34,22 @@ describe('syncTokens', () => {
     expect(tokens[0].x).toBeGreaterThanOrEqual(0)
   })
 })
+
+describe('syncTokens placement', () => {
+  const base = { ...createMap('m', 'dm', 'Cave', '2026-10-31T00:00:00Z', 24, 18), partyEdge: 'w' as const }
+
+  it('spreads monsters along the far edge instead of piling them in a corner', () => {
+    const tokens = syncTokens(enc([row('a', 'pc'), row('g1', 'npc'), row('g2', 'npc'), row('f', 'npc')]), base, () => 1)
+    const npcs = tokens.filter(t => t.kind === 'npc')
+    expect(npcs.every(t => t.x === 23)).toBe(true)
+    expect(npcs.every(t => t.y > 3 && t.y < 14)).toBe(true)
+    expect(tokens.find(t => t.kind === 'pc')!.x).toBe(0)
+  })
+
+  it('keeps the party out of water and hazards when there is dry ground', () => {
+    const wet = paintRect(paintRect(base, { x: 0, y: 0, w: 2, h: 18 }, 'water'), { x: 2, y: 0, w: 1, h: 9 }, 'hazard')
+    const tokens = syncTokens(enc([row('a', 'pc'), row('b', 'pc')]), wet, () => 1)
+    for (const t of tokens) expect(['water', 'hazard']).not.toContain(wet.terrain[`${t.x},${t.y}`])
+    expect(tokens.every(t => t.x >= 2)).toBe(true)
+  })
+})

@@ -77,3 +77,15 @@ export function clampPan(v: Viewport, cols: number, rows: number, boxW: number, 
   const ty = Math.min(boxH - keep, Math.max(keep - mapH, v.ty))
   return { ...v, tx, ty }
 }
+
+/**
+ * Fit the grid, but never below `minCell` screen pixels per cell: a big grid on a phone is shown at `minCell`
+ * instead, centred on `focus` (or the middle of the grid) and scrollable, so tokens stay tappable.
+ */
+export function fitTappable(cols: number, rows: number, boxW: number, boxH: number, minCell: number, focus?: { x: number; y: number; size: number }): Viewport {
+  const fitted = fitViewport(cols, rows, boxW, boxH)
+  if (fitted.scale * CELL_PX >= minCell) return fitted
+  const at = focus ?? { x: cols / 2, y: rows / 2, size: 1 }
+  const near = centreOn({ ...fitted, scale: minCell / CELL_PX }, at.x, at.y, at.size, at.size, boxW, boxH)
+  return clampPan(near, cols, rows, boxW, boxH)
+}

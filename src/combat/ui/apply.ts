@@ -2,8 +2,9 @@
 // (resistances, immunities and vulnerabilities apply), party members through the sheet engine.
 // A party member whose character lives on a player's phone (read-only here) gets a queued hit
 // that the player's device applies once it sees the live combat row.
+import type { Monster } from '../../content'
 import type { Character } from '../../model/character'
-import { heal as healNpcSheet, setCondition, takeDamage as damageNpcSheet, type NpcSheet } from '../../npc'
+import { heal as healNpcSheet, npcDefense, setCondition, takeDamage as damageNpcSheet, type NpcSheet } from '../../npc'
 import type { ConditionId } from '../../rules/types'
 import { heal, takeDamage } from '../../sheet/engine'
 import { addHit, addLog, damageNpc, healNpc, noteDamage, type Party } from '../engine'
@@ -19,7 +20,11 @@ const parts = (d: Damage) => (typeof d === 'number' ? [{ amount: d }] : d).filte
 
 const DEFENSE_KEYS = { immune: 'combat.log.immune', resistant: 'combat.log.resists', vulnerable: 'combat.log.vulnerable' } as const
 
-export function applyDamage(e: Encounter, party: Party, remote: ReadonlySet<string>, targetId: string, damage: Damage, checkId: string, npcs: NpcSheets = {}): Outcome {
+/**
+ * `block` is a library monster row's stat block: typed damage then meets its immunities, resistances and
+ * vulnerabilities, as on an NPC sheet.
+ */
+export function applyDamage(e: Encounter, party: Party, remote: ReadonlySet<string>, targetId: string, damage: Damage, checkId: string, npcs: NpcSheets = {}, block?: Monster): Outcome {
   const c = e.combatants.find(x => x.id === targetId)
   const list = parts(damage)
   const amount = list.reduce((n, p) => n + p.amount, 0)
@@ -37,6 +42,17 @@ export function applyDamage(e: Encounter, party: Party, remote: ReadonlySet<stri
     }
     next = addLog(next, s.state.currentHp <= 0 ? 'combat.log.takesDown' : 'combat.log.takes', { name: c.name, amount: dealt })
     return { encounter: noteDamage(next, c.id, dealt, checkId), npcs: [s] }
+  }
+  if (c.kind === 'npc' && block) {
+    const as = { block, state: { conditions: c.conditions } } as unknown as NpcSheet
+    let next = e
+    let dealt = 0
+    for (const p of list) {
+      const d = npcDefense(as, p.type)
+      dealt += d === 'immune' ? 0 : d === 'resistant' ? Math.floor(p.amount / 2) : d === 'vulnerable' ? p.amount * 2 : p.amount
+      if (d && p.type) next = addLog(next, DEFENSE_KEYS[d], { name: c.name, type: p.type })
+    }
+    return damageNpc(next, c.id, dealt, checkId)
   }
   if (c.kind === 'npc') return damageNpc(e, c.id, amount, checkId)
   const pc = c.characterId ? party[c.characterId] : undefined
