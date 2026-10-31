@@ -22,8 +22,8 @@ describe('loadMonsters', () => {
   it('2024 adds unreprinted 2014 book monsters as legacy, never a monster the 2024 sources already have', async () => {
     const list = await loadMonsters('2024')
     expect(list.filter(m => m.source === 'srd-5.2').length).toBeGreaterThan(300)
-    const beholder = list.find(m => m.id === 'beholder')!
-    expect(beholder).toMatchObject({ source: 'books-2014', legacy: true })
+    // Reprinted in the 2025 Monster Manual, so the 2014 entry stays out.
+    expect(list.filter(m => m.id === 'beholder').map(m => [m.source, m.book, m.legacy])).toEqual([['books-2024', 'XMM', undefined]])
     const names = list.filter(m => !m.legacy).map(m => m.name.toLowerCase())
     for (const m of list.filter(m => m.legacy)) expect(names, m.name).not.toContain(m.name.toLowerCase())
     expect(list.some(m => m.source === 'srd-5.1')).toBe(false)
