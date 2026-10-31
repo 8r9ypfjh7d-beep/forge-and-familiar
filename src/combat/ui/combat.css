@@ -198,6 +198,7 @@
 @media (max-width: 860px) {
   .combat-pane-switch { display: inline-flex; }
   .combat-map-pane:not(.on), .combat-grid:not(.on) { display: none; }
-  .encounter-map-stage { height: calc(100dvh - 260px); min-height: 360px; }
+  .encounter-map-stage { height: auto; min-height: 0; }
+  .encounter-map-stage .bm-box { aspect-ratio: var(--bm-ratio); max-height: 72dvh; min-height: 200px; }
   .encounter-map.glass { padding: var(--sp-3); }
 }

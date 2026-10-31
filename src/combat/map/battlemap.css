@@ -1,5 +1,6 @@
 /* Battle map (src/combat/map). Liquid Glass chrome around a canvas; tokens are DOM buttons placed over it.
-   Logical properties only. The board itself is always LTR (grid coordinates), set with dir="ltr" on the root. */
+   Logical properties only. The board itself is always LTR (grid coordinates), set with dir="ltr" on .bm-box;
+   the toolbar and status follow the page direction. */
 .battle-map { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: var(--sp-2); min-height: 0; height: 100%; }
 .battle-map .bm-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .battle-map .bm-spacer { flex: 1; }
@@ -63,6 +64,8 @@
 
 @media (max-width: 640px) {
   .battle-map .glass-segmented > button, .battle-map .glass-btn.small, .battle-map .glass-chip { min-height: 40px; }
+  /* Phones pinch to zoom, so the zoom buttons give their room to the map. */
+  .battle-map .glass-btn.bm-zoom { display: none; }
 }
 
 /* High contrast: glass is solid, so draw hard edges where state was colour. */

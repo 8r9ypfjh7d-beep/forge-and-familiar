@@ -27,9 +27,10 @@ describe('syncTokens', () => {
     expect(next.some(t => t.combatantId === 'o')).toBe(true)
   })
 
-  it('benches a monster whose far-row spot is a wall, and sizes big ones', () => {
+  it('moves a monster off a walled far row to the first open line, and sizes big ones', () => {
     const walled = paintRect(map, { x: 0, y: 0, w: 10, h: 1 }, 'wall')
     const tokens = syncTokens(enc([row('d', 'npc', 'Dragon')]), walled, () => 3)
-    expect(tokens[0]).toMatchObject({ x: -1, y: -1, size: 3 })
+    expect(tokens[0]).toMatchObject({ y: 1, size: 3 })
+    expect(tokens[0].x).toBeGreaterThanOrEqual(0)
   })
 })

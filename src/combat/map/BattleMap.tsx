@@ -289,7 +289,7 @@ export function BattleMap({ map, board, encounter, viewer, onMove, onBoard, info
   })()
 
   return (
-    <div className={`battle-map ${className ?? ''}`} dir="ltr">
+    <div className={`battle-map ${className ?? ''}`} style={{ '--bm-ratio': `${def.width} / ${def.height}` } as CSSProperties}>
       <div className="bm-toolbar" role="toolbar" aria-label={t('combat.map.title')}>
         <div className="glass-segmented" role="group">
           <button type="button" aria-pressed={mode === 'move'} onClick={() => { setMode('move'); setMeasure(null) }}>{t('combat.map.modeMove')}</button>
@@ -312,13 +312,13 @@ export function BattleMap({ map, board, encounter, viewer, onMove, onBoard, info
             {board.locked ? t('combat.map.locked') : t('combat.map.lock')}
           </button>
         )}
-        <button type="button" className="glass-btn small icon" onClick={() => zoomBy(1 / 1.3)} aria-label={t('combat.map.zoomOut')}>−</button>
-        <button type="button" className="glass-btn small icon" onClick={() => zoomBy(1.3)} aria-label={t('combat.map.zoomIn')}>+</button>
+        <button type="button" className="glass-btn small icon bm-zoom" onClick={() => zoomBy(1 / 1.3)} aria-label={t('combat.map.zoomOut')}>−</button>
+        <button type="button" className="glass-btn small icon bm-zoom" onClick={() => zoomBy(1.3)} aria-label={t('combat.map.zoomIn')}>+</button>
         <button type="button" className="glass-btn small" onClick={fit}>{t('combat.map.fit')}</button>
         <button type="button" className="glass-btn small" onClick={centreMe}>{t(viewer.role === 'player' ? 'combat.map.centreMe' : 'combat.map.centreTurn')}</button>
       </div>
 
-      <div ref={boxRef} className={`bm-box mode-${mode}`} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+      <div ref={boxRef} dir="ltr" className={`bm-box mode-${mode}`} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
         onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel} style={{ touchAction: 'none' }}>
         <canvas ref={canvasRef} className="bm-canvas" style={{ width: box.w, height: box.h }} aria-hidden="true" />
         {view && visibleTokens.filter(isPlaced).map(tk => (

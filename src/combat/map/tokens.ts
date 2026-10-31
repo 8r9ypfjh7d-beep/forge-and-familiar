@@ -1,13 +1,15 @@
 // Token placement for a combat's board: who gets a token and where it starts. Pure.
 import { autoPlace, fits, tokenCells, UNPLACED } from '../../maps/logic'
-import type { BattleMapDef } from '../../maps/types'
+import type { BattleMapDef, Edge } from '../../maps/types'
 import { placeTokens } from '../liveLogic'
 import type { Combatant, Encounter, LiveMap, Token } from '../types'
+
+const OPPOSITE: Record<Edge, Edge> = { n: 's', s: 'n', e: 'w', w: 'e' }
 
 /**
  * Tokens for every combatant: tokens already on the board stay where they are, tokens of combatants who left go,
  * new party members line up along the map's party edge, and new monsters take the far (top) row where it is open;
- * a monster with no open spot waits off the board for the DM to place it.
+ * a monster with no open spot there lines up along the edge opposite the party.
  */
 export function syncTokens(enc: Encounter, map: BattleMapDef, sizeOf: (c: Combatant) => 1 | 2 | 3 | 4): Token[] {
   const before = new Set((enc.board?.tokens ?? []).map(t => t.combatantId))
@@ -21,10 +23,13 @@ export function syncTokens(enc: Encounter, map: BattleMapDef, sizeOf: (c: Combat
     monsters.push(open ? t : { ...t, x: UNPLACED, y: UNPLACED })
   }
   const party = all.filter(t => !before.has(t.combatantId) && t.kind !== 'npc').map(t => ({ ...t, x: UNPLACED, y: UNPLACED }))
-  const placedMonsters = monsters.filter(t => t.x >= 0)
-  const onEdge = autoPlace(map, [...kept, ...placedMonsters, ...party].map(t => ({ ...t, hidden: !!t.hidden })))
-    .map(({ hidden, ...t }) => (hidden ? { ...t, hidden } : t))
-  const benched = monsters.filter(t => t.x < 0)
+  const strip = ({ hidden, ...t }: Token & { hidden: boolean }): Token => (hidden ? { ...t, hidden } : t)
+  const mark = (t: Token) => ({ ...t, hidden: !!t.hidden })
+  const withParty = autoPlace(map, [...kept, ...monsters.filter(t => t.x >= 0), ...party].map(mark))
+  // Monsters with no open spot on the far row line up along the edge opposite the party instead.
+  const far = { ...map, partyEdge: OPPOSITE[map.partyEdge ?? 's'] }
+  const onEdge = autoPlace(far, [...withParty, ...monsters.filter(t => t.x < 0).map(mark)]).map(strip)
+  const benched: Token[] = []
   // Keep initiative order, so the token list reads like the tracker.
   const byId = new Map([...onEdge, ...benched].map(t => [t.combatantId, t]))
   return enc.combatants.flatMap(c => byId.get(c.id) ?? [])
