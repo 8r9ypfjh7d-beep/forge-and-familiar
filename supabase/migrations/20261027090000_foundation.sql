@@ -133,10 +133,11 @@ grant execute on function public.claim_account(text) to authenticated;
 -- Live updates for the sheet and the admin page.
 alter publication supabase_realtime add table public.characters, public.dm_state;
 
--- The roster. Same hashes as src/accounts/roster.ts; add a friend in both places.
+-- The roster (same ids as src/accounts/roster.ts). Real code hashes are set in the database only,
+-- never in the repo; these placeholders match no code.
 insert into public.accounts (id, name, role, is_admin, code_hash) values
-  ('acct-roy', 'Roy', 'player', false, '8196f54313b277689fe88385834829d11c2a50636cda13114ff05480d41ec527'),
-  ('acct-tamir', 'Tamir', 'player', false, 'c573c7a3402fb5406e910054f9b3b1ddfac0d12baf7f1d7db4ad74a9167c5cd1'),
-  ('acct-maayan', 'Maayan', 'player', false, '419ff4c59e4a8106536af507d328e0f4e3280b2cdb8b76e6c40542df561ecea0'),
-  ('acct-ziv', 'Ziv', 'player', true, '611d2899a385ff9f78bbc6b5c7ebee5c41a7c2418e6b42e954cef2539d0351ed'),
-  ('acct-noa', 'Noa', 'dm', false, 'ae4fe1d90de28d2e358728882332e14d3d73882f36c1e76d76da2f0363bff646');
+  ('acct-roy', 'Roy', 'player', false, 'unset:acct-roy'),
+  ('acct-tamir', 'Tamir', 'player', false, 'unset:acct-tamir'),
+  ('acct-maayan', 'Maayan', 'player', false, 'unset:acct-maayan'),
+  ('acct-ziv', 'Ziv', 'player', true, 'unset:acct-ziv'),
+  ('acct-noa', 'Noa', 'dm', false, 'unset:acct-noa');

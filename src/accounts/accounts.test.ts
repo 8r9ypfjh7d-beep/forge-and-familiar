@@ -8,7 +8,7 @@ import { cloudLinkSnoozed } from './ui'
 
 describe('activation codes', () => {
   it('normalizes case, spaces and dashes', () => {
-    expect(normalizeActivationCode(' roy-7pbj 2msu ')).toBe('ROY7PBJ2MSU')
+    expect(normalizeActivationCode(' name-ab12 cd34 ')).toBe('NAMEAB12CD34')
   })
 
   it('explains each way a code can fail', () => {
