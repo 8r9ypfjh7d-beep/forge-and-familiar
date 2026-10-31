@@ -24,6 +24,14 @@ An in-app assistant for players (plan characters, explain spells, features and r
 | `dm.test.ts` | DM gating, party, encounter math, monster tools, card, prompt, chips EN+HE |
 | `store.ts` | Conversations on the device only: `ff.familiar.v1.<userId>`, newest 20 |
 | `familiar.test.ts` | Tools over the bundled data, prompt, card, SSE, tool loop with a fake transport, store |
+| `ui/Familiar.tsx` | `FamiliarFab` (sparkle button above the dice, opens a side sheet on wide screens and a bottom sheet on phones) and `FamiliarPage` (`#/familiar`); both take a `FamiliarSetup` and check sign-in, cloud and connection before sending |
+| `ui/FamiliarChat.tsx` | The conversation: header (History, New chat, Close), intro and starter chips, messages with "Looked up" tool chips, streaming text with a thinking shimmer, error box with Try again, blocked box (not set up, sign-in with `CodeForm`, offline), composer with Stop, SRD attribution and caveat footer |
+| `ui/useFamiliarChat.ts` | State: open thread (kept per user across sheet and page), streaming `pending`, `error`, history; `send` runs `runTurn` with `edgeTransport`; `prepare()` loads fresh card and data at send time |
+| `ui/view.ts` | Pure: `bubbles` (questions and final answers only), `chipKeys` per context and role, `blockedReason`, `canRetry`, `resetText` |
+| `ui/markdown.ts`, `ui/ChatMarkdown.tsx` | Gemini's markdown: headings, lists right under a sentence, tables, bold/italic/code; no HTML |
+| `ui/onScreen.ts` | `screenFor(view, …)`: context, role, edition, card and subject from the screen in App; `dmPrepare` fills the DM card and `data.dm` |
+| `ui/familiar.css` | Liquid Glass, logical properties, solid fallbacks and high contrast |
+| `ui/ui.test.tsx` | View helpers, markdown, panel states (SSR) EN+HE, screen mapping, route and nav |
 | `../../supabase/functions/familiar/index.ts` | Deno Edge Function: auth, daily limits, Gemini proxy |
 | `../../supabase/migrations/20261031100000_assistant_usage.sql` | `assistant_usage`, `assistant_limits`, `assistant_consume()`; no client access |
 
@@ -48,6 +56,13 @@ An in-app assistant for players (plan characters, explain spells, features and r
 - The builder publishes `{ context: builder, card: draftCard, data: { draft, step } }`; each step's help line has a compact ✦ that asks about that step.
 - The panel (unit B) reads `useFamiliarScreenValue()`, builds `ToolEnv` from `context`, `edition`, `data` and `PromptInput` from `context`, `card`, `role`, `edition`, shows `chips` as `t(key)`, and calls `onFamiliarOpen` so the entry buttons appear.
 - Tools find the character by: `id` arg (through `data.getCharacter`), else `data.character()` on a sheet, else the builder draft (made a character with `createCharacter`). With none, the tool returns an error asking the user to open a sheet.
+
+## The panel
+
+- **Where.** A sparkle button above the dice on every screen (hidden while the dice window or a phone menu is open), Familiar under More for everyone, and the full page `#/familiar`. The sheet and the page continue the same conversation.
+- **What it knows.** `screenFor` in App: a character screen sends that character's card ("About Vex"), the builder says it is a draft, DM pages (DM, admin) send the DM card and tools through `dmPrepare`, anything else is general. Chips follow the context (`familiar.chip.*`, DM: `DM_CHIPS`).
+- **States.** Before sending: no cloud build or a 404 from a function not deployed → not set up; a local-only profile → sign in with the activation code (inline form); offline → offline. After: `unreachable` (online but no answer, e.g. CORS on a missing function) and `server` offer Try again; `limit` shows the reset time; `tooLarge` offers a new chat. A failed or stopped question goes back into the box.
+- **Display.** Only the user's questions and the final answers show; tool calls, tool responses, thoughts and "let me check" text stay in `contents`. Tools used appear as "Looked up" chips. Answers render with `dir="auto"`.
 
 ## Deploying the function
 

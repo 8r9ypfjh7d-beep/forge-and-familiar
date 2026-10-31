@@ -11,12 +11,14 @@ export type View =
   | { kind: 'npc'; id: string }
   | { kind: 'party'; partyId?: string; startWith?: 'start' | 'join' }
   | { kind: 'rules' } | { kind: 'homebrew' } | { kind: 'admin' }
+  /** The Familiar (AI assistant) full screen. */
+  | { kind: 'familiar' }
 
 const HOME: View = { kind: 'campaigns' }
 
 /** Path names: the Characters screen reads as "heroes" in links. */
 const NAME: Partial<Record<View['kind'], string>> = { campaigns: '', list: 'heroes' }
-const PLAIN = ['build', 'starters', 'requests', 'rules', 'homebrew', 'admin'] as const
+const PLAIN = ['build', 'starters', 'requests', 'rules', 'homebrew', 'admin', 'familiar'] as const
 const WITH_ID = ['edit', 'levelup', 'sheet', 'levels', 'plan', 'print', 'watch', 'npc'] as const
 
 /** "#/sheet/abc", "#/party/start", "#/" for Home. */

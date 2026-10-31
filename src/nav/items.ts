@@ -1,7 +1,7 @@
 // Which screens the top bar offers, and which tab lights up for each view. Pure, no React.
 import type { MessageKey } from '../i18n'
 
-export type NavKey = 'campaigns' | 'list' | 'party' | 'combat' | 'requests' | 'dm' | 'homebrew' | 'rules' | 'admin'
+export type NavKey = 'campaigns' | 'list' | 'party' | 'combat' | 'requests' | 'dm' | 'familiar' | 'homebrew' | 'rules' | 'admin'
 
 export interface NavItem {
   key: NavKey
@@ -28,6 +28,7 @@ const ITEM: Record<NavKey, NavItem> = {
   requests: { key: 'requests', label: 'app.requests', short: 'nav.requestsShort' },
   dm: { key: 'dm', label: 'app.dm', short: 'nav.dmShort' },
   homebrew: { key: 'homebrew', label: 'app.homebrew' },
+  familiar: { key: 'familiar', label: 'familiar.nav' },
   rules: { key: 'rules', label: 'app.rules' },
   admin: { key: 'admin', label: 'app.admin' },
 }
@@ -41,7 +42,7 @@ const DM_ONLY: readonly string[] = ['dm', 'combat', 'watch', 'npc']
  *  initiative tracker under More (the DM screen's Run button opens it too). The admin adds Admin. */
 export function navItems({ partyDm, admin }: NavContext): { main: NavItem[]; more: NavItem[] } {
   const main: NavKey[] = ['campaigns', 'list', ...(partyDm ? ['dm', 'party'] as const : ['party', 'requests'] as const)]
-  const more: NavKey[] = [...(partyDm ? ['combat'] as const : []), 'rules', 'homebrew']
+  const more: NavKey[] = [...(partyDm ? ['combat'] as const : []), 'familiar', 'rules', 'homebrew']
   if (admin) more.unshift('admin')
   return { main: main.map(k => ITEM[k]), more: more.map(k => ITEM[k]) }
 }
