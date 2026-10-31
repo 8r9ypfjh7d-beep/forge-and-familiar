@@ -306,7 +306,7 @@ function cleanFeat(v: Obj, packId: string, seen: Set<string>): HomebrewFeat {
 const optList = <K extends string, T>(key: K, values: T[]) => (values.length ? { [key]: values } as Record<K, T[]> : {})
 
 const ARMOR = ['light', 'medium', 'heavy', 'shield'] as const
-const textList = (v: unknown, max = 30) => list(v).map(x => str(x, LIMITS.name).trim()).filter(Boolean).slice(0, max)
+const textList = (v: unknown, max = 30, len = LIMITS.name) => list(v).map(x => str(x, len).trim()).filter(Boolean).slice(0, max)
 
 function cleanBonuses(v: unknown): Partial<Abilities> {
   const out: Partial<Abilities> = {}
@@ -334,7 +334,8 @@ function cleanRace(v: Obj, packId: string, seen: Set<string>): HomebrewRace {
     freeSkillChoices: int(v.freeSkillChoices, 0, 6),
     languages: textList(v.languages, 10),
     languageChoices: int(v.languageChoices, 0, 6),
-    traits: textList(v.traits),
+    // A trait line may carry its description ("Shell: ...").
+    traits: textList(v.traits, 30, 600),
     hpPerLevel: int(v.hpPerLevel, 0, 5),
     description: optStr(v.description, LIMITS.text),
     ...cleanRaceExtras(v),

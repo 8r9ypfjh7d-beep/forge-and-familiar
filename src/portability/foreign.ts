@@ -3,7 +3,7 @@
 // Pure TypeScript. Anything that does not map is listed in the character's notes, never dropped silently.
 import { CHARACTER_SCHEMA_VERSION, type Character, type KnownSpell } from '../model/character'
 import {
-  ABILITIES, CUSTOM_BACKGROUND, ITEMS, LANGUAGES, SKILLS, allRaces, backgroundsFor, classById, classesFor,
+  ABILITIES, CUSTOM_BACKGROUND, ITEMS, SKILLS, allLanguages, allRaces, backgroundsFor, classById, classesFor,
   freshState, getMaxHp, racialBonuses, subclassesFor,
   type Abilities, type Ability, type InventoryEntry, type SkillId,
 } from '../rules'
@@ -221,7 +221,7 @@ export function readDicecloud(raw: Record<string, unknown>): ForeignSheet {
     scores,
     skills,
     expertise,
-    languages: ofType('proficiency').filter(p => LANGUAGES.some(l => norm(l) === norm(named(p)))).map(named),
+    languages: ofType('proficiency').filter(p => allLanguages().some(l => norm(l) === norm(named(p)))).map(named),
     hp: Number.isNaN(current) ? undefined : { current, temp: num(v('tempHP')?.value, num(v('temporaryHitPoints')?.value)) },
     coins,
     items,
@@ -296,7 +296,7 @@ export function toCharacter(s: ForeignSheet, lookups: ForeignLookups = {}, now =
 
   const chosenLanguages: string[] = []
   for (const l of s.languages) {
-    const known = LANGUAGES.find(x => norm(x) === norm(l))
+    const known = allLanguages().find(x => norm(x) === norm(l))
     if (known && !raceDef?.languages.includes(known)) chosenLanguages.push(known)
     else if (!known) unmatched.push(`Language: ${l}`)
   }
