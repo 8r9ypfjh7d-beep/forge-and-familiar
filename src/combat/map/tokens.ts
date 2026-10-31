@@ -23,7 +23,7 @@ export function syncTokens(enc: Encounter, map: BattleMapDef, sizeOf: (c: Combat
     monsters.push(open ? t : { ...t, x: UNPLACED, y: UNPLACED })
   }
   const party = all.filter(t => !before.has(t.combatantId) && t.kind !== 'npc').map(t => ({ ...t, x: UNPLACED, y: UNPLACED }))
-  const strip = ({ hidden, ...t }: Token & { hidden: boolean }): Token => (hidden ? { ...t, hidden } : t)
+  const strip = ({ hidden, ...t }: Token): Token => (hidden ? { ...t, hidden } : t)
   const mark = (t: Token) => ({ ...t, hidden: !!t.hidden })
   const withParty = autoPlace(map, [...kept, ...monsters.filter(t => t.x >= 0), ...party].map(mark))
   // Monsters with no open spot on the far row line up along the edge opposite the party instead.

@@ -1,9 +1,10 @@
 // The map pane of an open encounter in the DM's combat tracker: pick a map (starter, blank or saved),
 // place tokens for every combatant, and play on BattleMap. Live sync to the party goes through useLiveBoard.
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../../i18n'
 import type { Monster } from '../../content'
 import { footprintOf } from '../../maps/logic'
+import { listMaps, onMapsChanged, syncMaps } from '../../maps/store'
 import { TEMPLATE_IDS, type TemplateId } from '../../maps/templates'
 import type { BattleMapDef } from '../../maps/types'
 import { derive } from '../../rules'
@@ -16,8 +17,17 @@ import { BLANK_ID, resolveMap, templateMapId } from './resolve'
 import { syncTokens } from './tokens'
 import { useLiveBoard } from './useLiveBoard'
 
-/** Saved maps from the DM's map editor. Empty until src/maps has a store; starters and blank work without it. */
-const SAVED: BattleMapDef[] = []
+/** The DM's saved maps (Maps tab on the DM screen): this device first, then the server's. */
+function useSavedMaps(ownerId: string): BattleMapDef[] {
+  const [maps, setMaps] = useState<BattleMapDef[]>([])
+  useEffect(() => {
+    let live = true
+    listMaps(ownerId).then(list => { if (live) setMaps(list) }).then(() => syncMaps(ownerId)).then(list => { if (live) setMaps(list) }).catch(() => {})
+    const off = onMapsChanged(ownerId, list => { if (live) setMaps(list) })
+    return () => { live = false; off() }
+  }, [ownerId])
+  return maps
+}
 
 export interface EncounterMapProps {
   enc: Encounter
@@ -29,11 +39,12 @@ export interface EncounterMapProps {
 
 export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterMapProps) {
   const { t, term } = useI18n()
-  const tplName = (id: TemplateId) => t(`combat.map.tpl.${id}` as const)
+  const tplName = (id: TemplateId) => t(`maps.tpl.${id}` as const)
+  const saved = useSavedMaps(enc.ownerId)
   const mapId = enc.board?.mapId
-  const map = useMemo(() => resolveMap(mapId, enc.ownerId, SAVED, tplName, t('combat.map.blank')),
+  const map = useMemo(() => resolveMap(mapId, enc.ownerId, saved, tplName, t('combat.map.blank')),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mapId, enc.ownerId])
+    [mapId, enc.ownerId, saved])
   const { live, push, changeBoard, move, changeMap } = useLiveBoard(enc, act, partyId, map)
 
   const sizeOf = (c: Combatant): 1 | 2 | 3 | 4 => footprintOf(monsterOf(c)?.sizes?.[0])
@@ -50,7 +61,7 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
 
   const pick = (id: string) => {
     if (!id) return
-    const next = resolveMap(id, enc.ownerId, SAVED, tplName, t('combat.map.blank'))
+    const next = resolveMap(id, enc.ownerId, saved, tplName, t('combat.map.blank'))
     if (!next) return
     const prev = enc.board ?? EMPTY_BOARD
     // A new map keeps who is in the fight but places everyone afresh, with the map's own fog.
@@ -86,9 +97,9 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
         {TEMPLATE_IDS.map(id => <option key={id} value={templateMapId(id)}>{tplName(id)}</option>)}
         <option value={BLANK_ID}>{t('combat.map.blank')}</option>
       </optgroup>
-      {SAVED.length > 0 && (
+      {saved.length > 0 && (
         <optgroup label={t('combat.map.yourMaps')}>
-          {SAVED.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          {saved.map(m => <option key={m.id} value={m.id}>{m.name || t('maps.untitled')}</option>)}
         </optgroup>
       )}
     </select>

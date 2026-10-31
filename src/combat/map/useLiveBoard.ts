@@ -12,7 +12,7 @@ import type { Act } from '../ui/useEncounter'
 import { mergeRemoteMoves } from './board'
 
 /** A map as the live row stores it (its fog keys are the same "x,y" strings). */
-const asLive = (m: BattleMapDef | null) => m as unknown as LiveMap | null
+const asLive = (m: BattleMapDef | null): LiveMap | null => m
 
 export type LiveState = 'local' | 'off' | 'on'
 

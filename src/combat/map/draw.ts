@@ -88,7 +88,7 @@ export function drawBoard(ctx: CanvasRenderingContext2D, boxW: number, boxH: num
   // Terrain.
   const fontPx = Math.round(CELL_PX * 0.55)
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  for (const key of Object.keys(map.terrain)) {
+  for (const key of Object.keys(map.terrain) as CellKey[]) {
     const [xs, ys] = key.split(',')
     const x = Number(xs), y = Number(ys)
     const t = map.terrain[key]
