@@ -6,6 +6,7 @@ import type { Monster } from '../../content'
 import { footprintOf } from '../../maps/logic'
 import { listMaps, onMapsChanged, syncMaps } from '../../maps/store'
 import { TEMPLATE_IDS, type TemplateId } from '../../maps/templates'
+import { mapName } from '../../maps/names'
 import type { BattleMapDef } from '../../maps/types'
 import { derive } from '../../rules'
 import { statusOf, type Party } from '../engine'
@@ -99,7 +100,7 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
       </optgroup>
       {saved.length > 0 && (
         <optgroup label={t('combat.map.yourMaps')}>
-          {saved.map(m => <option key={m.id} value={m.id}>{m.name || t('maps.untitled')}</option>)}
+          {saved.map(m => <option key={m.id} value={m.id}>{mapName(m.name, t)}</option>)}
         </optgroup>
       )}
     </select>
@@ -108,7 +109,7 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
   return (
     <section className="glass encounter-map" aria-label={t('combat.map.title')}>
       <div className="row spread encounter-map-head">
-        <h3 className="glass-eyebrow">{map ? map.name : t('combat.map.title')}</h3>
+        <h3 className="glass-eyebrow">{map ? mapName(map.name, t) : t('combat.map.title')}</h3>
         <div className="row">
           {partyId && (
             live === 'on'

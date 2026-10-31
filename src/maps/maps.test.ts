@@ -247,3 +247,16 @@ describe('live combat hand-off', () => {
     expect(coverCells(revealed, { x: 18, y: 7, w: 8, h: 4 }, map)).toEqual(board.fog)
   })
 })
+
+describe('map names', () => {
+  it('shows stock names in the current language and keeps the DM\'s own names', async () => {
+    const { mapName } = await import('./names')
+    const { translate } = await import('../i18n')
+    const he = (key: Parameters<typeof translate>[1]) => translate('he', key)
+    expect(mapName('Tavern', he)).toBe(translate('he', 'maps.tpl.tavern'))
+    expect(mapName('Forest clearing', he)).toBe(translate('he', 'maps.tpl.forest'))
+    expect(mapName(translate('he', 'maps.tpl.field'), k => translate('en', k))).toBe('Open field')
+    expect(mapName('', he)).toBe(translate('he', 'maps.untitled'))
+    expect(mapName('Goblin cave', he)).toBe('Goblin cave')
+  })
+})

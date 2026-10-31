@@ -4,6 +4,7 @@ import { ConfirmDialog } from '../builder/ConfirmDialog'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { createMap, mapSummary } from './logic'
+import { mapName } from './names'
 import { MapEditor, MapThumb } from './MapEditor'
 import { deleteMap, listMaps, MapSpaceError, onMapsChanged, saveMap, syncMaps } from './store'
 import { buildTemplate, TEMPLATE_IDS, type TemplateId } from './templates'
@@ -95,7 +96,7 @@ export function MapsTab({ ownerId, initialOpenId }: { ownerId: string; initialOp
             <li key={m.id} className="maps-row">
               <MapThumb map={m} />
               <div className="maps-row-text">
-                <button type="button" className="link-btn" onClick={() => setOpenId(m.id)}>{m.name || t('maps.untitled')}</button>
+                <button type="button" className="link-btn" onClick={() => setOpenId(m.id)}>{mapName(m.name, t)}</button>
                 <span className="hint">{mapSummary(m)}{m.picture ? ` · ${t('maps.withPicture')}` : ''}{m.fog.length ? ` · ${t('maps.fog')}` : ''}</span>
               </div>
               <div className="maps-row-actions">
@@ -106,7 +107,7 @@ export function MapsTab({ ownerId, initialOpenId }: { ownerId: string; initialOp
           ))}
         </ul>
       </section>
-      <ConfirmDialog open={!!askDelete} title={t('maps.deleteAsk', { name: askDelete?.name || t('maps.untitled') })} yes={t('common.delete')}
+      <ConfirmDialog open={!!askDelete} title={t('maps.deleteAsk', { name: mapName(askDelete?.name, t) })} yes={t('common.delete')}
         onYes={() => { if (askDelete) void remove(askDelete) }} onClose={() => setAskDelete(null)} />
     </div>
   )

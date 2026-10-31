@@ -1,6 +1,7 @@
 // Picks one of the DM's saved maps (or none) for an encounter plan. The plan keeps only the map id.
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n'
+import { mapName } from './names'
 import { listMaps, onMapsChanged, syncMaps } from './store'
 import type { BattleMapDef } from './types'
 
@@ -20,7 +21,7 @@ export function MapPicker({ ownerId, value, onChange }: { ownerId: string; value
       <span>{t('maps.pick')}</span>
       <select value={known ? value : ''} onChange={e => onChange(e.target.value || undefined)}>
         <option value="">{t('maps.pickNone')}</option>
-        {maps.map(m => <option key={m.id} value={m.id}>{m.name || t('maps.untitled')}</option>)}
+        {maps.map(m => <option key={m.id} value={m.id}>{mapName(m.name, t)}</option>)}
       </select>
       {!maps.length && <span className="hint">{t('maps.pickEmpty')}</span>}
     </label>

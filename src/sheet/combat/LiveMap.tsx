@@ -8,6 +8,7 @@ import { BattleMap, type TokenInfo } from '../../combat/map/BattleMap'
 import type { Token } from '../../combat/types'
 import { useI18n } from '../../i18n'
 import { normalizeMap } from '../../maps/logic'
+import { mapName } from '../../maps/names'
 import { derive } from '../../rules'
 import type { Character } from '../../model/character'
 import { HpChip } from './CombatPage'
@@ -76,7 +77,7 @@ export function LiveMapTab({ live, character, brings }: { live: LiveCombat; char
           {status.yourTurn ? t('cs.map.yourTurn') : t('cs.map.turnOf', { name: status.active.name })}
         </span>
       )}
-      {live.map && <span className="cs-map-name">{live.map.name}</span>}
+      {live.map && <span className="cs-map-name">{mapName(live.map.name, t)}</span>}
     </div>
   )
   const hint = refused
