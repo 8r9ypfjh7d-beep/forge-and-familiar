@@ -11,7 +11,7 @@ import type { HealthLook as Health } from '../playerView'
 import type { Board, Token } from '../types'
 import { budgetLeft, canMove, coverFog, isPlaced, revealFog, spend, tokenCovering, withToken, type Spent } from './board'
 import { drawBoard, footprintInFog, type Palette } from './draw'
-import { cellAt, cellRect, centreOn, clampPan, fitViewport, pan, pinch, zoomAt, type Viewport } from './viewport'
+import { CELL_PX, cellAt, cellRect, centreOn, clampPan, fitViewport, pan, pinch, zoomAt, type Viewport } from './viewport'
 import './battlemap.css'
 
 export type Viewer = { role: 'dm' } | { role: 'player'; characterId: string }
@@ -45,6 +45,9 @@ type Ptr = { x: number; y: number }
 
 const BLANK = createMap('blank', '', '', '2026-01-01T00:00:00.000Z')
 const DRAG_PX = 6
+/** Below this many screen pixels per cell the map opens zoomed in, at START_CELL. */
+const MIN_TAP_CELL = 28
+const START_CELL = 36
 
 const PROBLEM_KEY: Record<MoveProblem, MessageKey> = {
   outside: 'combat.map.outside', blocked: 'combat.map.blocked', occupied: 'combat.map.occupied', unreachable: 'combat.map.unreachable',
@@ -95,9 +98,17 @@ export function BattleMap({ map, board, encounter, viewer, onMove, onBoard, info
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+  // A whole grid squeezed onto a phone makes tokens too small to tap: start closer, on the viewer's token.
   useEffect(() => {
-    if (box.w && box.h && !view) setView(fitViewport(def.width, def.height, box.w, box.h))
-  }, [box, def.width, def.height, view])
+    if (!box.w || !box.h || view) return
+    const fitted = fitViewport(def.width, def.height, box.w, box.h)
+    if (fitted.scale * CELL_PX >= MIN_TAP_CELL) { setView(fitted); return }
+    const focus = (viewer.role === 'player' ? board.tokens.find(tk => tk.characterId === viewer.characterId) : undefined)
+      ?? board.tokens.find(tk => tk.combatantId === encounter.activeId)
+    const at = focus && isPlaced(focus) ? focus : { x: def.width / 2, y: def.height / 2, size: 1 }
+    const near = centreOn({ ...fitted, scale: START_CELL / CELL_PX }, at.x, at.y, at.size, at.size, box.w, box.h)
+    setView(clampPan(near, def.width, def.height, box.w, box.h))
+  }, [box, def.width, def.height, view, viewer, board.tokens, encounter.activeId])
 
   const selectedToken = selected ? board.tokens.find(tk => tk.id === selected) ?? null : null
   const selInfo = selectedToken ? infoFor?.(selectedToken) : undefined

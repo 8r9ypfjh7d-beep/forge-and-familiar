@@ -1,11 +1,14 @@
 // The Map tab of the sheet's combat mode: the party's live battle map (src/combat/live) as a player
 // sees it. Shows the round and whose turn it is, lets the player move the token of the character they
 // bring (checked here and again on the server), and opens the map full screen with the HP chip pinned.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { pullLiveCombat, moveToken, watchLiveCombat } from '../../combat/live'
 import type { LiveCombat } from '../../combat/liveLogic'
+import { BattleMap, type TokenInfo } from '../../combat/map/BattleMap'
 import type { Token } from '../../combat/types'
 import { useI18n } from '../../i18n'
+import { normalizeMap } from '../../maps/logic'
+import { derive } from '../../rules'
 import type { Character } from '../../model/character'
 import { HpChip } from './CombatPage'
 import { canMoveTo, mapStatus, tokenHealth } from './liveMap'
@@ -79,9 +82,9 @@ export function LiveMapTab({ live, character, brings }: { live: LiveCombat; char
   const hint = refused
     ? <p className="cs-map-hint warn" role="alert">{t('cs.map.refused')}</p>
     : cantMoveText ? <p className="cs-map-hint">{cantMoveText}</p>
-    : <p className="cs-map-hint">{t('cs.map.howToMove')}</p>
+    : null
 
-  const stage = <MapStage live={live} ownTokenId={status.cantMove ? undefined : status.ownTokenId} onMove={move} />
+  const stage = <MapStage live={live} character={character} onMove={move} />
   if (full) {
     return (
       <div className="cs-map-full" role="dialog" aria-modal="true" aria-label={t('cs.tab.map')}>
@@ -108,77 +111,14 @@ export function LiveMapTab({ live, character, brings }: { live: LiveCombat; char
   )
 }
 
-const CELL = 40
-
-/**
- * The map as a player sees it: grid, fog, tokens. Tap your token, then tap a cell to move there.
- * Replaced by the shared BattleMap (src/combat/ui/BattleMap, unit C) once it is on main.
- */
-function MapStage({ live, ownTokenId, onMove }: { live: LiveCombat; ownTokenId?: string; onMove: (tokenId: string, x: number, y: number) => void }) {
-  const { t } = useI18n()
-  const [picked, setPicked] = useState(false)
-  const box = useRef<HTMLDivElement>(null)
-  const w = live.map?.width ?? 24
-  const h = live.map?.height ?? 16
-  const fog = new Set(live.board.fog)
-  const own = live.board.tokens.find(t => t.id === ownTokenId)
-  const tap = (x: number, y: number) => {
-    if (!own) return
-    if (!picked) return
-    setPicked(false)
-    if (x !== own.x || y !== own.y) onMove(own.id, x, y)
+/** The map as a player sees it: the shared BattleMap with the live row's map, board and turn. */
+function MapStage({ live, character, onMove }: { live: LiveCombat; character: Character; onMove: (tokenId: string, x: number, y: number) => void }) {
+  const map = useMemo(() => (live.map ? normalizeMap(live.map) : null), [live.map])
+  const speed = useMemo(() => derive(character).speed, [character])
+  const infoFor = (tk: Token): TokenInfo => {
+    const c = live.encounter.combatants.find(x => x.id === tk.combatantId)
+    const { hp, health } = tokenHealth(live, tk)
+    return { name: c?.name ?? tk.label, hp, health, conditions: c?.conditions, ...(tk.characterId === character.id ? { speed } : {}) }
   }
-  // Centre on the player's own token when the map first shows.
-  useEffect(() => {
-    const el = box.current
-    if (!el || !own) return
-    el.scrollTo({ left: own.x * CELL - el.clientWidth / 2, top: own.y * CELL - el.clientHeight / 2 })
-    // Only on the first paint and when the token changes identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [own?.id])
-  const cells: ReactNode[] = []
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const key = `${x},${y}`
-    cells.push(
-      <rect key={key} x={x * CELL} y={y * CELL} width={CELL} height={CELL}
-        className={`cs-map-cell${fog.has(key as `${number},${number}`) ? ' fog' : ''}${picked ? ' target' : ''}`}
-        onClick={() => tap(x, y)} />,
-    )
-  }
-  return (
-    <div className={`cs-map-scroll${picked ? ' picking' : ''}`} ref={box}>
-      <svg className="cs-map-svg" width={w * CELL} height={h * CELL} viewBox={`0 0 ${w * CELL} ${h * CELL}`} role="img" aria-label={t('cs.map.stageLabel', { w, h })}>
-        {cells}
-        {live.board.tokens.filter(tk => tk.x >= 0 && tk.y >= 0).map(tk => (
-          <TokenMark key={tk.id} token={tk} live={live} own={tk.id === ownTokenId} picked={picked && tk.id === ownTokenId}
-            active={live.encounter.activeId === tk.combatantId} onTap={() => { if (tk.id === ownTokenId) setPicked(p => !p) }} />
-        ))}
-      </svg>
-    </div>
-  )
-}
-
-const HEALTH_KEYS = { healthy: 'cs.map.health.healthy', bloodied: 'cs.map.health.bloodied', down: 'cs.map.health.down' } as const
-
-function TokenMark({ token, live, own, picked, active, onTap }: { token: Token; live: LiveCombat; own: boolean; picked: boolean; active: boolean; onTap: () => void }) {
-  const { t } = useI18n()
-  const { hp, health } = tokenHealth(live, token)
-  const name = live.encounter.combatants.find(c => c.id === token.combatantId)?.name ?? token.label
-  const size = token.size * CELL
-  const cx = token.x * CELL + size / 2
-  const cy = token.y * CELL + size / 2
-  const r = size / 2 - 3
-  const healthText = hp ? t('cs.map.hp', { hp: hp.current, max: hp.max }) : health ? t(HEALTH_KEYS[health]) : ''
-  const state = hp ? (hp.current <= 0 ? 'down' : hp.current * 2 <= hp.max ? 'bloodied' : 'healthy') : health
-  return (
-    <g className={`cs-map-token ${token.kind}${own ? ' own' : ''}${picked ? ' picked' : ''}${active ? ' active' : ''}${state ? ` ${state}` : ''}`}
-      tabIndex={own ? 0 : -1} role={own ? 'button' : undefined} aria-pressed={own ? picked : undefined}
-      aria-label={`${name}${healthText ? `, ${healthText}` : ''}${active ? `, ${t('cs.map.activeTurn')}` : ''}`}
-      onClick={onTap} onKeyDown={e => { if (own && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onTap() } }}>
-      <circle cx={cx} cy={cy} r={r} style={token.color ? { fill: token.color } : undefined} />
-      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fontSize={Math.max(12, r * 0.8)}>{token.label}</text>
-      {state === 'bloodied' && <circle className="cs-map-blood" cx={cx + r * 0.7} cy={cy - r * 0.7} r={Math.max(4, r / 4)} />}
-      {state === 'down' && <text className="cs-map-down" x={cx} y={cy + r * 0.55} textAnchor="middle" fontSize={Math.max(10, r / 2)}>✕</text>}
-    </g>
-  )
+  return <BattleMap map={map} board={live.board} encounter={live.encounter} viewer={{ role: 'player', characterId: character.id }} onMove={onMove} infoFor={infoFor} />
 }
