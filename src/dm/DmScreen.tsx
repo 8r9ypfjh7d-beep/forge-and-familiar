@@ -1,6 +1,6 @@
 // The DM screen: party budget on top, then tabs for encounters, players' rolls, monsters, quick reference and NPCs.
 // Uses the sheet's card style (.ff-sheet) so it reads like the rest of the app.
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createEncounter, addCombatant, saveEncounter } from '../combat'
 import { campaignRows } from '../combat/campaign'
 import { BOOK_TITLES, loadMonsters, monsterKey, onContentChanged, sourceById, type Edition, type LoadedMonster, type Monster } from '../content'
@@ -228,6 +228,10 @@ function usePartyHeroes(party?: Party): PartyHero[] | null {
   return heroes
 }
 
+const TOP_OPEN = 'ff.dm.topOpen.v1'
+const readTopOpen = () => { try { return localStorage.getItem(TOP_OPEN) === '1' } catch { return false } }
+const writeTopOpen = (open: boolean) => { try { localStorage.setItem(TOP_OPEN, open ? '1' : '0') } catch { /* stays for this visit */ } }
+
 function PartyCard({ state, update, plan, fromParty, sheets }: {
   state: DmState
   update: Update
@@ -241,10 +245,27 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
   const xp = plan ? planXp(plan) : 0
   const setGroup = (i: number, patch: Partial<{ count: number; level: number }>) =>
     update(s => ({ ...s, party: s.party.map((g, j) => (j === i ? { ...g, ...patch } : g)) }))
+  const [open, setOpen] = useState(readTopOpen)
+  const toggle = () => setOpen(o => { writeTopOpen(!o); return !o })
+  const diff = difficulty(xp, budget)
   return (
-    <section className="card dm-top" aria-labelledby="dm-title">
-      <div>
+    <section className={`card dm-top${open ? ' is-open' : ''}`} aria-labelledby="dm-title">
+      {/* Folded by default so the tabs sit on the first screen; one line keeps party, budget and the fight in view. */}
+      <div className="dm-top-head">
         <h1 id="dm-title">{t('dm.title')}</h1>
+        <button type="button" className="btn small dm-top-toggle" aria-expanded={open} aria-controls="dm-top-body" onClick={toggle}>
+          {t(open ? 'dm.topHide' : 'dm.topShow')}
+        </button>
+        {!open && (
+          <p className="dm-top-line">
+            <span>{t('dm.party', { count: partySize(state.party) })}</span>
+            <span>{t('dm.topBudget', { low: budget.low.toLocaleString(), moderate: budget.moderate.toLocaleString(), high: budget.high.toLocaleString() })}</span>
+            {plan && <span className={`dm-top-fight diff-${diff}`}>{plan.name}: <b>{xp.toLocaleString()}</b></span>}
+          </p>
+        )}
+      </div>
+      {open && <div id="dm-top-body" className="dm-top-body">
+      <div>
         <p className="hint">{t('dm.intro')}</p>
         <h2 className="sub-title">{t('dm.party', { count: partySize(state.party) })}</h2>
         <ul className="plain dm-groups">
@@ -302,13 +323,14 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
           <div><dt>{t('dm.diff.low')}</dt><dd>{budget.low.toLocaleString()}</dd></div>
           <div><dt>{t('dm.diff.moderate')}</dt><dd>{budget.moderate.toLocaleString()}</dd></div>
           <div><dt>{t('dm.diff.high')}</dt><dd>{budget.high.toLocaleString()}</dd></div>
-          <div className={`dm-now diff-${difficulty(xp, budget)}`}>
+          <div className={`dm-now diff-${diff}`}>
             <dt>{plan ? plan.name : t('dm.noPlan')}</dt>
             <dd>{xp.toLocaleString()}</dd>
           </div>
         </dl>
         <p className="hint">{t('dm.budgetHelp')}</p>
       </div>
+      </div>}
     </section>
   )
 }
@@ -495,6 +517,10 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }:
   )
 }
 
+/** Matches the .dm-two breakpoint: under it the list and the stat block stack. */
+const stacked = () => typeof matchMedia === 'function' && matchMedia('(max-width: 899px)').matches
+const smooth = (): ScrollBehavior => (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth')
+
 function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdition, onMakeNpc }: {
   monsters: LoadedMonster[]
   openId: string | null
@@ -508,17 +534,29 @@ function MonstersTab({ monsters, openId, onOpen, onAdd, planName, edition, onEdi
   const { t } = useI18n()
   // A plan may name a monster by id only (older plans) or by source and id.
   const open = monsters.find(m => monsterKey(m) === openId) ?? monsters.find(m => m.id === openId)
+  const listRef = useRef<HTMLElement>(null)
+  const blockRef = useRef<HTMLDivElement>(null)
+  const openKey = open && monsterKey(open)
+  // One column (phones): the stat block sits under the whole list, so bring it into view when a monster opens.
+  useEffect(() => {
+    if (openKey && stacked()) blockRef.current?.scrollIntoView({ block: 'start', behavior: smooth() })
+  }, [openKey])
+  const backToList = () => {
+    listRef.current?.scrollIntoView({ block: 'start', behavior: smooth() })
+    listRef.current?.querySelector<HTMLElement>('li.on .link-btn')?.focus({ preventScroll: true })
+  }
   return (
     <div className="dm-two">
-      <section className="card" aria-labelledby="dm-mon-title">
+      <section ref={listRef} className="card dm-mon-list" aria-labelledby="dm-mon-title">
         <h2 id="dm-mon-title">{t('dm.tab.monsters')}</h2>
         <MonsterBrowser monsters={monsters} onAdd={onAdd} onOpen={onOpen} openId={openId} edition={edition} onEdition={onEdition} />
       </section>
       {open
-        ? <StatBlock key={monsterKey(open)} m={open} legacy={open.legacy} actions={<div className="row">
+        ? <div ref={blockRef} className="dm-mon-block"><StatBlock key={monsterKey(open)} m={open} legacy={open.legacy} actions={<div className="row">
+            <button className="btn small dm-back-list" onClick={backToList}>{t('common.backArrow')} {t('dm.backToList')}</button>
             {onMakeNpc && <button className="btn small" onClick={() => onMakeNpc(open)}>{t('npc.build.makeNpc')}</button>}
             <button className="btn small primary" onClick={() => onAdd(open)} title={planName}>{t('dm.addToPlan')}</button>
-          </div>} />
+          </div>} /></div>
         : <section className="card"><p className="hint">{t('dm.pickMonster')}</p></section>}
     </div>
   )

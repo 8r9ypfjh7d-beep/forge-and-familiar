@@ -1935,6 +1935,11 @@ export const en = {
   // DM screen
   'app.dm': 'DM screen',
   'dm.title': 'DM screen',
+  'dm.topShow': 'Party & budget',
+  'dm.topHide': 'Fold up',
+  'dm.topBudget': 'Budget {low} / {moderate} / {high} XP',
+  'dm.backToList': 'Back to list',
+  'maps.setup': 'Size, rules and picture',
   'dm.intro': 'Plan fights, look up monsters and rules, and keep your NPCs. Players never see this page.',
   'dm.tabs': 'DM screen sections',
   'dm.tab.encounters': 'Fights',

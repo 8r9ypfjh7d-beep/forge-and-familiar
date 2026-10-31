@@ -39,6 +39,29 @@
 .ff-maps-editor .maps-error { color: var(--bad); }
 
 .ff-maps-editor .maps-tools { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.ff-maps-editor .maps-setup { display: grid; gap: var(--sp-3); }
+.ff-maps-editor .maps-setup:not([open]) { gap: 0; }
+.ff-maps-editor .maps-setup-sum::-webkit-details-marker { display: none; }
+.ff-maps-editor .maps-setup-sum::before { content: '▸'; margin-inline-end: var(--sp-2); transition: transform var(--dur-fast); }
+.ff-maps-editor .maps-setup-sum:dir(rtl)::before { transform: scaleX(-1); }
+.ff-maps-editor .maps-setup[open] > .maps-setup-sum::before { transform: rotate(90deg); }
+.ff-maps-editor .maps-setup-sum { cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--muted); min-block-size: 36px; display: flex; align-items: center; }
+/* Phones: one scrolling strip of tool icons that stays at the top while the grid is in view; only the
+   chosen tool shows its name (the others keep theirs for screen readers and as a tooltip). */
+@media (max-width: 559px) {
+  .ff-maps-editor .maps-tools {
+    position: sticky; inset-block-start: 0; z-index: 2; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    gap: var(--sp-1); padding: var(--sp-1); margin-inline: calc(-1 * var(--sp-1)); border-radius: var(--r-pill);
+    background: var(--glass-thick); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-highlight), var(--glass-shadow);
+  }
+  .ff-maps-editor .maps-tools::-webkit-scrollbar { display: none; }
+  .ff-maps-editor .maps-tool { flex: none; gap: var(--sp-1); padding-inline: var(--sp-2); }
+  .ff-maps-editor .maps-tool:not(.on) .maps-tool-name {
+    position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .ff-maps-editor .maps-scroll { max-block-size: 60vh; }
+}
 .ff-maps-editor .maps-tool { display: inline-flex; align-items: center; gap: var(--sp-2); min-block-size: 40px; cursor: pointer; }
 .ff-maps-editor .maps-tool.on { background: var(--glass-tint); color: var(--accent); box-shadow: var(--glass-raised), var(--glass-highlight); }
 .ff-maps-editor .maps-tool-glyph {
