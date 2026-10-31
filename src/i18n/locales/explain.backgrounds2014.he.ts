@@ -79,8 +79,8 @@ export const explainBackgrounds2014He: Messages = {
   'why.bg.planar-philosopher': 'אתם הולכים אחרי רעיונות של פלג מישורי. בחרו עוד מיומנות. יכולת: ההישג "נצר המישורים החיצוניים" נותן לחש בסיסי מישורי ועמידות.',
   'why.bg.giant-foundling': 'גודלתם בידי ענקים. יכולת: ההישג "מכת הענקים" מוסיף כוח של ענק לפגיעות הנשק שלכם.',
   'why.bg.rune-carver': 'למדתם קסם רונות של ענקים. יכולת: ההישג "מעצב רונות" מאפשר לחרוט רונות שמטילות לחשים.',
-  'why.bg.rewarded': 'חפיסה קסומה שינתה את גורלכם לטובה. יכולת: ההישג "בר מזל" מאפשר להטיל מחדש כמה פעמים ביום.',
-  'why.bg.ruined': 'חפיסה קסומה לקחה מכם הכול. יכולת: ההישג "דרוך" שומר אתכם מוכנים למכה הבאה.',
+  'why.bg.rewarded': 'חפיסה קסומה שינתה את גורלכם לטובה. יכולת: הישג לבחירתכם מבין בר מזל, חניכות קסם ומיומן. האפליקציה מוסיפה בר מזל; בקשו מהשה"מ להחליף.',
+  'why.bg.ruined': 'חפיסה קסומה לקחה מכם הכול. יכולת: הישג לבחירתכם מבין דרוך, מיומן וקשוח. האפליקציה מוסיפה דרוך; בקשו מהשה"מ להחליף.',
 }
 
 export const backgroundTerms2014He: Terms = {
@@ -218,7 +218,8 @@ export const backgroundTerms2014He: Terms = {
   'bgFeature.Wildspace Adaptation': 'הסתגלות לחלל',
   'bgFeature.Squire of Solamnia': 'נושא כלי סולמניה',
   'bgFeature.Initiate of High Sorcery': 'חניך הכישוף העליון',
-  'bgFeature.Scion of the Outer Planes': 'נצר המישורים החיצוניים',
+  'bgFeature.Planar Infusion': 'חדירה מישורית',
+  'bgFeature.Conviction': 'שכנוע פנימי',
   'bgFeature.Strike of the Giants': 'מכת הענקים',
   'bgFeature.Rune Shaper': 'מעצב רונות',
   'bgFeature.Fortune\'s Favor': 'חסד המזל',

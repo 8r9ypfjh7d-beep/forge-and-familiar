@@ -87,7 +87,7 @@ export const explainFeatsEn = {
   'why.feat.aberrant-dragonmark': '+1 Constitution, one sorcerer cantrip and one 1st-level spell; cast it with a Hit Die for a risky surge of power.',
   'why.feat.strixhaven-initiate': 'Two cantrips and one 1st-level spell from your Strixhaven college\'s lists.',
   'why.feat.strixhaven-mascot': 'Summon your college\'s mascot as a familiar and swap places with it.',
-  'why.feat.giant-foundling': 'Giant blood: you count as Large for carrying, and you can grow Large for a minute and hit harder.',
+  'why.feat.strike-of-the-giants': 'Pick a giant kind. A few times a day, a weapon hit also burns, freezes, shocks, knocks back or otherwise strikes like that giant.',
   'why.feat.rune-shaper': 'Learn giant runes you can inscribe and cast spells through, once per long rest each.',
   'why.feat.ember-of-the-fire-giant': '+1 Strength, Constitution or Wisdom, fire resistance, and a burst of flame after you attack.',
   'why.feat.fury-of-the-frost-giant': '+1 Strength, Constitution or Wisdom, cold resistance, and icy retaliation when you are hit.',

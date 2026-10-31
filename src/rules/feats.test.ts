@@ -114,7 +114,7 @@ describe('feat prerequisites', () => {
     expect(unmetFeatPrereqs(wizard, featById('war-caster')!, 4)).toEqual([])
     expect(unmetFeatPrereqs(draft(), featById('elven-accuracy')!, 4)).toEqual([{ kind: 'race', races: ['elf', 'half-elf'] }])
     expect(unmetFeatPrereqs(draft(), featById('inspiring-leader')!, 4)).toEqual([{ kind: 'ability', abilities: { cha: 13 } }])
-    expect(unmetFeatPrereqs(draft(), featById('vigor-of-the-hill-giant')!, 4)).toEqual([{ kind: 'feat', feats: ['giant-foundling', 'rune-shaper'] }])
+    expect(unmetFeatPrereqs(draft(), featById('vigor-of-the-hill-giant')!, 4)).toEqual([{ kind: 'feat', feats: ['strike-of-the-giants'] }])
     const d24 = draft({ rulesEdition: '2024', backgroundId: 'soldier' })
     expect(unmetFeatPrereqs(d24, featById('boon-of-fate', '2024')!, 4)).toEqual([{ kind: 'level', level: 19 }])
     expect(unmetFeatPrereqs({ ...d24, classes: [{ classId: 'wizard', level: 4 }] }, featById('dueling', '2024')!, 4)).toEqual([{ kind: 'feature', feature: 'Fighting Style' }])

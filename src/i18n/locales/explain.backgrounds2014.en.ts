@@ -83,6 +83,6 @@ export const explainBackgrounds2014En = {
   'why.bg.planar-philosopher': 'You follow a planar faction\'s ideas. Pick one more skill. Feature: the Scion of the Outer Planes feat gives you a planar cantrip and resistance.',
   'why.bg.giant-foundling': 'You were raised by giants. Feature: the Strike of the Giants feat adds giant power to your weapon hits.',
   'why.bg.rune-carver': 'You learned giant rune magic. Feature: the Rune Shaper feat lets you carve runes that cast spells.',
-  'why.bg.rewarded': 'A magical deck changed your fate for the better. Feature: the Lucky feat lets you reroll a few times a day.',
-  'why.bg.ruined': 'A magical deck took everything from you. Feature: the Alert feat keeps you ready for the next blow.',
+  'why.bg.rewarded': 'A magical deck changed your fate for the better. Feature: a feat of your choice among Lucky, Magic Initiate and Skilled. The app adds Lucky; ask your DM to swap it.',
+  'why.bg.ruined': 'A magical deck took everything from you. Feature: a feat of your choice among Alert, Skilled and Tough. The app adds Alert; ask your DM to swap it.',
 }

@@ -180,7 +180,7 @@ export const BOOK_BACKGROUNDS: Background[] = [
   {
     id: 'haunted-one', name: 'Haunted One', source: COS, skillProficiencies: [],
     skillChoices: skills(2, 'arcana', 'investigation', 'religion', 'survival'), languageChoices: 2, feature: 'Heart of Darkness',
-    equipment: ['notes', 'keepsake', 'clothes-common'], gold: 0,
+    equipment: ['crowbar', 'manacles', 'holy-symbol', 'keepsake', 'clothes-common'], gold: 0,
   },
   {
     id: 'investigator', name: 'Investigator', source: VRGR, skillProficiencies: [],
@@ -191,12 +191,12 @@ export const BOOK_BACKGROUNDS: Background[] = [
   // Adventure books
   {
     id: 'anthropologist', name: 'Anthropologist', source: TOA, skillProficiencies: ['insight', 'religion'],
-    languageChoices: 2, feature: 'Adept Linguist', equipment: ['notes', 'keepsake', 'clothes-travelers', 'pouch'], gold: 10,
+    languageChoices: 2, feature: 'Adept Linguist', equipment: ['ink', 'clothes-travelers', 'pouch'], gold: 10,
   },
   {
     id: 'archaeologist', name: 'Archaeologist', source: TOA, skillProficiencies: ['history', 'survival'],
     toolChoices: tools(["Cartographer's tools", "Navigator's tools"]), languageChoices: 1, feature: 'Historical Knowledge',
-    equipment: ['scroll-case', 'lantern-hooded', 'shovel', 'trophy', 'clothes-travelers', 'pouch'], gold: 25,
+    equipment: ['map', 'lantern-hooded', 'shovel', 'keepsake', 'clothes-travelers', 'pouch'], gold: 25,
   },
   {
     id: 'faceless', name: 'Faceless', source: BGDIA, skillProficiencies: ['deception', 'intimidation'],
@@ -210,27 +210,27 @@ export const BOOK_BACKGROUNDS: Background[] = [
   {
     id: 'marine', name: 'Marine', source: GOS, skillProficiencies: ['athletics', 'survival'],
     toolProficiencies: ['Vehicles (land)', 'Vehicles (water)'], feature: 'Steady',
-    equipment: ['dagger', 'insignia', 'clothes-travelers', 'pouch'], gold: 10,
+    equipment: ['dagger', 'badge', 'clothes-travelers', 'pouch'], gold: 10,
   },
   {
     id: 'shipwright', name: 'Shipwright', source: GOS, skillProficiencies: ['history', 'perception'],
     toolProficiencies: ["Carpenter's tools", 'Vehicles (water)'], feature: "I'll Patch It!",
-    equipment: ['carpenters-tools', 'notes', 'clothes-common', 'pouch'], gold: 10,
+    equipment: ['carpenters-tools', 'book', 'ink', 'ink-pen', 'clothes-travelers', 'pouch'], gold: 10,
   },
   {
     id: 'smuggler', name: 'Smuggler', source: GOS, skillProficiencies: ['athletics', 'deception'],
     toolProficiencies: ['Vehicles (water)'], feature: 'Down Low',
-    equipment: ['clothes-fine', 'pouch'], gold: 15,
+    equipment: ['clothes-common', 'pouch'], gold: 15,
   },
   {
     id: 'celebrity-adventurers-scion', name: "Celebrity Adventurer's Scion", source: AI, skillProficiencies: ['perception', 'performance'],
-    toolProficiencies: ['Disguise kit'], toolChoices: tools(MUSICAL_INSTRUMENTS), languageChoices: 1, feature: 'Name Dropping',
-    equipment: ['clothes-fine', 'keepsake', 'pouch'], gold: 25,
+    toolProficiencies: ['Disguise kit'], languageChoices: 2, feature: 'Name Dropping',
+    equipment: ['disguise-kit', 'clothes-fine', 'pouch'], gold: 30,
   },
   {
     id: 'failed-merchant', name: 'Failed Merchant', source: AI, skillProficiencies: ['investigation', 'persuasion'],
     toolChoices: tools(ARTISAN_TOOLS), languageChoices: 1, feature: 'Supply Chain',
-    equipment: ['keepsake', 'clothes-fine', 'pouch'], gold: 10,
+    equipment: ['artisans-tools', 'clothes-fine', 'pouch'], gold: 10,
   },
   {
     id: 'gambler', name: 'Gambler', source: AI, skillProficiencies: ['deception', 'insight'],
@@ -239,29 +239,29 @@ export const BOOK_BACKGROUNDS: Background[] = [
   },
   {
     id: 'plaintiff', name: 'Plaintiff', source: AI, skillProficiencies: ['medicine', 'persuasion'],
-    languageChoices: 1, feature: 'Legalese', equipment: ['letter', 'clothes-fine', 'pouch'], gold: 20,
+    toolChoices: tools(ARTISAN_TOOLS), languageChoices: 1, feature: 'Legalese', equipment: ['artisans-tools', 'clothes-fine', 'pouch'], gold: 20,
   },
   {
     id: 'rival-intern', name: 'Rival Intern', source: AI, skillProficiencies: ['history', 'investigation'],
     toolChoices: tools(ARTISAN_TOOLS), languageChoices: 1, feature: 'Inside Informant',
-    equipment: ['notes', 'clothes-fine', 'pouch'], gold: 10,
+    equipment: ['artisans-tools', 'notes', 'clothes-fine', 'pouch'], gold: 10,
   },
 
   // Campaign settings
   {
     id: 'grinner', name: 'Grinner', source: EGW, skillProficiencies: ['deception', 'performance'],
-    toolProficiencies: ['Disguise kit'], toolChoices: tools(MUSICAL_INSTRUMENTS), feature: 'Ballad of the Grinning Fool',
-    equipment: ['clothes-fine', 'disguise-kit', 'musical-instrument', 'badge', 'pouch'], gold: 15,
+    toolProficiencies: ["Thieves' tools"], toolChoices: tools(MUSICAL_INSTRUMENTS), feature: 'Ballad of the Grinning Fool',
+    equipment: ['clothes-fine', 'disguise-kit', 'pouch'], gold: 15,
   },
   {
     id: 'volstrucker-agent', name: 'Volstrucker Agent', source: EGW, skillProficiencies: ['deception', 'stealth'],
     toolProficiencies: ["Poisoner's kit"], languageChoices: 1, feature: 'Shadow Network',
-    equipment: ['clothes-common', 'poisoners-kit', 'pouch'], gold: 10,
+    equipment: ['poisoners-kit', 'clothes-common', 'pouch'], gold: 10,
   },
   {
     id: 'house-agent', name: 'House Agent', source: ERLW, skillProficiencies: ['investigation', 'persuasion'],
     toolChoices: { count: 2, from: TOOLS }, feature: 'House Connections',
-    equipment: ['clothes-fine', 'signet-ring', 'badge', 'pouch'], gold: 20,
+    equipment: ['clothes-fine', 'signet-ring', 'letter', 'pouch'], gold: 20,
   },
   {
     id: 'athlete', name: 'Athlete', source: MOT, skillProficiencies: ['acrobatics', 'athletics'],
@@ -286,26 +286,26 @@ export const BOOK_BACKGROUNDS: Background[] = [
   {
     id: 'feylost', name: 'Feylost', source: WBW, skillProficiencies: ['deception', 'survival'],
     toolChoices: tools(MUSICAL_INSTRUMENTS), languageChoices: 1, feature: 'Feywild Connection',
-    equipment: ['musical-instrument', 'keepsake', 'clothes-travelers', 'pouch'], gold: 8,
+    equipment: ['keepsake', 'clothes-travelers', 'pouch'], gold: 8,
   },
   {
     id: 'witchlight-hand', name: 'Witchlight Hand', source: WBW, skillProficiencies: ['performance', 'sleightOfHand'],
     toolChoices: tools(['Disguise kit'], MUSICAL_INSTRUMENTS), languageChoices: 1, feature: 'Carnival Companion',
-    equipment: ['disguise-kit', 'clothes-costume', 'keepsake', 'pouch'], gold: 8,
+    equipment: ['disguise-kit', 'gaming-set', 'clothes-costume', 'keepsake', 'pouch'], gold: 8,
   },
   {
     id: 'astral-drifter', name: 'Astral Drifter', source: SJ, skillProficiencies: ['insight', 'religion'],
     languageChoices: 2, feat: { id: 'magic-initiate', note: 'Cleric' }, feature: 'Divine Contact',
-    equipment: ['clothes-travelers', 'notes', 'pouch'], gold: 10,
+    equipment: ['clothes-travelers', 'notes', 'ink', 'ink-pen', 'pouch'], gold: 10,
   },
   {
     id: 'wildspacer', name: 'Wildspacer', source: SJ, skillProficiencies: ['athletics', 'survival'],
     toolProficiencies: ["Navigator's tools", 'Vehicles (space)'], feat: { id: 'tough' }, feature: 'Wildspace Adaptation',
-    equipment: ['club', 'grappling-hook', 'clothes-travelers', 'pouch'], gold: 10,
+    equipment: ['club', 'clothes-travelers', 'grappling-hook', 'rope', 'pouch'], gold: 10,
   },
   {
     id: 'knight-of-solamnia', name: 'Knight of Solamnia', source: DSDQ, skillProficiencies: ['athletics', 'survival'],
-    toolChoices: tools(GAMING_SETS), languageChoices: 1, feat: { id: 'squire-of-solamnia' }, feature: 'Squire of Solamnia',
+    languageChoices: 2, feat: { id: 'squire-of-solamnia' }, feature: 'Squire of Solamnia',
     equipment: ['insignia', 'gaming-set', 'clothes-common', 'pouch'], gold: 10,
   },
   {
@@ -315,19 +315,19 @@ export const BOOK_BACKGROUNDS: Background[] = [
   },
   {
     id: 'gate-warden', name: 'Gate Warden', source: PAITM, skillProficiencies: ['persuasion', 'survival'],
-    languageChoices: 2, feat: { id: 'scion-of-the-outer-planes' }, feature: 'Scion of the Outer Planes',
-    equipment: ['keepsake', 'clothes-common', 'pouch'], gold: 10,
+    languageChoices: 2, feat: { id: 'scion-of-the-outer-planes' }, feature: 'Planar Infusion',
+    equipment: ['book', 'ink', 'ink-pen', 'clothes-travelers', 'pouch'], gold: 10,
   },
   {
     id: 'planar-philosopher', name: 'Planar Philosopher', source: PAITM, skillProficiencies: ['arcana'],
     skillChoices: skills(1, ...ANY_SKILL.filter(s => s !== 'arcana')), languageChoices: 2,
-    feat: { id: 'scion-of-the-outer-planes' }, feature: 'Scion of the Outer Planes',
-    equipment: ['badge', 'notes', 'clothes-common', 'pouch'], gold: 10,
+    feat: { id: 'scion-of-the-outer-planes' }, feature: 'Conviction',
+    equipment: ['pouch'], gold: 10,
   },
   {
     id: 'giant-foundling', name: 'Giant Foundling', source: BGG, skillProficiencies: ['intimidation', 'survival'],
     languages: ['Giant'], languageChoices: 1, feat: { id: 'strike-of-the-giants' }, feature: 'Strike of the Giants',
-    equipment: ['keepsake', 'clothes-travelers', 'pouch'], gold: 10,
+    equipment: ['backpack', 'clothes-travelers', 'keepsake', 'pouch'], gold: 10,
   },
   {
     id: 'rune-carver', name: 'Rune Carver', source: BGG, skillProficiencies: ['history', 'perception'],
@@ -337,11 +337,11 @@ export const BOOK_BACKGROUNDS: Background[] = [
   {
     id: 'rewarded', name: 'Rewarded', source: BMT, skillProficiencies: ['insight', 'persuasion'],
     toolChoices: tools(GAMING_SETS), languageChoices: 1, feat: { id: 'lucky' }, feature: 'Fortune\'s Favor',
-    equipment: ['ink', 'ink-pen', 'letter', 'clothes-fine', 'pouch'], gold: 18,
+    equipment: ['ink', 'ink-pen', 'parchment', 'gaming-set', 'signet-ring', 'clothes-fine', 'pouch'], gold: 18,
   },
   {
     id: 'ruined', name: 'Ruined', source: BMT, skillProficiencies: ['stealth', 'survival'],
     toolChoices: tools(GAMING_SETS), languageChoices: 1, feat: { id: 'alert' }, feature: 'Still Standing',
-    equipment: ['keepsake', 'gaming-set', 'clothes-travelers', 'pouch'], gold: 13,
+    equipment: ['keepsake', 'manacles', 'hunting-trap', 'gaming-set', 'clothes-travelers', 'pouch'], gold: 13,
   },
 ]
