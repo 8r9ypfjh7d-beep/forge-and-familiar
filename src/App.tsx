@@ -8,7 +8,7 @@ import { PromptDialog } from './builder/ConfirmDialog'
 import { LevelUp } from './builder/LevelUp'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { useLiveHits } from './combat/ui/useLiveHits'
-import { DmScreen } from './dm'
+import { DmScreen, useDmTools } from './dm'
 import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
 import { FamiliarFab, FamiliarPage, dmPrepare, screenFor } from './familiar/ui'
@@ -96,10 +96,12 @@ export default function App() {
   const ownProfile = !!session && session.id === active?.id
   const admin = ownProfile && isAdmin(session.id)
   const partyDm = playing.isDm
-  const isDm = partyDm || admin
+  // A profile that has DM'd (or picked "I'm a DM") keeps the DM pages with no campaign: prep, NPCs, maps.
+  const [dmTools, enableDmTools] = useDmTools(active?.id ?? '', partyDm)
+  const isDm = partyDm || admin || dmTools
   useXpAwards(active?.id, playing.parties)
   useLiveHits(active?.id, playing.parties)
-  const nav = { isDm, partyDm, admin }
+  const nav = { isDm, partyDm, admin, dmTools }
   // Tapping a campaign on the home screen plays it: the DM screen for its DM, else the sheet the player brings.
   const playCampaign = (p: Party) => {
     playing.choose(p.id)
@@ -123,7 +125,7 @@ export default function App() {
 
   // Players edit a character only with the DM's OK (one edit per approval). The DM and the admin edit freely,
   // and so does a player whose character has no DM (in no party run by someone else).
-  const editsFreely = isDm
+  const editsFreely = partyDm || admin
   const hasDm = (id: string) => !playing.parties || playing.parties.some(p => p.dmId !== active?.id && p.members.some(m => m.characterId === id))
   const editStateOf = (id: string): EditState => (editsFreely || !hasDm(id) ? 'approved' : active ? editState(requests ?? [], active.id, id) : 'none')
   const startEdit = (id: string) => {
@@ -178,7 +180,7 @@ export default function App() {
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <PartyRollRelay userId={active.id} />
     {playing.party && <RevealMoment party={playing.party} userId={active.id} onOpen={() => setView({ kind: 'party', partyId: playing.party!.id })} />}
-    {isDm && <DmRequestPopup userId={active.id} onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
+    {(partyDm || admin) && <DmRequestPopup userId={active.id} onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
     <EditRequestDialog key={askEdit?.character.id} character={askEdit?.character ?? null} note={askEdit?.note} levelUp={askEdit?.levelUp} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
     <div className="app">
       <SkipLink />
@@ -211,6 +213,8 @@ export default function App() {
             onStart={() => setView({ kind: 'party', startWith: 'start' })}
             onBuild={() => setView({ kind: 'build' })}
             onCharacters={() => setView({ kind: 'list' })}
+            dmTools={partyDm ? undefined : dmTools}
+            onDmScreen={() => { enableDmTools(); setView({ kind: 'dm' }) }}
           />
         )}
         {view.kind === 'list' && (
@@ -336,7 +340,7 @@ export default function App() {
         {view.kind === 'party' && (
           <PartyView key={active.id} userId={active.id} openId={view.partyId} startWith={view.startWith}
             onRoute={(partyId, replace) => setView(partyId ? { kind: 'party', partyId } : { kind: 'party' }, replace)}
-            onOpenCharacter={id => setView({ kind: 'sheet', id })} onWatchCharacter={isDm ? id => setView({ kind: 'watch', id }) : undefined} />
+            onOpenCharacter={id => setView({ kind: 'sheet', id })} onWatchCharacter={partyDm || admin ? id => setView({ kind: 'watch', id }) : undefined} />
         )}
       </main>
       {familiar && view.kind !== 'familiar' && <FamiliarFab {...familiar} open={familiarOpen} onOpenChange={o => { setFamiliarOpen(o); if (o) setDiceOpen(false) }} />}

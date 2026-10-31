@@ -6,6 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { BattleMapDef } from '../../maps/types'
 import { endLiveCombat, mirrorEncounter, moveToken, setLiveMap, startLiveCombat, updateBoard, watchLiveCombat } from '../live'
 import { EMPTY_BOARD } from '../liveLogic'
+import { cloudForParty } from '../../party/store'
 import { inCombat } from '../engine'
 import type { Board, Encounter, LiveMap } from '../types'
 import type { Act } from '../ui/useEncounter'
@@ -23,6 +24,14 @@ export function useLiveBoard(enc: Encounter, act: Act, partyId: string | undefin
   const mapRef = useRef(map)
   useLayoutEffect(() => { liveRef.current = live; encRef.current = enc; mapRef.current = map })
   const fighting = inCombat(enc)
+  // A device-only campaign (or no server) can't share: the map pane says why instead of a dead button.
+  const [onCloud, setOnCloud] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (!partyId) return
+    let alive = true
+    cloudForParty(partyId).then(db => { if (alive) setOnCloud(!!db) }).catch(() => { if (alive) setOnCloud(false) })
+    return () => { alive = false }
+  }, [partyId])
   const wasFighting = useRef(fighting)
 
   const push = useCallback(async () => {
@@ -79,5 +88,5 @@ export function useLiveBoard(enc: Encounter, act: Act, partyId: string | undefin
     }
   }, [act, partyId])
 
-  return { live, push, changeBoard, move, changeMap }
+  return { live, push, changeBoard, move, changeMap, deviceOnly: !!partyId && onCloud === false }
 }

@@ -18,6 +18,8 @@ export interface NavContext {
   partyDm: boolean
   /** The admin account (Ziv): Admin under More; opens the DM pages from the admin page even as a player. */
   admin?: boolean
+  /** Keeps the DM pages without running the campaign in play (src/dm/dmTools.ts): DM screen and tracker under More. */
+  dmTools?: boolean
 }
 
 const ITEM: Record<NavKey, NavItem> = {
@@ -39,10 +41,11 @@ const DM_ONLY: readonly string[] = ['dm', 'combat', 'watch', 'npc']
 /** Everyday screens get a tab; reference and bookkeeping screens sit under More.
  *  Everyone starts with Home (campaigns) and Characters, since a DM often plays in another game too.
  *  Players then get Campaign and Ask the DM. The campaign's DM gets DM screen and Campaign, with the
- *  initiative tracker under More (the DM screen's Run button opens it too). The admin adds Admin. */
-export function navItems({ partyDm, admin }: NavContext): { main: NavItem[]; more: NavItem[] } {
+ *  initiative tracker under More (the DM screen's Run button opens it too). A DM without a campaign in play
+ *  (dmTools) finds DM screen and tracker under More. The admin adds Admin. */
+export function navItems({ partyDm, admin, dmTools }: NavContext): { main: NavItem[]; more: NavItem[] } {
   const main: NavKey[] = ['campaigns', 'list', ...(partyDm ? ['dm', 'party'] as const : ['party', 'requests'] as const)]
-  const more: NavKey[] = [...(partyDm ? ['combat'] as const : []), 'familiar', 'rules', 'homebrew']
+  const more: NavKey[] = [...(partyDm ? ['combat'] as const : dmTools ? ['dm', 'combat'] as const : []), 'familiar', 'rules', 'homebrew']
   if (admin) more.unshift('admin')
   return { main: main.map(k => ITEM[k]), more: more.map(k => ITEM[k]) }
 }

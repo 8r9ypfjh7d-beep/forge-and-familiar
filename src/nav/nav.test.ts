@@ -31,6 +31,14 @@ describe('navItems', () => {
     expect(keys(more)[0]).toBe('admin')
   })
 
+  it('keeps the DM screen and tracker under More for a DM without a campaign in play', () => {
+    const ctx = { isDm: true, partyDm: false, dmTools: true }
+    const { main, more } = navItems(ctx)
+    expect(keys(main)).toEqual(['campaigns', 'list', 'party', 'requests'])
+    expect(keys(more).slice(0, 2)).toEqual(['dm', 'combat'])
+    expect(canOpen('dm', ctx)).toBe(true)
+  })
+
   it('never lists a screen twice', () => {
     for (const ctx of [{ isDm: false, partyDm: false }, { isDm: true, partyDm: true }, { isDm: true, partyDm: false, admin: true }]) {
       const { main, more } = navItems(ctx)

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ConfirmDialog } from '../builder/ConfirmDialog'
 import { ITEMS } from '../rules'
 import { COINS, formatCoins, getStash, splitCoins, toCp, type StashAction } from './stash'
 import { updateStash } from './store'
@@ -55,6 +56,7 @@ function CoinPurse({ coins, players, act }: {
   const [amount, setAmount] = useState('')
   const [coin, setCoin] = useState<Coin>('gp')
   const [reason, setReason] = useState('')
+  const [splitting, setSplitting] = useState(false)
   const n = Math.floor(Number(amount))
   const valid = n > 0
   const move = async (sign: 1 | -1) => {
@@ -82,10 +84,11 @@ function CoinPurse({ coins, players, act }: {
         <button type="button" className="glass-btn small" disabled={!valid} onClick={() => move(-1)}>Take</button>
       </form>
 
-      <button className="glass-btn small" disabled={!canSplit}
-        onClick={() => confirm(`Give each of the ${players} players ${formatCoins(split.share)} and empty the stash?`) && act({ type: 'split', ways: players })}>
+      <button className="glass-btn small" disabled={!canSplit} onClick={() => setSplitting(true)}>
         {canSplit ? `Split ${players} ways: ${formatCoins(split.share)} each` : 'Split among players'}
       </button>
+      <ConfirmDialog open={splitting} title={`Give each of the ${players} players ${formatCoins(split.share)} and empty the stash?`} yes="Split"
+        onYes={() => void act({ type: 'split', ways: players })} onClose={() => setSplitting(false)} />
       {canSplit && split.leftoverCp > 0 && <p className="muted small">{split.leftoverCp} cp doesn't divide evenly and stays in the stash.</p>}
     </div>
   )
@@ -103,6 +106,7 @@ function ItemList({ party, userId, nameOf, act }: {
   const [name, setName] = useState('')
   const [qty, setQty] = useState('1')
   const [note, setNote] = useState('')
+  const [removing, setRemoving] = useState<(typeof items)[number] | null>(null)
   const add = async () => {
     const srd = ITEM_BY_NAME.get(name.trim().toLowerCase())
     const ok = await act({ type: 'add', name: srd?.name ?? name, qty: Number(qty) || 1, itemId: srd?.id, note })
@@ -133,13 +137,15 @@ function ItemList({ party, userId, nameOf, act }: {
                   <button className="glass-btn small" onClick={() => act({ type: 'hold', id: it.id, carry: !mine })}>
                     {mine ? 'Put back' : it.heldBy ? 'Take it' : 'Carry'}
                   </button>
-                  <button className="glass-btn small ghost icon" onClick={() => confirm(`Remove ${it.name} from the stash?`) && act({ type: 'remove', id: it.id })}
+                  <button className="glass-btn small ghost icon" onClick={() => setRemoving(it)}
                     aria-label={`Remove ${it.name}`} title="Remove">✕</button>
                 </li>
               )
             })}
           </ul>
         )}
+      <ConfirmDialog open={!!removing} title={`Remove ${removing?.name ?? ''} from the stash?`} yes="Remove"
+        onYes={() => { if (removing) void act({ type: 'remove', id: removing.id }) }} onClose={() => setRemoving(null)} />
 
       <form className="row add-item" onSubmit={e => { e.preventDefault(); if (name.trim()) add() }}>
         <input className="glass-field grow" list="stash-srd-items" value={name} onChange={e => setName(e.target.value)} placeholder="Item, e.g. Potion of Healing" aria-label="Item name" />
