@@ -308,7 +308,7 @@ describe('starting wealth', () => {
 
 describe('2014 book backgrounds', () => {
   it('offers every PHB background and variant, plus other books', async () => {
-    const { BACKGROUNDS, TOOLS } = await import('./index')
+    const { BACKGROUNDS, TOOLS, featById } = await import('./index')
     const ids = BACKGROUNDS.map(b => b.id)
     for (const id of ['charlatan', 'criminal', 'spy', 'entertainer', 'gladiator', 'folk-hero', 'guild-artisan', 'guild-merchant', 'hermit', 'noble',
       'knight', 'outlander', 'sage', 'sailor', 'pirate', 'soldier', 'urchin', 'city-watch', 'haunted-one', 'lorehold-student', 'wildspacer']) {
@@ -318,6 +318,7 @@ describe('2014 book backgrounds', () => {
     for (const b of BACKGROUNDS) {
       for (const t of [...(b.toolProficiencies ?? []), ...(b.toolChoices?.from ?? [])]) expect(TOOLS, `${b.id}: ${t}`).toContain(t)
       expect(b.skillProficiencies.length + (b.skillChoices?.count ?? 0), b.id).toBe(2)
+      if (b.feat) expect(featById(b.feat.id, '2014'), `${b.id}: ${b.feat.id}`).toBeDefined()
     }
   })
 

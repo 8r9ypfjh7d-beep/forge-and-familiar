@@ -108,7 +108,7 @@ const TCE_FEATS: Feat[] = [
 ]
 
 const giant = (id: string, name: string, stats: ItemEffect[] = []): Feat =>
-  feat(id, name, BGG, { minLevel: 4, prerequisite: '4th level, Giant Foundling or Rune Shaper feat', requires: { feats: ['giant-foundling', 'rune-shaper'] }, effects: [half('str', 'con', 'wis')], stats, uses: longRest('pb') })
+  feat(id, name, BGG, { minLevel: 4, prerequisite: '4th level, Strike of the Giants feat of the same giant', requires: { feats: ['strike-of-the-giants'] }, effects: [half('str', 'con', 'wis')], stats, uses: longRest('pb') })
 const highSorcery = (id: string, name: string, label: string): Feat =>
   feat(id, name, DSDQ, { minLevel: 4, prerequisite: '4th level, Initiate of High Sorcery feat', requires: { feats: ['initiate-of-high-sorcery'] }, effects: [half('int', 'wis', 'cha')], uses: longRest('pb', label) })
 const knight = (id: string, name: string, effect: FeatEffect): Feat =>
@@ -125,7 +125,7 @@ const SETTING_FEATS: Feat[] = [
   feat('svirfneblin-magic', 'Svirfneblin Magic', EEPC, { category: 'racial', prerequisite: 'Gnome (deep gnome)', requires: { races: ['deep-gnome', 'svirfneblin', 'gnome'] }, stats: [spell('Nondetection', 'at will on yourself'), spell('Blindness/Deafness', once), spell('Blur', once), spell('Disguise Self', once)] }),
   feat('strixhaven-initiate', 'Strixhaven Initiate', SCC),
   feat('strixhaven-mascot', 'Strixhaven Mascot', SCC, { minLevel: 4, prerequisite: '4th level, Strixhaven Initiate feat', requires: { feats: ['strixhaven-initiate'] } }),
-  feat('giant-foundling', 'Giant Foundling', BGG, { category: 'origin', uses: longRest('pb', 'Strike of the Giants') }),
+  feat('strike-of-the-giants', 'Strike of the Giants', BGG, { category: 'origin', prerequisite: 'Martial weapon proficiency or the Giant Foundling background', uses: longRest('pb', 'Strike of the Giants') }),
   feat('rune-shaper', 'Rune Shaper', BGG, { category: 'origin', uses: longRest(1, 'Rune spell') }),
   giant('ember-of-the-fire-giant', 'Ember of the Fire Giant', [resist('fire')]),
   giant('fury-of-the-frost-giant', 'Fury of the Frost Giant', [resist('cold')]),
