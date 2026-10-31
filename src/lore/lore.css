@@ -93,7 +93,7 @@
 /* Timeline */
 .ff-lore .lore-timeline { list-style: none; margin: var(--sp-2) 0 0; padding: 0; display: grid; gap: 4px; }
 .ff-lore .timeline-day { display: block; margin-block: var(--sp-2) 2px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.ff-lore .timeline-item { all: unset; cursor: pointer; display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; border-radius: var(--r-sm); background: var(--glass-thin); border: 1px solid var(--glass-hairline); }
+.ff-lore .timeline-item { all: unset; box-sizing: border-box; inline-size: 100%; cursor: pointer; display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; border-radius: var(--r-sm); background: var(--glass-thin); border: 1px solid var(--glass-hairline); }
 .ff-lore .timeline-item:hover { background: var(--glass-tint); }
 .ff-lore .timeline-item:focus-visible { outline: 2px solid var(--accent); }
 .ff-lore .timeline-title { font-weight: 600; }

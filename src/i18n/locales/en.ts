@@ -2145,6 +2145,8 @@ export const en = {
   'admin.key.rolls': 'Dice history',
   'admin.key.secretRolls': 'Secret rolls',
   'admin.key.handouts': 'Handouts',
+  'admin.key.loreChapters': 'Codex chapters',
+  'admin.key.lorePins': 'Codex pins',
   'admin.key.schedule': 'Session schedule',
   'admin.key.history': 'Change history',
   'admin.tab.dmScreens': 'DM screens',

@@ -2152,6 +2152,8 @@ const messages: Messages = {
   'admin.key.rolls': 'היסטוריית קוביות',
   'admin.key.secretRolls': 'הטלות סודיות',
   'admin.key.handouts': 'דפי עזר',
+  'admin.key.loreChapters': 'פרקי קודקס',
+  'admin.key.lorePins': 'נעיצות בקודקס',
   'admin.key.schedule': 'לוח מפגשים',
   'admin.key.history': 'היסטוריית שינויים',
   'admin.tab.dmScreens': 'מסכי שה"מ',
