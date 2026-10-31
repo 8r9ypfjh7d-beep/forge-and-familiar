@@ -67,7 +67,10 @@ export interface BattleMapDef {
 /** Cells on a side: Tiny/Small/Medium 1, Large 2, Huge 3, Gargantuan 4. */
 export type TokenSize = 1 | 2 | 3 | 4
 
-/** A combatant on the board. Owned by the live combat row; the map module only does the maths for it. */
+/**
+ * A combatant on the board, structurally the same as the live combat's `Token` (src/combat/types.ts) so the
+ * tracker passes its tokens straight in. Owned by the running combat; the map module only does the maths.
+ */
 export interface MapToken {
   id: string
   /** Encounter combatant this token stands for. */
@@ -82,5 +85,6 @@ export interface MapToken {
   y: number
   size: TokenSize
   /** Known to the DM only until revealed. */
-  hidden: boolean
+  hidden?: boolean
+  color?: string
 }

@@ -114,17 +114,21 @@ export const removeLabel = (map: BattleMapDef, id: string) => ({ ...map, labels:
 
 export const labelAt = (map: BattleMapDef, x: number, y: number) => map.labels.find(l => l.x === x && l.y === y)
 
-export function coverFog(map: BattleMapDef, rect: Rect): BattleMapDef {
-  const set = new Set(map.fog)
-  for (const c of cellsOf(rect)) if (inBounds(map, c.x, c.y)) set.add(cellKey(c.x, c.y))
-  return { ...map, fog: [...set].sort() }
+/** Fog as cell keys: the map holds the starting cover, the running combat's board holds the fog during play. */
+export function coverCells(fog: string[], rect: Rect, bounds: Pick<BattleMapDef, 'width' | 'height'>): string[] {
+  const set = new Set(fog)
+  for (const c of cellsOf(rect)) if (inBounds(bounds, c.x, c.y)) set.add(cellKey(c.x, c.y))
+  return [...set].sort()
 }
 
-export function revealFog(map: BattleMapDef, rect: Rect): BattleMapDef {
+export function revealCells(fog: string[], rect: Rect): string[] {
   const gone = new Set<string>()
   for (const c of cellsOf(rect)) gone.add(cellKey(c.x, c.y))
-  return { ...map, fog: map.fog.filter(k => !gone.has(k)) }
+  return fog.filter(k => !gone.has(k))
 }
+
+export const coverFog = (map: BattleMapDef, rect: Rect): BattleMapDef => ({ ...map, fog: coverCells(map.fog, rect, map) })
+export const revealFog = (map: BattleMapDef, rect: Rect): BattleMapDef => ({ ...map, fog: revealCells(map.fog, rect) })
 
 export const isCovered = (map: BattleMapDef, x: number, y: number) => map.fog.includes(cellKey(x, y))
 
@@ -202,9 +206,9 @@ export function fits(map: BattleMapDef, x: number, y: number, size: TokenSize): 
   return true
 }
 
-/** What players get: hidden tokens and tokens with any cell under fog are left out. */
-export function publicTokens(map: BattleMapDef, tokens: MapToken[]): MapToken[] {
-  return tokens.filter(tk => !tk.hidden && !tokenCells(tk).some(c => isCovered(map, c.x, c.y)))
+/** What players get: hidden tokens and tokens with any cell under fog are left out. Fog defaults to the map's. */
+export function publicTokens<T extends MapToken>(map: BattleMapDef, tokens: T[], fog: string[] = map.fog): T[] {
+  return tokens.filter(tk => !tk.hidden && !tokenCells(tk).some(c => fog.includes(cellKey(c.x, c.y))))
 }
 
 /** The cell a token occupies with its centre, for distances between big creatures. */
