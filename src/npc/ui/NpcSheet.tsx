@@ -144,11 +144,11 @@ function HeroCard({ npc, editing, apply, ownerId, onOpenFight }: { npc: Npc; edi
   const rename = (patch: Partial<Pick<Npc, 'name' | 'role'>>) => apply(t('npc.log.edited'), n => ({ ...n, ...patch }))
   const join = async (fight?: Encounter) => {
     const enc = fight ?? createEncounter(crypto.randomUUID(), ownerId, t('combat.defaultName', { n: (fights?.length ?? 0) + 1 }))
-    // `npcId` links the row back to this sheet for the tracker (Combatant.npcId, added by the NPCs-in-fights work).
-    const row = {
+    // `npcId` links the row back to this sheet for the tracker.
+    const row: Combatant = {
       id: crypto.randomUUID(), name: npc.name, kind: 'npc', initiative: null, initBonus: initBonus(m), ac: m.armorClass[0]?.value,
       conSave: conSave(m), hp: { current: npc.state.currentHp, max: maxHp(npc), temp: npc.state.tempHp }, conditions: npc.state.conditions, npcId: npc.id,
-    } as Combatant
+    }
     const saved = await saveEncounter(addCombatant(enc, row))
     setPicking(false)
     announce(t('npc.log.joined', { fight: saved.name }))
