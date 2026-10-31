@@ -11,6 +11,7 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 | `engine.ts` | Every encounter change, pure: turns, timers, concentration, `spendAction` / `rechargeAction` / `spendLegendary` / `critDice` / `isBloodied`. Tested in `engine.test.ts` |
 | `hits.ts` | Pure `takeHits(character, hits)`: the player's device applies the DM's live-combat hits once (`Character.appliedHits`). Tested in `hits.test.ts` |
 | `ui/useLiveHits.ts` | App hook: watches the live row of each campaign the player brings a character to and saves the hits on that device |
+| `xp.ts`, `ui/FightXp.tsx` | XP after a fight: `fightCreatures` (rows worth XP from their stat block, beaten ones ticked), `fightPlayers`, `xpShare`. After End combat in a campaign fight the tracker shows the FightXp card: "Give 150 XP (75 each)", sent as a party XP award (src/party/xp.ts). Tested in `xp.test.ts` |
 | `campaign.ts` | `campaignRows`: the party in play as `pc` rows, from this device or read from the cloud |
 | `npcRows.ts` | Rows that play an NPC sheet (src/npc): `npcCombatant`, `mirrorNpcs` (sheet onto row), `npcChangesFromRows` (row changes back onto the sheet). Tested in `npcRows.test.ts` |
 | `storage.ts` | Encounters in localStorage (`ff.encounters.v1`), async API, filtered by `ownerId` |

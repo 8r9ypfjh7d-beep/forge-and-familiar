@@ -1,6 +1,7 @@
 // Pure request rules: create, validate, decide, sort for each side, merge links, grant to a character.
 import { addItem } from '../inventory/inventory'
 import type { Character, CustomAction } from '../model/character'
+import { xpForNextLevel } from '../rules/derive'
 import type { Ability, ItemEffect, Recharge } from '../rules/types'
 import { sanitizeEffect } from '../rules/itemEffects'
 import type { DmRequest, RequestKind, RequestStatus } from './types'
@@ -106,9 +107,9 @@ export const answered = (list: DmRequest[]) => list.filter(r => r.status === 'gr
 /** Player: their own requests, newest first. */
 export const mine = (list: DmRequest[], userId: string) => list.filter(r => r.fromId === userId).sort(newestFirst)
 
-/** Player: granted requests not yet added to their character. Edits are used in the builder instead. */
+/** Player: granted requests not yet added to their character. Edits are used in the builder; level-ups arrive as XP. */
 export const pendingGrants = (list: DmRequest[], userId: string) =>
-  list.filter(r => r.fromId === userId && r.kind !== 'edit' && r.status === 'granted' && !r.applied)
+  list.filter(r => r.fromId === userId && r.kind !== 'edit' && r.kind !== 'levelup' && r.status === 'granted' && !r.applied)
 
 // ---------- Edit permission ----------
 
@@ -141,6 +142,27 @@ export function newEditRequest(
   return newRequest({ ...input, kind: 'edit', title: input.characterName || '?' }, id, now)
 }
 
+// ---------- Level-up requests ----------
+
+/** The player's open level-up request for this character, if any. */
+export const openLevelUpRequest = (list: DmRequest[], userId: string, characterId: string) =>
+  list.find(r => r.kind === 'levelup' && r.fromId === userId && r.characterId === characterId && r.status === 'pending')
+
+/** Asks the DM for the next level: the DM answers with the missing XP or a milestone level (party stash award). */
+export function newLevelUpRequest(
+  input: Pick<RequestInput, 'fromId' | 'fromName' | 'characterId' | 'characterName' | 'details'>, level: number, xp: number, id: string, now: string,
+): DmRequest {
+  return { ...newRequest({ ...input, kind: 'levelup', title: input.characterName || '?' }, id, now), level, xp }
+}
+
+/** The level a level-up request asks for and the XP that reaches it, or undefined when unknown or at level 20. */
+export function levelUpNeed(r: Pick<DmRequest, 'level' | 'xp'>): { level: number; xp: number } | undefined {
+  if (typeof r.level !== 'number') return undefined
+  const next = xpForNextLevel(r.level)
+  if (next === undefined) return undefined
+  return { level: r.level + 1, xp: Math.max(1, next - Math.max(0, r.xp ?? 0)) }
+}
+
 export const markApplied = (list: DmRequest[], ids: string[]): DmRequest[] =>
   list.map(r => (ids.includes(r.id) ? { ...r, applied: true } : r))
 
@@ -149,7 +171,7 @@ export const markApplied = (list: DmRequest[], ids: string[]): DmRequest[] =>
  * becomes a custom action on the combat page (switchable under Effects), anything else goes in the notes.
  */
 export function grantToCharacter(c: Character, r: DmRequest, uid: string): Character {
-  if (r.kind === 'edit') return c
+  if (r.kind === 'edit' || r.kind === 'levelup') return c
   const details = r.details.trim()
   const extra = r.extraDamage ? [r.extraDamage.damage, r.extraDamage.type].filter(Boolean).join(' ') : ''
   const action = (kind: CustomAction['kind'], withEffects: boolean): CustomAction => ({
@@ -229,7 +251,7 @@ function readMechanics(r: Record<string, unknown>): Mechanics {
 }
 
 const STATUSES: RequestStatus[] = ['pending', 'later', 'granted', 'denied']
-const KINDS: RequestKind[] = ['item', 'effect', 'ability', 'other', 'edit']
+const KINDS: RequestKind[] = ['item', 'effect', 'ability', 'other', 'edit', 'levelup']
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '')
 
 /** Reads a code from a link. Returns null for anything that isn't a well-formed request. */
@@ -248,6 +270,8 @@ export function decodeShared(code: string): Shared | null {
       title: str(r.title, TITLE_MAX),
       details: str(r.details, DETAILS_MAX),
       ...readMechanics(r),
+      ...(r.kind === 'levelup' && Number.isInteger(r.level) && r.level >= 1 && r.level <= 20 ? { level: r.level } : {}),
+      ...(r.kind === 'levelup' && Number.isInteger(r.xp) && r.xp >= 0 ? { xp: r.xp } : {}),
       createdAt: str(r.createdAt, 40),
       status: STATUSES.includes(r.status) ? r.status : 'pending',
       ...(typeof r.reply === 'string' && r.reply ? { reply: str(r.reply, DETAILS_MAX) } : {}),

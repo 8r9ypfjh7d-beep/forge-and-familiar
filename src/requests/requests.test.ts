@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { createCharacter, derive, type CharacterDraft } from '../rules'
 import {
   answered, codeFrom, decide, decodeShared, encodeShared, grantToCharacter, inbox, linkFor, markApplied, mergeShared, mine,
-  editState, newEditRequest, newRequest, openEditRequest, pendingGrants, problems, reminders, setStoryNote, spendEditPass, type RequestInput,
+  editState, levelUpNeed, newEditRequest, newLevelUpRequest, newRequest, openLevelUpRequest, openEditRequest, pendingGrants, problems, reminders, setStoryNote, spendEditPass, type RequestInput,
 } from './logic'
 
 const fighter = () => {
@@ -171,5 +171,33 @@ describe('requests.css', () => {
   it('reads the glass tokens and uses logical properties only', () => {
     expect(css).toMatch(/var\(--glass-thick\)/)
     expect(css).not.toMatch(/(margin|padding|border)-(left|right)|\b(left|right):/)
+  })
+})
+
+describe('level-up requests', () => {
+  const ask = () => newLevelUpRequest({ fromId: 'acct-roy', fromName: 'Roy', characterId: 'c1', characterName: 'Brannoc', details: 'Reached level 2' }, 1, 0, 'r1', '2026-10-31T00:00:00Z')
+
+  it('is its own kind with the level and XP it starts from', () => {
+    const r = ask()
+    expect(r).toMatchObject({ kind: 'levelup', title: 'Brannoc', level: 1, xp: 0, status: 'pending' })
+    expect(openLevelUpRequest([r], 'acct-roy', 'c1')?.id).toBe('r1')
+    expect(editState([r], 'acct-roy', 'c1')).toBe('none')
+  })
+
+  it('asks for the XP that reaches the next level', () => {
+    expect(levelUpNeed({ level: 1, xp: 0 })).toEqual({ level: 2, xp: 300 })
+    expect(levelUpNeed({ level: 4, xp: 6000 })).toEqual({ level: 5, xp: 500 })
+    expect(levelUpNeed({ level: 20, xp: 355000 })).toBeUndefined()
+    expect(levelUpNeed({})).toBeUndefined()
+  })
+
+  it('travels by link and is never granted to the character as a thing', () => {
+    const r = ask()
+    const back = decodeShared(codeFrom(linkFor('https://x/', 'request', r))!)
+    expect(back?.request).toMatchObject({ kind: 'levelup', level: 1, xp: 0 })
+    const granted = decide([r], 'r1', 'granted', '2026-10-31T01:00:00Z')
+    expect(pendingGrants(granted, 'acct-roy')).toEqual([])
+    const c = fighter()
+    expect(grantToCharacter(c, granted[0], 'u')).toBe(c)
   })
 })

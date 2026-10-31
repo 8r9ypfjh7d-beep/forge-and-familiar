@@ -11,6 +11,8 @@
 .ff-combat .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .ff-combat .glass { padding: var(--sp-4); }
 .ff-combat .empty { padding: var(--sp-8) var(--sp-5); }
+.ff-combat .fight-xp { display: grid; gap: var(--sp-3); padding: var(--sp-4); margin-block-end: var(--sp-4); }
+.ff-combat .fight-xp .row { flex-wrap: wrap; gap: var(--sp-2); }
 .ff-combat .row.spread { margin: 0; }
 
 /* Fields: the .glass-field look for every input and select in the tracker. */

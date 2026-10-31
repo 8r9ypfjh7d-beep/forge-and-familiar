@@ -52,7 +52,7 @@ export default function App() {
   const [view, setView] = useHashView()
   const [diceOpen, setDiceOpen] = useState(false)
   const [familiarOpen, setFamiliarOpen] = useState(false)
-  const [askEdit, setAskEdit] = useState<{ character: Character; note?: string } | null>(null)
+  const [askEdit, setAskEdit] = useState<{ character: Character; note?: string; levelUp?: boolean } | null>(null)
   const requests = useRequests()
   const { t } = useI18n()
   const mainRef = useFocusOnChange<HTMLElement>(JSON.stringify(view))
@@ -136,7 +136,7 @@ export default function App() {
   const startLevelUp = (id: string) => {
     const character = characters.find(c => c.id === id)
     if (!character || xpReady(character) || editStateOf(id) === 'approved') setView({ kind: 'levelup', id })
-    else setAskEdit({ character, note: t('levelup.needXp', { name: character.name, xp: character.xp, next: xpForNextLevel(character.classes.reduce((n, cl) => n + cl.level, 0)) ?? 0 }) })
+    else setAskEdit({ character, levelUp: true, note: t('levelup.needXp', { name: character.name, xp: character.xp, next: xpForNextLevel(character.classes.reduce((n, cl) => n + cl.level, 0)) ?? 0 }) })
   }
 
   const addProfile = async (displayName: string) => {
@@ -178,8 +178,8 @@ export default function App() {
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <PartyRollRelay userId={active.id} />
     {playing.party && <RevealMoment party={playing.party} userId={active.id} onOpen={() => setView({ kind: 'party', partyId: playing.party!.id })} />}
-    {isDm && <DmRequestPopup onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
-    <EditRequestDialog key={askEdit?.character.id} character={askEdit?.character ?? null} note={askEdit?.note} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
+    {isDm && <DmRequestPopup userId={active.id} onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
+    <EditRequestDialog key={askEdit?.character.id} character={askEdit?.character ?? null} note={askEdit?.note} levelUp={askEdit?.levelUp} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
     <div className="app">
       <SkipLink />
       <AppNav
