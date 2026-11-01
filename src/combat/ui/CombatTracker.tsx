@@ -44,12 +44,20 @@ export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: s
     <section className="ff-combat">
       <div className="row spread">
         <h2 className="glass-title">{t('combat.title')}</h2>
-        <button className="glass-btn prominent" onClick={create}>{t('combat.new')}</button>
+        {!!list?.length && (
+          <div className="row">
+            <a className="glass-btn prominent" href="#/dm">{t('combat.planOnDm')}</a>
+            <button className="glass-btn" onClick={create}>{t('combat.new')}</button>
+          </div>
+        )}
       </div>
       {list && list.length === 0 && (
         <div className="glass empty">
           <p>{t('combat.emptyIntro')}</p>
-          <button className="glass-btn prominent" onClick={create}>{t('combat.startFirst')}</button>
+          <div className="row">
+            <a className="glass-btn prominent" href="#/dm">{t('combat.planOnDm')}</a>
+            <button className="glass-btn" onClick={create}>{t('combat.startFirst')}</button>
+          </div>
         </div>
       )}
       <ul className="plain encounter-list">

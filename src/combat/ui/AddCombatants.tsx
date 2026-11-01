@@ -11,10 +11,11 @@ import { campaignCharacterIds, campaignRows } from '../campaign'
 import { addCombatant } from '../engine'
 import type { Encounter } from '../types'
 import type { Act } from './useEncounter'
+import { MonsterPicker } from './MonsterPicker'
 
 const newId = () => crypto.randomUUID()
 
-/** Adds the campaign's party in one tap, party members (any player's character on this device) and monsters or NPCs. */
+/** Adds library monsters (search, count), the campaign's party in one tap, party members (any player's character on this device) and monsters or NPCs. */
 export function AddCombatants({ enc, act, campaign }: { enc: Encounter; act: Act; campaign?: Campaign }) {
   const { t } = useI18n()
   const [characters, setCharacters] = useState<{ owner: string; c: Character }[]>([])
@@ -49,6 +50,7 @@ export function AddCombatants({ enc, act, campaign }: { enc: Encounter; act: Act
   return (
     <section className="glass add">
       <h3 className="glass-eyebrow">{t('combat.addTitle')}</h3>
+      <MonsterPicker enc={enc} act={act} />
       {campaign && (campaignMissing > 0
         ? <button className="glass-btn prominent" onClick={addCampaign}>{t('combat.addCampaign', { count: campaignMissing })}</button>
         : <p className="muted small">{t('combat.campaignAdded')}</p>)}
@@ -71,7 +73,10 @@ export function AddCombatants({ enc, act, campaign }: { enc: Encounter; act: Act
           </select>
         </div>
       )}
-      <MonsterForm act={act} />
+      <details className="custom-creature">
+        <summary>{t('combat.lib.custom')}</summary>
+        <MonsterForm act={act} />
+      </details>
     </section>
   )
 }
