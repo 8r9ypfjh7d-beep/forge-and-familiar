@@ -7,6 +7,7 @@ import { Why } from '../../builder/Why'
 import { loadKind, monsterKey, monsterSourceNote, type Edition, type LoadedMonster, type MonsterSpellcasting, type Spell } from '../../content'
 import { loadMonsters, BOOK_TITLES } from '../../content'
 import { loadDm, saveDm } from '../../dm/store'
+import { addMonster, npcPlanEntry, updatePlan } from '../../dm/logic'
 import { readDmEdition } from '../../dm/edition'
 import { randomName } from '../../dm/logic'
 import { useDice } from '../../dice/ui'
@@ -90,8 +91,9 @@ export function NpcBuilder({ ownerId, partyId, editing, onSaved, onCancel }: {
   partyId?: string
   /** Edit mode: the sheet's own wizard over a saved NPC; play state is kept. */
   editing?: NpcSheet
-  onSaved: (npc: NpcSheet) => void
-  onCancel: () => void
+  /** `back` is 'fights' when the creator was opened from a fight plan. */
+  onSaved: (npc: NpcSheet, back?: 'fights') => void
+  onCancel: (back?: 'fights') => void
 }) {
   const { t, monsterName } = useI18n()
   const [edition, setEdition] = useState<Edition>(() => editing?.block.edition ?? readDmEdition())
@@ -187,7 +189,13 @@ export function NpcBuilder({ ownerId, partyId, editing, onSaved, onCancel }: {
         const dm = await loadDm(ownerId)
         if (dm.npcs.some(n => n.id === id)) await saveDm(ownerId, { ...dm, npcs: dm.npcs.filter(n => n.id !== id) })
       }
-      onSaved(npc)
+      // Made from a fight plan: it joins that plan, and the DM goes back to the Fights tab.
+      const planId = prefill?.fightPlanId
+      if (planId) {
+        const dm = await loadDm(ownerId)
+        if (dm.plans.some(p => p.id === planId)) await saveDm(ownerId, updatePlan(dm, planId, p => (p.monsters.some(m => m.npcId === npc.id) ? p : addMonster(p, npcPlanEntry(npc)))))
+      }
+      onSaved(npc, planId ? 'fights' : undefined)
     } finally {
       setSaving(false)
     }
@@ -250,7 +258,7 @@ export function NpcBuilder({ ownerId, partyId, editing, onSaved, onCancel }: {
             </p>
           )}
           <div className="builder-nav">
-            <button className="glass-btn" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
+            <button className="glass-btn" onClick={step === 0 ? () => onCancel(prefill?.fightPlanId ? 'fights' : undefined) : () => setStep(step - 1)}>
               {step === 0 ? t('common.cancel') : t('builder.back')}
             </button>
             <div className="row">

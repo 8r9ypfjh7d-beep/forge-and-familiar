@@ -21,9 +21,9 @@ import { StatBlock } from '../monsters'
 import { totalLevel } from '../rules'
 import { getCharacter } from '../storage'
 import {
-  activePlan, addMonster, npcPlanEntry, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterGroups, monsterTypes,
+  activePlan, addMonster, npcPlanEntry, fitCrRange, tooStrongAlone, trimAdvice, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterGroups, monsterTypes,
   groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
-  type Difficulty, type MonsterQuery, type NpcIdea,
+  type Budget, type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
 import { RollsTab } from './RollsTab'
 import { useDmRolls, useUnseenRolls } from './useDmRolls'
@@ -39,6 +39,7 @@ import { stashNpcPrefill, type NpcPrefill } from '../npc/ui/prefill'
 import { readDmEdition, writeDmEdition } from './edition'
 
 const newId = () => crypto.randomUUID()
+const NEW_NPC = '__new'
 
 export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'maps' | 'reference' | 'npcs' | 'requests' | 'lore' | 'sessions'
 type Tab = DmTab
@@ -95,6 +96,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
     return () => clearTimeout(id)
   }, [initialTab, state])
   const [openMonster, setOpenMonster] = useState<string | null>(null)
+  const [fightQuery, setFightQuery] = useState<FightQuery>(EMPTY_QUERY)
   // The DM's NPC sheets (src/npc) for this campaign, so a plan can field them.
   const [npcs, setNpcs] = useState<NpcSheet[]>([])
   useEffect(() => {
@@ -175,7 +177,6 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
     onRunEncounter(saved.id)
   }
 
-  const showMonster = (key: string) => { setOpenMonster(key); setTab('monsters') }
   const credits = [...new Set(monsters.map(m => sourceById(m.source)?.attribution).filter((x): x is string => !!x))]
 
   const move = (e: React.KeyboardEvent, i: number) => {
@@ -207,7 +208,8 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
         </div>
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
           {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
-          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenFight={onRunEncounter} onOpenMonster={showMonster} onDrawMap={drawMap} />}
+          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenFight={onRunEncounter}
+            query={fightQuery} onQuery={setFightQuery} edition={edition} onEdition={setEdition} onNewNpc={makeNpc && (planId => makeNpc({ fightPlanId: planId }))} onDrawMap={drawMap} />}
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition}
             onMakeNpc={makeNpc && (m => makeNpc({ monster: { source: m.source, id: m.id } }))} />}
           {tab === 'maps' && <MapsTab key={drawFrom?.mapId ?? 'list'} ownerId={userId} initialOpenId={drawFrom?.mapId}
@@ -378,17 +380,26 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
 
 // ---------- Encounters ----------
 
-function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd, onRun, onOpenFight, onOpenMonster, onDrawMap }: {
+/** The Fights tab's monster search; kept on the DM screen so it survives tab switches. */
+export type FightQuery = MonsterQuery & { fit?: boolean }
+const EMPTY_QUERY: FightQuery = { text: '', minCr: null, maxCr: null, type: '', book: '', fit: true }
+
+function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd, onRun, onOpenFight, query, onQuery, edition, onEdition, onNewNpc, onDrawMap }: {
   userId: string
   state: DmState
   update: Update
-  monsters: Monster[]
+  monsters: LoadedMonster[]
   npcs: NpcSheet[]
   onAddNpc: (n: NpcSheet) => void
   onAdd: (m: Monster) => void
   onRun: (p: EncounterPlan) => void
   onOpenFight: (encounterId: string) => void
-  onOpenMonster: (id: string) => void
+  query: FightQuery
+  onQuery: (q: FightQuery) => void
+  edition: Edition
+  onEdition: (e: Edition) => void
+  /** Opens the NPC creator; the new sheet joins this plan and the DM comes back here. */
+  onNewNpc?: (planId: string) => void
   /** Opens the Maps tab editor on a new map drawn for this plan. */
   onDrawMap: (mapId: string, planName: string) => void
 }) {
@@ -405,14 +416,22 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
     if (fightId) getEncounter(fightId).then(e => { if (live) setFight(e ?? null) })
     return () => { live = false }
   }, [fightId])
+  const [openRow, setOpenRow] = useState<string | null>(null)
   const budget = partyBudget(state.party)
+  const fit = useMemo(() => fitCrRange(state.party), [state.party])
+  const findLoaded = (m: Pick<PlanMonster, 'source' | 'monsterId'>) =>
+    monsters.find(x => x.source === m.source && x.id === m.monsterId) ?? monsters.find(x => x.id === m.monsterId)
   // Plans store the English name; show the monster's name in the current language, NPC sheets keep their own.
-  const rowName = (m: PlanMonster) => m.npcId ? m.name
-    : monsterName(monsters.find(x => x.source === m.source && x.id === m.monsterId) ?? { id: m.monsterId, name: m.name, source: m.source })
+  const rowName = (m: PlanMonster) => m.npcId ? m.name : monsterName(findLoaded(m) ?? { id: m.monsterId, name: m.name, source: m.source })
   const create = () => update(s => addPlan(s, { id: newId(), name: t('dm.planName', { n: s.plans.length + 1 }), monsters: [] }))
+  const xp = plan ? planXp(plan) : 0
+  const diff = difficulty(xp, budget)
+  const advice = plan && trimAdvice(plan, budget)
+  const countOf = (m: Monster) => plan?.monsters.find(x => !x.npcId && x.source === m.source && x.monsterId === m.id)?.count ?? 0
+  const seePlan = () => document.getElementById('dm-plan-title')?.scrollIntoView({ block: 'start', behavior: smooth() })
 
   return (
-    <>
+    <div className="dm-fight">
       <section className="card dm-plan" aria-labelledby="dm-plan-title">
         <div className="card-head">
           <h2 id="dm-plan-title">{t('dm.plans')}</h2>
@@ -434,29 +453,48 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
               <ConfirmDialog open={deleting} title={t('dm.deletePlan', { name: plan.name })} yes={t('common.delete')}
                 onYes={() => update(s => removePlan(s, plan.id))} onClose={() => setDeleting(false)} />
             </div>
-            <Meter xp={planXp(plan)} budget={budget} players={partySize(state.party)} />
+            <Meter xp={xp} budget={budget} players={partySize(state.party)} />
+            {advice && (
+              <p className="dm-trim small">{t('dm.trimAdvice', {
+                xp: advice.over.toLocaleString(),
+                options: advice.options.map(o => o.map(r => t('dm.removeItem', { count: r.count, name: rowName(r.m) })).join(', ')).join(t('dm.or')),
+              })}</p>
+            )}
             {plan.monsters.length === 0 ? <p className="hint">{t('dm.planEmpty')}</p> : (
               <ul className="plain dm-plan-list">
-                {plan.monsters.map(m => { const name = rowName(m); return (
-                  <li key={`${m.source}:${m.monsterId}`}>
+                {plan.monsters.map(m => { const name = rowName(m); const key = `${m.source}:${m.monsterId}`; const block = !m.npcId && openRow === key ? findLoaded(m) : undefined; return (
+                  <li key={key}>
                     {m.npcId
                       ? <a className="link-btn" href={`#/npc/${encodeURIComponent(m.npcId)}`}>{name}</a>
-                      : <button className="link-btn" onClick={() => onOpenMonster(monsterKey({ source: m.source, id: m.monsterId }))}>{name}</button>}
-                    <span className="muted small">{t('dm.crXp', { cr: crLabel(m.cr), xp: (m.xp * m.count).toLocaleString() })}</span>
+                      : <button className="link-btn" aria-expanded={openRow === key} onClick={() => setOpenRow(openRow === key ? null : key)}>{name}</button>}
+                    <span className="muted small">{m.count > 1
+                      ? t('dm.crXpEach', { cr: crLabel(m.cr), count: m.count, each: m.xp.toLocaleString(), xp: (m.xp * m.count).toLocaleString() })
+                      : t('dm.crXp', { cr: crLabel(m.cr), xp: (m.xp * m.count).toLocaleString() })}</span>
                     <span className="dm-count">
                       <button className="btn small" aria-label={t('dm.fewer', { name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, -1)))}>−</button>
                       <b aria-live="polite">{m.count}</b>
                       {!m.npcId && <button className="btn small" aria-label={t('dm.more', { name })} onClick={() => update(s => updatePlan(s, plan.id, p => changeCount(p, m, 1)))}>+</button>}
                     </span>
+                    {block && (
+                      <div className="dm-inline-block">
+                        <StatBlock m={block} legacy={block.legacy} actions={<div className="row">
+                          <button className="btn small" onClick={() => setOpenRow(null)}>{t('dm.closeBlock')}</button>
+                        </div>} />
+                      </div>
+                    )}
                   </li>
                 ) })}
               </ul>
             )}
-            {npcs.length > 0 && (
+            {(npcs.length > 0 || onNewNpc) && (
               <select className="dm-add-npc" aria-label={t('dm.addNpcLabel')} value=""
-                onChange={e => { const n = npcs.find(x => x.id === e.target.value); if (n) onAddNpc(n) }}>
+                onChange={e => {
+                  if (e.target.value === NEW_NPC) { onNewNpc?.(plan.id); return }
+                  const n = npcs.find(x => x.id === e.target.value); if (n) onAddNpc(n)
+                }}>
                 <option value="">{t('dm.addNpc')}</option>
                 {npcs.filter(n => !plan.monsters.some(m => m.npcId === n.id)).map(n => <option key={n.id} value={n.id}>{n.name} ({n.block.name})</option>)}
+                {onNewNpc && <option value={NEW_NPC}>{t('dm.makeNpc')}</option>}
               </select>
             )}
             <label className="dm-notes">
@@ -490,11 +528,20 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
           </>
         )}
       </section>
-      <section className="card" aria-labelledby="dm-add-title">
+      <section className="card dm-add" aria-labelledby="dm-add-title">
         <h2 id="dm-add-title">{t('dm.addMonsters')}</h2>
-        <MonsterBrowser monsters={monsters} onAdd={onAdd} onOpen={onOpenMonster} />
+        <MonsterBrowser monsters={monsters} onAdd={onAdd} onOpen={() => {}} inline query={query} onQuery={onQuery}
+          fit={fit} budget={budget} countOf={countOf} edition={edition} onEdition={onEdition} />
+        {plan && (
+          <div className={`dm-fight-sum diff-${diff}`}>
+            <span className="dm-fight-sum-text" aria-live="polite">
+              <b className="dm-fight-sum-diff">{t(DIFFICULTY_KEYS[diff])}</b> · <b>{plan.name}</b> · {plan.monsters.length ? plan.monsters.map(m => `${rowName(m)} ×${m.count}`).join(', ') : t('dm.sumEmpty')}
+            </span>
+            <button className="btn small" onClick={seePlan}>{t('dm.seePlan')}</button>
+          </div>
+        )}
       </section>
-    </>
+    </div>
   )
 }
 
@@ -529,23 +576,50 @@ function Meter({ xp, budget, players }: { xp: number; budget: { low: number; mod
 /** Types with a translated label (dm.ctype.*); homebrew types show as typed. */
 const CREATURE_TYPES = ['aberration', 'beast', 'celestial', 'construct', 'dragon', 'elemental', 'fey', 'fiend', 'giant', 'humanoid', 'monstrosity', 'ooze', 'plant', 'undead', 'summon']
 
-function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }: {
+function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition, inline, query, onQuery, fit, budget, countOf }: {
   monsters: LoadedMonster[]
   onAdd: (m: Monster) => void
   onOpen: (key: string) => void
   openId?: string | null
   edition?: Edition
   onEdition?: (e: Edition) => void
+  /** Fights tab: a name opens its stat block inside the row instead of on the Monsters tab. */
+  inline?: boolean
+  /** Controlled search, so it outlives the tab. */
+  query?: FightQuery
+  onQuery?: (q: FightQuery) => void
+  /** The party's CR range, for the "Fits this party" chip. */
+  fit?: { min: number; max: number } | null
+  /** Tags monsters that alone are past High. */
+  budget?: Budget
+  /** How many of a monster the plan holds, for the "Added" flash. */
+  countOf?: (m: Monster) => number
 }) {
   const { t, monsterName } = useI18n()
-  const [q, setQ] = useState<MonsterQuery>({ text: '', minCr: null, maxCr: null, type: '', book: '' })
+  const [own, setOwn] = useState<FightQuery>({ ...EMPTY_QUERY, fit: false })
+  const q = query ?? own
+  const setQ = onQuery ?? setOwn
+  const fitOn = !!fit && !!q.fit && !q.text.trim()
+  const eff = useMemo<MonsterQuery>(() => (fitOn && fit ? { ...q, minCr: fit.min, maxCr: fit.max } : q), [q, fitOn, fit])
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [flash, setFlash] = useState<string | null>(null)
+  const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(flashTimer.current), [])
   const crs = useMemo(() => crSteps(monsters), [monsters])
   const types = useMemo(() => monsterTypes(monsters), [monsters])
   const groups = useMemo(() => monsterGroups(monsters), [monsters])
-  const found = useMemo(() => findMonsters(monsters, q, 60, monsterName) as LoadedMonster[], [monsters, q, monsterName])
+  const found = useMemo(() => findMonsters(monsters, eff, 60, monsterName) as LoadedMonster[], [monsters, eff, monsterName])
   const cr = (v: string) => (v === '' ? null : Number(v))
   const typeName = (x: string) => (CREATURE_TYPES.includes(x) ? t(`dm.ctype.${x}` as MessageKey) : x[0].toUpperCase() + x.slice(1))
   const groupName = (g: string) => (g === 'srd' ? t('dm.srdSource') : g === 'hb' ? t('dm.homebrewSource') : BOOK_TITLES[g] ?? g)
+  const add = (m: Monster) => {
+    onAdd(m)
+    if (!countOf) return
+    setFlash(monsterKey(m))
+    clearTimeout(flashTimer.current)
+    flashTimer.current = setTimeout(() => setFlash(null), 1200)
+  }
+  const addLabel = (m: Monster) => (flash === monsterKey(m) && countOf ? t('dm.added', { n: countOf(m) }) : t('dm.add'))
   if (!monsters.length) return <p className="hint">{t('common.loading')}</p>
   return (
     <div className="dm-browser">
@@ -556,6 +630,12 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }:
           ))}
         </div>
       )}
+      {fit && (
+        <button type="button" className={`chip dm-fit${fitOn ? ' on' : ''}`} aria-pressed={fitOn}
+          onClick={() => setQ(fitOn ? { ...q, fit: false } : { ...q, fit: true, text: '', minCr: null, maxCr: null })}>
+          {t('dm.fitParty', { min: crLabel(fit.min), max: crLabel(fit.max) })}
+        </button>
+      )}
       <div className="dm-filters">
         <input type="search" value={q.text} onChange={e => setQ({ ...q, text: e.target.value })} placeholder={t('dm.searchMonsters')} aria-label={t('dm.searchMonsters')} />
         {groups.length > 1 && (
@@ -564,11 +644,11 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }:
             {groups.map(g => <option key={g} value={g}>{groupName(g)}</option>)}
           </select>
         )}
-        <select aria-label={t('dm.minCr')} value={q.minCr ?? ''} onChange={e => setQ({ ...q, minCr: cr(e.target.value) })}>
+        <select aria-label={t('dm.minCr')} value={eff.minCr ?? ''} onChange={e => setQ({ ...eff, fit: false, minCr: cr(e.target.value) })}>
           <option value="">{t('dm.minCr')}</option>
           {crs.map(c => <option key={c} value={c}>{t('dm.cr', { cr: crLabel(c) })}</option>)}
         </select>
-        <select aria-label={t('dm.maxCr')} value={q.maxCr ?? ''} onChange={e => setQ({ ...q, maxCr: cr(e.target.value) })}>
+        <select aria-label={t('dm.maxCr')} value={eff.maxCr ?? ''} onChange={e => setQ({ ...eff, fit: false, maxCr: cr(e.target.value) })}>
           <option value="">{t('dm.maxCr')}</option>
           {crs.map(c => <option key={c} value={c}>{t('dm.cr', { cr: crLabel(c) })}</option>)}
         </select>
@@ -579,15 +659,25 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition }:
       </div>
       {found.length === 0 ? <p className="hint">{t('dm.noMonsters')}</p> : (
         <ul className="plain dm-monster-list">
-          {found.map(m => (
-            <li key={monsterKey(m)} className={openId === monsterKey(m) ? 'on' : ''}>
-              <button className="link-btn" onClick={() => onOpen(monsterKey(m))} aria-current={openId === monsterKey(m) ? 'true' : undefined}>
+          {found.map(m => { const key = monsterKey(m); const on = inline ? expanded === key : openId === key; return (
+            <li key={key} className={on ? 'on' : ''}>
+              <button className="link-btn" onClick={() => (inline ? setExpanded(on ? null : key) : onOpen(key))}
+                aria-current={!inline && on ? 'true' : undefined} aria-expanded={inline ? on : undefined}>
                 {monsterName(m)}{m.legacy && <small className="dm-legacy"> · {t('dm.legacy')}</small>}
+                {budget && tooStrongAlone(m.xp, budget) && <small className="dm-strong"> · {t('dm.tooStrong')}</small>}
               </button>
               <span className="muted small">{t('dm.crXp', { cr: crLabel(m.challengeRating), xp: m.xp.toLocaleString() })}</span>
-              <button className="btn small" onClick={() => onAdd(m)} aria-label={t('dm.addNamed', { name: m.name })}>{t('dm.add')}</button>
+              <button className={`btn small${flash === key ? ' dm-added' : ''}`} onClick={() => add(m)} aria-label={t('dm.addNamed', { name: m.name })}>{addLabel(m)}</button>
+              {inline && on && (
+                <div className="dm-inline-block">
+                  <StatBlock m={m} legacy={m.legacy} actions={<div className="row">
+                    <button className="btn small" onClick={() => setExpanded(null)}>{t('dm.closeBlock')}</button>
+                    <button className="btn small primary" onClick={() => add(m)}>{addLabel(m)}</button>
+                  </div>} />
+                </div>
+              )}
             </li>
-          ))}
+          ) })}
         </ul>
       )}
     </div>

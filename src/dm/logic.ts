@@ -56,6 +56,48 @@ export function difficulty(xp: number, b: Budget): Difficulty {
   return 'beyond'
 }
 
+/** Standard fractional CRs, for snapping a range edge to a real CR. */
+const LOW_CRS = [1 / 8, 1 / 4, 1 / 2]
+
+/** A CR range that suits the party: up to about the average level (at least 1/8), down to a quarter of that. */
+export function fitCrRange(party: PartyGroup[]): { min: number; max: number } | null {
+  const levels = levelsOf(party)
+  if (!levels.length) return null
+  const avg = levels.reduce((a, b) => a + clampLevel(b), 0) / levels.length
+  const max = Math.max(1 / 8, Math.round(avg))
+  const quarter = max / 4
+  const min = quarter >= 1 ? Math.ceil(quarter) : LOW_CRS.find(c => c >= quarter) ?? 1
+  return { min: Math.min(min, max), max }
+}
+
+/** One monster of this XP is already past the High budget. */
+export const tooStrongAlone = (xp: number, b: Budget) => b.high > 0 && xp > b.high
+
+export interface Removal { m: PlanMonster; count: number }
+
+/**
+ * How to bring an over-budget plan back to High: the fewest creatures of one kind to drop (up to `max`
+ * alternatives), or, when no single kind is enough, the biggest monsters first.
+ */
+export function trimAdvice(plan: EncounterPlan, b: Budget, max = 2): { over: number; options: Removal[][] } | null {
+  const over = planXp(plan) - b.high
+  if (b.high <= 0 || over <= 0) return null
+  const rows = plan.monsters.filter(m => m.xp > 0 && m.count > 0)
+  const singles = rows.map(m => ({ m, count: Math.ceil(over / m.xp) }))
+    .filter(r => r.count <= r.m.count)
+    .sort((a, c) => a.count - c.count || a.count * a.m.xp - c.count * c.m.xp)
+  if (singles.length) return { over, options: singles.slice(0, max).map(r => [r]) }
+  const picks: Removal[] = []
+  let left = over
+  for (const m of [...rows].sort((a, c) => c.xp - a.xp)) {
+    if (left <= 0) break
+    const count = Math.min(m.count, Math.ceil(left / m.xp))
+    picks.push({ m, count })
+    left -= count * m.xp
+  }
+  return { over, options: [picks] }
+}
+
 export { crLabel } from '../monsters/format'
 import { monsterMod as abilityMod } from '../monsters/block'
 export { abilityMod }
