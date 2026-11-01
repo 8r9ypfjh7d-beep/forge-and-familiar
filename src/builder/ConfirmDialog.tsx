@@ -3,7 +3,7 @@ import { useI18n } from '../i18n'
 import { typedMatches } from './typedMatches'
 
 /** In-app glass yes/no dialog, used instead of the browser's confirm box. Shown while `open`. */
-export function ConfirmDialog({ open, title, yes, onYes, onClose }: { open: boolean; title: string; yes: string; onYes: () => void; onClose: () => void }) {
+export function ConfirmDialog({ open, title, body, yes, onYes, onClose }: { open: boolean; title: string; body?: string; yes: string; onYes: () => void; onClose: () => void }) {
   const { t } = useI18n()
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
@@ -17,6 +17,7 @@ export function ConfirmDialog({ open, title, yes, onYes, onClose }: { open: bool
       {open && (
         <>
           <p className="confirm-dialog-title">{title}</p>
+          {body && <p className="muted small confirm-dialog-body">{body}</p>}
           <div className="confirm-dialog-actions">
             <button type="button" className="glass-btn prominent" onClick={() => { onClose(); onYes() }}>{yes}</button>
             <button type="button" className="glass-btn" onClick={onClose}>{t('common.cancel')}</button>

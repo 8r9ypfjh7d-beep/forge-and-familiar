@@ -18,6 +18,9 @@ export interface Party {
   stash?: PartyStash
   createdAt: string
   updatedAt: string
+  /** When the DM ended it. An ended campaign keeps everything and leaves every list but Ended campaigns,
+   *  where its DM (or the admin) can bring it back or delete it for good. */
+  endedAt?: string
 }
 
 export type Coin = 'cp' | 'sp' | 'ep' | 'gp' | 'pp'

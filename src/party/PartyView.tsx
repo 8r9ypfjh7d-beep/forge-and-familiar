@@ -158,7 +158,7 @@ function JoinForm({ userId, onJoined }: { userId: string; onJoined: (partyId: st
     if (res.ok) onJoined(res.party.id)
     else setError(res.reason)
   }
-  const errorKey = ({ invalid: 'party.badCode', offline: 'party.joinOffline', tooMany: 'party.joinTooMany', notLinked: 'party.joinNotLinked' } as Record<string, MessageKey>)[error] ?? 'party.noSuchCode'
+  const errorKey = ({ invalid: 'party.badCode', offline: 'party.joinOffline', tooMany: 'party.joinTooMany', notLinked: 'party.joinNotLinked', ended: 'party.joinEnded' } as Record<string, MessageKey>)[error] ?? 'party.noSuchCode'
 
   return (
     <>
@@ -200,7 +200,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
   const { t } = useI18n()
 
   useEffect(() => {
-    const load = () => getParty(initial.id).then(p => { if (p) setParty(p); else onBack() })
+    const load = () => getParty(initial.id).then(p => { if (p && !p.endedAt) setParty(p); else onBack() })
     return onPartiesChanged(load)
   }, [initial.id, onBack])
 
