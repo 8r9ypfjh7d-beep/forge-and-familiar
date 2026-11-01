@@ -236,3 +236,16 @@
   .encounter-map-stage .bm-box { aspect-ratio: var(--bm-ratio); max-height: 72dvh; min-height: 200px; }
   .encounter-map.glass { padding: var(--sp-3); }
 }
+
+/* Add to the fight: library search first, the hand-typed form folded under Custom creature. */
+.monster-picker { display: grid; gap: var(--sp-2); margin-block: var(--sp-2); }
+.monster-picker label.search, .monster-picker label.count { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.monster-picker input[type="search"], .monster-picker label.count input { width: 100%; min-width: 0; color: var(--ink); font-weight: 400; }
+.monster-picker label.count { max-inline-size: 110px; }
+.monster-picker .lib-results { display: grid; gap: 2px; max-block-size: 320px; overflow-y: auto; }
+.monster-picker .lib-results .glass-btn { inline-size: 100%; justify-content: space-between; text-align: start; gap: var(--sp-2); }
+.monster-picker .picked p { margin: 0; }
+.monster-picker .row { align-items: end; flex-wrap: wrap; }
+.custom-creature summary { cursor: pointer; font-weight: 600; color: var(--muted); padding-block: var(--sp-2); }
+.ff-combat a.glass-btn { text-decoration: none; }
+.monster-picker .lib-results .muted { white-space: nowrap; }
