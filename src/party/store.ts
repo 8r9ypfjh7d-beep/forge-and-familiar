@@ -2,7 +2,7 @@
 // work across devices, live. Local profiles ("this device only") and devices without the cloud keep
 // parties in localStorage, shared between profiles on one device, as before.
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getCloudAccountId, getSupabase } from '../cloud'
+import { getCloudAccountId, getSupabase, isCloudEnabled } from '../cloud'
 import { CACHE_KEY, cachedParties, cachedParty, cloudFor, fetchParty, PARTIES_CHANGED, refreshParties, watchParties } from './cloud'
 import { addMember, isMember, isValidCode, makeInviteCode, normalizeCode, removeMember, setMemberCharacter } from './code'
 import { canEndParty } from './active'
@@ -104,15 +104,20 @@ export async function createParty(name: string, creatorId: string, dmId: string 
   return createLocal(name, creatorId, dmId)
 }
 
-export type JoinResult = { ok: true; party: Party } | { ok: false; reason: 'invalid' | 'not-found' | 'offline' | 'tooMany' }
+export type JoinResult = { ok: true; party: Party } | { ok: false; reason: 'invalid' | 'not-found' | 'offline' | 'tooMany' | 'notLinked' }
 
 export async function joinParty(rawCode: string, userId: string, characterId?: string): Promise<JoinResult> {
   const code = normalizeCode(rawCode)
   if (!isValidCode(code)) return { ok: false, reason: 'invalid' }
   const found = readParties().find(p => p.code === code)
   if (found) return { ok: true, party: update(found.id, p => addMember(p, userId, characterId))! }
+  // Already in it (the DM, or joined before): just open it.
+  const mine = cachedParties(userId).find(p => p.code === code)
+  if (mine) return { ok: true, party: mine }
   const db = await cloudFor(userId)
-  if (!db) return { ok: false, reason: 'not-found' }
+  // Cloud campaigns need this player signed in to the cloud on this device; without that the
+  // server is never asked, so "no such code" would be wrong.
+  if (!db) return { ok: false, reason: isCloudEnabled() && getCloudAccountId() !== userId ? 'notLinked' : 'not-found' }
   const { data, error } = await db.rpc('join_party', { p_code: code, p_character: characterId ?? null })
   if (error) return { ok: false, reason: offline(error) ? 'offline' : /too many/.test(error.message) ? 'tooMany' : 'not-found' }
   if (!data) return { ok: false, reason: 'not-found' }

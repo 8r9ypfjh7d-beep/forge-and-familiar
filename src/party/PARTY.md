@@ -36,6 +36,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 ## How it works
 
 - Creating a party means choosing its DM: the creator or any other player. Creator and DM join; the DM usually watches without a character. Players join with a code and pick which character they bring; anyone can switch or watch only.
+- Joining a code you are already in just opens the campaign. If this device is not signed in to the cloud as the joining player (another account or "this device only"), the join says so and shows the activation-code form instead of "no such code"; signing in there retries the join.
 - Every visit opens on the campaigns home (`CampaignsHome`, the Home tab): every campaign the player is in, their role, the DM and the character they bring. Tapping one makes it the party in play and opens it: its DM gets the DM screen, a player the sheet they bring, or the party page to pick a character when they bring none (or it isn't on this device). With no campaign: the sync sign-in (campaigns live on the server), join with a code, start one, build a character.
 - The DM role is per party. The party in play's DM gets the DM pages (DM screen, Combat, Party tabs); everyone else gets the player pages. A single party is in play without asking; the Campaign switch in the player menu changes it, and "Play without a party" gives the player pages.
 - Garden Gang (`party-garden-gang`, code GAR-DEN) is seeded by `20261028100000_party_dm.sql` with every friend and Noa as DM.

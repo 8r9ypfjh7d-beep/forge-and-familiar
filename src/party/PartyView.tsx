@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import { CodeForm } from '../accounts'
 import { getCloudAccountId } from '../cloud'
 import { SecretRolls } from '../dice/ui'
-import { useI18n } from '../i18n'
+import { useI18n, type MessageKey } from '../i18n'
 import type { Character, UserProfile } from '../model/character'
 import { derive, formatMod } from '../rules'
 import { Codex, HandoutBadge } from '../lore'
@@ -155,10 +156,12 @@ function JoinForm({ userId, onJoined }: { userId: string; onJoined: (partyId: st
   const submit = async () => {
     const res = await joinParty(code, userId, characterId || undefined)
     if (res.ok) onJoined(res.party.id)
-    else setError(t(res.reason === 'invalid' ? 'party.badCode' : res.reason === 'offline' ? 'party.joinOffline' : res.reason === 'tooMany' ? 'party.joinTooMany' : 'party.noSuchCode'))
+    else setError(res.reason)
   }
+  const errorKey = ({ invalid: 'party.badCode', offline: 'party.joinOffline', tooMany: 'party.joinTooMany', notLinked: 'party.joinNotLinked' } as Record<string, MessageKey>)[error] ?? 'party.noSuchCode'
 
   return (
+    <>
     <form className="party-form-body" onSubmit={e => { e.preventDefault(); if (code.trim()) submit() }}>
       <div className="field">
         <label htmlFor="join-code">{t('party.inviteCode')}</label>
@@ -172,9 +175,12 @@ function JoinForm({ userId, onJoined }: { userId: string; onJoined: (partyId: st
           <option value="">{t('common.watching')}</option>
         </select>
       </div>
-      {error && <p className="bad small" role="alert">{error}</p>}
+      {error && <p className="bad small" role="alert">{t(errorKey)}</p>}
       <button className="glass-btn prominent" disabled={!code.trim()}>{t('party.joinButton')}</button>
     </form>
+    {/* Outside the join form: forms can't nest. Signing in here retries the join. */}
+    {error === 'notLinked' && <CodeForm autoFocus={false} onDone={submit} />}
+    </>
   )
 }
 

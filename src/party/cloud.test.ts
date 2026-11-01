@@ -55,7 +55,7 @@ vi.mock('../cloud', () => {
       return q
     },
   }
-  return { getCloudAccountId: () => server.me, getSupabase: async () => db }
+  return { getCloudAccountId: () => server.me, getSupabase: async () => db, isCloudEnabled: () => true }
 })
 
 import { createParty, joinParty, listParties, updateStash } from './store'
@@ -85,6 +85,14 @@ describe('cloud parties', () => {
     const res = await joinParty(party.code.toLowerCase(), 'acct-tamir', 'c-ash')
     expect(res.ok && res.party.members.map(m => [m.userId, m.characterId])).toEqual([['acct-roy', undefined], ['acct-tamir', 'c-ash']])
     expect((await joinParty('ZZZZZZ', 'acct-tamir')).ok).toBe(false)
+  })
+
+  it('opens a campaign you are already in, and says when this device is signed in as someone else', async () => {
+    server.me = 'acct-noa'
+    const party = await createParty('Grove', 'acct-noa')
+    const again = await joinParty(party.code, 'acct-noa')
+    expect(again.ok && again.party.id).toBe(party.id)
+    expect(await joinParty(party.code, 'acct-maayan')).toEqual({ ok: false, reason: 'notLinked' })
   })
 
   it('names another player as DM; both join', async () => {
