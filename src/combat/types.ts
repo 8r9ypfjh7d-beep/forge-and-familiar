@@ -1,7 +1,7 @@
 // Saved encounter shape. Party members link to a Character, whose HP and conditions stay on
 // the character (the sheet owns them). Monsters and NPCs keep their own HP here.
 import type { MessageKey } from '../i18n/locales/en'
-import type { ConditionId } from '../rules/types'
+import type { Ability, ConditionId } from '../rules/types'
 
 export const ENCOUNTER_SCHEMA_VERSION = 1
 
@@ -54,16 +54,21 @@ export interface Effect {
   tick: 'start' | 'end'
   /** False while the turn it was created on has not ended yet, so that end does not count. */
   armed: boolean
+  /** Targets repeat this save at the end of each of their turns (Hold Person); a success frees that target. */
+  save?: { ability: Ability; dc: number }
 }
 
 /** A log line, translated when shown. Plain strings come from saves made before translation. */
 export type LogLine = string | { key: MessageKey; vars?: Record<string, string | number> }
 
-/** A concentration save the table still has to roll. */
+/** A save the table still has to roll: concentration after damage, or an effect's repeat save at the end of a turn. */
 export interface PendingCheck {
   id: string
   combatantId: string
   dc: number
+  /** Set for an effect's repeat save; absent for concentration (a CON save). */
+  effectId?: string
+  ability?: Ability
 }
 
 /** A piece on the battle map. Cells count from the top-left corner; a token covers size × size cells. */

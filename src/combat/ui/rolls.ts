@@ -1,7 +1,7 @@
 // Tracker rolls go through the shared dice module, so they land in the dice tray history.
 import { rollD20, rollInitiative, rollSave, type RollResult } from '../../dice'
 import { useDice } from '../../dice/ui'
-import { derive } from '../../rules'
+import { derive, type Ability } from '../../rules'
 import type { Party } from '../engine'
 import type { Combatant } from '../types'
 
@@ -23,6 +23,12 @@ export function useCombatRolls() {
       const ch = c.characterId ? party[c.characterId] : undefined
       if (c.kind === 'pc') return ch && record(rollSave(derive(ch), 'con', { character: ch, label }))
       return record(rollD20(c.conSave ?? 0, { label, roller: roller(c) }, 'save'))
+    },
+    /** Any save: party members from their sheet, others with `bonus` (a stat block's save, or the row's CON save). */
+    save(c: Combatant, party: Party, ability: Ability, label: string, bonus?: number): RollResult | undefined {
+      const ch = c.characterId ? party[c.characterId] : undefined
+      if (c.kind === 'pc') return ch && record(rollSave(derive(ch), ability, { character: ch, label }))
+      return record(rollD20(bonus ?? (ability === 'con' ? c.conSave ?? 0 : 0), { label, roller: roller(c) }, 'save'))
     },
     record,
   }

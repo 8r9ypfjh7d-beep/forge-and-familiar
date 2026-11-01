@@ -124,6 +124,18 @@ export function statusOf(enc: Encounter, c: Combatant, party: Party): Status {
 /** A monster at 0 HP is out and skipped in the turn order. Party members at 0 keep their turn for death saves. */
 export const isDefeated = (c: Combatant) => c.kind === 'npc' && (c.hp?.current ?? 1) <= 0
 
+/** Skipped in the turn order: a monster at 0 HP, or a party member who failed three death saves. */
+export const skipsTurn = (c: Combatant, party: Party = {}) =>
+  isDefeated(c) || (c.kind === 'pc' && !!c.characterId && (party[c.characterId]?.state.deathSaves.failures ?? 0) >= 3)
+
+/** Effects whose repeat save this combatant makes at the end of its turn, as checks to roll. */
+function repeatSaves(enc: Encounter, id: string): Encounter {
+  const checks = enc.effects.filter(e => e.save && e.targetIds.includes(id))
+    .filter(e => !enc.pendingChecks.some(p => p.effectId === e.id && p.combatantId === id))
+    .map(e => ({ id: `save:${e.id}:${id}:${enc.round}`, combatantId: id, dc: e.save!.dc, ability: e.save!.ability, effectId: e.id }))
+  return checks.length ? { ...enc, pendingChecks: [...enc.pendingChecks, ...checks] } : enc
+}
+
 // ---- Turns and timers ----
 
 function tick(enc: Encounter, matches: (e: Effect) => boolean, phase: 'start' | 'end' | 'round'): Encounter {
@@ -147,8 +159,8 @@ const sourceTick = (enc: Encounter, id: string, at: 'start' | 'end') => {
 }
 
 /** Starts round 1 with the top of the order. Everyone needs an initiative first. */
-export function startCombat(enc: Encounter): Encounter {
-  const first = enc.combatants.find(c => !isDefeated(c))
+export function startCombat(enc: Encounter, party: Party = {}): Encounter {
+  const first = enc.combatants.find(c => !skipsTurn(c, party))
   if (!first || enc.combatants.some(c => c.initiative === null)) return enc
   const started = log({ ...enc, endedAt: undefined, endedRound: undefined, round: 1, activeId: first.id, combatants: sortOrder(enc.combatants) }, line('combat.log.round', { round: 1 }), line('combat.log.turn', { name: first.name }))
   return sourceTick(started, first.id, 'start')
@@ -159,10 +171,10 @@ export function startCombat(enc: Encounter): Encounter {
  * Effects tick on their source's turn ("end" effects now, "start" effects for the next combatant);
  * effects with no source tick when a new round begins.
  */
-export function nextTurn(enc: Encounter): Encounter {
+export function nextTurn(enc: Encounter, party: Party = {}): Encounter {
   if (!inCombat(enc) || !enc.activeId) return enc
   const order = enc.combatants
-  let next = sourceTick(enc, enc.activeId, 'end')
+  let next = repeatSaves(sourceTick(enc, enc.activeId, 'end'), enc.activeId)
   const from = order.findIndex(c => c.id === enc.activeId)
   for (let step = 1; step <= order.length; step++) {
     const i = (from + step) % order.length
@@ -171,7 +183,7 @@ export function nextTurn(enc: Encounter): Encounter {
       next = tick(log({ ...next, round: next.round + 1 }, line('combat.log.round', { round: next.round + 1 })), e => !e.sourceId, 'round')
     }
     const c = order[i]
-    if (isDefeated(c)) continue
+    if (skipsTurn(c, party)) continue
     next = log({ ...next, activeId: c.id }, line('combat.log.turn', { name: c.name }))
     return sourceTick(next, c.id, 'start')
   }
@@ -202,7 +214,7 @@ export function addEffect(enc: Encounter, input: EffectInput): Encounter {
 export function endEffect(enc: Encounter, effectId: string, reason?: LogLine): Encounter {
   const e = enc.effects.find(x => x.id === effectId)
   if (!e) return enc
-  return log({ ...enc, effects: enc.effects.filter(x => x.id !== effectId) }, reason ?? line('combat.log.ends', { effect: e.name }))
+  return log({ ...enc, effects: enc.effects.filter(x => x.id !== effectId), pendingChecks: enc.pendingChecks.filter(p => p.effectId !== effectId) }, reason ?? line('combat.log.ends', { effect: e.name }))
 }
 
 /** Ends a combatant's concentration by choice. */
@@ -297,13 +309,28 @@ export function resolveCheck(enc: Encounter, checkId: string, total: number, aut
   const check = enc.pendingChecks.find(p => p.id === checkId)
   if (!check) return enc
   const next = { ...enc, pendingChecks: enc.pendingChecks.filter(p => p.id !== checkId) }
-  const held = concentrationOf(next, check.combatantId)
   const who = nameOf(enc, check.combatantId)
+  if (check.effectId) {
+    const effect = next.effects.find(e => e.id === check.effectId)
+    if (!effect) return next
+    if (autoFail || total < check.dc) return log(next, line('combat.log.saveFails', { name: who, effect: effect.name, total, dc: check.dc }))
+    return freeFromEffect(log(next, line('combat.log.saveEnds', { name: who, effect: effect.name, total, dc: check.dc })), effect.id, check.combatantId)
+  }
+  const held = concentrationOf(next, check.combatantId)
   if (!held) return next
   if (!autoFail && total >= check.dc) return log(next, line('combat.log.keeps', { name: who, effect: held.name, total, dc: check.dc }))
   return endEffect(next, held.id, autoFail
     ? line('combat.log.losesFailed', { name: who, effect: held.name, dc: check.dc })
     : line('combat.log.loses', { name: who, effect: held.name, total, dc: check.dc }))
+}
+
+/** Takes one target out of an effect; the effect ends when nobody is left under it. */
+export function freeFromEffect(enc: Encounter, effectId: string, targetId: string): Encounter {
+  const e = enc.effects.find(x => x.id === effectId)
+  if (!e) return enc
+  const targetIds = e.targetIds.filter(t => t !== targetId)
+  if (!targetIds.length) return { ...enc, effects: enc.effects.filter(x => x.id !== effectId) }
+  return { ...enc, effects: enc.effects.map(x => (x.id === effectId ? { ...x, targetIds } : x)) }
 }
 
 export const dismissCheck = (enc: Encounter, checkId: string): Encounter =>
@@ -318,7 +345,7 @@ export function breakConcentration(enc: Encounter, party: Party): Encounter {
     const s = statusOf(next, c, party)
     if (s.hp <= 0 || s.conditions.some(x => INCAPACITATING.includes(x))) {
       next = endEffect(next, held.id, line(s.hp <= 0 ? 'combat.log.losesDown' : 'combat.log.losesIncapacitated', { name: c.name, effect: held.name }))
-      next = { ...next, pendingChecks: next.pendingChecks.filter(p => p.combatantId !== c.id) }
+      next = { ...next, pendingChecks: next.pendingChecks.filter(p => p.combatantId !== c.id || !!p.effectId) }
     }
   }
   return next

@@ -9,6 +9,8 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 |------|---------|
 | `types.ts` | `Encounter`, `Combatant` (with `monster` stat block ref, `spent` uses, `legendaryUsed`, `npcId`), `Effect`, `PendingCheck`, `CONDITIONS` |
 | `engine.ts` | Every encounter change, pure: turns, timers, concentration, `spendAction` / `rechargeAction` / `spendLegendary` / `critDice` / `isBloodied`; `targetGroups` (other side first) and `waitingForInitiative` for the tracker. Tested in `engine.test.ts` |
+| `auto.ts` | Pure automation rules: `AutoSettings` / `DEFAULT_AUTO`, `pickTarget` (first conscious enemy, keeps a pick that still stands), `fightOutcome` (won / lost), `attackAgainst` (advantage, disadvantage and melee auto-crits from the target's conditions), `targetConditions` (a party member at 0 HP counts as unconscious), `autoFails`, `monsterSave`, `multiattackPlan` (reads "two Claw attacks", "one with its bite and two with its claws"). Tested in `auto.test.ts` |
+| `ui/autoSettings.ts` | The DM's automation switches on this device (`ff.combatAuto.v1`), shown as the folded "Automatic" card |
 | `hits.ts` | Pure `takeHits(character, hits)`: the player's device applies the DM's live-combat hits once (`Character.appliedHits`). Tested in `hits.test.ts` |
 | `ui/useLiveHits.ts` | App hook: watches the live row of each campaign the player brings a character to and saves the hits on that device |
 | `xp.ts`, `ui/FightXp.tsx` | XP after a fight: `fightCreatures` (rows worth XP from their stat block, beaten ones ticked), `fightPlayers`, `xpShare`. After End combat in a campaign fight the tracker shows the FightXp card: "Give 150 XP (75 each)", sent as a party XP award (src/party/xp.ts). Tested in `xp.test.ts` |
@@ -49,6 +51,16 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 - **Look.** Cards are `.glass` (effects and log `.glass.thick`), one `.glass-btn.prominent` per surface (New encounter, Next turn, Roll save, Add). The active row wears the lens (accent tint, accent edge, accent initiative badge). Damage and heal are tinted glass. High contrast draws 2px edges where state is shown by fill. Phone controls are 44px tall.
 - **Undo** restores the encounter and any party characters the step changed.
 - **What players may see.** The tracker itself is the DM's. Anything that shows a fight to the party (a pushed battle map, a party-facing initiative list) must go through `playerView(encounter)` and never send the `Encounter`: `npc` rows lose AC, saves and bonuses, show under their `alias` when set, and show a `look` (healthy / bloodied at half HP / down) instead of HP numbers unless `revealHp` is on; `hidden` rows, the effects only they take part in, and their active turn are left out; pending checks and the log stay with the DM. `pc` rows keep `characterId`, since members already read each other's characters. Monster sheets themselves (src/npc) are DM pages (`canOpen('npc')`) with owner-only rows (`npc_sheets`).
+
+## Automation
+
+The tracker does the bookkeeping by itself; every automatic step is part of the change that caused it, so one Undo takes both back. The "Automatic" card (under effects) switches each part off for this device.
+
+- **Start** rolls initiative for every monster still without one; only party members block it.
+- **Turns** skip fallen monsters and party members with three failed death saves (`skipsTurn`). Recharge rolls and legendary refills happen at the start of the creature's turn, a dying party member on this device rolls their death save (`deathSaves`), and the turn bar says when the creature can't act (paralyzed, stunned…). Legendary creatures with actions left show as chips in the turn bar that open their stat block.
+- **Attacks** (`applyHits`): the stat block opens on the first conscious enemy (or the row's last pick while it stands; fallen rows leave the list). An attack rolls with advantage or disadvantage from the target's conditions and the attacker's own, a melee hit on a paralyzed or unconscious target is a critical hit, and a hit deals its damage at once ("✓ 9 damage dealt to Thora"); a miss keeps "Apply anyway". A critical hit on a party member at 0 HP counts two death save failures. Multiattack rolls every attack it names. A save action against a monster rolls the monster's save (its stat block's save bonus) and deals full, half or no damage; against a party member it offers "Roll Thora's DEX save".
+- **Saves** (`monsterSaves`): monsters and NPCs roll their own concentration saves and the repeat saves of effects (an effect's `save`, asked for in the effect form, is rolled by each target at the end of its turn; a success frees that target, and the effect ends when nobody is left). Party members get the card.
+- **End** (`endWhenWon`): when the last monster drops, combat ends with a "Victory!" card (and the XP card in a campaign; the total XP otherwise). When every party member is down, a card offers End combat instead of ending it.
 
 ## Live combat and the battle map
 
