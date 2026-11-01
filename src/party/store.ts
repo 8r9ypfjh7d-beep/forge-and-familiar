@@ -3,9 +3,9 @@
 // parties in localStorage, shared between profiles on one device, as before.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getCloudAccountId, getSupabase, isCloudEnabled } from '../cloud'
-import { CACHE_KEY, cachedParties, cachedParty, cloudFor, fetchParty, PARTIES_CHANGED, refreshParties, watchParties } from './cloud'
+import { CACHE_KEY, cachedParties, cachedParty, cloudFor, cloudRestorable, fetchParty, PARTIES_CHANGED, refreshParties, watchParties } from './cloud'
 import { addMember, isMember, isValidCode, makeInviteCode, normalizeCode, removeMember, setMemberCharacter } from './code'
-import { canEndParty } from './active'
+import { canEndParty, canRestoreParty, endedParties, runningParties } from './active'
 import { applyStash, type StashAction, type StashResult } from './stash'
 import type { Party } from './types'
 
@@ -59,13 +59,29 @@ async function cloudParty(partyId: string, userId: string): Promise<SupabaseClie
   return cloudFor(userId)
 }
 
-export async function listParties(userId: string): Promise<Party[]> {
+/** Every campaign this player is in, running or ended. */
+async function allParties(userId: string): Promise<Party[]> {
   const local = readParties().filter(p => isMember(p, userId))
   const db = await cloudFor(userId)
   if (!db) return local
   // Shows the cached list now; a fresh fetch fires onPartiesChanged if anything changed.
   void refreshParties(db, userId)
   return [...cachedParties(userId), ...local]
+}
+
+/** The campaigns this player is in that are still running. */
+export async function listParties(userId: string): Promise<Party[]> {
+  return runningParties(await allParties(userId))
+}
+
+/** The campaigns this player was in that their DM ended, most recently ended first. */
+export async function listEndedParties(userId: string): Promise<Party[]> {
+  return endedParties(await allParties(userId))
+}
+
+/** Whether ending this campaign can be undone. Device campaigns always; cloud ones once the server keeps ended campaigns. */
+export function canUndoEnd(partyId: string): boolean {
+  return readParties().some(p => p.id === partyId) || cloudRestorable()
 }
 
 export async function getParty(id: string): Promise<Party | undefined> {
@@ -104,25 +120,30 @@ export async function createParty(name: string, creatorId: string, dmId: string 
   return createLocal(name, creatorId, dmId)
 }
 
-export type JoinResult = { ok: true; party: Party } | { ok: false; reason: 'invalid' | 'not-found' | 'offline' | 'tooMany' | 'notLinked' }
+export type JoinResult = { ok: true; party: Party } | { ok: false; reason: 'invalid' | 'not-found' | 'offline' | 'tooMany' | 'notLinked' | 'ended' }
 
 export async function joinParty(rawCode: string, userId: string, characterId?: string): Promise<JoinResult> {
   const code = normalizeCode(rawCode)
   if (!isValidCode(code)) return { ok: false, reason: 'invalid' }
   const found = readParties().find(p => p.code === code)
+  if (found?.endedAt) return { ok: false, reason: 'ended' }
   if (found) return { ok: true, party: update(found.id, p => addMember(p, userId, characterId))! }
   // Already in it (the DM, or joined before): just open it.
   const mine = cachedParties(userId).find(p => p.code === code)
-  if (mine) return { ok: true, party: mine }
+  if (mine) return mine.endedAt ? { ok: false, reason: 'ended' } : { ok: true, party: mine }
   const db = await cloudFor(userId)
   // Cloud campaigns need this player signed in to the cloud on this device; without that the
   // server is never asked, so "no such code" would be wrong.
   if (!db) return { ok: false, reason: isCloudEnabled() && getCloudAccountId() !== userId ? 'notLinked' : 'not-found' }
   const { data, error } = await db.rpc('join_party', { p_code: code, p_character: characterId ?? null })
-  if (error) return { ok: false, reason: offline(error) ? 'offline' : /too many/.test(error.message) ? 'tooMany' : 'not-found' }
+  if (error) {
+    const reason = offline(error) ? 'offline' : /too many/.test(error.message) ? 'tooMany' : /campaign ended/.test(error.message) ? 'ended' : 'not-found'
+    return { ok: false, reason }
+  }
   if (!data) return { ok: false, reason: 'not-found' }
   await refreshParties(db, userId)
   const party = cachedParties(userId).find(p => p.id === data)
+  if (party?.endedAt) return { ok: false, reason: 'ended' }
   return party ? { ok: true, party } : { ok: false, reason: 'offline' }
 }
 
@@ -140,16 +161,46 @@ export async function leaveParty(partyId: string, userId: string): Promise<void>
   await refreshParties(db, userId)
 }
 
-/** Ends the campaign for everyone: only its DM (or the admin) can. Characters stay with their players. */
+/** Ends the campaign for everyone: only its DM (or the admin) can. It leaves every list but Ended campaigns,
+ *  keeping everything, so restoreParty() brings it back as it was. Characters stay with their players.
+ *  (On a server without the restore_party migration, end_party still deletes it: see canUndoEnd.) */
 export async function endParty(partyId: string, userId: string): Promise<boolean> {
   const db = await cloudParty(partyId, userId)
   if (!db) {
     const found = readParties().find(p => p.id === partyId)
     if (!found || !canEndParty(found, userId)) return false
-    update(partyId, () => null)
+    update(partyId, p => ({ ...p, endedAt: p.endedAt ?? new Date().toISOString() }))
     return true
   }
   const { error } = await db.rpc('end_party', { p_party: partyId })
+  await refreshParties(db, userId)
+  return !error
+}
+
+/** Brings an ended campaign back for everyone, with its members, stash, lore and invite code as they were. */
+export async function restoreParty(partyId: string, userId: string): Promise<boolean> {
+  const db = await cloudParty(partyId, userId)
+  if (!db) {
+    const found = readParties().find(p => p.id === partyId)
+    if (!found || !canRestoreParty(found, userId)) return false
+    update(partyId, p => { const next = { ...p }; delete next.endedAt; return next })
+    return true
+  }
+  const { error } = await db.rpc('restore_party', { p_party: partyId })
+  await refreshParties(db, userId)
+  return !error
+}
+
+/** Deletes an ended campaign for good. Characters stay with their players. */
+export async function deleteParty(partyId: string, userId: string): Promise<boolean> {
+  const db = await cloudParty(partyId, userId)
+  if (!db) {
+    const found = readParties().find(p => p.id === partyId)
+    if (!found || !canRestoreParty(found, userId)) return false
+    update(partyId, () => null)
+    return true
+  }
+  const { error } = await db.rpc('delete_party', { p_party: partyId })
   await refreshParties(db, userId)
   return !error
 }

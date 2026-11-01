@@ -3,10 +3,10 @@ import { CloudLinkNotice } from '../accounts'
 import { ConfirmDialog, TypedConfirmDialog } from '../builder/ConfirmDialog'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
-import { campaignTarget, canEndParty, isPartyDm } from './active'
+import { campaignTarget, canEndParty, canRestoreParty, isPartyDm } from './active'
 import { listProfiles } from '../storage'
 import { fetchAccountNames } from './cloud'
-import { endParty, leaveParty } from './store'
+import { canUndoEnd, deleteParty, endParty, leaveParty, listEndedParties, onPartiesChanged, restoreParty } from './store'
 import type { Party } from './types'
 import './party.css'
 
@@ -84,6 +84,7 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
           })}
         </div>
       )}
+      <EndedCampaigns userId={userId} names={names} />
       {parties.length > 0 && <CloudLinkNotice />}
       <div className="campaigns-foot">
         {parties.length > 0 && <button className="glass-btn" onClick={onJoin}>{t('home.joinAnother')}</button>}
@@ -94,13 +95,14 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
   )
 }
 
-/** End (DM or admin: gone for everyone) and Leave (anyone but the DM: gone from your list only). End can't be
- *  undone, so it says what is lost and asks for the campaign's name; Leave asks yes/no. Characters are never
- *  touched, so they stay in My characters. */
+/** End (DM or admin: closed for everyone) and Leave (anyone but the DM: gone from your list only). End moves the
+ *  campaign to Ended campaigns with everything kept, so a yes/no is enough; only on a server that still deletes
+ *  ended campaigns does it say what is lost and ask for the campaign's name. Characters are never touched. */
 export function CampaignManage({ party, userId }: { party: Party; userId: string }) {
   const { t } = useI18n()
   const [busy, setBusy] = useState(false)
   const [asking, setAsking] = useState<'end' | 'leave' | null>(null)
+  const undoable = canUndoEnd(party.id)
   const end = async () => {
     setBusy(true)
     const ok = await endParty(party.id, userId)
@@ -112,11 +114,74 @@ export function CampaignManage({ party, userId }: { party: Party; userId: string
     <div className="campaign-manage">
       {canEndParty(party, userId) && <button className="glass-btn small ghost campaign-end" disabled={busy} onClick={() => setAsking('end')}>{t('party.end')}</button>}
       {!isPartyDm(party, userId) && <button className="glass-btn small ghost" disabled={busy} onClick={() => setAsking('leave')}>{t('party.leave')}</button>}
-      <TypedConfirmDialog open={asking === 'end'} title={t('party.confirmEnd', { name: party.name })} body={t('party.confirmEndBody')}
-        phrase={party.name} yes={t('party.end')} onYes={() => void end()} onClose={close} />
+      {undoable
+        ? <ConfirmDialog open={asking === 'end'} title={t('party.confirmEnd', { name: party.name })} body={t('party.confirmEndUndoable')}
+            yes={t('party.end')} onYes={() => void end()} onClose={close} />
+        : <TypedConfirmDialog open={asking === 'end'} title={t('party.confirmEnd', { name: party.name })} body={t('party.confirmEndBody')}
+            phrase={party.name} yes={t('party.end')} onYes={() => void end()} onClose={close} />}
       <ConfirmDialog open={asking === 'leave'} title={t('party.confirmLeave', { name: party.name })} yes={t('party.leave')}
         onYes={() => void leaveParty(party.id, userId)} onClose={close} />
     </div>
+  )
+}
+
+/** Campaigns the DM ended, folded under the list. Its DM (or the admin) brings one back as it was, or deletes it
+ *  for good; a player can take it off their list. Hidden when there are none. */
+function EndedCampaigns({ userId, names }: { userId: string; names: Record<string, string> }) {
+  const { t, locale } = useI18n()
+  const [ended, setEnded] = useState<Party[]>([])
+  const [busy, setBusy] = useState<string | null>(null)
+  const [asking, setAsking] = useState<{ kind: 'delete' | 'remove'; party: Party } | null>(null)
+  useEffect(() => {
+    let live = true
+    const load = () => { listEndedParties(userId).then(list => { if (live) setEnded(list) }) }
+    load()
+    const off = onPartiesChanged(load)
+    return () => { live = false; off() }
+  }, [userId])
+  if (!ended.length) return null
+  const run = async (id: string, action: () => Promise<boolean | void>, failed: 'party.restoreFailed' | 'party.deleteFailed') => {
+    setBusy(id)
+    const ok = await action()
+    setBusy(null)
+    if (ok === false) alert(t(failed))
+  }
+  const when = (iso: string) => new Date(iso).toLocaleDateString(locale, { dateStyle: 'medium' })
+  const close = () => setAsking(null)
+  return (
+    <details className="glass campaigns-ended">
+      <summary>{t('party.endedTitle', { count: ended.length })}</summary>
+      <p className="muted small">{t('party.endedHint')}</p>
+      <ul className="campaigns-ended-list">
+        {ended.map(p => {
+          const dm = isPartyDm(p, userId)
+          const owner = canRestoreParty(p, userId)
+          return (
+            <li key={p.id} className="campaign-ended">
+              <span className="campaign-ended-name">
+                <strong>{p.name}</strong>
+                <span className="muted small">
+                  {t('party.endedOn', { date: when(p.endedAt!) })} · {dm ? t('party.pick.youDm') : t('party.dm', { name: names[p.dmId] ?? t('party.unknownPlayer') })}
+                </span>
+              </span>
+              <span className="campaign-ended-actions">
+                {owner && <button className="glass-btn small prominent" disabled={busy === p.id}
+                  onClick={() => void run(p.id, () => restoreParty(p.id, userId), 'party.restoreFailed')}>{t('party.restore')}</button>}
+                {owner && <button className="glass-btn small ghost campaign-end" disabled={busy === p.id}
+                  onClick={() => setAsking({ kind: 'delete', party: p })}>{t('party.deleteForever')}</button>}
+                {!dm && <button className="glass-btn small ghost" disabled={busy === p.id}
+                  onClick={() => setAsking({ kind: 'remove', party: p })}>{t('party.removeEnded')}</button>}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      <TypedConfirmDialog open={asking?.kind === 'delete'} title={t('party.confirmDelete', { name: asking?.party.name ?? '' })}
+        body={t('party.confirmEndBody')} phrase={asking?.party.name ?? ''} yes={t('party.deleteForever')}
+        onYes={() => { const p = asking!.party; void run(p.id, () => deleteParty(p.id, userId), 'party.deleteFailed') }} onClose={close} />
+      <ConfirmDialog open={asking?.kind === 'remove'} title={t('party.confirmRemoveEnded', { name: asking?.party.name ?? '' })}
+        yes={t('party.removeEnded')} onYes={() => { const p = asking!.party; void leaveParty(p.id, userId) }} onClose={close} />
+    </details>
   )
 }
 

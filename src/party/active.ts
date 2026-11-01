@@ -48,6 +48,16 @@ export const isPartyDm = (party: Party | undefined, userId: string) => !!party &
 /** Whether this player may end the campaign for everyone: its DM, or the admin. */
 export const canEndParty = (party: Party, userId: string) => isPartyDm(party, userId) || isAdmin(userId)
 
+/** Whether this player may bring an ended campaign back, or delete it for good: the same people who can end it. */
+export const canRestoreParty = (party: Party, userId: string) => !!party.endedAt && canEndParty(party, userId)
+
+/** Campaigns still running, for every list and pick; ended ones only show under Ended campaigns. */
+export const runningParties = (parties: readonly Party[]): Party[] => parties.filter(p => !p.endedAt)
+
+/** Ended campaigns, most recently ended first. */
+export const endedParties = (parties: readonly Party[]): Party[] =>
+  parties.filter(p => p.endedAt).sort((a, b) => b.endedAt!.localeCompare(a.endedAt!))
+
 /** Whether this player may open every member's full sheet, view only: the campaign's DM, or the admin. */
 export const canWatchSheets = (party: Party | undefined, userId: string) => isPartyDm(party, userId) || isAdmin(userId)
 

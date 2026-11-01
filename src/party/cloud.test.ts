@@ -4,10 +4,12 @@ import type { RollResult } from '../dice'
 // A tiny stand-in for the parties tables and RPCs, with the server's rules for one caller.
 const server = vi.hoisted(() => ({
   me: 'acct-roy' as string | null,
-  parties: new Map<string, { id: string; name: string; code: string; dm_id: string; stash: unknown; rev: number; created_at: string; updated_at: string }>(),
+  parties: new Map<string, { id: string; name: string; code: string; dm_id: string; stash: unknown; rev: number; created_at: string; updated_at: string; ended_at?: string | null }>(),
   members: [] as { party_id: string; user_id: string; character_id: string | null; joined_at: string }[],
   /** Simulates another member writing the stash between our read and write. */
   raceOnce: false,
+  /** A server without the restore_party migration: no ended_at column, end_party deletes. */
+  old: false,
 }))
 
 vi.mock('../cloud', () => {
@@ -23,9 +25,27 @@ vi.mock('../cloud', () => {
         if (args.p_dm && args.p_dm !== server.me) server.members.push({ party_id: args.p_id!, user_id: args.p_dm, character_id: null, joined_at: now })
         return { data: null, error: null }
       }
+      const dmOf = (id: string) => server.parties.get(id)?.dm_id === server.me
+      if (name === 'end_party') {
+        if (!dmOf(args.p_party!)) return { data: null, error: { code: 'P0001', message: 'only the DM can end this campaign' } }
+        if (server.old) server.parties.delete(args.p_party!)
+        else server.parties.get(args.p_party!)!.ended_at = now
+        return { data: null, error: null }
+      }
+      if (name === 'restore_party') {
+        if (!dmOf(args.p_party!)) return { data: null, error: { code: 'P0001', message: 'only the DM can bring this campaign back' } }
+        server.parties.get(args.p_party!)!.ended_at = null
+        return { data: null, error: null }
+      }
+      if (name === 'delete_party') {
+        if (!dmOf(args.p_party!) || !server.parties.get(args.p_party!)!.ended_at) return { data: null, error: { code: 'P0001', message: 'only the DM can delete an ended campaign' } }
+        server.parties.delete(args.p_party!)
+        return { data: null, error: null }
+      }
       if (name === 'join_party') {
         const p = [...server.parties.values()].find(x => x.code === args.p_code)
         if (!p) return { data: null, error: null }
+        if (p.ended_at) return { data: null, error: { code: 'P0001', message: 'campaign ended' } }
         server.members.push({ party_id: p.id, user_id: server.me!, character_id: args.p_character, joined_at: now })
         return { data: p.id, error: null }
       }
@@ -33,10 +53,11 @@ vi.mock('../cloud', () => {
     },
     from: () => {
       const filters: [string, unknown][] = []
+      let noColumn = false
       const q = {
-        select: () => q,
+        select: (cols = '') => { noColumn = server.old && cols.includes('ended_at'); return q },
         eq: (k: string, v: unknown) => { filters.push([k, v]); return q },
-        returns: async () => ({ data: rowsFor(), error: null }),
+        returns: async () => noColumn ? { data: null, error: { code: '42703', message: 'column does not exist' } } : { data: rowsFor(), error: null },
         maybeSingle: async () => ({ data: rowsFor().find(p => p.id === filters.find(f => f[0] === 'id')?.[1]) ?? null, error: null }),
         update: (patch: { stash: unknown; rev: number }) => ({
           eq: (_: string, id: string) => ({
@@ -58,7 +79,7 @@ vi.mock('../cloud', () => {
   return { getCloudAccountId: () => server.me, getSupabase: async () => db, isCloudEnabled: () => true }
 })
 
-import { createParty, joinParty, listParties, updateStash } from './store'
+import { canUndoEnd, createParty, deleteParty, endParty, joinParty, listEndedParties, listParties, restoreParty, updateStash } from './store'
 import { mergeRollLists } from './feed'
 
 describe('cloud parties', () => {
@@ -73,6 +94,7 @@ describe('cloud parties', () => {
     server.me = 'acct-roy'
     server.parties.clear()
     server.members.length = 0
+    server.old = false
   })
 
   it('creates on the server and another account joins by code', async () => {
@@ -110,6 +132,59 @@ describe('cloud parties', () => {
     const other = await createParty('Second table', 'local-1', 'local-2')
     expect(other.dmId).toBe('local-2')
     expect(other.members.map(m => m.userId)).toEqual(['local-1', 'local-2'])
+  })
+
+  it('ends a campaign without losing it, and its DM brings it back for everyone', async () => {
+    server.me = 'acct-noa'
+    const party = await createParty('Garden', 'acct-noa')
+    server.me = 'acct-roy'
+    await joinParty(party.code, 'acct-roy', 'c-ash')
+
+    expect(await endParty(party.id, 'acct-roy')).toBe(false)
+    server.me = 'acct-noa'
+    expect(canUndoEnd(party.id)).toBe(true)
+    expect(await endParty(party.id, 'acct-noa')).toBe(true)
+    expect(await listParties('acct-noa')).toEqual([])
+    expect((await listEndedParties('acct-noa')).map(p => p.id)).toEqual([party.id])
+    expect(server.members).toHaveLength(2)
+
+    server.me = 'acct-tamir'
+    expect(await joinParty(party.code, 'acct-tamir')).toEqual({ ok: false, reason: 'ended' })
+
+    server.me = 'acct-noa'
+    expect(await restoreParty(party.id, 'acct-noa')).toBe(true)
+    const back = await listParties('acct-noa')
+    expect(back.map(p => [p.id, p.code, p.members.length, p.endedAt])).toEqual([[party.id, party.code, 2, undefined]])
+    expect(await listEndedParties('acct-noa')).toEqual([])
+  })
+
+  it('deletes only an ended campaign for good', async () => {
+    const party = await createParty('Heroes', 'acct-roy')
+    expect(await deleteParty(party.id, 'acct-roy')).toBe(false)
+    await endParty(party.id, 'acct-roy')
+    expect(await deleteParty(party.id, 'acct-roy')).toBe(true)
+    expect(server.parties.has(party.id)).toBe(false)
+    expect(await listEndedParties('acct-roy')).toEqual([])
+  })
+
+  it('on a server that still deletes ended campaigns, lists parties and warns that End is final', async () => {
+    server.old = true
+    const party = await createParty('Heroes', 'acct-roy')
+    expect((await listParties('acct-roy')).map(p => p.id)).toEqual([party.id])
+    expect(canUndoEnd(party.id)).toBe(false)
+  })
+
+  it('device campaigns end, come back and delete the same way', async () => {
+    const party = await createParty('Kids table', 'local-1')
+    expect(canUndoEnd(party.id)).toBe(true)
+    await endParty(party.id, 'local-1')
+    expect(await listParties('local-1')).toEqual([])
+    expect((await joinParty(party.code, 'local-2')).ok).toBe(false)
+    await restoreParty(party.id, 'local-1')
+    expect((await listParties('local-1')).map(p => p.endedAt)).toEqual([undefined])
+    await endParty(party.id, 'local-1')
+    expect(await deleteParty(party.id, 'local-1')).toBe(true)
+    expect(await listEndedParties('local-1')).toEqual([])
   })
 
   it('stash changes read again when someone else wrote first', async () => {
