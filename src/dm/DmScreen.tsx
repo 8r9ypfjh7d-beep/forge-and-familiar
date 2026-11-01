@@ -14,6 +14,7 @@ import { getMap, MapPicker, MapsTab } from '../maps'
 import { PartyLevelUp, type Party } from '../party'
 import { Codex } from '../lore'
 import { usePartyNames } from '../lore/useNames'
+import { SessionNotes } from '../sessions'
 import { fetchPartyCharacters } from '../party/cloud'
 import { GiveRewards } from '../party/GiveRewards'
 import { StatBlock } from '../monsters'
@@ -38,11 +39,11 @@ import { readDmEdition, writeDmEdition } from './edition'
 
 const newId = () => crypto.randomUUID()
 
-export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'maps' | 'reference' | 'npcs' | 'requests' | 'lore'
+export type DmTab = 'encounters' | 'rolls' | 'monsters' | 'maps' | 'reference' | 'npcs' | 'requests' | 'lore' | 'sessions'
 type Tab = DmTab
-const TABS: Tab[] = ['encounters', 'lore', 'rolls', 'monsters', 'maps', 'reference', 'npcs', 'requests']
+const TABS: Tab[] = ['encounters', 'lore', 'sessions', 'rolls', 'monsters', 'maps', 'reference', 'npcs', 'requests']
 const TAB_KEYS: Record<Tab, MessageKey> = {
-  encounters: 'dm.tab.encounters', rolls: 'dm.tab.rolls', monsters: 'dm.tab.monsters', maps: 'dm.tab.maps', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests', lore: 'dm.tab.lore',
+  encounters: 'dm.tab.encounters', rolls: 'dm.tab.rolls', monsters: 'dm.tab.monsters', maps: 'dm.tab.maps', reference: 'dm.tab.reference', npcs: 'dm.tab.npcs', requests: 'dm.tab.requests', lore: 'dm.tab.lore', sessions: 'sessions.tab',
 }
 const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
   none: 'dm.diff.none', trivial: 'dm.diff.trivial', low: 'dm.diff.low', moderate: 'dm.diff.moderate', high: 'dm.diff.high', beyond: 'dm.diff.beyond',
@@ -205,6 +206,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
           {tab === 'npcs' && <NpcsTab state={state} update={update} onGiveStats={makeNpc && (n => makeNpc({ text: n }))} />}
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} userId={userId} />}
           {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <LoreNoCampaign runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
+          {tab === 'sessions' && (party ? <SessionNotes party={party} userId={userId} onOpenLore={() => setTab('lore')} /> : <LoreNoCampaign what="sessions" runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
         </div>
       </div>
       <p className="hint dm-credit">{t('dm.credit')}</p>
@@ -215,16 +217,16 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
 
 // ---------- Lore tab without a campaign in play ----------
 
-/** Lore belongs to a campaign: open one the DM runs, or start one, right here. */
-function LoreNoCampaign({ runs, onPick, onStart }: { runs: Party[]; onPick?: (id: string) => void; onStart?: () => void }) {
+/** Lore and session notes belong to a campaign: open one the DM runs, or start one, right here. */
+function LoreNoCampaign({ what = 'lore', runs, onPick, onStart }: { what?: 'lore' | 'sessions'; runs: Party[]; onPick?: (id: string) => void; onStart?: () => void }) {
   const { t } = useI18n()
   return (
     <div className="glass thin dm-lore-start">
-      <h3>{t('lore.startTitle')}</h3>
-      <p className="hint">{t(runs.length ? 'lore.pickCampaign' : 'lore.noCampaign')}</p>
+      <h3>{t(`${what}.startTitle`)}</h3>
+      <p className="hint">{t(runs.length ? `${what}.pickCampaign` : `${what}.noCampaign`)}</p>
       <div className="row wrap">
         {onPick && runs.map(p => (
-          <button key={p.id} type="button" className="glass-btn prominent" onClick={() => onPick(p.id)}>{t('lore.openFor', { name: p.name })}</button>
+          <button key={p.id} type="button" className="glass-btn prominent" onClick={() => onPick(p.id)}>{t(`${what}.openFor`, { name: p.name })}</button>
         ))}
         {onStart && <button type="button" className={runs.length ? 'glass-btn' : 'glass-btn prominent'} onClick={onStart}>{t('party.start')}</button>}
       </div>

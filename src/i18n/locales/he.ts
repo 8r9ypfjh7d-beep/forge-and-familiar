@@ -20,6 +20,7 @@ import { itemsHe } from './items.he'
 import { useHe } from './use.he'
 import { hurtHe } from './hurt.he'
 import { npcHe } from './npc.he'
+import { sessionsHe } from './sessions.he'
 import { npcBuildHe } from './npcbuild.he'
 import { sheetTermsHe } from './sheetnames.he'
 import { suppliesHe } from './supplies.he'
@@ -49,6 +50,7 @@ const messages: Messages = {
   ...useHe,
   ...hurtHe,
   ...npcHe,
+  ...sessionsHe,
   ...npcBuildHe,
   ...suppliesHe,
   ...picks2014He,
@@ -1086,7 +1088,7 @@ const messages: Messages = {
   'party.confirmLeave': 'לעזוב את {name}? המערכה תמשיך בשביל האחרים. הדמות שלכם נשארת ב"הדמויות שלי".',
   'party.end': 'סיום המערכה',
   'party.confirmEnd': 'לסיים את {name} לכולם?',
-  'party.confirmEndBody': 'אי אפשר לבטל את זה. המערכה תיעלם מהרשימה של כל השחקנים, ואיתה המחסן המשותף והמטבעות, הלור, הדפים שחולקו, הסקרים, ההטלות הסודיות והמפה החיה. הדמויות נשארות ב"הדמויות שלי"; הדל"שים, המפות והקרבות המתוכננים שלכם נשארים במסך השה"מ.',
+  'party.confirmEndBody': 'אי אפשר לבטל את זה. המערכה תיעלם מהרשימה של כל השחקנים, ואיתה המחסן המשותף והמטבעות, הלור, סיכומי המפגשים, הדפים שחולקו, הסקרים, ההטלות הסודיות והמפה החיה. הדמויות נשארות ב"הדמויות שלי"; הדל"שים, המפות והקרבות המתוכננים שלכם נשארים במסך השה"מ.',
   'party.endFailed': 'לא הצלחנו לסיים את המערכה. בדקו את החיבור ונסו שוב.',
   'party.confirmEndUndoable': 'המערכה תיעלם מהרשימה של כל השחקנים ותעבור ל"מערכות שהסתיימו" בתחתית מסך הבית. שום דבר לא הולך לאיבוד: המחסן, הלור, המפות והחברים נשארים, ואפשר להחזיר אותה בכל זמן.',
   'party.endedTitle': 'מערכות שהסתיימו ({count})',

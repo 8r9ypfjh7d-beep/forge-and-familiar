@@ -34,6 +34,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261030210000_party_encounters.sql
 \ir ../migrations/20261030220000_lore.sql
 \ir ../migrations/20261031100000_assistant_usage.sql
+\ir ../migrations/20261101130000_session_notes.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -381,6 +382,31 @@ end $$;
 set test.uid = '00000000-0000-0000-0000-00000000000a';
 delete from lore_chapters where id = 'ch-1';
 select pg_temp.check((select count(*) from handout_seen) = 0, 'the DM resets receipts on take back');
+
+-- Session notes (src/sessions): players read shared notes only; the private half is the DM's alone.
+insert into session_notes (id, party_id, data, shared_at) values
+  ('sn-1', 'p-2', '{"number":1,"recap":"We met"}', '2026-11-01T09:00:00.000Z'),
+  ('sn-2', 'p-2', '{"number":2,"recap":""}', null);
+insert into session_note_secrets (id, party_id, data) values ('sn-1', 'p-2', '{"notes":"The duke lies"}');
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select array_agg(id) from session_notes) = '{sn-1}', 'a player reads only shared session notes');
+select pg_temp.check((select count(*) from session_note_secrets) = 0, 'a player never reads the DM''s private session notes');
+do $$ begin
+  insert into session_notes (id, party_id, data) values ('sn-x', 'p-2', '{}');
+  raise exception 'FAILED: player wrote a session note';
+exception when insufficient_privilege then raise notice 'ok: only the DM writes session notes';
+end $$;
+update session_notes set data = '{"recap":"hacked"}' where id = 'sn-1';
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select data->>'recap' from session_notes where id = 'sn-1') = 'We met', 'a player cannot change a shared note');
+select pg_temp.check((select count(*) from session_notes) = 2 and (select count(*) from session_note_secrets) = 1, 'the DM reads every note and its private half');
+do $$ begin
+  insert into session_note_secrets (id, party_id, data) values ('sn-2', 'p-1', '{}');
+  raise exception 'FAILED: secret filed under another party';
+exception when insufficient_privilege then raise notice 'ok: a private half stays with its own note''s party';
+end $$;
+delete from session_notes where id = 'sn-1';
+select pg_temp.check((select count(*) from session_note_secrets) = 0, 'deleting a note deletes its private half');
 
 -- Session polls.
 set test.uid = '00000000-0000-0000-0000-00000000000b';
