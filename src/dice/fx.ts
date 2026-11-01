@@ -36,6 +36,14 @@ export function critKind(r: RollResult): CritKind | null {
   return isNat20(r) ? 'nat20' : isNat1(r) ? 'nat1' : null
 }
 
+/** How a roll was recorded. Quiet rolls (the DM rolling for monsters and NPCs) tumble and land but never take over the screen. */
+export interface RecordOptions {
+  quiet?: boolean
+}
+
+/** The full-screen moment a recorded roll shows: none for quiet rolls. */
+export const fxCritKind = (r: RollResult, opts?: RecordOptions): CritKind | null => (opts?.quiet ? null : critKind(r))
+
 /** How many lines each moment has; keys are dice.nat20.line1..N and dice.nat1.line1..N in both locales. */
 export const NAT20_LINES = 8
 export const NAT1_LINES = 8
@@ -55,7 +63,7 @@ export const pickNat20Line = (random: () => number, last = 0): number => pickLin
  * the first d20 roll of the burst, else the first roll. A burst ends when `windowMs` passes without a new roll.
  */
 export class RollFxBus {
-  private listeners = new Set<(r: RollResult) => void>()
+  private listeners = new Set<(r: RollResult, opts: RecordOptions) => void>()
   private shown: { roll: RollResult; at: number } | null = null
 
   private windowMs: number
@@ -66,7 +74,7 @@ export class RollFxBus {
     this.now = now
   }
 
-  push(r: RollResult): void {
+  push(r: RollResult, opts: RecordOptions = {}): void {
     const at = this.now()
     const prev = this.shown
     if (prev && at - prev.at < this.windowMs) {
@@ -74,10 +82,10 @@ export class RollFxBus {
       if (prev.roll.d20 || !r.d20) return
     }
     this.shown = { roll: r, at }
-    this.listeners.forEach(l => l(r))
+    this.listeners.forEach(l => l(r, opts))
   }
 
-  subscribe = (l: (r: RollResult) => void): (() => void) => {
+  subscribe = (l: (r: RollResult, opts: RecordOptions) => void): (() => void) => {
     this.listeners.add(l)
     return () => this.listeners.delete(l)
   }

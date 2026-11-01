@@ -42,7 +42,7 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
   const [last, setLast] = useState<ReturnType<typeof record> | null>(null)
   const who = rollAs ?? title ?? m.name
   const say = (r: ReturnType<typeof record>) => setLast(r)
-  const d20 = (bonus: number, label: string, type: 'check' | 'save' | 'attack') => say(record(rollD20(bonus, { label: `${who}: ${label}` }, type)))
+  const d20 = (bonus: number, label: string, type: 'check' | 'save' | 'attack') => say(record(rollD20(bonus, { label: `${who}: ${label}` }, type), { quiet: true }))
   const dmg = (dice: string, label: string) => {
     try { say(roll(dice, { label: `${who}: ${label}` })) } catch { /* not dice notation */ }
   }

@@ -1,7 +1,7 @@
-// Roll effects overlay: a die tumbles and lands on every recorded roll; a natural 20 or natural 1 takes over the screen (CritFx).
+// Roll effects overlay: a die tumbles and lands on every recorded roll; a natural 20 or natural 1 takes over the screen (CritFx), except on quiet rolls.
 // Reduce motion (a11y panel or the OS) skips the tumble and the effects; the result and the joke stay.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { critKind, CRIT_LINES, headlineDie, pickLine, type CritKind, type DieFace, type RollFxBus } from '../fx'
+import { CRIT_LINES, fxCritKind, headlineDie, pickLine, type CritKind, type DieFace, type RollFxBus } from '../fx'
 import { CritFx, type Crit } from './CritFx'
 import './dice.css'
 
@@ -41,11 +41,11 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
   useEffect(() => {
     const clear = () => { timers.current.forEach(id => clearTimeout(id)); timers.current = [] }
     const later = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn, ms)) }
-    const unsub = bus.subscribe(r => {
+    const unsub = bus.subscribe((r, opts) => {
       const face = headlineDie(r)
       if (!face) return
       clear()
-      const kind = critKind(r)
+      const kind = fxCritKind(r, opts)
       const key = Date.now()
       const land = () => {
         if (kind) {
