@@ -52,6 +52,7 @@ function logText(text: string, i18n: I18n): string {
     }
     case 'split': return t('stash.log.split', { ways: p.ways, coins: coinText(p.share, t) })
     case 'milestone': return t('stash.log.milestone', { who: p.who })
+    case 'toLevel': return t('stash.log.toLevel', { who: p.who, level: p.level })
     case 'xp': return t('stash.log.xp', { xp: p.xp, who: p.who })
     default: return p.text
   }
