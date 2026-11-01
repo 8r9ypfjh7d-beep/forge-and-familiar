@@ -1,6 +1,6 @@
 # Codex (campaign lore)
 
-The campaign's lore book. The DM writes chapters of typed entries in advance (letters, places, people, rumors, maps...) and reveals each piece when the party discovers it. Players read what they have found by chapter or as a "Story so far" timeline. Shown on the campaign page and as the Codex tab of the DM screen. It grew out of Hand-outs; old hand-outs are entries of the same kinds, so nothing was migrated.
+The campaign's lore book. The DM writes chapters of typed entries in advance (letters, places, people, rumors, maps...) and reveals each piece when the party discovers it. Players read what they have found by chapter or as a "Story so far" timeline. Shown on the campaign page and as the Lore tab of the DM screen (labelled "Lore" in the app). With no campaign the DM runs in play, the tab offers to open one they run or start one; an empty Codex shows a "write your first entry" button. It grew out of Hand-outs; old hand-outs are entries of the same kinds, so nothing was migrated.
 
 ## Files Covered
 

@@ -253,3 +253,5 @@
 
 /* NPC sheets in a plan */
 .ff-sheet.ff-dm .dm-add-npc { margin-block-start: var(--sp-2); max-inline-size: 100%; }
+.ff-sheet.ff-dm .dm-lore-start { padding: var(--sp-3); display: grid; gap: var(--sp-2); }
+.ff-sheet.ff-dm .dm-lore-start h3 { margin: 0; }

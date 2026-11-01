@@ -157,7 +157,14 @@ export function Codex({ party, userId, nameOf }: { party: Party; userId: string;
       )}
 
       {visible.length === 0 && groups.length === 0 ? (
-        <p className="muted small">{dm ? t('lore.emptyDm') : t('lore.emptyPlayer')}</p>
+        dm ? (
+          !editing && (
+            <div className="glass thin lore-empty-dm">
+              <p>{t('lore.emptyDm')}</p>
+              <button className="glass-btn prominent" onClick={() => setEditing('new')}>{t('lore.firstEntry')}</button>
+            </div>
+          )
+        ) : <p className="muted small">{t('lore.emptyPlayer')}</p>
       ) : mode === 'timeline' ? (
         <Timeline entries={timeline(filtered, party, userId)} onOpen={view} />
       ) : (

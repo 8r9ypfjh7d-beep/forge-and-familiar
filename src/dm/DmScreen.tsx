@@ -50,7 +50,7 @@ const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
 type Update = (fn: (s: DmState) => DmState) => void
 
 /** The DM's own screen. It reads only the levels of the characters in the campaign being run, for the XP budget. */
-export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpenNpc, initialTab, party }: {
+export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpenNpc, initialTab, party, runs, onPickCampaign, onStartCampaign }: {
   userId: string
   onRunEncounter: (encounterId: string) => void
   /** Opens the NPC creator (#/npc/new); the prefill is already stashed. */
@@ -61,6 +61,12 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
   onOpenNpc?: (npcId: string) => void
   initialTab?: DmTab
   party?: Party
+  /** Campaigns this user runs, so the Lore tab can open one when none is in play. */
+  runs?: Party[]
+  /** Makes a campaign the one in play (its lore opens here). */
+  onPickCampaign?: (partyId: string) => void
+  /** Opens the campaign page to start one. */
+  onStartCampaign?: () => void
 }) {
   const { t } = useI18n()
   const { record } = useDice()
@@ -195,11 +201,30 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
           {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} onNew={makeNpc && (() => makeNpc())} />}
           {tab === 'npcs' && <NpcsTab state={state} update={update} onGiveStats={makeNpc && (n => makeNpc({ text: n }))} />}
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} userId={userId} />}
-          {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <p className="hint">{t('lore.noCampaign')}</p>)}
+          {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <LoreNoCampaign runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
         </div>
       </div>
       <p className="hint dm-credit">{t('dm.credit')}</p>
       {credits.map(c => <p key={c} className="hint dm-credit" dir="ltr" lang="en">{c}</p>)}
+    </div>
+  )
+}
+
+// ---------- Lore tab without a campaign in play ----------
+
+/** Lore belongs to a campaign: open one the DM runs, or start one, right here. */
+function LoreNoCampaign({ runs, onPick, onStart }: { runs: Party[]; onPick?: (id: string) => void; onStart?: () => void }) {
+  const { t } = useI18n()
+  return (
+    <div className="glass thin dm-lore-start">
+      <h3>{t('lore.startTitle')}</h3>
+      <p className="hint">{t(runs.length ? 'lore.pickCampaign' : 'lore.noCampaign')}</p>
+      <div className="row wrap">
+        {onPick && runs.map(p => (
+          <button key={p.id} type="button" className="glass-btn prominent" onClick={() => onPick(p.id)}>{t('lore.openFor', { name: p.name })}</button>
+        ))}
+        {onStart && <button type="button" className={runs.length ? 'glass-btn' : 'glass-btn prominent'} onClick={onStart}>{t('party.start')}</button>}
+      </div>
     </div>
   )
 }

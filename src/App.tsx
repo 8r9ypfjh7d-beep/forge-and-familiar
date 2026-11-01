@@ -325,7 +325,8 @@ export default function App() {
         {view.kind === 'familiar' && familiar && <FamiliarPage {...familiar} />}
         {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} campaign={partyDm ? playing.party : undefined} />}
         {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} onOpenSheet={id => setView({ kind: 'watch', id })} onOpenNpc={id => setView({ kind: 'npc', id })}
-          onNewNpc={() => setView({ kind: 'npc', id: 'new' })} />}
+          onNewNpc={() => setView({ kind: 'npc', id: 'new' })}
+          runs={playing.parties?.filter(p => p.dmId === active.id)} onPickCampaign={playing.choose} onStartCampaign={() => setView({ kind: 'party', startWith: 'start' })} />}
         {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}
         {view.kind === 'homebrew' && <Homebrew profile={active} />}
         {view.kind === 'admin' && admin && (
