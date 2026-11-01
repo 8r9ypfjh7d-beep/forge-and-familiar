@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useI18n } from '../../i18n'
 import type { MessageKey } from '../../i18n/locales/en'
-import type { ConditionId } from '../../rules/types'
+import type { Ability, ConditionId } from '../../rules/types'
+import { ABILITIES } from '../../rules'
 import { addEffect, endEffect } from '../engine'
 import { CONDITIONS, type Effect, type Encounter } from '../types'
 import type { Act } from './useEncounter'
@@ -21,7 +22,7 @@ const DURATIONS: { label: MessageKey; rounds: number | null; tick?: Effect['tick
 
 /** Active effects with time left, and the form to add one. */
 export function Effects({ enc, act }: { enc: Encounter; act: Act }) {
-  const { t, term } = useI18n()
+  const { t, term, abilityShort } = useI18n()
   const name = (id?: string) => enc.combatants.find(c => c.id === id)?.name
   return (
     <section className="glass thick effects">
@@ -37,7 +38,8 @@ export function Effects({ enc, act }: { enc: Encounter; act: Act }) {
                   <div className="muted small">
                     {[name(e.sourceId) && t('combat.fromLower', { name: name(e.sourceId) ?? '' }),
                       e.targetIds.length > 0 && t('combat.onLower', { names: e.targetIds.map(name).join(', ') }),
-                      e.condition && term('condition', e.condition, e.condition)].filter(Boolean).join(' · ')}
+                      e.condition && term('condition', e.condition, e.condition),
+                      e.save && t('combat.saveEndsTag', { ability: abilityShort(e.save.ability), dc: e.save.dc })].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 <span className="left">{e.remaining === null ? '∞' : t('combat.rounds', { count: e.remaining })}</span>
@@ -52,7 +54,7 @@ export function Effects({ enc, act }: { enc: Encounter; act: Act }) {
 }
 
 function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
-  const { t, term } = useI18n()
+  const { t, term, abilityShort } = useI18n()
   const [open, setOpen] = useState(false)
   const [effectName, setName] = useState('')
   const [sourceId, setSource] = useState(enc.activeId ?? '')
@@ -61,6 +63,9 @@ function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
   const [custom, setCustom] = useState('3')
   const [condition, setCondition] = useState<ConditionId | ''>('')
   const [concentration, setConcentration] = useState(false)
+  // A repeat save at the end of each target's turn (Hold Person: WIS, the caster's DC).
+  const [saveAbility, setSaveAbility] = useState<Ability | ''>('')
+  const [saveDc, setSaveDc] = useState('13')
 
   if (!open) return <button className="glass-btn small" onClick={() => { setSource(enc.activeId ?? ''); setOpen(true) }}>{t('combat.addEffect')}</button>
 
@@ -71,8 +76,9 @@ function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
     act(e => addEffect(e, {
       id: newId(), name: effectName.trim(), sourceId: sourceId || undefined, targetIds: targets,
       condition: condition || undefined, concentration: concentration && !!sourceId, remaining, tick: d.tick ?? 'start',
+      ...(saveAbility && targets.length ? { save: { ability: saveAbility, dc: Math.max(1, Math.floor(Number(saveDc) || 10)) } } : {}),
     }))
-    setName(''); setTargets([]); setCondition(''); setConcentration(false); setOpen(false)
+    setName(''); setTargets([]); setCondition(''); setConcentration(false); setSaveAbility(''); setOpen(false)
   }
 
   return (
@@ -106,6 +112,13 @@ function EffectForm({ enc, act }: { enc: Encounter; act: Act }) {
           {CONDITIONS.map(x => <option key={x} value={x}>{term('condition', x, x)}</option>)}
         </select>
       </label>
+      <label>{t('combat.repeatSave')}
+        <select value={saveAbility} onChange={e => setSaveAbility(e.target.value as Ability | '')}>
+          <option value="">{t('common.none')}</option>
+          {ABILITIES.map(x => <option key={x} value={x}>{abilityShort(x)}</option>)}
+        </select>
+      </label>
+      {saveAbility && <label>{t('combat.saveDcLabel')}<input inputMode="numeric" value={saveDc} onChange={e => setSaveDc(e.target.value.replace(/\D/g, ''))} /></label>}
       <label className="check">
         <input type="checkbox" checked={concentration} disabled={!sourceId} onChange={e => setConcentration(e.target.checked)} />
         {t('combat.concentration')}

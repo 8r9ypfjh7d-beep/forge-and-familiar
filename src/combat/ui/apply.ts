@@ -24,7 +24,7 @@ const DEFENSE_KEYS = { immune: 'combat.log.immune', resistant: 'combat.log.resis
  * `block` is a library monster row's stat block: typed damage then meets its immunities, resistances and
  * vulnerabilities, as on an NPC sheet.
  */
-export function applyDamage(e: Encounter, party: Party, remote: ReadonlySet<string>, targetId: string, damage: Damage, checkId: string, npcs: NpcSheets = {}, block?: Monster): Outcome {
+export function applyDamage(e: Encounter, party: Party, remote: ReadonlySet<string>, targetId: string, damage: Damage, checkId: string, npcs: NpcSheets = {}, block?: Monster, critical = false): Outcome {
   const c = e.combatants.find(x => x.id === targetId)
   const list = parts(damage)
   const amount = list.reduce((n, p) => n + p.amount, 0)
@@ -58,9 +58,10 @@ export function applyDamage(e: Encounter, party: Party, remote: ReadonlySet<stri
   const pc = c.characterId ? party[c.characterId] : undefined
   if (!pc) return e
   if (c.characterId && remote.has(c.characterId)) {
-    return addHit(addLog(e, 'combat.log.hitRemote', { name: c.name, amount }), { id: checkId, characterId: c.characterId, kind: 'damage', amount, at: new Date().toISOString() })
+    return addHit(addLog(e, 'combat.log.hitRemote', { name: c.name, amount }), { id: checkId, characterId: c.characterId, kind: 'damage', amount, at: new Date().toISOString(), ...(critical ? { critical } : {}) })
   }
-  return { encounter: noteDamage(addLog(e, 'combat.log.takes', { name: c.name, amount }), c.id, amount, checkId), characters: [takeDamage(pc, amount)] }
+  // A critical hit on a party member at 0 HP counts as two failed death saves (sheet engine).
+  return { encounter: noteDamage(addLog(e, 'combat.log.takes', { name: c.name, amount }), c.id, amount, checkId), characters: [takeDamage(pc, amount, { critical })] }
 }
 
 export function applyHeal(e: Encounter, party: Party, remote: ReadonlySet<string>, targetId: string, amount: number, npcs: NpcSheets = {}): Outcome {
@@ -83,4 +84,22 @@ export function applyNpcConditions(e: Encounter, sheet: NpcSheet, next: Conditio
   for (const x of s.state.conditions) if (!next.includes(x)) s = setCondition(s, x, false)
   for (const x of next) s = setCondition(s, x, true)
   return { encounter: e, npcs: [s] }
+}
+
+/** Runs changes one after another, each seeing the characters and NPC sheets the previous ones changed. */
+export function chain(e: Encounter, party: Party, npcs: NpcSheets, steps: ((e: Encounter, party: Party, npcs: NpcSheets) => Outcome)[]): Outcome {
+  let enc = e
+  const p: Party = { ...party }
+  const n: NpcSheets = { ...npcs }
+  const characters = new Map<string, Character>()
+  const sheets = new Map<string, NpcSheet>()
+  for (const step of steps) {
+    const out = step(enc, p, n)
+    if ('encounter' in out) {
+      enc = out.encounter
+      for (const c of out.characters ?? []) { p[c.id] = c; characters.set(c.id, c) }
+      for (const s of out.npcs ?? []) { n[s.id] = s; sheets.set(s.id, s) }
+    } else enc = out
+  }
+  return { encounter: enc, characters: [...characters.values()], npcs: [...sheets.values()] }
 }

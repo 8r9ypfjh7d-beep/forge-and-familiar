@@ -263,3 +263,19 @@
 .combat-notes { padding: var(--sp-3); }
 .combat-notes > summary { cursor: pointer; }
 .combat-notes textarea { inline-size: 100%; margin-block-start: var(--sp-2); resize: vertical; }
+
+/* Automation: hits that landed, the end-of-fight card, legendary reminders, the switches. */
+.statblock .sb-hit + .sb-hit { border-block-start: 1px solid var(--line); padding-block-start: var(--sp-2); margin-block-start: var(--sp-2); }
+.statblock .sb-hit-name { margin: 0 0 var(--sp-1); }
+.statblock .sb-applied { margin: var(--sp-1) 0 0; font-size: 0.9rem; font-weight: 600; }
+.combat-legendary { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin: 0; }
+.combat-legendary .glass-chip { cursor: pointer; font-size: 0.85rem; }
+.combat-outcome { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-3); }
+.combat-outcome p { margin: 0; }
+.combat-outcome.won { border-inline-start: 3px solid var(--good); }
+.combat-outcome.lost { border-inline-start: 3px solid var(--bad); }
+.combat-auto { padding: var(--sp-3); }
+.combat-auto[open] { display: grid; gap: var(--sp-2); }
+.combat-auto > summary { cursor: pointer; }
+.combat-auto p { margin: 0; }
+.combat-auto .check { display: flex; gap: var(--sp-2); align-items: flex-start; }

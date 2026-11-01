@@ -18,11 +18,12 @@ import type { NpcSheets } from '../npcRows'
 import { applyDamage, applyHeal, applyNpcConditions } from './apply'
 import { MonsterActions } from './MonsterActions'
 import { rowName } from '../names'
+import type { AutoSettings } from '../auto'
 import type { Act } from './useEncounter'
 
 const newId = () => crypto.randomUUID()
 
-export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, monster, monsterOf, act, first, last }: {
+export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, monster, monsterOf, act, first, last, auto, focus }: {
   enc: Encounter
   combatant: Combatant
   party: Party
@@ -37,6 +38,10 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
   act: Act
   first: boolean
   last: boolean
+  /** The DM's automation switches, for the stat block. */
+  auto?: AutoSettings
+  /** Changes when something outside asks this row to open its stat block (a legendary action reminder). */
+  focus?: number
 }) {
   const { record } = useDice()
   const { t, term, monsterName } = useI18n()
@@ -76,6 +81,10 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
     }
     wasActive.current = active
   }, [active])
+  // Asked from outside (the turn bar's legendary reminder): unfold the stat block and bring the row into view.
+  const [seenFocus, setSeenFocus] = useState(focus)
+  if (focus !== seenFocus) { setSeenFocus(focus); if (focus) setBlock(true) }
+  useEffect(() => { if (focus) rowRef.current?.scrollIntoView?.({ block: 'nearest' }) }, [focus])
   const commitInit = () => {
     if (initDraft === null) return
     const v = initDraft === '-' ? '' : initDraft
@@ -134,6 +143,10 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
           {sheet && <span className="tag">{t('combat.npcTag')}</span>}
           {ac !== undefined && <span className="tag" title={t('combat.acTitle')}>{t('stat.ac')} {ac}</span>}
           {life === 'dying' && <span className="tag bad">{t('combat.dying')}</span>}
+          {(life === 'dying' || life === 'stable') && !status.conditions.includes('unconscious') && <span className="tag" title={t('combat.unconsciousHint')}>{cond('unconscious')}</span>}
+          {ch && life === 'dying' && (ch.state.deathSaves.successes > 0 || ch.state.deathSaves.failures > 0) && (
+            <span className="tag" dir="ltr" title={t('combat.deathSavesTitle')}>{'✓'.repeat(ch.state.deathSaves.successes)}{'✕'.repeat(ch.state.deathSaves.failures)}</span>
+          )}
           {life === 'stable' && <span className="tag">{t('combat.stable')}</span>}
           {life === 'dead' && <span className="tag bad">{c.kind === 'pc' ? t('combat.dead') : t('combat.down')}</span>}
           {c.kind === 'npc' && isBloodied(c.hp) && <span className="tag bad">{t('combat.bloodied')}</span>}
@@ -184,7 +197,7 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
       </div>
       {showBlock && monster && (
         <div className="block-slot">
-          <MonsterActions enc={enc} combatant={c} monster={monster} monsterOf={monsterOf} party={party} act={act} onClose={() => setBlock(false)} />
+          <MonsterActions enc={enc} combatant={c} monster={monster} monsterOf={monsterOf} party={party} act={act} auto={auto} onClose={() => setBlock(false)} />
         </div>
       )}
       <ConfirmDialog open={removing} title={t('combat.removeConfirm', { name })} yes={t('common.remove')}
