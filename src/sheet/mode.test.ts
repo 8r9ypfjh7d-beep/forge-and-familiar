@@ -17,8 +17,8 @@ describe('sheet modes', () => {
     }
   })
 
-  it('story mode: notes, effects, attacks and inventory beside the shared widgets', () => {
-    expect(sheetLayout('story', { dying: false }).columns).toEqual([['spellCard', 'skills'], ['notes', 'effects', 'attacks', 'inventory']])
+  it('story mode: notes, effects, rewards, attacks and inventory beside the shared widgets', () => {
+    expect(sheetLayout('story', { dying: false }).columns).toEqual([['spellCard', 'skills'], ['notes', 'effects', 'boons', 'attacks', 'inventory']])
     for (const s of ['resources', 'supplies', 'history', 'spells'] as const) expect(all('story')).not.toContain(s)
   })
 

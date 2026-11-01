@@ -60,6 +60,14 @@ export function useSheetRolls(c: Character) {
       const damage = record({ ...rollParts(parts, { character, label }, 'damage', crit), action, damageType: opts.damageType })
       return hit ? { attack: hit, damage } : { damage }
     },
+    /** Any notation as a full result (for showing it), or undefined if the notation is invalid. */
+    any(notation: string, label: string): RollResult | undefined {
+      try {
+        return record(roll(notation, { character, label }))
+      } catch {
+        return undefined
+      }
+    },
     /** Any notation, e.g. a wand's "1d6+1" charges at dawn. Returns 0 if the notation is invalid. */
     total(notation: string, label: string): number {
       try {

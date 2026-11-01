@@ -41,7 +41,46 @@ export interface CharacterState {
     /** Rations eaten out of carried equipment packs (an Explorer's Pack holds 10 days); loose rations are an inventory stack. */
     packRationsUsed?: number
   }
+  /**
+   * Inspiration (2014) or Heroic Inspiration (2024): one at a time, given by the DM (src/party/gifts.ts) or marked by the player.
+   * 2024 Humans gain it on every long rest.
+   */
+  inspiration?: boolean
+  /** 2024 only: Heroic Inspiration gained while already holding it, waiting to be passed to an ally who lacks it. */
+  spareInspiration?: boolean
+  /** Charms and blessings the DM handed out (src/sheet/boons.ts), or that the player wrote down. */
+  boons?: Boon[]
 }
+
+/**
+ * A DM reward beyond XP and loot. A charm has a few uses and is gone once they are spent; a blessing stays,
+ * and its stat changes count while the character keeps it.
+ */
+export interface Boon {
+  /** The party gift's id when the DM gave it, so it lands once. */
+  id: string
+  name: string
+  /** What it does, in the giver's words. */
+  text?: string
+  kind: 'charm' | 'blessing'
+  /** Charms: total uses (1 when missing) and how many are spent. */
+  uses?: number
+  used?: number
+  /** What a tap on Use does besides spending a use. */
+  roll?: BoonRoll
+  /** Blessings: stat changes in the item effect shape (AC, saves, resistance...). */
+  stats?: ItemEffect[]
+  /** The giver's name, shown on the sheet. */
+  from?: string
+  at: string
+}
+
+/** A charm's tap: add a die to a d20 roll, roll a fresh d20, heal, or gain temporary hit points. */
+export type BoonRoll =
+  | { kind: 'bonusDie'; dice: string }
+  | { kind: 'reroll' }
+  | { kind: 'heal'; dice: string }
+  | { kind: 'tempHp'; value: number }
 
 /**
  * Something in effect on the character: a spell they cast (Armor of Agathys, Bless, Hex), a feature they used

@@ -51,3 +51,7 @@ Phones: the folded top card keeps the tabs on the first screen. Under 900px the 
 ## Party level (2026-11-01)
 
 Under the top card, `PartyLevelUp` (src/party) shows the campaign's levels and a one-tap "Give a level" (milestone award to the ticked players) or "Catch up to level N" for players behind the party's top level. It opens by itself while anyone is still levelling up and lists each player as sent / choosing / levelled up. Players get `LevelUpPrompt` on their device, which opens the existing Level Up screen. See src/party/PARTY.md.
+
+## Inspiration and rewards (2026-11-01)
+
+Under the top card, a campaign in play shows `GiveRewards` (`src/party/GiveRewards.tsx`, also on the campaign page): one tap gives a player Inspiration (players who hold it show a filled star), and "Give a reward" hands out a charm or blessing from presets or written by hand. Gifts travel in the party stash like XP (see `src/party/PARTY.md`).

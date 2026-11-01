@@ -15,6 +15,7 @@ import { PartyLevelUp, type Party } from '../party'
 import { Codex } from '../lore'
 import { usePartyNames } from '../lore/useNames'
 import { fetchPartyCharacters } from '../party/cloud'
+import { GiveRewards } from '../party/GiveRewards'
 import { StatBlock } from '../monsters'
 import { totalLevel } from '../rules'
 import { getCharacter } from '../storage'
@@ -181,6 +182,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
         sheets={party && onOpenSheet ? { heroes: heroes ?? [], onOpen: onOpenSheet } : undefined} />
       {party && <PartyLevelUp party={party} userId={userId} />}
       {requests && <StoryReminders list={requests} onOpen={() => setTab('requests')} />}
+      {party && <GiveRewards party={party} userId={userId} nameOf={nameOf} />}
       <div className="cs-tabs">
         <div className="cs-tablist" role="tablist" aria-label={t('dm.tabs')}>
           {TABS.map((id, i) => (

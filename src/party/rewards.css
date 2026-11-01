@@ -1,0 +1,16 @@
+/* The DM's Inspiration and rewards card (GiveRewards.tsx), on the campaign page and the DM screen. */
+.ff-rewards { padding: var(--sp-4); display: grid; gap: var(--sp-3); }
+.ff-rewards h3 { margin: 0; }
+.ff-rewards p { margin: 0; }
+.ff-rewards-head { display: grid; gap: 2px; }
+.ff-rewards .row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-2); }
+.ff-rewards-insp, .ff-rewards-boon { display: grid; gap: var(--sp-2); }
+.ff-rewards-boon > .glass-btn { justify-self: start; }
+.ff-rewards-label { font-weight: 600; }
+.ff-rewards .glass-chip:disabled { opacity: 1; cursor: default; }
+.ff-rewards .glass-chip.on span[aria-hidden] { color: var(--accent); }
+.ff-rewards-form { display: grid; gap: var(--sp-3); }
+.ff-rewards-form label { display: grid; gap: 4px; font-size: 0.92em; }
+.ff-rewards-form textarea { resize: vertical; }
+.ff-rewards input.amount { inline-size: 6.5em; }
+.ff-rewards-form > .glass-btn { justify-self: start; }

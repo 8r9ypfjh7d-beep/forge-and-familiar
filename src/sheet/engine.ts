@@ -5,6 +5,7 @@ import type { Character, CharacterState, HitDie } from '../model/character'
 import type { RestType } from '../rules/types'
 import type { ConditionId } from '../rules/types'
 import { dropSpentTempHp, effectsAfterRest, endEffect, loseConcentration } from './effects'
+import { gainInspiration, gainsInspirationOnLongRest } from './inspiration'
 import { abilityMod, getAbilityScores, getHitDice, getMaxHp, getResources, getSpellSlots, migrateSubclassIds } from '../rules'
 
 
@@ -34,8 +35,8 @@ export function vitals(c: Character): Vitals {
 /** Fills missing fields and clamps used counts to the current maxima (e.g. after a level change). */
 export function normalize(saved: Character): Character {
   const c = migrateSubclassIds(saved)
-  // Fields of removed features (exhaustion, inspiration, attunement, in-game clock) are dropped from old saves.
-  const { exhaustion: _e, inspiration: _i, attuned: _a, clock: _c, ...s } = c.state as CharacterState & Record<'exhaustion' | 'inspiration' | 'attuned' | 'clock', unknown>
+  // Fields of removed features (exhaustion, attunement, in-game clock) are dropped from old saves.
+  const { exhaustion: _e, attuned: _a, clock: _c, ...s } = c.state as CharacterState & Record<'exhaustion' | 'attuned' | 'clock', unknown>
   const { slots, pact } = getSpellSlots(c)
   const resources: CharacterState['resources'] = {}
   for (const r of getResources(c)) resources[r.id] = { used: clamp(s.resources?.[r.id]?.used ?? 0, 0, r.max) }
@@ -285,6 +286,7 @@ export function canLongRest(c: Character): boolean {
 /**
  * Ends a long rest: full HP, every slot and resource back, temp HP gone,
  * and half the total hit dice regained (minimum one, largest dice first). Needs at least 1 HP at the start.
+ * A 2024 Human also gains Heroic Inspiration (Resourceful).
  */
 export function longRest(c: Character): Character {
   if (!canLongRest(c)) return c
@@ -298,7 +300,8 @@ export function longRest(c: Character): Character {
     toRegain -= back
   }
   const rested: Character = { ...c, state: { ...state, hitDiceSpent, tempHp: 0, deathSaves: NO_SAVES, spellSlotsUsed: state.spellSlotsUsed.map(() => 0) } }
-  return withState(rested, { currentHp: effectiveMaxHp(rested) })
+  const healed = withState(rested, { currentHp: effectiveMaxHp(rested) })
+  return gainsInspirationOnLongRest(c) ? gainInspiration(healed) : healed
 }
 
 /** The free-text notes on the character (backstory, personality, reminders). */

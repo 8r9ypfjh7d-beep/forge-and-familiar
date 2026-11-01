@@ -1,8 +1,9 @@
-// Adds the DM's XP awards to the characters this player brought, on the device that has them.
+// Adds the DM's XP awards, Inspiration and rewards (gifts.ts) to the characters this player brought, on the device that has them.
 import { useEffect } from 'react'
 import { getCharacter, saveCharacter } from '../storage'
 import type { Party } from './types'
 import { takeAwards } from './xp'
+import { takeGifts } from './gifts'
 
 export function useXpAwards(userId: string | undefined, parties: Party[] | null) {
   useEffect(() => {
@@ -11,7 +12,7 @@ export function useXpAwards(userId: string | undefined, parties: Party[] | null)
     for (const id of ids) {
       getCharacter(id).then(c => {
         if (!c || c.ownerId !== userId) return
-        const next = takeAwards(c, parties)
+        const next = takeGifts(takeAwards(c, parties), parties)
         if (next !== c) saveCharacter(next)
       })
     }

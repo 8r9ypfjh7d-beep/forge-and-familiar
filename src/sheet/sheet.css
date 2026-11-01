@@ -301,3 +301,19 @@ form.inline input { width: 84px; }
 .ff-sheet .view-only-bar.noticed { background: color-mix(in srgb, var(--s-accent) 28%, transparent); color: var(--s-ink); font-weight: 600; }
 .metamagic .mm-font { margin-block-start: var(--sp-3); }
 .metamagic .mm-font .mm-name { flex: 1 1 5rem; }
+
+/* Rewards card: the DM's charms and blessings (src/sheet/components/Boons.tsx). */
+.ff-sheet .boons { display: grid; gap: var(--sp-2); }
+.ff-sheet .boons .hint { margin: 0; }
+.ff-sheet .boon-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.ff-sheet .boon { display: grid; gap: var(--sp-1); padding: var(--sp-2) var(--sp-3); border-radius: 12px; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); border-inline-start: 3px solid var(--accent); }
+.ff-sheet .boon--blessing { border-inline-start-color: color-mix(in srgb, var(--accent) 50%, gold); }
+.ff-sheet .boon-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); }
+.ff-sheet .boon-icon { color: var(--accent); }
+.ff-sheet .boon-kind { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.75; }
+.ff-sheet .boon-text { margin: 0; }
+.ff-sheet .boon-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); justify-content: flex-end; }
+.ff-sheet .boon-add { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.ff-sheet .boon-add input:not([type=number]) { flex: 1 1 10em; min-inline-size: 0; }
+.ff-sheet .boon-uses { display: inline-flex; align-items: center; gap: 6px; }
+.ff-sheet .boon-uses input { inline-size: 4.5em; }

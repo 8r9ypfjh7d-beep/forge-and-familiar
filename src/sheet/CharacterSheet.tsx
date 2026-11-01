@@ -9,6 +9,7 @@ import { HitPoints } from './components/HitPoints'
 import { Metamagic } from './components/Metamagic'
 import { Resources } from './components/Resources'
 import { Rests } from './components/Rests'
+import { Boons } from './components/Boons'
 import { Spellbook, SpellsCard } from '../spellbook'
 import { Inventory } from '../inventory'
 import { Supplies } from '../supplies/Supplies'
@@ -130,6 +131,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
       case 'death': return <DeathSaves key={s} {...p} />
       case 'rests': return <Rests key={s} {...p} />
       case 'effects': return <EffectsCard key={s} {...p} />
+      case 'boons': return <Boons key={s} {...p} always={mode === 'combat'} />
       case 'attacks': return <Attacks key={s} {...p} />
       case 'spells': return <Spellbook key={s} {...p} />
       case 'inventory': return <Inventory key={s} {...p} />
@@ -137,7 +139,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
       case 'metamagic': return <Metamagic key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
       case 'history': return viewOnly ? null : <History key={s} log={log} onUndo={undo} onUndoTo={undoTo} onRedo={redo} />
-      case 'summary': return <CharacterCard key={s} character={character} apply={apply} onLevelUp={onLevelUp} vitals={(layout.vitals ?? []).map(section)} />
+      case 'summary': return <CharacterCard key={s} character={character} apply={apply} party={party} userId={userId} onLevelUp={onLevelUp} vitals={(layout.vitals ?? []).map(section)} />
       case 'skills': return <SkillsPanel key={s} character={character} />
       case 'tabs': return layout.tabs ? <CombatTabs key={s} tabs={layout.tabs} render={section} aside={narrow ? <HpChip character={character} /> : undefined} want={wantTab} onPick={onPick} badges={{ map: !!live && !mapSeen }} /> : null
       case 'map': return live ? <LiveMapTab key={s} live={live} character={character} brings={brings} /> : null

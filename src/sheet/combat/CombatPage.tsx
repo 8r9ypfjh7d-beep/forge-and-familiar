@@ -40,6 +40,8 @@ import {
 } from './combat'
 import './combat.css'
 import { LastRoll, type Shown } from './LastRoll'
+import { InspirationLine } from '../components/Inspiration'
+import type { Party } from '../../party/types'
 
 interface Library {
   spells: Spell[]
@@ -79,7 +81,11 @@ function useLibrary(character: Character): Library {
  * The top card in both sheet modes: portrait and level, class, race, background, XP, proficiency,
  * armor class, speed and passive perception, Level Up and Initiative, with the sheet's HP and Rest.
  */
-export function CharacterCard({ character, vitals, onLevelUp, apply }: { character: Character; vitals: ReactNode; onLevelUp?: () => void; apply?: Apply }) {
+export function CharacterCard({ character, vitals, onLevelUp, apply, party, userId }: {
+  character: Character; vitals: ReactNode; onLevelUp?: () => void; apply?: Apply
+  /** The campaign in play, so Inspiration can be passed to an ally. */
+  party?: Party; userId?: string
+}) {
   const { t, term, className, raceName } = useI18n()
   const d = derive(character)
   const rolls = useSheetRolls(character)
@@ -131,6 +137,7 @@ export function CharacterCard({ character, vitals, onLevelUp, apply }: { charact
           <RockSenseButton character={character} />
         </div>
         {last && <LastRoll key={last.roll.id} rolls={[last]} onDone={() => setLast(null)} />}
+        {apply && <InspirationLine character={character} apply={apply} party={party} userId={userId} />}
       </div>
       <div className="cs-vitals">{vitals}</div>
     </section>
