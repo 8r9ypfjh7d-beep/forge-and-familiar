@@ -31,6 +31,14 @@ The campaign's lore book. The DM writes chapters of typed entries in advance (le
 - **Reveal moment.** Entries revealed while the player is in the app (`newArrivals`) pop a card; "Open it" goes to the campaign page and opens the entry. Reduce motion shows it still.
 - **Paste a document.** Headings become chapters and entries, all as drafts.
 
+## Ease of use (novice pass, 2026-11-01)
+
+- Plain words in the UI: "Show players" / "Hide from players" (code: reveal / take back), "Only you" for drafts, "Players see it" once shown.
+- The composer saves privately by default: the main button and Enter save a draft; "Save and show players" is its own button. Greyed buttons say what is missing (`lore.missing.*`).
+- Type picker is a grid of icons (`TYPE_ICONS`) with a one-line hint per type (`lore.typeHint.*`). Every type but the online table can carry a picture, with Add / Change / Remove buttons.
+- A Secret / Bold / Italic bar wraps the selected words in `||`, `**`, `*`. The teaser toggle shows only when a chapter is chosen.
+- On the campaign page the lore sits right under the members. `#/dm/lore` opens the tab.
+
 ## Across devices
 
 For a cloud party (`cloudForParty` in src/party/store.ts) entries and chapters live in Supabase and reach players live. The server applies the same rule as `canSee` (`20261028090000_party_shared.sql`); chapters are readable by members and written by the DM (`20261030220000_lore.sql`). Pictures go to the public `lore` Storage bucket under `<partyId>/` with a random file name; only that party's DM uploads or deletes. If the upload fails (bucket missing, offline) the entry keeps the data URL as before. Local parties keep everything on the device.

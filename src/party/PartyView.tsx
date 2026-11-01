@@ -276,11 +276,13 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
         ))}
       </div>
 
+      {/* Lore sits right under the party so players find what the DM revealed without scrolling past the stash. */}
+      <Codex party={party} userId={userId} nameOf={nameOf} />
+
       <GiveXp party={party} userId={userId} characters={characters} nameOf={nameOf} />
       <RollFeed party={party} nameOf={nameOf} />
       <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
       <PartyStash party={party} userId={userId} nameOf={nameOf} />
-      <Codex party={party} userId={userId} nameOf={nameOf} />
     </section>
   )
 }
