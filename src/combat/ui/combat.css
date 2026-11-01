@@ -258,3 +258,8 @@
 .custom-creature summary { cursor: pointer; font-weight: 600; color: var(--muted); padding-block: var(--sp-2); }
 .ff-combat a.glass-btn { text-decoration: none; }
 .monster-picker .lib-results .muted { white-space: nowrap; }
+/* The plan a fight came from, and its DM notes (fight audit unit 1). */
+.combat-head .plan-link { justify-self: end; margin-block-start: var(--sp-1); }
+.combat-notes { padding: var(--sp-3); }
+.combat-notes > summary { cursor: pointer; }
+.combat-notes textarea { inline-size: 100%; margin-block-start: var(--sp-2); resize: vertical; }

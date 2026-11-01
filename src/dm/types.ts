@@ -31,6 +31,8 @@ export interface EncounterPlan {
   rollHp?: boolean
   /** Battle map (src/maps) pushed to the players when the fight starts. */
   mapId?: string
+  /** The fight last started from this plan (src/combat), so Start fight can reopen it instead of copying it. */
+  encounterId?: string
 }
 
 export interface Npc {

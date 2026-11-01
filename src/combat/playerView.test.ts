@@ -47,6 +47,13 @@ describe('playerView', () => {
     }
   })
 
+  it('never sends the DM notes or the plan link', () => {
+    const view = playerView({ ...fight(), notes: 'The cultists flee at half HP', planId: 'plan-1' })
+    expect(view).not.toHaveProperty('notes')
+    expect(view).not.toHaveProperty('planId')
+    expect(JSON.stringify(view)).not.toContain('cultists')
+  })
+
   it('keeps party rows whole enough to link to the sheet', () => {
     const vex = playerView(fight()).combatants.find(c => c.id === 'vex')!
     expect(vex).toMatchObject({ kind: 'pc', characterId: 'char-vex', initiative: 15 })

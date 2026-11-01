@@ -143,6 +143,14 @@ export interface Encounter {
   board?: Board
   /** Hits for characters on players' phones, newest last, capped at HIT_LIMIT. */
   hits?: Hit[]
+  /** The DM screen plan this fight was started from. */
+  planId?: string
+  /** The plan's DM notes, copied at Start and editable here. DM only: playerView never sends them. */
+  notes?: string
+  /** Set by End combat, cleared when combat starts again. */
+  endedAt?: string
+  /** The last round fought before End combat. */
+  endedRound?: number
   createdAt: string
   updatedAt: string
 }
