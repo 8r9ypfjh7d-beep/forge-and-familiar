@@ -237,6 +237,10 @@ form.inline input { width: 84px; }
 /* Story / combat mode switch: a glass segmented control */
 .mode-switch-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); margin: calc(-1 * var(--sp-1)) 0 var(--sp-4); }
 .mode-switch-row .hint { margin: 0; }
+/* First-visit tips: a short list and a dismiss button. */
+.first-tips { margin-block-end: var(--sp-4); }
+.first-tips h2 { margin: 0 0 var(--sp-2); font-size: 1.05rem; }
+.first-tips ul { margin: 0 0 var(--sp-3); padding-inline-start: 1.2em; display: grid; gap: var(--sp-1); }
 .mode-switch {
   display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--r-pill);
   background: var(--glass-thin); border: 1px solid var(--glass-stroke);

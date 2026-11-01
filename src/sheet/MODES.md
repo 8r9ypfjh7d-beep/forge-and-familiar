@@ -10,6 +10,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 | `mode.test.ts` | Layout tests |
 | `WatchSheet.tsx` | A player's sheet opened by the DM or admin (`#/watch/<id>`): `loadWatched` takes the newer of the device copy and the cloud party copy, re-reads on local and realtime changes, and renders `Sheet` with `viewOnly` (no Edit, Level up or history; a tap that would change something shows "View only: only <player> can change this sheet") |
 | `components/Story.tsx` | `Notes` |
+| `components/FirstTips.tsx` | First-visit "how this sheet works" card, dismissed once per device |
 | `uses.ts` | Pure: `spendResource` (one use of a feature: spent, its effect started, healing), `drinkPotion` |
 | `components/Effects.tsx` | `EffectRows` (Effects switches with running spells and features: on casts a known spell like Cast, off ends a running effect, On me chip), `EffectsCard` (story mode), `toggleEffect`, `useSpells` |
 | `effects.ts` | Pure: running effects (`state.effects`): `startEffect` (one concentration at a time), `endEffect`, `setEffectOn`, `spendOnceEffects`, `dropSpentTempHp`, `effectsAfterRest`, `endsWithFight`/`endFight` (the End of fight button), `loseConcentration` (taking damage to 0 HP or `setCondition` with an incapacitating condition ends it) |
@@ -28,6 +29,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 - **Combat on phones** (under 820px, `useNarrow()` in `mode.ts`): abilities and skills move into a Checks tab (`PHONE_COMBAT_TABS`), so the tabs sit right under HP and Rest instead of ~2000px down. The tab bar sticks to the top with an HP chip (`HpChip`) that jumps to the HP box and focuses the amount field.
 - One tap to use things: Cast on every spell row and on spells from items and race (`src/spellbook/SPELLBOOK.md`), Use on every resource row in the Resources card (spends one; Second Wind rolls its healing, Rage starts its effect and turns its damage switch on), Drink on every potion in the Inventory card (heals, starts its stat effect for an hour, takes one from the stack). Lay on Hands' Use opens an amount picker: Heal me or On an ally. Uses that ask first show `UsePanel` (Resources.tsx): Wild Shape's beast, Arcane/Natural Recovery's slot picker, Channel Divinity's options. 2014 paladins get a Divine Smite switch under Effects that spends the lowest free slot for the next hit.
 - At 0 HP, both modes put death saves on top.
+- First visit: `components/FirstTips.tsx` shows a short "how this sheet works" card (roll by tapping, dotted words explain, Damage/Heal, rests, Story vs Combat) under the mode switch until Got it; stored per device in localStorage `ff.sheetTips.v1`. Hidden on view-only sheets.
 - Rests are one tap in both modes (`components/Rests.tsx`): Short rest applies at once; while hurt, each hit die type gets a one-tap roll. Long rest eats a ration if there is one.
 
 ## Rules

@@ -14,6 +14,7 @@ import '../spellbook/spellbook.css'
 import type { StepProps } from './steps'
 import { Fold } from './Compact'
 import { Why } from './Why'
+import { suggestedSpells } from './suggestSpells'
 import type { WhyId } from './why'
 
 interface Library { spells: Spell[]; classes: CharacterClass[]; subclasses: Subclass[] }
@@ -164,9 +165,19 @@ export function SpellsStep({ draft, update }: StepProps) {
   }
 
   const current = access.find(a => a.classId === classId) ?? access[0]
+  const suggestion = suggestedSpells(draft, lib)
 
   return (
     <div className="spellbook builder-spells">
+      <div className="bs-help">
+        {suggestion.length > saved.length && (
+          <p className="row">
+            <button type="button" className="glass-btn small" onClick={() => setSpells(suggestion)}>{t('builder.spells.suggest')}</button>
+            <span className="hint small">{t('builder.spells.suggestHint')}</span>
+          </p>
+        )}
+        <p className="hint small">{t('builder.spells.tapHint')}</p>
+      </div>
       {access.length > 1 && (
         <div className="sb-classes" role="group" aria-label={t('spells.class')}>
           {access.map(a => (

@@ -27,6 +27,7 @@ import { getCharacter } from '../storage'
 import { rulesEdition } from '../rules'
 import type { Party } from '../party/types'
 import { Notes } from './components/Story'
+import { FirstTips } from './components/FirstTips'
 import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, HpChip, SkillsPanel } from './combat/CombatPage'
 import { canPowerUp, PowerUpCard } from '../powerup'
 import './sheet.css'
@@ -154,6 +155,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
         </p>
       )}
       <ModeSwitch mode={mode} onChange={setMode} />
+      {!viewOnly && <FirstTips />}
       {notice && live && (mode !== 'combat' || !mapSeen) && <CombatStartedNotice onOpen={openMap} onClose={closeNotice} />}
       {layout.top.map(section)}
       <div className="sheet-grid">
