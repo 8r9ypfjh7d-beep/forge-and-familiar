@@ -48,7 +48,7 @@ export type StashAction =
   /** Hands out equal shares to `ways` members; the uneven copper stays behind. */
   | { type: 'split'; ways: number }
   /** The DM gives XP (or a milestone level) to these players' characters; `names` is for the log. */
-  | { type: 'award'; xp?: number; milestone?: boolean; to: { userId: string; characterId: string }[]; names: string[] }
+  | { type: 'award'; xp?: number; milestone?: boolean; level?: number; to: { userId: string; characterId: string }[]; names: string[] }
 
 export type StashResult = { ok: true; party: Party } | { ok: false; reason: string }
 
@@ -130,13 +130,17 @@ export function applyStash(p: Party, userId: string, action: StashAction): Stash
     case 'award': {
       if (userId !== p.dmId) return fail('Only the DM gives XP.')
       const xp = Math.trunc(action.xp ?? 0)
-      if (!action.milestone && !(xp > 0)) return fail('Give at least 1 XP.')
+      const level = action.level === undefined ? undefined : Math.trunc(action.level)
+      if (level !== undefined && !(level >= 2 && level <= 20)) return fail('Pick a level from 2 to 20.')
+      if (!action.milestone && level === undefined && !(xp > 0)) return fail('Give at least 1 XP.')
       const to = action.to.filter(x => p.members.some(m => m.userId === x.userId && m.characterId === x.characterId))
       if (!to.length) return fail('Nobody to give XP to.')
-      const award = { id: crypto.randomUUID(), at: new Date().toISOString(), by: userId, ...(action.milestone ? { milestone: true } : { xp }), to }
+      const kind = level !== undefined ? { milestone: true, level } : action.milestone ? { milestone: true } : { xp }
+      const award = { id: crypto.randomUUID(), at: new Date().toISOString(), by: userId, ...kind, to }
       const awards = [award, ...(s.awards ?? [])].slice(0, AWARD_LIMIT)
       const who = action.names.join(', ')
-      return commit(p, userId, { items: s.items, coins: s.coins, awards }, action.milestone ? `gave a milestone level to ${who}` : `gave ${xp} XP to ${who}`)
+      const text = level !== undefined ? `brought ${who} to level ${level}` : action.milestone ? `gave a milestone level to ${who}` : `gave ${xp} XP to ${who}`
+      return commit(p, userId, { items: s.items, coins: s.coins, awards }, text)
     }
   }
 }
@@ -147,6 +151,7 @@ export type StashLogPart =
   | { kind: 'coins'; added?: Partial<Coins>; took?: Partial<Coins>; reason?: string }
   | { kind: 'split'; ways: number; share: Partial<Coins> }
   | { kind: 'milestone'; who: string }
+  | { kind: 'toLevel'; level: number; who: string }
   | { kind: 'xp'; xp: number; who: string }
   | { kind: 'other'; text: string }
 
@@ -171,6 +176,7 @@ export function parseStashLog(text: string): StashLogPart {
   }
   if ((m = new RegExp(`^split the coin (\\d+) ways: (${COIN_RE}) each$`).exec(text))) return { kind: 'split', ways: Number(m[1]), share: parseCoins(m[2]) }
   if ((m = /^gave a milestone level to (.*)$/.exec(text))) return { kind: 'milestone', who: m[1] }
+  if ((m = /^brought (.*) to level (\d+)$/.exec(text))) return { kind: 'toLevel', level: Number(m[2]), who: m[1] }
   if ((m = /^gave (\d+) XP to (.*)$/.exec(text))) return { kind: 'xp', xp: Number(m[1]), who: m[2] }
   if ((m = /^put (.+) back in the bag$/.exec(text))) return { kind: 'putBack', ...parseLabel(m[1]) }
   if ((m = /^is carrying (.+)$/.exec(text))) return { kind: 'carrying', ...parseLabel(m[1]) }

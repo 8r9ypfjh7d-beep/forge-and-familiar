@@ -255,3 +255,19 @@
 .ff-sheet.ff-dm .dm-add-npc { margin-block-start: var(--sp-2); max-inline-size: 100%; }
 .ff-sheet.ff-dm .dm-lore-start { padding: var(--sp-3); display: grid; gap: var(--sp-2); }
 .ff-sheet.ff-dm .dm-lore-start h3 { margin: 0; }
+
+/* Party level card (src/party/PartyLevelUp.tsx): one tap gives the party a level, then who has finished. */
+.ff-sheet.ff-dm .dm-levels { padding-block: var(--sp-3); }
+.ff-sheet.ff-dm .dm-levels h2 { margin: 0; flex: 1 1 auto; }
+.dm-levels-wait { color: var(--accent); font-weight: 600; }
+.dm-levels-body { display: grid; gap: var(--sp-3); margin-block-start: var(--sp-2); }
+.dm-levels-body .hint { margin: 0; }
+.dm-levels-list { display: grid; gap: var(--sp-2); }
+.dm-level-row { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); align-items: center; gap: var(--sp-3); }
+.dm-level-row .chip { max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-level-info { display: flex; flex-wrap: wrap; gap: 0 var(--sp-2); font-size: 0.85rem; line-height: 1.3; color: var(--muted); }
+.dm-level-num { font-variant-numeric: tabular-nums; }
+.dm-level-row.st-choosing .dm-level-st, .dm-level-row.st-sent .dm-level-st { color: var(--accent); font-weight: 600; }
+.dm-level-row.st-done .dm-level-st { color: var(--good, var(--ink)); }
+.dm-levels-actions { flex-wrap: wrap; gap: var(--sp-2); }
+:root[data-contrast="high"] .dm-levels { border-width: 2px; }

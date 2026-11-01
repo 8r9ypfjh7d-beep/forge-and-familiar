@@ -47,3 +47,7 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 The top card lists the campaign's characters (`usePartyHeroes`, the DM's own watching seat left out) under "Party sheets"; each button opens that player's sheet view only (`onOpenSheet` → `#/watch/<id>`, `src/sheet/WatchSheet.tsx`). The same list feeds the XP budget levels. The DM screen still never changes a player's character.
 
 Phones: the folded top card keeps the tabs on the first screen. Under 900px the Monsters tab stacks, so opening a monster scrolls its stat block into view and the block gets a "Back to list" button. Grid columns use `minmax(0, 1fr)` and the stat block and credits wrap long URLs, so nothing widens the page.
+
+## Party level (2026-11-01)
+
+Under the top card, `PartyLevelUp` (src/party) shows the campaign's levels and a one-tap "Give a level" (milestone award to the ticked players) or "Catch up to level N" for players behind the party's top level. It opens by itself while anyone is still levelling up and lists each player as sent / choosing / levelled up. Players get `LevelUpPrompt` on their device, which opens the existing Level Up screen. See src/party/PARTY.md.

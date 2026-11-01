@@ -51,6 +51,8 @@ export interface XpAward {
   by: string
   xp?: number
   milestone?: boolean
+  /** Catch-up: lifts XP to this level's threshold. Also carries `milestone`, so an older app still gives a level. */
+  level?: number
   /** Who gets it: the player and the character they brought when it was given. */
   to: { userId: string; characterId: string }[]
 }

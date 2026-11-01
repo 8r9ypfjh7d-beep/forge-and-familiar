@@ -12,6 +12,8 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `cloud.ts` | Supabase side: fetch and cache (`ff.parties.cloud.v1`), realtime, members' characters and rolls, `sendRoll` |
 | `xp.ts` | Pure: DM XP awards (`awardsFor`, `addAward`, `takeAwards`); a milestone lifts XP to the next level |
 | `GiveXp.tsx` | DM-only "Give XP" card on the party page: tick players, give XP or a milestone level |
+| `PartyLevelUp.tsx` | DM screen "Party level" card: give the ticked players a milestone level, or catch the ones behind up to the party's top level; lists who is sent / choosing / levelled up (`partyLevels` in `xp.ts`, live via `watchPartyCharacters`) |
+| `LevelUpPrompt.tsx` | App-level player dialog: once a DM award makes a character `xpReady`, asks once per level (device-local "Later", `ff.levelPrompt.v1`) to open Level Up; asks again for each further level |
 | `useXpAwards.ts` | App hook: adds awards to the characters this player brought, on their device, once (`Character.appliedAwards`) |
 | `xp.test.ts` | Award tests |
 | `stash.ts` | Shared inventory and gold: pure `applyStash(party, userId, action)`, coin maths, even split |
@@ -52,6 +54,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 ## Shared stash
 
 - XP awards ride in the stash (`stash.awards`, newest 50; the `award` action): only the party's DM gives them, each names the player and the character they bring at that moment, and the log says "gave 300 XP to Vex". No server change was needed: the stash is the one shared jsonb members may write.
+- Party level-up (2026-11-01): a catch-up award carries `level` (XP lifted to that level's threshold) plus `milestone: true`, so an older app still gives one level; the log reads "brought Vex to level 5". Row status: `sent` (newest level award not in the character's `appliedAwards`), `choosing` (`xpReady`), `done`, `idle`, `unknown` (character unreadable). `pendingLevel` drives the player's prompt.
 
 - `Party.stash` is optional (`getStash()` fills in an empty one), so older saved parties keep working.
 - Every member can change it through `updateStash(partyId, userId, action)`; each change is logged as "who did what", newest first, capped at 50.

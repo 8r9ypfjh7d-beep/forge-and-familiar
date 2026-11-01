@@ -11,7 +11,7 @@ import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { DmRequestsTab, inbox, StoryReminders, useRequests } from '../requests'
 import { getMap, MapPicker, MapsTab } from '../maps'
-import type { Party } from '../party'
+import { PartyLevelUp, type Party } from '../party'
 import { Codex } from '../lore'
 import { usePartyNames } from '../lore/useNames'
 import { fetchPartyCharacters } from '../party/cloud'
@@ -179,6 +179,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
     <div className="ff-sheet ff-dm">
       <PartyCard state={state} update={update} plan={plan} fromParty={party && fromParty?.length ? { name: party.name, groups: fromParty } : undefined}
         sheets={party && onOpenSheet ? { heroes: heroes ?? [], onOpen: onOpenSheet } : undefined} />
+      {party && <PartyLevelUp party={party} userId={userId} />}
       {requests && <StoryReminders list={requests} onOpen={() => setTab('requests')} />}
       <div className="cs-tabs">
         <div className="cs-tablist" role="tablist" aria-label={t('dm.tabs')}>

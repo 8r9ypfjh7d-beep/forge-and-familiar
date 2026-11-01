@@ -15,7 +15,7 @@ import { FamiliarFab, FamiliarPage, dmPrepare, screenFor } from './familiar/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
 import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
-import { campaignTarget, CampaignsHome, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, useCharacterAccess, useXpAwards, type Party } from './party'
+import { campaignTarget, CampaignsHome, LevelUpPrompt, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, useCharacterAccess, useXpAwards, type Party } from './party'
 import { xpForNextLevel, xpReady } from './rules'
 import { RulesQA } from './rulesqa'
 import { ShareButton } from './share'
@@ -181,6 +181,9 @@ export default function App() {
     <PartyRollRelay userId={active.id} />
     {playing.party && <RevealMoment party={playing.party} userId={active.id} onOpen={() => setView({ kind: 'party', partyId: playing.party!.id })} />}
     {(partyDm || admin) && <DmRequestPopup userId={active.id} onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
+    {/* The DM's level (or enough XP) reached a character: ask once per level to walk through Level Up. */}
+    <LevelUpPrompt characters={characters} parties={playing.parties} userId={active.id} paused={['build', 'edit', 'levelup', 'starters'].includes(view.kind)}
+      onLevelUp={id => setView({ kind: 'levelup', id })} />
     <EditRequestDialog key={askEdit?.character.id} character={askEdit?.character ?? null} note={askEdit?.note} levelUp={askEdit?.levelUp} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
     <div className="app">
       <SkipLink />
