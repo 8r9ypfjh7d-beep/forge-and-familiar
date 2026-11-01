@@ -140,3 +140,40 @@ export function applyStash(p: Party, userId: string, action: StashAction): Stash
     }
   }
 }
+
+/** A stash log line read back into its parts, so the screen can show it in any language. */
+export type StashLogPart =
+  | { kind: 'added' | 'used' | 'removed' | 'carrying' | 'putBack'; qty: number; name: string }
+  | { kind: 'coins'; added?: Partial<Coins>; took?: Partial<Coins>; reason?: string }
+  | { kind: 'split'; ways: number; share: Partial<Coins> }
+  | { kind: 'milestone'; who: string }
+  | { kind: 'xp'; xp: number; who: string }
+  | { kind: 'other'; text: string }
+
+const COIN_RE = `\\d+ (?:${COINS.join('|')})(?: \\d+ (?:${COINS.join('|')}))*`
+
+function parseCoins(s: string): Partial<Coins> {
+  const out: Partial<Coins> = {}
+  for (const m of s.matchAll(/(\d+) (\w\w)/g)) out[m[2] as Coin] = Number(m[1])
+  return out
+}
+
+function parseLabel(s: string): { qty: number; name: string } {
+  const m = /^(\d+) × (.+)$/.exec(s)
+  return m ? { qty: Number(m[1]), name: m[2] } : { qty: 1, name: s }
+}
+
+/** Reads the English log text that `applyStash` writes (old entries included). Unknown text comes back as 'other'. */
+export function parseStashLog(text: string): StashLogPart {
+  let m: RegExpExecArray | null
+  if ((m = new RegExp(`^(?:added (${COIN_RE}))?(?:, )?(?:took (${COIN_RE}))?(?: \\((.*)\\))?$`).exec(text)) && (m[1] || m[2])) {
+    return { kind: 'coins', added: m[1] ? parseCoins(m[1]) : undefined, took: m[2] ? parseCoins(m[2]) : undefined, reason: m[3] }
+  }
+  if ((m = new RegExp(`^split the coin (\\d+) ways: (${COIN_RE}) each$`).exec(text))) return { kind: 'split', ways: Number(m[1]), share: parseCoins(m[2]) }
+  if ((m = /^gave a milestone level to (.*)$/.exec(text))) return { kind: 'milestone', who: m[1] }
+  if ((m = /^gave (\d+) XP to (.*)$/.exec(text))) return { kind: 'xp', xp: Number(m[1]), who: m[2] }
+  if ((m = /^put (.+) back in the bag$/.exec(text))) return { kind: 'putBack', ...parseLabel(m[1]) }
+  if ((m = /^is carrying (.+)$/.exec(text))) return { kind: 'carrying', ...parseLabel(m[1]) }
+  if ((m = /^(added|used|removed) (.+)$/.exec(text))) return { kind: m[1] as 'added' | 'used' | 'removed', ...parseLabel(m[2]) }
+  return { kind: 'other', text }
+}

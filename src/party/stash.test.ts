@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyStash, formatCoins, fromCp, getStash, splitCoins, STASH_LOG_LIMIT, toCp, type StashAction } from './stash'
+import { applyStash, formatCoins, fromCp, getStash, parseStashLog, splitCoins, STASH_LOG_LIMIT, toCp, type StashAction } from './stash'
 import type { Party } from './types'
 
 const party: Party = {
@@ -94,5 +94,36 @@ describe('items', () => {
     let p = party
     for (let i = 0; i < STASH_LOG_LIMIT + 5; i++) p = run(p, { type: 'coins', delta: { cp: 1 } })
     expect(getStash(p).log).toHaveLength(STASH_LOG_LIMIT)
+  })
+})
+
+describe('parseStashLog', () => {
+  it('reads every line applyStash writes', () => {
+    expect(parseStashLog('added 3 × Potion of Healing')).toEqual({ kind: 'added', qty: 3, name: 'Potion of Healing' })
+    expect(parseStashLog('used Rope, hempen (50 feet)')).toEqual({ kind: 'used', qty: 1, name: 'Rope, hempen (50 feet)' })
+    expect(parseStashLog('removed 2 × Torch')).toEqual({ kind: 'removed', qty: 2, name: 'Torch' })
+    expect(parseStashLog('is carrying Lantern')).toEqual({ kind: 'carrying', qty: 1, name: 'Lantern' })
+    expect(parseStashLog('put 2 × Torch back in the bag')).toEqual({ kind: 'putBack', qty: 2, name: 'Torch' })
+    expect(parseStashLog('added 12 gp 5 sp (dragon hoard)')).toEqual({ kind: 'coins', added: { gp: 12, sp: 5 }, took: undefined, reason: 'dragon hoard' })
+    expect(parseStashLog('added 1 pp, took 3 cp')).toEqual({ kind: 'coins', added: { pp: 1 }, took: { cp: 3 }, reason: undefined })
+    expect(parseStashLog('took 4 gp')).toEqual({ kind: 'coins', added: undefined, took: { gp: 4 }, reason: undefined })
+    expect(parseStashLog('split the coin 3 ways: 4 gp 1 sp each')).toEqual({ kind: 'split', ways: 3, share: { gp: 4, sp: 1 } })
+    expect(parseStashLog('gave a milestone level to Ana, Bo')).toEqual({ kind: 'milestone', who: 'Ana, Bo' })
+    expect(parseStashLog('gave 300 XP to Ana')).toEqual({ kind: 'xp', xp: 300, who: 'Ana' })
+    expect(parseStashLog('sang a song')).toEqual({ kind: 'other', text: 'sang a song' })
+  })
+
+  it('matches the text applyStash actually logs', () => {
+    let p = party
+    for (const a of [
+      { type: 'add', name: 'Torch', qty: 2 },
+      { type: 'coins', delta: { gp: 7 }, reason: 'loot' },
+    ] as const) {
+      const r = applyStash(p, 'u1', a)
+      if (!r.ok) throw new Error(r.reason)
+      p = r.party
+    }
+    const kinds = getStash(p).log.map(e => parseStashLog(e.text).kind)
+    expect(kinds).toEqual(['coins', 'added'])
   })
 })

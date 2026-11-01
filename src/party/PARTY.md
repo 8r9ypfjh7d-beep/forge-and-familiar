@@ -54,6 +54,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 
 - `Party.stash` is optional (`getStash()` fills in an empty one), so older saved parties keep working.
 - Every member can change it through `updateStash(partyId, userId, action)`; each change is logged as "who did what", newest first, capped at 50.
+- The log is stored as English text. `parseStashLog(text)` reads it back into parts so `PartyStash` shows it in the current language (keys `stash.*`); a new log line in `applyStash` needs a matching case there. Failure reasons are mapped to `stash.err.*` keys the same way. Typed item names and reasons stay as written.
 - Coins use all five SRD coins (pp, gp, ep, sp, cp). Taking more than the stash holds is refused.
 - Split hands each member who brings a character an equal share in gp/sp/cp; the copper that doesn't divide evenly stays. Shares are logged, not paid into character sheets: the sheet owns character coins.
 - Items picked by SRD name get an `itemId`. The same item stacks in the bag unless either one has a note. A member can carry an item (`heldBy`) or put it back.
