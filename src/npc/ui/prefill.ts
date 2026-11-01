@@ -7,6 +7,8 @@ export interface NpcPrefill {
   monster?: { source: string; id: string }
   /** A text NPC from the DM screen that becomes a sheet; it is removed from the list once the sheet is saved. */
   text?: Npc
+  /** Made from a fight plan on the DM screen: the sheet joins this plan and the DM goes back to Fights. */
+  fightPlanId?: string
   /** The campaign being run. */
   partyId?: string
 }

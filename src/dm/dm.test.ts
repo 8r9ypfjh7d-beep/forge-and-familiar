@@ -5,7 +5,7 @@ import { en } from '../i18n/locales/en'
 import { loadKind, type Monster } from '../content'
 import {
   activePlan, groupsFromLevels, sameGroups, addMonster, addPlan, changeCount, crLabel, difficulty, findMonsters, monsterGroups, monsterTypes, typeGroups, normalizeDm, NPC_TABLES,
-  partyBudget, partySize, pickDm, planCombatants, planEntry, planXp, randomName, randomNpc, removePlan, XP_BUDGET,
+  partyBudget, partySize, pickDm, fitCrRange, tooStrongAlone, trimAdvice, planCombatants, planEntry, planXp, randomName, randomNpc, removePlan, XP_BUDGET,
 } from './logic'
 import { emptyDmState, type EncounterPlan } from './types'
 
@@ -34,6 +34,33 @@ describe('encounter budget (SRD 5.2)', () => {
     expect(difficulty(300, b)).toBe('moderate')
     expect(difficulty(400, b)).toBe('high')
     expect(difficulty(401, b)).toBe('beyond')
+  })
+})
+
+describe('building a fight', () => {
+  const bugbear = { monsterId: 'bugbear', source: 'srd-5.1', name: 'Bugbear', xp: 200, cr: 1 }
+  const b2 = partyBudget([{ count: 2, level: 1 }]) // high 200
+  it('suggests a CR range from the party', () => {
+    expect(fitCrRange([{ count: 2, level: 1 }])).toEqual({ min: 1 / 4, max: 1 })
+    expect(fitCrRange([{ count: 4, level: 4 }])).toEqual({ min: 1, max: 4 })
+    expect(fitCrRange([{ count: 3, level: 10 }])).toEqual({ min: 3, max: 10 })
+    expect(fitCrRange([])).toBeNull()
+  })
+  it('flags a monster too strong alone', () => {
+    expect(tooStrongAlone(200, b2)).toBe(false)
+    expect(tooStrongAlone(450, b2)).toBe(true)
+  })
+  it('advises the fewest removals of one kind', () => {
+    const a = trimAdvice(plan([{ ...bugbear, count: 1 }, { ...goblin, count: 4 }]), b2)!
+    expect(a.over).toBe(200)
+    expect(a.options.map(o => o.map(r => [r.m.monsterId, r.count]))).toEqual([[['bugbear', 1]], [['goblin', 4]]])
+    expect(trimAdvice(plan([{ ...goblin, count: 4 }]), b2)).toBeNull()
+  })
+  it('mixes kinds when no single kind is enough', () => {
+    const a = trimAdvice(plan([{ ...bugbear, count: 1 }, { ...goblin, count: 4 }]), { low: 0, moderate: 0, high: 150 })!
+    expect(a.over).toBe(250)
+    expect(a.options).toHaveLength(1)
+    expect(a.options[0].map(r => [r.m.monsterId, r.count])).toEqual([['bugbear', 1], ['goblin', 1]])
   })
 })
 

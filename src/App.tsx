@@ -316,7 +316,8 @@ export default function App() {
         )}
         {view.kind === 'npc' && isDm && view.id === 'new' && (
           <NpcBuilder key={active.id} ownerId={active.id} partyId={partyDm ? playing.party?.id : undefined}
-            onSaved={npc => setView({ kind: 'npc', id: npc.id }, true)} onCancel={() => setView({ kind: 'dm', tab: 'npcs' })} />
+            onSaved={(npc, back) => setView(back ? { kind: 'dm' } : { kind: 'npc', id: npc.id }, true)}
+            onCancel={back => setView(back ? { kind: 'dm' } : { kind: 'dm', tab: 'npcs' })} />
         )}
         {view.kind === 'npc' && isDm && view.id !== 'new' && (
           <NpcScreen key={view.id} npcId={view.id} ownerId={active.id} partyId={partyDm ? playing.party?.id : undefined} onBack={() => setView({ kind: 'dm', tab: 'npcs' })} onOpenFight={id => setView({ kind: 'combat', encounterId: id })} />
