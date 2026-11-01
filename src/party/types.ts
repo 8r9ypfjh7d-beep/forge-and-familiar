@@ -1,3 +1,5 @@
+import type { Boon } from '../model/character'
+
 // Saved party shape. A party links players (UserProfile ids) and the character each brings.
 export interface PartyMember {
   userId: string
@@ -57,12 +59,33 @@ export interface XpAward {
   to: { userId: string; characterId: string }[]
 }
 
+/**
+ * Inspiration or a reward (charm or blessing) handed out through the party. The DM gives either; a player may only
+ * pass Inspiration on. Each player's device adds it to the named character once (src/party/gifts.ts).
+ */
+export interface Gift {
+  id: string
+  at: string
+  /** UserProfile id of the giver. */
+  by: string
+  /** The giver's name as they saw it, shown on the reward. */
+  byName?: string
+  to: { userId: string; characterId: string }[]
+  inspiration?: boolean
+  boon?: GiftBoon
+}
+
+/** A reward as the DM wrote it; each character gets its own copy with the gift's id. */
+export type GiftBoon = Pick<Boon, 'name' | 'text' | 'kind' | 'uses' | 'roll' | 'stats'>
+
 /** Shared loot and gold. Anyone in the party can change it; every change is logged. */
 export interface PartyStash {
   items: StashItem[]
   coins: Coins
   /** XP awards from the DM, newest first, capped at AWARD_LIMIT. Missing on older stashes. */
   awards?: XpAward[]
+  /** Inspiration and rewards, newest first, capped at GIFT_LIMIT. Missing on older stashes. */
+  gifts?: Gift[]
   /** Newest first, capped at STASH_LOG_LIMIT. */
   log: StashLogEntry[]
 }

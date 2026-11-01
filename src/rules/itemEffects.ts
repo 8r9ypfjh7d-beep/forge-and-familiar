@@ -34,13 +34,15 @@ export function activeItemEffects(c: Owner): ActiveEffect[] {
   const actions = (c.customActions ?? []).flatMap(a => (a.active ? (a.stats ?? []).map(effect => ({ source: a.name, effect })) : []))
   // Spells cast and features used that are still running (Shield of Faith, Haste, Stoneskin), while they apply to this character.
   const live = (c.state?.effects ?? []).flatMap(e => (e.on ? (e.stats ?? []).map(effect => ({ source: e.name, effect })) : []))
+  // The DM's blessings (Character.state.boons) count while kept, like an equipped item.
+  const boons = (c.state?.boons ?? []).flatMap(b => (b.kind === 'blessing' ? (b.stats ?? []).map(effect => ({ source: b.name, effect })) : []))
   // Class and subclass features that change the sheet (Diamond Soul, Thought Shield's psychic resistance, Gift of the Sea's swim speed),
   // picked class options (invocations, fighting styles, infusions...), then racial traits (Warforged poison
   // resistance, innate spells, picked Simic Hybrid enhancements), class skill picks (Expertise, Primal Knowledge),
   // and feats' own sheet changes (Fey Touched's Misty Step, Infernal Constitution's resistances, Resilient's save).
   // Class choices that change the sheet (Archery, Blind Fighting, Deft Explorer).
   const choices = c.classes ? classChoiceEffects({ ...c, classes: c.classes }) : []
-  return [...items, ...actions, ...live, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c), ...classPickEffects(c), ...featStats({ ...c, classes: c.classes ?? [] }), ...choices]
+  return [...items, ...actions, ...live, ...boons, ...classEffects(c), ...subclassEffects(c), ...classOptionEffects(c), ...raceEffects(c), ...classPickEffects(c), ...featStats({ ...c, classes: c.classes ?? [] }), ...choices]
 }
 
 /**

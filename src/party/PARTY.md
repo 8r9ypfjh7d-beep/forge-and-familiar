@@ -14,7 +14,9 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `GiveXp.tsx` | DM-only "Give XP" card on the party page: tick players, give XP or a milestone level |
 | `PartyLevelUp.tsx` | DM screen "Party level" card: give the ticked players a milestone level, or catch the ones behind up to the party's top level; lists who is sent / choosing / levelled up (`partyLevels` in `xp.ts`, live via `watchPartyCharacters`) |
 | `LevelUpPrompt.tsx` | App-level player dialog: once a DM award makes a character `xpReady`, asks once per level (device-local "Later", `ff.levelPrompt.v1`) to open Level Up; asks again for each further level |
-| `useXpAwards.ts` | App hook: adds awards to the characters this player brought, on their device, once (`Character.appliedAwards`) |
+| `useXpAwards.ts` | App hook: adds awards and gifts to the characters this player brought, on their device, once (`Character.appliedAwards`) |
+| `gifts.ts` | Pure: Inspiration and rewards (`giftsFor`, `addGift`, `takeGifts`, `cleanGiftBoon`); the character side is `src/sheet/boons.ts` |
+| `GiveRewards.tsx` | DM-only "Inspiration and rewards" card (campaign page and DM screen): one tap per player for Inspiration, presets or a custom charm/blessing |
 | `xp.test.ts` | Award tests |
 | `stash.ts` | Shared inventory and gold: pure `applyStash(party, userId, action)`, coin maths, even split |
 | `PartyView.tsx` | Party list first, then one "New party" button that opens a panel to start (name + DM) or join with a code; read-only party table |
@@ -55,6 +57,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 
 - XP awards ride in the stash (`stash.awards`, newest 50; the `award` action): only the party's DM gives them, each names the player and the character they bring at that moment, and the log says "gave 300 XP to Vex". No server change was needed: the stash is the one shared jsonb members may write.
 - Party level-up (2026-11-01): a catch-up award carries `level` (XP lifted to that level's threshold) plus `milestone: true`, so an older app still gives one level; the log reads "brought Vex to level 5". Row status: `sent` (newest level award not in the character's `appliedAwards`), `choosing` (`xpReady`), `done`, `idle`, `unknown` (character unreadable). `pendingLevel` drives the player's prompt.
+- Gifts ride in the stash the same way (`stash.gifts`, newest 50; the `gift` action, log "gave Inspiration to Vex", "passed Inspiration to Pip", 'gave "Lucky charm" to Vex'). The DM gives Inspiration or a reward (a charm: uses plus an optional bonus die, d20 reroll, heal or temp HP; or a blessing: item-style stat changes that count while kept). A player may only pass Inspiration to another player's character: any time under 2014 rules, only a spare under 2024 (Heroic Inspiration gained while holding one). No server change.
 
 - `Party.stash` is optional (`getStash()` fills in an empty one), so older saved parties keep working.
 - Every member can change it through `updateStash(partyId, userId, action)`; each change is logged as "who did what", newest first, capped at 50.

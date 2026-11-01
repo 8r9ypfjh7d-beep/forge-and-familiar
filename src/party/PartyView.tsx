@@ -15,6 +15,7 @@ import { CampaignManage } from './CampaignsHome'
 import { formatCode } from './code'
 import { PartyStash } from './PartyStash'
 import { GiveXp } from './GiveXp'
+import { GiveRewards } from './GiveRewards'
 import { RollFeed } from './RollFeed'
 import { chooseCharacter, createParty, getParty, joinParty, listParties, onPartiesChanged } from './store'
 import type { Party, PartyMember } from './types'
@@ -286,6 +287,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
       <Codex party={party} userId={userId} nameOf={nameOf} />
 
       <GiveXp party={party} userId={userId} characters={characters} nameOf={nameOf} />
+      <GiveRewards party={party} userId={userId} nameOf={nameOf} />
       <RollFeed party={party} nameOf={nameOf} />
       <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
       <PartyStash party={party} userId={userId} nameOf={nameOf} />

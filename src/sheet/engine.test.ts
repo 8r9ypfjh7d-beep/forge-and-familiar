@@ -181,7 +181,9 @@ describe('old saves and dawn', () => {
   it('drops fields of removed features from old saves', () => {
     const old = { ...fighter.state, exhaustion: 2, inspiration: true, attuned: ['Ring'], clock: 600 }
     const { state } = makeCharacter({ state: old })
-    for (const k of ['exhaustion', 'inspiration', 'attuned', 'clock']) expect(state).not.toHaveProperty(k)
+    for (const k of ['exhaustion', 'attuned', 'clock']) expect(state).not.toHaveProperty(k)
+    // Inspiration came back as a DM reward (src/sheet/boons.ts), so it is kept.
+    expect(state.inspiration).toBe(true)
   })
 
   const wand = { id: 'wand', label: 'Wand of Magic Missiles', max: 7, used: 6, recharge: 'dawn' as const, regain: '1d6+1' }

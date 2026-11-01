@@ -37,6 +37,8 @@ export function characterCard(c: Character): string {
   const gear = c.inventory.filter(i => i.equipped).map(i => i.name ?? i.item?.name ?? itemById(i.itemId)?.name ?? i.itemId)
   if (gear.length) lines.push(`Equipped: ${gear.join(', ')}.`)
   if (c.state.conditions.length) lines.push(`Conditions now: ${c.state.conditions.join(', ')}.`)
+  if (c.state.inspiration) lines.push(`Has ${c.rulesEdition === '2024' ? 'Heroic Inspiration' : 'Inspiration'}.`)
+  if (c.state.boons?.length) lines.push(`DM rewards: ${c.state.boons.map(b => `${b.name} (${b.kind}${b.text ? `: ${b.text}` : ''})`).join('; ')}.`)
   if (d.warnings.length) lines.push(`Sheet warnings: ${d.warnings.join(' ')}`)
   return lines.join('\n')
 }

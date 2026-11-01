@@ -17,6 +17,8 @@ export type SheetSection =
   | 'tabs' | 'fight' | 'features'
   // Story mode's Effects card: running spells and switches (combat shows them in its Combat tab).
   | 'effects'
+  // The DM's charms and blessings (src/sheet/components/Boons.tsx): story mode only when there are some.
+  | 'boons'
   // Tamir's Super Saiyan strip (src/powerup), only on his characters.
   | 'powerUp'
   // The party's live battle map (src/combat/live), only while the DM runs a combat.
@@ -78,7 +80,7 @@ export function sheetLayout(mode: SheetMode, { dying, powerUp, narrow, liveMap }
   const vitals: SheetSection[] = ['hp', 'rests']
   if (phoneCombat) return { top, columns: [[], ['tabs']], vitals, tabs: withMap(PHONE_COMBAT_TABS, liveMap) }
   if (mode === 'combat') return { top, columns: [SHARED_SIDE, ['tabs']], vitals, tabs: withMap(COMBAT_TABS, liveMap) }
-  return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'effects', 'attacks', 'inventory']], vitals }
+  return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'effects', 'boons', 'attacks', 'inventory']], vitals }
 }
 
 /** The Map tab right after Combat, only while a live combat exists. */

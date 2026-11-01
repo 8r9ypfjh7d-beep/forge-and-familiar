@@ -54,6 +54,8 @@ function logText(text: string, i18n: I18n): string {
     case 'milestone': return t('stash.log.milestone', { who: p.who })
     case 'toLevel': return t('stash.log.toLevel', { who: p.who, level: p.level })
     case 'xp': return t('stash.log.xp', { xp: p.xp, who: p.who })
+    case 'inspiration': return t(p.passed ? 'stash.log.inspirationPassed' : 'stash.log.inspiration', { who: p.who })
+    case 'reward': return t('stash.log.reward', { name: p.name, who: p.who })
     default: return p.text
   }
 }

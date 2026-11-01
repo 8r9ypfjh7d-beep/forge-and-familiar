@@ -1,6 +1,7 @@
 // Shared party inventory and gold. Pure updates like code.ts, so a backend can run the same rules.
-import type { Coin, Coins, Party, PartyStash, StashItem } from './types'
+import type { Coin, Coins, GiftBoon, Party, PartyStash, StashItem } from './types'
 import { AWARD_LIMIT } from './xp'
+import { cleanGiftBoon, GIFT_LIMIT } from './gifts'
 
 export const COINS: Coin[] = ['pp', 'gp', 'ep', 'sp', 'cp']
 /** Value of each coin in copper (SRD 5.1 exchange rates). */
@@ -49,6 +50,11 @@ export type StashAction =
   | { type: 'split'; ways: number }
   /** The DM gives XP (or a milestone level) to these players' characters; `names` is for the log. */
   | { type: 'award'; xp?: number; milestone?: boolean; level?: number; to: { userId: string; characterId: string }[]; names: string[] }
+  /**
+   * Inspiration or a reward (charm or blessing) for these players' characters. The DM gives either;
+   * a player may only pass Inspiration to another player's character. `byName` is shown on the reward.
+   */
+  | { type: 'gift'; inspiration?: boolean; boon?: GiftBoon; to: { userId: string; characterId: string }[]; names: string[]; byName?: string }
 
 export type StashResult = { ok: true; party: Party } | { ok: false; reason: string }
 
@@ -142,6 +148,24 @@ export function applyStash(p: Party, userId: string, action: StashAction): Stash
       const text = level !== undefined ? `brought ${who} to level ${level}` : action.milestone ? `gave a milestone level to ${who}` : `gave ${xp} XP to ${who}`
       return commit(p, userId, { items: s.items, coins: s.coins, awards }, text)
     }
+    case 'gift': {
+      const dm = userId === p.dmId
+      const boon = action.boon ? cleanGiftBoon(action.boon) : null
+      if (action.boon && !boon) return fail('Give the reward a name.')
+      if (!action.inspiration && !boon) return fail('Nothing to give.')
+      if (!dm && (boon || !action.inspiration)) return fail('Only the DM gives rewards.')
+      const to = action.to.filter(x => p.members.some(m => m.userId === x.userId && m.characterId === x.characterId) && (dm || x.userId !== userId))
+      if (!to.length) return fail('Nobody to give it to.')
+      const gift = {
+        id: crypto.randomUUID(), at: new Date().toISOString(), by: userId, to,
+        ...(action.byName?.trim() ? { byName: action.byName.trim() } : {}),
+        ...(action.inspiration ? { inspiration: true } : {}), ...(boon ? { boon } : {}),
+      }
+      const gifts = [gift, ...(s.gifts ?? [])].slice(0, GIFT_LIMIT)
+      const who = action.names.join(', ')
+      const what = [action.inspiration && (dm ? `gave Inspiration to ${who}` : `passed Inspiration to ${who}`), boon && `gave "${boon.name}" to ${who}`].filter(Boolean).join('; ')
+      return commit(p, userId, { items: s.items, coins: s.coins, awards: s.awards, gifts }, what)
+    }
   }
 }
 
@@ -153,6 +177,8 @@ export type StashLogPart =
   | { kind: 'milestone'; who: string }
   | { kind: 'toLevel'; level: number; who: string }
   | { kind: 'xp'; xp: number; who: string }
+  | { kind: 'inspiration'; who: string; passed: boolean }
+  | { kind: 'reward'; name: string; who: string }
   | { kind: 'other'; text: string }
 
 const COIN_RE = `\\d+ (?:${COINS.join('|')})(?: \\d+ (?:${COINS.join('|')}))*`
@@ -178,6 +204,8 @@ export function parseStashLog(text: string): StashLogPart {
   if ((m = /^gave a milestone level to (.*)$/.exec(text))) return { kind: 'milestone', who: m[1] }
   if ((m = /^brought (.*) to level (\d+)$/.exec(text))) return { kind: 'toLevel', level: Number(m[2]), who: m[1] }
   if ((m = /^gave (\d+) XP to (.*)$/.exec(text))) return { kind: 'xp', xp: Number(m[1]), who: m[2] }
+  if ((m = /^(gave|passed) Inspiration to (.*)$/.exec(text))) return { kind: 'inspiration', who: m[2], passed: m[1] === 'passed' }
+  if ((m = /^gave "(.+)" to (.*)$/.exec(text))) return { kind: 'reward', name: m[1], who: m[2] }
   if ((m = /^put (.+) back in the bag$/.exec(text))) return { kind: 'putBack', ...parseLabel(m[1]) }
   if ((m = /^is carrying (.+)$/.exec(text))) return { kind: 'carrying', ...parseLabel(m[1]) }
   if ((m = /^(added|used|removed) (.+)$/.exec(text))) return { kind: m[1] as 'added' | 'used' | 'removed', ...parseLabel(m[2]) }
