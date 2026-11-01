@@ -4,6 +4,7 @@ import type { Combatant } from '../combat/types'
 import { npcCombatant } from '../combat/npcRows'
 import type { NpcSheet } from '../npc/types'
 import type { Monster } from '../content'
+import { foldText } from '../content/query'
 import type { DmState, EncounterPlan, PartyGroup, PlanMonster } from './types'
 
 /** SRD 5.2 "XP Budget per Character" (Low, Moderate, High), index = level - 1. */
@@ -167,10 +168,10 @@ export const monsterGroup = (m: Pick<Monster, 'source' | 'book'>) =>
 
 /** Matches the English name, and the translated name when `localName` is given (Hebrew search). */
 export function findMonsters(list: Monster[], q: MonsterQuery, limit = 60, localName?: (m: Monster) => string): Monster[] {
-  const text = q.text.trim().toLowerCase()
+  const text = foldText(q.text.trim())
   return list
     .filter(m =>
-      (!text || m.name.toLowerCase().includes(text) || (localName?.(m) ?? '').toLowerCase().includes(text)) &&
+      (!text || foldText(m.name).includes(text) || foldText(localName?.(m) ?? '').includes(text)) &&
       (q.minCr == null || m.challengeRating >= q.minCr) &&
       (q.maxCr == null || m.challengeRating <= q.maxCr) &&
       (q.type ? typeGroups(m).includes(q.type) : text !== '' || !isSummon(m)) &&

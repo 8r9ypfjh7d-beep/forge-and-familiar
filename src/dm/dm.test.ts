@@ -89,6 +89,15 @@ describe('library monsters', async () => {
     expect(found.every(m => m.challengeRating >= 1 && m.challengeRating <= 2 && m.type === 'undead')).toBe(true)
     expect(findMonsters(monsters, { text: 'GOBL', minCr: null, maxCr: null, type: '' }).map(m => m.id)).toContain('goblin')
   })
+  it('finds Hebrew names whatever the final letters, niqqud and quote marks', () => {
+    const he: Record<string, string> = { goblin: 'גובלין', 'goblin-boss': 'בוס גובלינים', arcanaloth: "ארקנלות'" }
+    const list = [{ id: 'goblin', name: 'Goblin' }, { id: 'goblin-boss', name: 'Goblin Boss' }, { id: 'arcanaloth', name: 'Arcanaloth' }]
+      .map(x => ({ ...monsters.find(m => m.id === 'goblin')!, ...x }))
+    const ids = (text: string) => findMonsters(list, { text, minCr: null, maxCr: null, type: '' }, 60, m => he[m.id] ?? '').map(m => m.id).sort()
+    expect(ids('גובלין')).toEqual(['goblin', 'goblin-boss'])
+    expect(ids('גוֹבְּלִין')).toEqual(['goblin', 'goblin-boss'])
+    expect(ids('ארקנלות')).toEqual(['arcanaloth'])
+  })
   it('shows fractional CRs the usual way', () => {
     expect([0.125, 0.25, 0.5, 3].map(crLabel)).toEqual(['1/8', '1/4', '1/2', '3'])
   })

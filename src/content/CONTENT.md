@@ -10,7 +10,7 @@ Every SRD spell, item, magic item, class, class feature, subclass, race, subrace
 | `types.ts` | The data model: one interface per kind, `Choice` for "pick N", `ContentFile`, `ContentManifest`, `ContentPack` |
 | `library.ts` | `loadKind`, `getEntry`, `listSources`, `BUNDLED`, `bookMonsterPaths`; `registerContentPack` / `unregisterContentPack` / `onContentChanged` for packs |
 | `monsters.ts` | `loadMonsters(edition)`: every monster a campaign can use (SRD, books, legacy older books, packs); `monsterKey`, `monsterName`, `monsterSourceNote` |
-| `query.ts` | `searchEntries`, `filterSpells`, `filterMonsters`, `filterEquipment`, `filterMagicItems`, `entryKey` |
+| `query.ts` | `foldText` (search form: case, accents, Hebrew niqqud, quote marks and final letters folded), `searchEntries`, `filterSpells`, `filterMonsters`, `filterEquipment`, `filterMagicItems`, `entryKey` |
 | `validate.ts` | `checkContent` (duplicate ids, broken links), `sanitizePack` (packs from files or other devices) |
 | `bridge.ts` | `toRulesItem` (library equipment → rules `Item`), `fromHomebrewPack`, `LIBRARY_ID_FOR_RULES_ITEM` |
 | `ingest/sources.ts` | SRD 5.1 / 5.2 source info with the CC-BY attribution, upstream file list per kind |
