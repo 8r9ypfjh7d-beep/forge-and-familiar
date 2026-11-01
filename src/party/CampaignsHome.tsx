@@ -53,6 +53,7 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
             <button className="glass-btn" onClick={onStart}>{t('home.start')}</button>
             <button className="glass-btn" onClick={onBuild}>{t('home.build')}</button>
           </div>
+          {characters.length === 0 && <p className="small"><a href="#/starters">{t('home.newToDnd')}</a></p>}
         </div>
       ) : (
         <div className="campaigns-list">

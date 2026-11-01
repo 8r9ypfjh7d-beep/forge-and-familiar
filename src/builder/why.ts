@@ -29,6 +29,8 @@ export type ExplainKind =
   | 'feature' | 'subfeature' | 'invocation' | 'trait' | 'bg' | 'bg2024' | 'skill' | 'ability' | 'align' | 'language' | 'tool' | 'pick'
   | 'metamagic' | 'metamagic2024' | 'feat' | 'feat2024'
   | 'pick' | 'opt' | 'option'
+  /** A few words on a race or class card. */
+  | 'tag'
 
 /** Message key that explains this option, or none (homebrew and other content without one). */
 export function explainKey(kind: ExplainKind, id: string): MessageKey | undefined {

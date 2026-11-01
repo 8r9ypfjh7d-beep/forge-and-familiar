@@ -159,13 +159,16 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
         const isHomebrew = (g: [string, PickItem[]]) => g[1].every(it => it.id.startsWith('hb:'))
         const homebrew = all.slice(1).filter(isHomebrew)
         const rest = all.slice(1).filter(g => !isHomebrew(g))
+        // A first group of one or two (the 2014 SRD has only Acolyte) reads like "there is nothing else":
+        // open the next book too, so a new player sees real choices.
+        const thin = all[0][1].length < 3
         return (
           <>
             {fold(all[0], true)}
             {homebrew.map(g => fold(g, true))}
             <Fold className="picker-group" title={t('builder.compact.moreBooks', { count: rest.length })} status={rest.reduce((n, [, its]) => n + its.length, 0)}
-              defaultOpen={rest.some(([, its]) => its.some(it => it.id === value))}>
-              <div className="picker-groups">{rest.map(g => fold(g, false))}</div>
+              defaultOpen={thin || rest.some(([, its]) => its.some(it => it.id === value))}>
+              <div className="picker-groups">{rest.map((g, i) => fold(g, thin && i === 0))}</div>
             </Fold>
           </>
         )

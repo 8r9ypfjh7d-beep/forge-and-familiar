@@ -7,7 +7,7 @@ import {
   CUSTOM_FEAT, ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, improvementFeat, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
   featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, splitTrait, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, setSubclass, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
-  type Ability, type Background, type CharacterDraft, type ClassChoiceOption, type RulesEdition, type SkillId, type TraitChoice,
+  type Ability, type Background, type CharacterDraft, type ClassChoiceOption, type RulesEdition, type SkillId, type TraitChoice, type Subrace,
   averageWealth, BACKGROUND_GOLD_2024, takesBackgroundGold, takesClassGold, wealthDice,
 } from '../rules'
 import type { OriginSwaps } from '../model/character'
@@ -59,6 +59,13 @@ function switchEdition(draft: CharacterDraft, edition: RulesEdition): Partial<Ch
 }
 
 /** 2014 (SRD 5.1) or 2024 (SRD 5.2) rules for this character. */
+/** A few words on what this race or class is like, for players who don't know D&D yet. None for homebrew. */
+function CardTag({ id }: { id: string }) {
+  const { t } = useI18n()
+  const key = explainKey('tag', id)
+  return key ? <span className="choice-tag small">{t(key)}</span> : null
+}
+
 function EditionPicker({ draft, update }: StepProps) {
   const { t } = useI18n()
   const edition = rulesEdition(draft)
@@ -77,7 +84,7 @@ function EditionPicker({ draft, update }: StepProps) {
           </button>
         ))}
       </div>
-      <p className="muted small">{t(`builder.edition.${edition}.hint`)}</p>
+      <p className="muted small">{t(`builder.edition.${edition}.hint`)} {t('builder.edition.unsure')}</p>
     </div>
   )
 }
@@ -92,6 +99,12 @@ function RaceStep({ draft, update }: StepProps) {
   // Legacy (2014) races under 2024 rules keep their 2014 pitch and subrace explanations.
   const racePitch = race && (pitchKey(edition === '2024' && !race.legacy ? 'race2024' : 'race', race.id))
   const subBonus = (b: Partial<Record<Ability, number>>) => (Object.keys(b).length ? ` (${bonusText(b, abilityShort)})` : '')
+  const subChip = (s: Subrace) => (
+    <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update(subracePatch(s.id))}>
+      {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}{s.freeAbilityBonuses ? t('builder.race.freeBonus', { count: s.freeAbilityBonuses.count }) : ''}
+      {s.source && <span className="muted"> · {s.source}</span>}
+    </button>
+  )
   const originFeats = allFeats(edition).filter(f => f.category === 'origin' || f.id.startsWith('hb:'))
   const profile = raceProfile(draft)
   const raceTraits = race ? profile.traits : []
@@ -135,6 +148,7 @@ function RaceStep({ draft, update }: StepProps) {
                 {r.freeAbilityBonuses ? (r.freeAbilityBonuses.value === 2 ? t('builder.race.plusTwo') : t('builder.race.freeBonus', { count: r.freeAbilityBonuses.count })) : ''}
               </span>
               <span className="muted small">{t('builder.race.sizeSpeed', { size: (r.sizeOptions ?? [r.size]).map(x => term('size', x, x)).join(' / '), speed: r.speed })}</span>
+              <CardTag id={r.id} />
             </>
           ),
         }))}
@@ -148,12 +162,15 @@ function RaceStep({ draft, update }: StepProps) {
                 {t('builder.race.noSubrace')}
               </button>
             )}
-            {race.subraces.map(s => (
-              <button key={s.id} className={`glass-chip ${draft.subraceId === s.id ? 'on' : ''}`} onClick={() => update(subracePatch(s.id))}>
-                {term('race', s.id, s.name)}{subBonus(s.abilityBonuses)}{s.freeAbilityBonuses ? t('builder.race.freeBonus', { count: s.freeAbilityBonuses.count }) : ''}
-              </button>
-            ))}
+            {race.subraces.filter(s => !s.source).map(subChip)}
           </div>
+          {/* Book subraces under their own label, so a new player sees the core ones first. */}
+          {race.subraces.some(s => s.source) && (
+            <>
+              <p className="muted small">{t('builder.subrace.otherBooks')}</p>
+              <div className="row">{race.subraces.filter(s => s.source).map(subChip)}</div>
+            </>
+          )}
           {draft.subraceId && <Explain kind={edition === '2024' && !race.legacy ? 'sub2024' : 'sub2014'} id={draft.subraceId} />}
         </div>
       )}
@@ -327,6 +344,7 @@ function ClassStep({ draft, update, editing }: StepProps) {
             <>
               <span className="muted small">{t('builder.class.hitDie', { die: c.hitDie, primary: c.primary.map(abilityShort).join('/') || '—' })}</span>
               <span className="muted small">{t(c.caster === 'none' ? 'builder.class.noCasting' : c.caster === 'pact' ? 'builder.class.pact' : c.caster === 'full' ? 'builder.class.full' : c.caster === 'third' ? 'builder.class.third' : 'builder.class.half')}</span>
+              <CardTag id={c.id} />
             </>
           ),
         }))}
