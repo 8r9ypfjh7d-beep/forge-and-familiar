@@ -4,7 +4,18 @@ import type { ContentEntry, Equipment, MagicItem, Monster, Rarity, Size, Spell, 
 /** `${source}:${kind}:${id}`, unique across every source. Use it for React keys and saved references. */
 export const entryKey = (kind: string, e: { source: string; id: string }) => `${e.source}:${kind}:${e.id}`
 
-const fold = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+const HE_FINAL: Record<string, string> = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' }
+
+/**
+ * Search form of a text: lower case, no accents, and for Hebrew no niqqud, no geresh/gershayim or quote marks,
+ * final letters as their plain forms (so "גובלין" finds "גובלינים").
+ */
+export const foldText = (s: string) => s.toLowerCase().normalize('NFKD')
+  .replace(/[\u0300-\u036f\u0591-\u05c7]/g, '')
+  .replace(/[\u05f3\u05f4"'`’‘”“]/g, '')
+  .replace(/[ךםןףץ]/g, c => HE_FINAL[c]!)
+
+const fold = foldText
 
 const descriptionOf = (e: ContentEntry) => ('description' in e && typeof e.description === 'string' ? e.description : '')
 

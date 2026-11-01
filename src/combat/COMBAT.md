@@ -14,6 +14,7 @@ Pure engine at the top level (no React, dice or storage); React in `ui/`. Opened
 | `xp.ts`, `ui/FightXp.tsx` | XP after a fight: `fightCreatures` (rows worth XP from their stat block, beaten ones ticked), `fightPlayers`, `xpShare`. After End combat in a campaign fight the tracker shows the FightXp card: "Give 150 XP (75 each)", sent as a party XP award (src/party/xp.ts). Tested in `xp.test.ts` |
 | `campaign.ts` | `campaignRows`: the party in play as `pc` rows, from this device or read from the cloud |
 | `npcRows.ts` | Rows that play an NPC sheet (src/npc): `npcCombatant`, `mirrorNpcs` (sheet onto row), `npcChangesFromRows` (row changes back onto the sheet). Tested in `npcRows.test.ts` |
+| `names.ts` | `rowName` (a library monster row shows its translated name with its number, "Goblin 2" → "גובלין 2"; the saved name stays English) and `shownVars` (the log shows the same names). Used by the rows, the stat block's target list and the log. Tested in `names.test.ts` |
 | `storage.ts` | Encounters in localStorage (`ff.encounters.v1`), async API, filtered by `ownerId` |
 | `playerView.ts` | Pure: `playerView(encounter)`, what the party may see of a fight (`PlayerEncounter`); `healthLook`, `DM_ONLY_FIELDS`. Tested in `playerView.test.ts` |
 | `liveLogic.ts` | Pure battle-map rules: `projectPublic` (what players see of the board), `placeTokens`, `tokenLabel`, `moveProblem`, `moveTokenOn`. Tested in `live.test.ts` |
