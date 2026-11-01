@@ -271,3 +271,8 @@
 .dm-level-row.st-done .dm-level-st { color: var(--good, var(--ink)); }
 .dm-levels-actions { flex-wrap: wrap; gap: var(--sp-2); }
 :root[data-contrast="high"] .dm-levels { border-width: 2px; }
+
+/* A plan's running fight (fight audit unit 1). */
+.dm-fight-status { margin: var(--sp-2) 0 0; font-weight: 600; }
+.dm-fight-status.is-fighting { color: var(--accent); }
+.dm-fight-status.is-ended { color: var(--muted); }

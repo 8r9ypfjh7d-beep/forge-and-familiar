@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { makeCharacter } from '../sheet/fixtures'
 import {
   addCombatant, addEffect, breakConcentration, concentrationDc, concentrationOf, createEncounter, damageNpc,
-  critDice, effectConditions, elapsedSeconds, endCombat, isBloodied, legendaryCost, nextTurn, rechargeAction, removeCombatant, resolveCheck,
+  critDice, effectConditions, elapsedSeconds, endCombat, fightStatus, isBloodied, legendaryCost, nextTurn, rechargeAction, removeCombatant, resolveCheck,
   setInitiative, spendAction, startCombat, statusOf, syncPartyConditions, spendLegendary, targetGroups, waitingForInitiative,
 } from './engine'
 import type { Encounter } from './types'
@@ -97,6 +97,19 @@ describe('timers', () => {
     expect(e.effects).toHaveLength(1)
     e = nextTurn(e)
     expect(e.effects).toHaveLength(0)
+  })
+
+  it('remembers that a fight ended, and forgets it when combat starts again', () => {
+    let e = nextTurn(startCombat(party()))
+    expect(fightStatus(e)).toBe('fighting')
+    e = endCombat(e, '2026-11-01T00:00:00Z')
+    expect(e).toMatchObject({ round: 0, endedAt: '2026-11-01T00:00:00Z', endedRound: e.endedRound })
+    expect(e.endedRound).toBeGreaterThanOrEqual(1)
+    expect(fightStatus(e)).toBe('ended')
+    expect(endCombat(e)).toBe(e)
+    const again = startCombat(e)
+    expect(again.endedAt).toBeUndefined()
+    expect(fightStatus(again)).toBe('fighting')
   })
 
   it('effects with no duration stay until combat ends', () => {

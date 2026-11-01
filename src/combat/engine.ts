@@ -43,6 +43,10 @@ export function createEncounter(id: string, ownerId: string, name: string, now =
 
 export const inCombat = (enc: Encounter) => enc.round > 0
 
+/** Where a fight stands, for list and header labels. */
+export const fightStatus = (enc: Encounter): 'new' | 'fighting' | 'ended' =>
+  inCombat(enc) ? 'fighting' : enc.endedAt ? 'ended' : 'new'
+
 /** Elapsed game time in seconds at the start of a round (6 seconds each). */
 export const elapsedSeconds = (round: number) => Math.max(0, round - 1) * 6
 
@@ -146,7 +150,7 @@ const sourceTick = (enc: Encounter, id: string, at: 'start' | 'end') => {
 export function startCombat(enc: Encounter): Encounter {
   const first = enc.combatants.find(c => !isDefeated(c))
   if (!first || enc.combatants.some(c => c.initiative === null)) return enc
-  const started = log({ ...enc, round: 1, activeId: first.id, combatants: sortOrder(enc.combatants) }, line('combat.log.round', { round: 1 }), line('combat.log.turn', { name: first.name }))
+  const started = log({ ...enc, endedAt: undefined, endedRound: undefined, round: 1, activeId: first.id, combatants: sortOrder(enc.combatants) }, line('combat.log.round', { round: 1 }), line('combat.log.turn', { name: first.name }))
   return sourceTick(started, first.id, 'start')
 }
 
@@ -175,8 +179,9 @@ export function nextTurn(enc: Encounter): Encounter {
 }
 
 /** Ends combat: the round counter resets and every effect ends, which lifts its conditions. */
-export function endCombat(enc: Encounter): Encounter {
-  return log({ ...enc, round: 0, activeId: null, effects: [], pendingChecks: [] }, line('combat.log.combatEnds'))
+export function endCombat(enc: Encounter, now = new Date().toISOString()): Encounter {
+  if (!inCombat(enc)) return enc
+  return log({ ...enc, endedAt: now, endedRound: enc.round, round: 0, activeId: null, effects: [], pendingChecks: [] }, line('combat.log.combatEnds'))
 }
 
 // ---- Effects ----

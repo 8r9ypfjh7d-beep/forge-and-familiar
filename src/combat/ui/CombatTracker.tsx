@@ -4,7 +4,7 @@ import { ConfirmDialog } from '../../builder/ConfirmDialog'
 import { useI18n } from '../../i18n'
 import type { Translate } from '../../i18n/translate'
 import type { Party as Campaign } from '../../party'
-import { createEncounter, elapsedSeconds, endCombat, inCombat, isDefeated, nextTurn, rechargeAction, startCombat, setInitiative, waitingForInitiative } from '../engine'
+import { createEncounter, elapsedSeconds, endCombat, fightStatus, inCombat, isDefeated, nextTurn, rechargeAction, startCombat, setInitiative, waitingForInitiative } from '../engine'
 import { deleteEncounter, listEncounters, saveEncounter } from '../storage'
 import type { Encounter } from '../types'
 import { EncounterMap } from '../map/EncounterMap'
@@ -16,18 +16,27 @@ import { Effects } from './Effects'
 import { FightXp } from './FightXp'
 import { PendingChecks } from './PendingChecks'
 import { useCombatRolls } from './rolls'
-import { useEncounter } from './useEncounter'
+import { useEncounter, type Act } from './useEncounter'
 import { useMonsterIndex } from './useMonsterIndex'
 import './combat.css'
 
 const newId = () => crypto.randomUUID()
 
+/** "Round 3", "Ended after round 3" or "Not started". */
+function statusText(enc: Encounter, t: Translate): string {
+  const s = fightStatus(enc)
+  return s === 'fighting' ? t('combat.roundN', { round: enc.round }) : s === 'ended' ? t('combat.endedAfter', { round: enc.endedRound ?? 1 }) : t('combat.notStarted')
+}
+
 function elapsedText(seconds: number, t: Translate): string {
   return seconds < 60 ? t('combat.elapsedS', { s: seconds }) : t('combat.elapsedMin', { m: Math.floor(seconds / 60), s: seconds % 60 })
 }
 
-/** Encounter list, and the open encounter. Each player profile keeps its own encounters. `campaign` is the party in play (its members join in one tap). */
-export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: string; initialOpenId?: string; campaign?: Campaign }) {
+/**
+ * Encounter list, and the open encounter. Each player profile keeps its own encounters. `campaign` is the party in play (its members join in one tap).
+ * `onOpenPlan` opens the DM screen plan a fight was started from.
+ */
+export function CombatTracker({ ownerId, initialOpenId, campaign, onOpenPlan }: { ownerId: string; initialOpenId?: string; campaign?: Campaign; onOpenPlan?: (planId: string) => void }) {
   const [list, setList] = useState<Encounter[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(initialOpenId ?? null)
   const { t } = useI18n()
@@ -35,7 +44,7 @@ export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: s
   const refresh = useCallback(() => { listEncounters(ownerId).then(setList) }, [ownerId])
   useEffect(refresh, [refresh])
 
-  if (openId) return <EncounterView key={openId} encounterId={openId} campaign={campaign} onBack={() => { setOpenId(null); refresh() }} />
+  if (openId) return <EncounterView key={openId} encounterId={openId} campaign={campaign} onOpenPlan={onOpenPlan} onBack={() => { setOpenId(null); refresh() }} />
 
   const create = async () => {
     const e = await saveEncounter(createEncounter(newId(), ownerId, t('combat.defaultName', { n: (list?.length ?? 0) + 1 })))
@@ -67,7 +76,7 @@ export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: s
             <div>
               <h3 className="encounter-name">{e.name}</h3>
               <p className="muted small">
-                {t('combat.combatants', { count: e.combatants.length })} · {inCombat(e) ? t('combat.roundN', { round: e.round }) : t('combat.notStarted')}
+                {t('combat.combatants', { count: e.combatants.length })} · {statusText(e, t)}
               </p>
             </div>
             <div className="row">
@@ -83,7 +92,7 @@ export function CombatTracker({ ownerId, initialOpenId, campaign }: { ownerId: s
   )
 }
 
-function EncounterView({ encounterId, campaign, onBack }: { encounterId: string; campaign?: Campaign; onBack: () => void }) {
+function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounterId: string; campaign?: Campaign; onBack: () => void; onOpenPlan?: (planId: string) => void }) {
   const { encounter: enc, party, remote, npcs, act, undo, canUndo } = useEncounter(encounterId)
   const rolls = useCombatRolls()
   const monsters = useMonsterIndex()
@@ -152,7 +161,8 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
           <h2 className="glass-title"><button className="title-btn" onClick={() => setEditingName(true)} title={t('combat.rename')}>{enc.name}</button></h2>
         )}
         <div className="round" aria-live="polite">
-          {fighting ? <><strong>{t('combat.roundN', { round: enc.round })}</strong><span className="muted small">{elapsedText(elapsedSeconds(enc.round), t)}</span></> : <span className="muted">{t('combat.notStarted')}</span>}
+          {fighting ? <><strong>{t('combat.roundN', { round: enc.round })}</strong><span className="muted small">{elapsedText(elapsedSeconds(enc.round), t)}</span></> : <span className="muted">{statusText(enc, t)}</span>}
+          {enc.planId && onOpenPlan && <button className="glass-btn small plain plan-link" onClick={() => onOpenPlan(enc.planId!)}>{t('combat.openPlan')}</button>}
         </div>
       </header>
 
@@ -162,7 +172,7 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
         {fighting
           ? <button className="glass-btn prominent next" onClick={next}>{t('combat.next')}</button>
           : <button className="glass-btn prominent next" disabled={!enc.combatants.length || unrolled.length > 0} onClick={() => act(startCombat)}
-              title={unrolled.length ? t('combat.needInit') : undefined}>{t('combat.start')}</button>}
+              title={unrolled.length ? t('combat.needInit') : undefined}>{t(enc.endedAt ? 'combat.startAgain' : 'combat.start')}</button>}
         {fighting && <button className="glass-btn" onClick={() => setEnding(true)}>{t('combat.end')}</button>}
         <button className="glass-btn plain" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
       </div>
@@ -176,12 +186,14 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
       )}
       </div>
 
-      <ConfirmDialog open={ending} title={t('combat.endConfirm')} yes={t('combat.end')} onYes={() => { act(endCombat); setXpCard(!!campaign) }} onClose={() => setEnding(false)} />
+      <ConfirmDialog open={ending} title={t('combat.endConfirm')} yes={t('combat.end')} onYes={() => { act(e => endCombat(e)); setXpCard(!!campaign) }} onClose={() => setEnding(false)} />
 
       {xpCard && campaign && !fighting && (
         <FightXp enc={enc} campaign={campaign} characters={party} onClose={() => setXpCard(false)}
           creatures={fightCreatures(enc, c => monsterOf(c)?.xp, c => (c.npcId && npcs[c.npcId] ? npcs[c.npcId]!.state.currentHp <= 0 : isDefeated(c)))} />
       )}
+
+      {(enc.planId || enc.notes) && <DmNotes enc={enc} act={act} fighting={fighting} />}
 
       <PendingChecks enc={enc} act={act} />
 
@@ -219,5 +231,19 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
         </div>
       </div>
     </section>
+  )
+}
+
+/** The plan's DM notes, carried into the fight. Open before combat starts, folded once it runs; edits stay on this fight. */
+function DmNotes({ enc, act, fighting }: { enc: Encounter; act: Act; fighting: boolean }) {
+  const { t } = useI18n()
+  const [open, setOpen] = useState(!fighting)
+  useEffect(() => { setOpen(!fighting) }, [fighting])
+  return (
+    <details className="glass combat-notes" open={open} onToggle={e => setOpen(e.currentTarget.open)}>
+      <summary className="glass-eyebrow">{t('dm.notes')}</summary>
+      <textarea key={enc.notes ?? ''} dir="auto" rows={4} defaultValue={enc.notes ?? ''} placeholder={t('dm.notesPh')} aria-label={t('dm.notes')}
+        onBlur={e => { const notes = e.target.value; if (notes !== (enc.notes ?? '')) act(x => ({ ...x, notes })) }} />
+    </details>
   )
 }

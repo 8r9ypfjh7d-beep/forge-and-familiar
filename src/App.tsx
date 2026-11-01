@@ -8,7 +8,7 @@ import { PromptDialog } from './builder/ConfirmDialog'
 import { LevelUp } from './builder/LevelUp'
 import { CombatTracker } from './combat/ui/CombatTracker'
 import { useLiveHits } from './combat/ui/useLiveHits'
-import { DmScreen, useDmTools } from './dm'
+import { DmScreen, loadDm, saveDm, useDmTools } from './dm'
 import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
 import { FamiliarFab, FamiliarPage, dmPrepare, screenFor } from './familiar/ui'
@@ -104,6 +104,12 @@ export default function App() {
   useXpAwards(active?.id, playing.parties)
   useLiveHits(active?.id, playing.parties)
   const nav = { isDm, partyDm, admin, dmTools }
+  // From a fight back to the plan it was started from: make it the plan the Fights tab shows, then open the DM screen.
+  const openPlan = async (planId: string) => {
+    if (!active) return
+    await saveDm(active.id, { ...(await loadDm(active.id)), activePlanId: planId })
+    setView({ kind: 'dm' })
+  }
   // Tapping a campaign on the home screen plays it: the DM screen for its DM, else the sheet the player brings.
   const playCampaign = (p: Party) => {
     playing.choose(p.id)
@@ -329,7 +335,7 @@ export default function App() {
         {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView(printFrom.current === 'sheet' ? { kind: 'sheet', id: view.id } : { kind: 'list' })} />}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'familiar' && familiar && <FamiliarPage {...familiar} />}
-        {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} campaign={partyDm ? playing.party : undefined} />}
+        {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} campaign={partyDm ? playing.party : undefined} onOpenPlan={openPlan} />}
         {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} onOpenSheet={id => setView({ kind: 'watch', id })} onOpenNpc={id => setView({ kind: 'npc', id })}
           onNewNpc={() => setView({ kind: 'npc', id: 'new' })}
           runs={playing.parties?.filter(p => p.dmId === active.id)} onPickCampaign={playing.choose} onStartCampaign={() => setView({ kind: 'party', startWith: 'start' })} />}

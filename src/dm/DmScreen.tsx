@@ -1,7 +1,7 @@
 // The DM screen: party budget on top, then tabs for encounters, players' rolls, monsters, quick reference and NPCs.
 // Uses the sheet's card style (.ff-sheet) so it reads like the rest of the app.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { createEncounter, addCombatant, saveEncounter } from '../combat'
+import { createEncounter, addCombatant, saveEncounter, getEncounter, fightStatus, type Encounter } from '../combat'
 import { campaignRows } from '../combat/campaign'
 import { BOOK_TITLES, loadMonsters, monsterKey, onContentChanged, sourceById, type Edition, type LoadedMonster, type Monster } from '../content'
 import { roll, rollD20 } from '../dice'
@@ -28,6 +28,7 @@ import {
 import { RollsTab } from './RollsTab'
 import { useDmRolls, useUnseenRolls } from './useDmRolls'
 import { loadDm, onDmChanged, saveDm, syncDm } from './store'
+import type { Translate } from '../i18n/translate'
 import { emptyDmState, type DmState, type EncounterPlan, type Npc, type PartyGroup, type PlanMonster } from './types'
 import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
@@ -162,10 +163,15 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
       hp: dice => roll(dice).total,
     }, npcs)
     const pcs = party ? await campaignRows(party, [], newId) : []
-    const enc = [...rows, ...pcs].reduce((e, row) => addCombatant(e, row), createEncounter(newId(), userId, p.name))
+    const blank: Encounter = { ...createEncounter(newId(), userId, p.name), planId: p.id, ...(p.notes?.trim() ? { notes: p.notes } : {}) }
+    const enc = [...rows, ...pcs].reduce((e, row) => addCombatant(e, row), blank)
     // The plan's map goes with the fight; the tracker places tokens on it when combat starts.
     const map = p.mapId ? await getMap(userId, p.mapId) : undefined
     const saved = await saveEncounter(map ? { ...enc, board: { mapId: map.id, tokens: [], fog: map.fog, locked: false } } : enc)
+    // Remember the fight on the plan, written now: the screen closes before a queued state update would run.
+    const next = updatePlan(await loadDm(userId), p.id, x => ({ ...x, encounterId: saved.id }))
+    await saveDm(userId, next)
+    setState(next)
     onRunEncounter(saved.id)
   }
 
@@ -201,7 +207,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
         </div>
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
           {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
-          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} onDrawMap={drawMap} />}
+          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenFight={onRunEncounter} onOpenMonster={showMonster} onDrawMap={drawMap} />}
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition}
             onMakeNpc={makeNpc && (m => makeNpc({ monster: { source: m.source, id: m.id } }))} />}
           {tab === 'maps' && <MapsTab key={drawFrom?.mapId ?? 'list'} ownerId={userId} initialOpenId={drawFrom?.mapId}
@@ -372,7 +378,7 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
 
 // ---------- Encounters ----------
 
-function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd, onRun, onOpenMonster, onDrawMap }: {
+function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd, onRun, onOpenFight, onOpenMonster, onDrawMap }: {
   userId: string
   state: DmState
   update: Update
@@ -381,6 +387,7 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
   onAddNpc: (n: NpcSheet) => void
   onAdd: (m: Monster) => void
   onRun: (p: EncounterPlan) => void
+  onOpenFight: (encounterId: string) => void
   onOpenMonster: (id: string) => void
   /** Opens the Maps tab editor on a new map drawn for this plan. */
   onDrawMap: (mapId: string, planName: string) => void
@@ -388,6 +395,16 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
   const { t, monsterName } = useI18n()
   const plan = activePlan(state)
   const [deleting, setDeleting] = useState(false)
+  const [restarting, setRestarting] = useState(false)
+  // The fight this plan last started, while it still exists in the tracker.
+  const [fight, setFight] = useState<Encounter | null>(null)
+  const fightId = plan?.encounterId
+  useEffect(() => {
+    let live = true
+    setFight(null)
+    if (fightId) getEncounter(fightId).then(e => { if (live) setFight(e ?? null) })
+    return () => { live = false }
+  }, [fightId])
   const budget = partyBudget(state.party)
   // Plans store the English name; show the monster's name in the current language, NPC sheets keep their own.
   const rowName = (m: PlanMonster) => m.npcId ? m.name
@@ -452,10 +469,24 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
               <span>{t('dm.rollHp')}</span>
             </label>
             <MapPicker ownerId={userId} value={plan.mapId} onChange={mapId => update(s => updatePlan(s, plan.id, p => ({ ...p, mapId })))} onDraw={id => onDrawMap(id, plan.name)} />
-            <div className="row">
-              <button className="btn primary" disabled={!plan.monsters.length || !monsters.length} onClick={() => onRun(plan)}>{t('dm.start')}</button>
-            </div>
-            <p className="hint">{t('dm.startHelp')}</p>
+            {fight ? (
+              <>
+                <p className={`dm-fight-status is-${fightStatus(fight)}`} role="status">{fightLabel(fight, t)}</p>
+                <div className="row">
+                  <button className="btn primary" onClick={() => onOpenFight(fight.id)}>{t('dm.openFight')}</button>
+                  <button className="link-btn" disabled={!plan.monsters.length || !monsters.length} onClick={() => setRestarting(true)}>{t('dm.startAgain')}</button>
+                </div>
+                <ConfirmDialog open={restarting} title={t('dm.startAgainConfirm', { name: plan.name })} yes={t('dm.start')}
+                  onYes={() => onRun(plan)} onClose={() => setRestarting(false)} />
+              </>
+            ) : (
+              <>
+                <div className="row">
+                  <button className="btn primary" disabled={!plan.monsters.length || !monsters.length} onClick={() => onRun(plan)}>{t('dm.start')}</button>
+                </div>
+                <p className="hint">{t('dm.startHelp')}</p>
+              </>
+            )}
           </>
         )}
       </section>
@@ -465,6 +496,12 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
       </section>
     </>
   )
+}
+
+/** "Fight in progress · Round 2", "Fought · ended after round 3" or "Fight set up, not started yet". */
+function fightLabel(enc: Encounter, t: Translate): string {
+  const s = fightStatus(enc)
+  return s === 'fighting' ? t('dm.fightOn', { round: enc.round }) : s === 'ended' ? t('dm.fightEnded', { round: enc.endedRound ?? 1 }) : t('dm.fightNew')
 }
 
 function Meter({ xp, budget, players }: { xp: number; budget: { low: number; moderate: number; high: number }; players: number }) {
