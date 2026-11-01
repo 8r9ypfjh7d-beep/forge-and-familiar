@@ -9,7 +9,7 @@ import { useI18n } from '../../i18n'
 import { derive, formatMod } from '../../rules'
 import { crLabel } from '../../monsters/format'
 import type { Ability } from '../../rules'
-import { addLog, critDice, legendaryCost, spendAction, rechargeAction, spendLegendary, type Party } from '../engine'
+import { addLog, critDice, legendaryCost, spendAction, rechargeAction, spendLegendary, targetGroups, type Party } from '../engine'
 import type { Combatant, Encounter } from '../types'
 import { legendaryCount } from '../../monsters/block'
 import { rowName } from '../names'
@@ -24,6 +24,9 @@ interface Hit {
   damage: { roll: RollResult; type: string }[]
   save?: MonsterAction['save']
 }
+
+/** Each monster row's last target, for this page visit. */
+const lastTarget = new Map<string, string>()
 
 const total = (h: Hit) => h.damage.reduce((n, d) => n + d.roll.total, 0)
 
@@ -43,8 +46,11 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
   const { record: shared } = useDice()
   const record = (r: RollResult) => shared(r, { quiet: true })
   const [hit, setHit] = useState<Hit | null>(null)
-  const [targetId, setTargetId] = useState('')
-  const targets = enc.combatants.filter(x => x.id !== c.id)
+  const groups = targetGroups(enc, c.id)
+  const targets = [...groups.enemies, ...groups.allies]
+  // The last target this row picked, kept while the stat block folds away and opens again.
+  const [targetId, setTargetIdState] = useState(() => targets.some(x => x.id === lastTarget.get(c.id)) ? lastTarget.get(c.id)! : '')
+  const setTargetId = (id: string) => { lastTarget.set(c.id, id); setTargetIdState(id) }
   const target = targets.find(x => x.id === targetId)
   const targetPc = target?.characterId ? party[target.characterId] : undefined
   const targetAc = targetPc ? derive(targetPc).armorClass.value : target?.ac
@@ -172,7 +178,8 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
         <span>{t('combat.target')}</span>
         <select value={targetId} onChange={ev => setTargetId(ev.target.value)}>
           <option value="">—</option>
-          {targets.map(x => <option key={x.id} value={x.id}>{shown(x)}</option>)}
+          {groups.enemies.length > 0 && <optgroup label={t('combat.enemies')}>{groups.enemies.map(x => <option key={x.id} value={x.id}>{shown(x)}</option>)}</optgroup>}
+          {groups.allies.length > 0 && <optgroup label={t('combat.allies')}>{groups.allies.map(x => <option key={x.id} value={x.id}>{shown(x)}</option>)}</optgroup>}
         </select>
       </label>
       {hit && (

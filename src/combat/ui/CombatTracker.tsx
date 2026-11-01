@@ -4,7 +4,7 @@ import { ConfirmDialog } from '../../builder/ConfirmDialog'
 import { useI18n } from '../../i18n'
 import type { Translate } from '../../i18n/translate'
 import type { Party as Campaign } from '../../party'
-import { createEncounter, elapsedSeconds, endCombat, inCombat, isDefeated, nextTurn, rechargeAction, startCombat, setInitiative } from '../engine'
+import { createEncounter, elapsedSeconds, endCombat, inCombat, isDefeated, nextTurn, rechargeAction, startCombat, setInitiative, waitingForInitiative } from '../engine'
 import { deleteEncounter, listEncounters, saveEncounter } from '../storage'
 import type { Encounter } from '../types'
 import { EncounterMap } from '../map/EncounterMap'
@@ -114,7 +114,14 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
     const name = m ? rowName(c, m.name, monsterName(m)) : c.name
     if (name !== c.name) shown.set(c.name, name)
   }
-  const unrolled = enc.combatants.filter(c => c.initiative === null)
+  const waiting = waitingForInitiative(enc)
+  const unrolled = waiting.rows
+  const now = fighting ? enc.combatants.find(c => c.id === enc.activeId) : undefined
+  // The hint's link: show the order and put the cursor in the first empty initiative box.
+  const typeFirst = () => {
+    setPane('order')
+    requestAnimationFrame(() => document.getElementById(`init-${unrolled[0]?.id}`)?.focus())
+  }
   const rollMissing = () => act((e, p) => {
     let next = e
     for (const c of e.combatants) {
@@ -141,14 +148,24 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
         </div>
       </header>
 
+      <div className={`combat-bar${fighting ? ' fighting' : ''}`}>
       <div className="combat-actions row">
-        {unrolled.length > 0 && <button className="glass-btn" onClick={rollMissing}>{t('combat.rollInit', { count: unrolled.length })}</button>}
+        {unrolled.length > 0 && <button className="glass-btn roll-init" onClick={rollMissing}>{t(waiting.players ? 'combat.rollPlayers' : 'combat.rollInit', { count: unrolled.length })}</button>}
         {fighting
           ? <button className="glass-btn prominent next" onClick={next}>{t('combat.next')}</button>
           : <button className="glass-btn prominent next" disabled={!enc.combatants.length || unrolled.length > 0} onClick={() => act(startCombat)}
               title={unrolled.length ? t('combat.needInit') : undefined}>{t('combat.start')}</button>}
         {fighting && <button className="glass-btn" onClick={() => setEnding(true)}>{t('combat.end')}</button>}
         <button className="glass-btn plain" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
+      </div>
+      {now && <p className="combat-now" aria-live="polite">{t('combat.now')} <strong><bdi>{shown.get(now.name) ?? now.name}</bdi></strong></p>}
+      {!fighting && unrolled.length > 0 && (
+        <p className="combat-wait">
+          {t('combat.waitingInit', { names: unrolled.map(c => shown.get(c.name) ?? c.name).join(', ') })}{' '}
+          <button type="button" className="link-btn" onClick={typeFirst}>{t('combat.typeInit')}</button>{' '}
+          {t('combat.orRollThem')}
+        </p>
+      )}
       </div>
 
       <ConfirmDialog open={ending} title={t('combat.endConfirm')} yes={t('combat.end')} onYes={() => { act(endCombat); setXpCard(!!campaign) }} onClose={() => setEnding(false)} />
