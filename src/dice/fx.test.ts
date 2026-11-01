@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { critKind, CRIT_LINES, headlineDie, isNat1, isNat20, NAT20_LINES, pickLine, pickNat20Line, roll, rollD20, RollFxBus, type RollResult, type Rng } from './index'
+import { critKind, fxCritKind, CRIT_LINES, headlineDie, isNat1, isNat20, NAT20_LINES, pickLine, pickNat20Line, roll, rollD20, RollFxBus, type RollResult, type Rng } from './index'
 
 const always = (v: number): Rng => () => v
 
@@ -66,5 +66,21 @@ describe('roll effects', () => {
     now = 1000
     bus.push(dmg)
     expect(seen).toEqual([hit, dmg])
+  })
+})
+
+describe('quiet rolls', () => {
+  it('skip the full-screen moment but keep the natural', () => {
+    const nat = (n: number) => rollD20(5, { rng: () => n }, 'attack')
+    expect(fxCritKind(nat(20))).toBe('nat20')
+    expect(fxCritKind(nat(1), { quiet: true })).toBeNull()
+    expect(isNat1(nat(1))).toBe(true)
+  })
+  it('reach bus listeners with their options', () => {
+    const bus = new RollFxBus()
+    const seen: (boolean | undefined)[] = []
+    bus.subscribe((_, o) => seen.push(o.quiet))
+    bus.push(roll('d6'), { quiet: true })
+    expect(seen).toEqual([true])
   })
 })

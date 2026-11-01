@@ -37,7 +37,8 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
   onClose?: () => void
 }) {
   const { t, term, abilityShort, locale, dir } = useI18n()
-  const { record } = useDice()
+  const { record: shared } = useDice()
+  const record = (r: RollResult) => shared(r, { quiet: true })
   const [hit, setHit] = useState<Hit | null>(null)
   const [targetId, setTargetId] = useState('')
   const targets = enc.combatants.filter(x => x.id !== c.id)

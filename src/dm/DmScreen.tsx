@@ -154,7 +154,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
   // Start: monsters with their stat blocks, initiative rolled per group, HP average or rolled; then the campaign's party.
   const run = async (p: EncounterPlan) => {
     const rows = planCombatants(p, monsters, newId, {
-      d20: (bonus, label) => record(rollD20(bonus, { label: `${label}: Initiative` }, 'initiative')).total,
+      d20: (bonus, label) => record(rollD20(bonus, { label: `${label}: Initiative` }, 'initiative'), { quiet: true }).total,
       hp: dice => roll(dice).total,
     }, npcs)
     const pcs = party ? await campaignRows(party, [], newId) : []

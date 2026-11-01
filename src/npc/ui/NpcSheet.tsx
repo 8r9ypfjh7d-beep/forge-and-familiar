@@ -195,7 +195,7 @@ function HeroCard({ npc, editing, apply, ownerId, onOpenFight }: { npc: Npc; edi
           <div><dt>{t('stat.passivePerception')}</dt><dd>{passivePerception(m)}</dd></div>
         </dl>
         <div className="npc-hero-actions">
-          <button type="button" className="btn primary" onClick={() => record(rollD20(initBonus(m), { label: `${npc.name}: ${t('npc.initiativeLabel')}` }, 'check'))}>
+          <button type="button" className="btn primary" onClick={() => record(rollD20(initBonus(m), { label: `${npc.name}: ${t('npc.initiativeLabel')}` }, 'check'), { quiet: true })}>
             {t('npc.initiative', { bonus: formatMod(initBonus(m)) })}
           </button>
           <button type="button" className="btn" aria-expanded={picking} onClick={() => setPicking(p => !p)}>⚔ {t('npc.addToFight')}</button>
