@@ -59,10 +59,30 @@
 .combat-head .round strong { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: -0.015em; }
 .combat-actions { gap: var(--sp-2); }
 .combat-actions .next { min-width: 150px; }
+/* Whose turn it is, beside the turn buttons; the hint under them says who still needs an initiative. */
+.combat-bar { display: grid; gap: var(--sp-2); }
+.combat-now { margin: 0; font-size: 0.9rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combat-now strong { color: var(--ink); font-family: var(--font-display); }
+.combat-wait { margin: 0; font-size: 0.9rem; }
+.combat-wait .link-btn { font: inherit; padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.combatant { scroll-margin-block: var(--sp-3); }
 @media (max-width: 560px) {
   .combat-actions { flex-wrap: nowrap; }
   .combat-actions .glass-btn { min-height: 44px; padding-inline: var(--sp-3); }
   .combat-actions .next { min-width: 0; flex: 1; }
+  /* Before the fight the roll button takes its own line, so Start combat keeps its width. */
+  .combat-bar:not(.fighting) .combat-actions { flex-wrap: wrap; }
+  .combat-bar:not(.fighting) .combat-actions .roll-init { flex: 1 1 100%; }
+  /* Phones: Next turn stays at the top of the screen while the DM scrolls the order. */
+  .combat-bar.fighting {
+    position: sticky; inset-block-start: var(--sp-2); z-index: 20;
+    padding: var(--sp-2); border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--panel) 88%, transparent);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-hairline); box-shadow: var(--glass-shadow-lift);
+  }
+  /* The active row lands below the sticky bar, not under it. */
+  .ff-combat .combatant { scroll-margin-block: 132px 110px; }
 }
 
 /* Concentration checks: tinted glass, the alert stands out without a heavy border. */
@@ -184,10 +204,13 @@
 /* NPC sheet rows (src/npc): the name opens the sheet; a damage type picker lets its defenses apply. */
 .ff-combat .npc-link { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
 .ff-combat .controls .dmg-type { max-inline-size: 9rem; }
-/* Phones: the damage type gets its own line above the amount and buttons. */
+/* Phones: amount, Dmg, Heal, condition and ✕ share one line (the condition picker gives up width);
+   the damage type shows once an amount is typed, on its own line below, so nothing moves under the finger. */
 @media (max-width: 560px) {
   .ff-combat .combatant .controls { flex-wrap: wrap; }
-  .ff-combat .combatant .controls :is(.dmg-type, .add-cond) { flex: 1 1 40%; max-inline-size: none; order: -1; }
+  .ff-combat .combatant .controls > * { flex: none; }
+  .ff-combat .combatant .controls .add-cond { flex: 1 1 0; min-width: 0; max-inline-size: none; }
+  .ff-combat .combatant .controls .dmg-type { flex: 1 1 100%; max-inline-size: none; order: 1; }
   /* Room below the last row so the floating dice and Familiar buttons never sit on a row's HP or buttons. */
   .ff-combat { padding-block-end: calc(140px + env(safe-area-inset-bottom)); }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Monster } from '../../content'
 import { rollDeathSave as rollDeathSaveDice } from '../../dice'
 import { useDice } from '../../dice/ui'
@@ -46,6 +46,9 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
   const [amount, setAmount] = useState('')
   const [damageType, setDamageType] = useState('')
   const [removing, setRemoving] = useState(false)
+  // Initiative being typed: the row re-sorts on blur or Enter, so it never moves under the finger.
+  const [initDraft, setInitDraft] = useState<string | null>(null)
+  const rowRef = useRef<HTMLLIElement>(null)
   const sheet = c.npcId ? npcs[c.npcId] : undefined
   const [block, setBlock] = useState<boolean | null>(null)
   const n = Math.max(0, Math.floor(Number(amount) || 0))
@@ -63,6 +66,23 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
     : c.hp ?? { current: 0, max: 0, temp: 0 }
   const ac = ch ? derive(ch).armorClass.value : c.ac
   const pct = hp.max ? (hp.current / hp.max) * 100 : 0
+
+  // Next turn brings the new active row into view (smoothly, unless the device asks for reduced motion).
+  const wasActive = useRef(active)
+  useEffect(() => {
+    if (active && !wasActive.current) {
+      const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      rowRef.current?.scrollIntoView?.({ block: 'nearest', behavior: still ? 'auto' : 'smooth' })
+    }
+    wasActive.current = active
+  }, [active])
+  const commitInit = () => {
+    if (initDraft === null) return
+    const v = initDraft === '-' ? '' : initDraft
+    setInitDraft(null)
+    const next = v === '' ? null : Number(v)
+    if (next !== c.initiative) act(e => setInitiative(e, c.id, next))
+  }
 
   const idx = enc.combatants.findIndex(x => x.id === c.id)
   const tiedAbove = !first && enc.combatants[idx - 1].initiative === c.initiative
@@ -90,14 +110,13 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
   const showBlock = !!monster && c.kind === 'npc' && life !== 'dead' && (block ?? active)
 
   return (
-    <li className={`combatant glass${active ? ' active' : ''}${life === 'dead' ? ' out' : ''}${showBlock ? ' unfolded' : ''}`} aria-current={active ? 'true' : undefined}>
+    <li ref={rowRef} className={`combatant glass${active ? ' active' : ''}${life === 'dead' ? ' out' : ''}${showBlock ? ' unfolded' : ''}`} aria-current={active ? 'true' : undefined}>
       <div className="init">
         <label className="sr-only" htmlFor={`init-${c.id}`}>{t('combat.initFor', { name })}</label>
-        <input id={`init-${c.id}`} inputMode="numeric" value={c.initiative ?? ''} placeholder="–"
-          onChange={ev => {
-            const v = ev.target.value.replace(/[^\d-]/g, '')
-            act(e => setInitiative(e, c.id, v === '' || v === '-' ? null : Number(v)))
-          }} />
+        <input id={`init-${c.id}`} inputMode="numeric" value={initDraft ?? c.initiative ?? ''} placeholder="–"
+          onChange={ev => setInitDraft(ev.target.value.replace(/[^\d-]/g, ''))}
+          onBlur={commitInit}
+          onKeyDown={ev => { if (ev.key === 'Enter') ev.currentTarget.blur() }} />
         {(tiedAbove || tiedBelow) && (
           <span className="tie">
             <button className="icon" disabled={!tiedAbove} onClick={() => act(e => moveCombatant(e, c.id, -1))} aria-label={t('combat.moveUp', { name })}>▲</button>
@@ -148,7 +167,7 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
         <input aria-label={t('combat.amountFor', { name })} inputMode="numeric" placeholder="0" value={amount}
           onChange={ev => setAmount(ev.target.value.replace(/\D/g, ''))}
           onKeyDown={ev => { if (ev.key === 'Enter' && n) { damage(); setAmount('') } }} />
-        {c.kind === 'npc' && (
+        {c.kind === 'npc' && (n > 0 || damageType) && (
           <select className="dmg-type" aria-label={t('combat.damageType')} value={damageType} onChange={ev => setDamageType(ev.target.value)}>
             <option value="">{t('combat.anyType')}</option>
             {DAMAGE_TYPES.map(x => <option key={x} value={x}>{term('damage', x, x)}</option>)}
