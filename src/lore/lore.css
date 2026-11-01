@@ -155,3 +155,18 @@
 @keyframes lore-title-in { 0% { opacity: 0; letter-spacing: 0.3em; filter: blur(6px); } 100% { opacity: 1; letter-spacing: 0; filter: blur(0); } }
 .ff-lore-reveal.is-still, .ff-lore-reveal.is-still * { animation: none !important; }
 .ff-lore .lore-empty-dm { padding: var(--sp-3); display: grid; gap: var(--sp-2); justify-items: start; }
+
+/* Type picker: a tap-friendly grid of icons instead of a dropdown, with one line on the chosen type. */
+.ff-lore .composer .lore-types { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
+.ff-lore .composer .lore-types legend { font-weight: 600; margin-block-end: 6px; }
+.ff-lore .lore-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.ff-lore .lore-type {
+  display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 10px;
+  border-radius: var(--r-sm); border: 1px solid var(--glass-stroke); background: var(--glass-thin);
+  color: var(--ink); font: inherit; font-size: 0.9rem; text-align: start; cursor: pointer;
+}
+.ff-lore .lore-type.on { background: var(--glass-tint); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.ff-lore .lore-type:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ff-lore .composer .lore-format { gap: 6px; margin-block-end: 4px; }
+.ff-handouts .kind.shown-tag { color: var(--good); }
+@media (max-width: 420px) { .ff-lore .lore-type-grid { grid-template-columns: repeat(2, 1fr); } }

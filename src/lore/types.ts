@@ -79,5 +79,11 @@ export const META_FIELDS: Record<EntryType, MetaField[]> = {
   relic: ['place'],
 }
 
-/** Types that carry a picture (optional except for image and map). */
-export const PICTURE_TYPES: EntryType[] = ['image', 'map', 'poster', 'place', 'person', 'faction', 'relic']
+/** Types that carry a picture: every type but the online table (optional except for image and map). */
+export const PICTURE_TYPES: EntryType[] = ENTRY_TYPES.filter(t => t !== 'table')
+
+/** Icon shown on the type picker. */
+export const TYPE_ICONS: Record<EntryType, string> = {
+  note: '📝', letter: '✉️', journal: '📔', prophecy: '🔮', book: '📖', poster: '📜', rumor: '💬',
+  place: '🏰', person: '👤', faction: '🛡️', relic: '💎', image: '🖼️', map: '🗺️', table: '🎲',
+}

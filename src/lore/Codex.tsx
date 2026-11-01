@@ -1,6 +1,6 @@
 // The Codex: the campaign's lore book. The DM writes chapters of typed entries in advance and reveals
 // them as the party discovers things; players read what they have found, by chapter or as a timeline.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ConfirmDialog, PromptDialog } from '../builder/ConfirmDialog'
 import { useI18n } from '../i18n/useI18n'
 import type { Party } from '../party/types'
@@ -17,10 +17,18 @@ import {
   deleteChapter, deleteHandout, HandoutSpaceError, listChapters, listHandouts, markHandoutSeen, onHandoutsChanged,
   pinned, refreshHandouts, saveChapter, saveHandout, togglePin,
 } from './store'
-import { ENTRY_TYPES, META_FIELDS, PICTURE_TYPES, type EntryType, type LoreChapter, type LoreEntry } from './types'
+import { ENTRY_TYPES, META_FIELDS, PICTURE_TYPES, TYPE_ICONS, type EntryType, type LoreChapter, type LoreEntry } from './types'
 import './lore.css'
 
 const OPEN_EVENT = 'ff:lore-open'
+
+type T = ReturnType<typeof useI18n>['t']
+
+/** Why "Show players" is greyed out, in words, or undefined when it isn't. */
+function whyNot(t: T, e: Parameters<typeof problems>[0]): string | undefined {
+  const p = problems(e)
+  return p.length ? p.map(x => t(`lore.missing.${x}`)).join(' ') : undefined
+}
 let pendingOpen: string | null = null
 
 /** Asks the Codex on screen (or the next one to mount) to open an entry, e.g. from the reveal moment. */
@@ -111,13 +119,13 @@ export function Codex({ party, userId, nameOf }: { party: Party; userId: string;
     <section className="ff-handouts ff-lore" aria-labelledby="lore-title">
       <div className="row spread wrap">
         <h3 id="lore-title">{t('lore.title')}</h3>
-        <div className="glass-segmented" role="radiogroup" aria-label={t('lore.view')}>
+        {visible.length > 0 && <div className="glass-segmented" role="radiogroup" aria-label={t('lore.view')}>
           {(['book', 'timeline'] as Mode[]).map(m => (
             <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)}>{t(m === 'book' ? 'lore.book' : 'lore.timeline')}</button>
           ))}
-        </div>
+        </div>}
       </div>
-      {dm && !editing && (
+      {dm && !editing && (visible.length > 0 || chapters.length > 0) && (
         <div className="row wrap lore-dm-actions">
           <button className="glass-btn small prominent" onClick={() => setEditing('new')}>{t('lore.newEntry')}</button>
           <button className="glass-btn small" onClick={() => setNewChapter(true)}>{t('lore.newChapter')}</button>
@@ -135,7 +143,7 @@ export function Codex({ party, userId, nameOf }: { party: Party; userId: string;
             {tonight.map(e => (
               <li key={e.id} className="row">
                 <button className="tonight-title" onClick={() => view(e)}>{e.title}</button>
-                <button className="glass-btn small prominent" disabled={problems(e).length > 0} onClick={() => saveHandout(send(e))}>{t('lore.reveal')}</button>
+                <button className="glass-btn small prominent" disabled={problems(e).length > 0} title={whyNot(t, e)} onClick={() => saveHandout(send(e))}>{t('lore.reveal')}</button>
                 <button className="glass-btn small ghost icon" aria-label={t('lore.unqueue')} onClick={() => saveHandout(toggleTonight(entries, e))}>✕</button>
               </li>
             ))}
@@ -161,7 +169,10 @@ export function Codex({ party, userId, nameOf }: { party: Party; userId: string;
           !editing && (
             <div className="glass thin lore-empty-dm">
               <p>{t('lore.emptyDm')}</p>
-              <button className="glass-btn prominent" onClick={() => setEditing('new')}>{t('lore.firstEntry')}</button>
+              <div className="row wrap">
+                <button className="glass-btn prominent" onClick={() => setEditing('new')}>{t('lore.firstEntry')}</button>
+                <button className="glass-btn ghost" onClick={() => setImporting(true)}>{t('lore.pasteDoc')}</button>
+              </div>
             </div>
           )
         ) : <p className="muted small">{t('lore.emptyPlayer')}</p>
@@ -300,7 +311,7 @@ function EntryCard({ entry: h, party, userId, nameOf, all, onOpen, onEdit, onDel
       <div className="handout-meta">
         <div className="row wrap">
           <span className={`kind ${h.kind}`}>{t(typeKey(h.kind))}</span>
-          {!h.sentAt && <span className="kind draft-tag">{t('lore.draft')}</span>}
+          {dm && (h.sentAt ? <span className="kind shown-tag">{t('lore.shownTag')}</span> : <span className="kind draft-tag">{t('lore.draft')}</span>)}
           {!h.sentAt && h.teaser && <span className="kind draft-tag">{t('lore.teaserTag')}</span>}
           {h.tonight !== undefined && !h.sentAt && <span className="kind tonight-tag">★ {t('lore.tonight')}</span>}
           {unread && <span className="new-tag">{t('lore.new')}</span>}
@@ -309,7 +320,7 @@ function EntryCard({ entry: h, party, userId, nameOf, all, onOpen, onEdit, onDel
         <h4>{h.title}</h4>
         {dm ? (
           <p className="muted small">
-            {t('lore.to', { who: toLabel })}
+            {t(h.sentAt ? 'lore.to' : 'lore.toDraft', { who: toLabel })}
             {h.sentAt && <> · <span title={seen.map(nameOf).join(', ') || undefined}>{t('lore.seenBy', { n: seen.length, of: reach.length })}</span></>}
           </p>
         ) : (
@@ -320,9 +331,9 @@ function EntryCard({ entry: h, party, userId, nameOf, all, onOpen, onEdit, onDel
             {h.sentAt
               ? <button className="glass-btn small" onClick={() => saveHandout(unsend(h))}>{t('lore.takeBack')}</button>
               : <>
-                <button className="glass-btn small prominent" disabled={problems(h).length > 0} onClick={() => saveHandout(send(h))}>{t('lore.reveal')}</button>
-                <button className="glass-btn small ghost icon" aria-pressed={h.tonight !== undefined} aria-label={t('lore.queueTonight')} title={t('lore.queueTonight')}
-                  onClick={() => saveHandout(toggleTonight(all, h))}>{h.tonight !== undefined ? '★' : '☆'}</button>
+                <button className="glass-btn small prominent" disabled={problems(h).length > 0} title={whyNot(t, h)} onClick={() => saveHandout(send(h))}>{t('lore.reveal')}</button>
+                <button className="glass-btn small ghost" aria-pressed={h.tonight !== undefined} title={t('lore.queueTonight')}
+                  onClick={() => saveHandout(toggleTonight(all, h))}>{h.tonight !== undefined ? '★' : '☆'} {t('lore.tonight')}</button>
               </>}
             <button className="glass-btn small" onClick={onEdit}>{t('lore.edit')}</button>
             <button className="glass-btn small ghost icon" aria-label={t('lore.moveUp')} onClick={() => moveEntry(all, h.id, -1).forEach(e => saveHandout(e))}>↑</button>
@@ -382,6 +393,21 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
   const [busy, setBusy] = useState(false)
   const players = party.members.map(m => m.userId).filter(id => id !== party.dmId)
   const hasPicture = PICTURE_TYPES.includes(kind)
+  const textRef = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  /** Wraps the selected words in markup (or a sample word when nothing is selected) and keeps them selected. */
+  const wrap = (mark: string) => {
+    const el = textRef.current
+    const start = el?.selectionStart ?? text.length
+    const end = el?.selectionEnd ?? text.length
+    const words = text.slice(start, end) || t('lore.fmt.sample')
+    setText(text.slice(0, start) + mark + words + mark + text.slice(end))
+    requestAnimationFrame(() => {
+      el?.focus()
+      el?.setSelectionRange(start + mark.length, start + mark.length + words.length)
+    })
+  }
 
   const draft = {
     kind, title, text, to, teaser, meta,
@@ -399,7 +425,7 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
     try {
       setImage(await shrinkImage(file, kind === 'map' ? 'map' : 'image'))
       setImageUrl(undefined)
-      if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, ''))
+      if (!title.trim() && (kind === 'image' || kind === 'map')) setTitle(file.name.replace(/\.[^.]+$/, ''))
     } catch (e) {
       setError(e instanceof Error ? e.message : t('lore.badImage'))
     } finally {
@@ -427,14 +453,20 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
   }
 
   return (
-    <form className="glass composer" onSubmit={e => { e.preventDefault(); if (!missing.length) save(true) }}>
-      <div className="row wrap">
-        <div className="field grow">
-          <label htmlFor="lore-kind">{t('lore.kind')}</label>
-          <select id="lore-kind" className="glass-field" value={kind} onChange={e => setKind(e.target.value as EntryType)}>
-            {ENTRY_TYPES.map(k => <option key={k} value={k}>{t(typeKey(k))}</option>)}
-          </select>
+    // Enter in a field saves a private copy; showing players is always its own tap.
+    <form className="glass composer" onSubmit={e => { e.preventDefault(); if (!missing.length && !busy) save(!!initial?.sentAt) }}>
+      <fieldset className="field lore-types">
+        <legend>{t('lore.kind')}</legend>
+        <div className="lore-type-grid" role="radiogroup" aria-label={t('lore.kind')}>
+          {ENTRY_TYPES.map(k => (
+            <button key={k} type="button" role="radio" aria-checked={kind === k} className={`lore-type ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>
+              <span aria-hidden="true">{TYPE_ICONS[k]}</span> {t(typeKey(k))}
+            </button>
+          ))}
         </div>
+        <p className="small muted">{t(`lore.typeHint.${kind}`)}</p>
+      </fieldset>
+      <div className="row wrap">
         <div className="field grow">
           <label htmlFor="lore-chapter">{t('lore.chapter')}</label>
           <select id="lore-chapter" className="glass-field" value={chapterId} onChange={e => setChapterId(e.target.value)}>
@@ -446,7 +478,7 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
 
       <div className="field">
         <label htmlFor="handout-title">{t('lore.entryTitle')}</label>
-        <input id="handout-title" className="glass-field" value={title} onChange={e => setTitle(e.target.value)} placeholder={t(`lore.example.${kind}` as `lore.example.${EntryType}`)} />
+        <input id="handout-title" className="glass-field" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('lore.eg', { x: t(`lore.example.${kind}` as `lore.example.${EntryType}`) })} />
       </div>
 
       {META_FIELDS[kind].length > 0 && (
@@ -474,16 +506,27 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
       {hasPicture && (
         <div className="field">
           <label htmlFor="handout-file">{kind === 'map' ? t('lore.mapImage') : kind === 'image' ? t('lore.picture') : t('lore.pictureOptional')}</label>
-          <input id="handout-file" type="file" accept="image/*" onChange={e => pick(e.target.files?.[0])} />
-          {busy && <span className="muted small">{t('lore.preparingImage')}</span>}
+          <input ref={fileRef} id="handout-file" className="a11y-sr-only" type="file" accept="image/*" onChange={e => { void pick(e.target.files?.[0]); e.target.value = '' }} />
           {(imageUrl || image) && !busy && <img className="composer-preview" src={imageUrl ?? image} alt="" />}
+          <div className="row wrap">
+            <button type="button" className="glass-btn small" disabled={busy} onClick={() => fileRef.current?.click()}>
+              {imageUrl || image ? t('lore.changePicture') : t('lore.addPicture')}
+            </button>
+            {(imageUrl || image) && !busy && <button type="button" className="glass-btn small ghost" onClick={() => { setImage(undefined); setImageUrl(undefined) }}>{t('lore.removePicture')}</button>}
+            {busy && <span className="muted small">{t('lore.preparingImage')}</span>}
+          </div>
         </div>
       )}
 
       {kind !== 'table' && (
         <div className="field">
           <label htmlFor="handout-text">{kind === 'image' || kind === 'map' ? t('lore.caption') : t('lore.text')}</label>
-          <textarea id="handout-text" className="glass-field" rows={kind === 'image' || kind === 'map' ? 2 : 8} value={text} onChange={e => setText(e.target.value)}
+          <div className="row wrap lore-format" role="toolbar" aria-label={t('lore.text')}>
+            <button type="button" className="glass-btn small" onClick={() => wrap('||')}>{t('lore.fmt.secret')}</button>
+            <button type="button" className="glass-btn small ghost" onClick={() => wrap('**')}><b>{t('lore.fmt.bold')}</b></button>
+            <button type="button" className="glass-btn small ghost" onClick={() => wrap('*')}><i>{t('lore.fmt.italic')}</i></button>
+          </div>
+          <textarea ref={textRef} id="handout-text" className="glass-field" rows={kind === 'image' || kind === 'map' ? 2 : 8} value={text} onChange={e => setText(e.target.value)}
             placeholder={t('lore.textHint')} />
           <span className="small muted">{t('lore.markupHint')}</span>
         </div>
@@ -503,7 +546,7 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
         {players.length === 0 && <p className="muted small">{t('lore.noPlayers')}</p>}
       </fieldset>
 
-      {!initial?.sentAt && (
+      {!initial?.sentAt && chapterId && (
         <label className="row small teaser-toggle">
           <input type="checkbox" checked={teaser} onChange={e => setTeaser(e.target.checked)} />
           <span>{t('lore.teaserToggle')}</span>
@@ -511,9 +554,14 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
       )}
 
       {error && <p className="bad small" role="alert">{error}</p>}
+      {missing.length > 0 && <p className="small muted" aria-live="polite">{missing.map(x => t(`lore.missing.${x}`)).join(' ')}</p>}
       <div className="row wrap">
-        <button className="glass-btn prominent" disabled={missing.length > 0 || busy}>{initial?.sentAt ? t('lore.save') : t('lore.revealNow')}</button>
-        {!initial?.sentAt && <button type="button" className="glass-btn" disabled={missing.length > 0 || busy} onClick={() => save(false)}>{t('lore.saveDraft')}</button>}
+        {initial?.sentAt
+          ? <button className="glass-btn prominent" disabled={missing.length > 0 || busy}>{t('lore.save')}</button>
+          : <>
+            <button className="glass-btn prominent" disabled={missing.length > 0 || busy}>{t('lore.saveDraft')}</button>
+            <button type="button" className="glass-btn" disabled={missing.length > 0 || busy} onClick={() => save(true)}>{t('lore.revealNow')}</button>
+          </>}
         <button type="button" className="glass-btn ghost" onClick={onDone}>{t('common.cancel')}</button>
       </div>
     </form>
@@ -555,11 +603,14 @@ function Viewer({ entry: h, party, userId, visible, pinned: isPinned, onOpen, on
         <footer className="row wrap spread">
           {dm ? (
             <>
-              <span className="muted small">{h.sentAt ? t('lore.seenBy', { n: seen.length, of: reach.length }) : t('lore.draftHint')}</span>
+              <span className="muted small">
+                {h.sentAt ? t('lore.seenBy', { n: seen.length, of: reach.length }) : t('lore.draftHint')}
+                {closedBlocks(h) > 0 && <> {t('lore.secretsHint')}</>}
+              </span>
               <div className="row wrap">
                 {h.sentAt
                   ? <button className="glass-btn small" onClick={() => saveHandout(unsend(h))}>{t('lore.takeBack')}</button>
-                  : <button className="glass-btn small prominent" disabled={problems(h).length > 0} onClick={() => saveHandout(send(h))}>{t('lore.reveal')}</button>}
+                  : <button className="glass-btn small prominent" disabled={problems(h).length > 0} title={whyNot(t, h)} onClick={() => saveHandout(send(h))}>{t('lore.reveal')}</button>}
                 {onEdit && <button className="glass-btn small" onClick={onEdit}>{t('lore.edit')}</button>}
               </div>
             </>
