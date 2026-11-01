@@ -9,7 +9,7 @@ import { checkMove, createMap, distanceFeet, type MoveProblem } from '../../maps
 import type { BattleMapDef, Cell } from '../../maps/types'
 import type { HealthLook as Health } from '../playerView'
 import type { Board, Token } from '../types'
-import { budgetLeft, canMove, coverFog, isPlaced, revealFog, spend, tokenCovering, withToken, type Spent } from './board'
+import { budgetLeft, canMove, coverFog, isPlaced, revealFog, spend, tokenCovering, tokensBox, withToken, type Spent } from './board'
 import { drawBoard, footprintInFog, type Palette } from './draw'
 import { CELL_PX, cellAt, cellRect, centreOn, clampPan, fitTappable, fitViewport, pan, pinch, zoomAt, type Viewport } from './viewport'
 import './battlemap.css'
@@ -98,17 +98,21 @@ export function BattleMap({ map, board, encounter, viewer, onMove, onBoard, info
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  // The viewer's own token (a player) or the active combatant's, when it is on the board.
+  // The viewer's own token (a player) or the active combatant's, when it is on the board; else all the placed tokens.
   const focusToken = () => {
     const tk = (viewer.role === 'player' ? board.tokens.find(x => x.characterId === viewer.characterId) : undefined)
       ?? board.tokens.find(x => x.combatantId === encounter.activeId)
-    return tk && isPlaced(tk) ? tk : undefined
+    return tk && isPlaced(tk) ? tk : tokensBox(board.tokens)
   }
-  // A whole grid squeezed onto a phone makes tokens too small to tap: start closer, on the viewer's token.
+  // A whole grid squeezed onto a phone makes tokens too small to tap: start closer, on the viewer's token,
+  // or opened as Fit would, on all the tokens, before anyone has a turn.
   useEffect(() => {
     if (!box.w || !box.h || view) return
     const fitted = fitViewport(def.width, def.height, box.w, box.h)
-    setView(fitted.scale * CELL_PX >= MIN_TAP_CELL ? fitted : fitTappable(def.width, def.height, box.w, box.h, START_CELL, focusToken()))
+    if (fitted.scale * CELL_PX >= MIN_TAP_CELL) { setView(fitted); return }
+    const focus = focusToken()
+    const own = !!focus && 'id' in focus
+    setView(fitTappable(def.width, def.height, box.w, box.h, own ? START_CELL : MIN_TAP_CELL, focus))
   }, [box, def.width, def.height, view, viewer, board.tokens, encounter.activeId])
 
   const selectedToken = selected ? board.tokens.find(tk => tk.id === selected) ?? null : null

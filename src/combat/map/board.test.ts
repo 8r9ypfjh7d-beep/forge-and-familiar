@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { budgetLeft, canMove, coverFog, revealFog, spend, tokenCovering } from './board'
+import { budgetLeft, canMove, coverFog, revealFog, spend, tokenCovering, tokensBox } from './board'
 import type { Token } from '../types'
 
 const map = { width: 10, height: 10 }
 const tok = (over: Partial<Token> = {}): Token => ({ id: 't1', combatantId: 'c1', kind: 'pc', label: 'VT', x: 2, y: 2, size: 2, characterId: 'ch1', ...over })
 
 describe('board helpers', () => {
+  it('boxes every placed token, square, for opening the map on them', () => {
+    expect(tokensBox([tok({ x: -1, y: -1 })])).toBeUndefined()
+    expect(tokensBox([tok({ x: 2, y: 2, size: 1 }), tok({ id: 't2', x: 6, y: 3, size: 1 }), tok({ id: 't3', x: -1, y: -1 })])).toEqual({ x: 2, y: 0.5, size: 5 })
+  })
+
   it('covers and reveals rectangles of fog inside the grid', () => {
     const fog = coverFog([], { x: 8, y: 8 }, { x: 12, y: 9 }, map)
     expect(fog.sort()).toEqual(['8,8', '8,9', '9,8', '9,9'])

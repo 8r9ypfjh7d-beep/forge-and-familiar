@@ -13,8 +13,9 @@ The DM's combat maps: a 5-ft square grid, painted terrain or a picture under the
 | `render.ts` | `drawMap(ctx, map, opts)` paints picture, terrain, grid, party edge, path, labels and fog on a canvas; `cellName` ("C4"), `describeCell`, `TERRAIN_GLYPH` |
 | `store.ts` | `listMaps`/`getMap`/`saveMap`/`deleteMap`/`syncMaps`/`onMapsChanged`: device cache `ff.maps.v1.<ownerId>` mirrored to Supabase `dm_maps` (one row per map, newest `updatedAt` wins, pending ids in `ff.maps.pending.v1.<ownerId>`) |
 | `MapEditor.tsx` | The editor (tools, settings, picture fit, canvas) and `MapThumb` for list rows. Under 560px the size/picture settings start folded and the tools are one sticky, scrolling icon strip (only the chosen tool shows its name) |
-| `MapPicker.tsx` | Select of the DM's maps for an encounter plan (Encounters tab on the DM screen) |
-| `MapsTab.tsx` | Maps tab: templates, list, delete confirm, debounced saves |
+| `MapPicker.tsx` | Map select on an encounter plan (Fights tab): the DM's maps, starter maps and Blank grid (picking one saves the DM's own copy), and "Draw a new map", which opens the editor with a "← Back to <plan>" button |
+| `newMap.ts` | `newMap(template, ownerId, t)`: a fresh blank or starter map, named in the DM's language |
+| `MapsTab.tsx` | Maps tab: templates, list, delete confirm, debounced saves; `back` sends the editor's back button to the plan that opened it |
 | `maps.css` | Liquid Glass layout for the tab and editor, logical properties only |
 | `maps.test.ts` | Painting, fog, pictures, distances, paths, move checks, auto-placement, normalizing, templates, CSS rules |
 

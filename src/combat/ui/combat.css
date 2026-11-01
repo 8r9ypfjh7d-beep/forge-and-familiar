@@ -229,6 +229,15 @@
 .encounter-map .bm-picker { max-width: 200px; border-radius: var(--r-pill); }
 .encounter-map .tag.live { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
 .encounter-map-stage { height: min(68vh, 640px); min-height: 320px; }
+.encounter-map-none { padding-block: var(--sp-2); }
+.encounter-map-none .encounter-map-head { flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.encounter-map-menu { position: relative; }
+.encounter-map-pop {
+  position: absolute; inset-block-start: calc(100% + var(--sp-1)); inset-inline-end: 0; z-index: 20;
+  display: grid; gap: var(--sp-2); padding: var(--sp-2); min-inline-size: 200px;
+}
+.encounter-map-pop .bm-picker { max-width: none; }
+.encounter-map-hint.row { align-items: center; gap: var(--sp-2); flex-wrap: nowrap; }
 @media (max-width: 860px) {
   .combat-pane-switch { display: inline-flex; }
   .combat-map-pane:not(.on), .combat-grid:not(.on) { display: none; }

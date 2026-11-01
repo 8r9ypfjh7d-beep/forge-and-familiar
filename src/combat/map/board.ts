@@ -63,3 +63,13 @@ export function mergeRemoteMoves(local: Board, remote: Board | undefined): Board
   })
   return changed ? { ...local, tokens } : local
 }
+
+/** The square around every placed token, as a focus for opening the map on them. Undefined when none is placed. */
+export function tokensBox(tokens: Token[]): { x: number; y: number; size: number } | undefined {
+  const placed = tokens.filter(isPlaced)
+  if (!placed.length) return undefined
+  const x0 = Math.min(...placed.map(t => t.x)), y0 = Math.min(...placed.map(t => t.y))
+  const x1 = Math.max(...placed.map(t => t.x + t.size)), y1 = Math.max(...placed.map(t => t.y + t.size))
+  const size = Math.max(x1 - x0, y1 - y0)
+  return { x: x0 - (size - (x1 - x0)) / 2, y: y0 - (size - (y1 - y0)) / 2, size }
+}

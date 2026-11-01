@@ -47,6 +47,12 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mapId, enc.ownerId, saved])
   const { live, push, changeBoard, move, changeMap, deviceOnly } = useLiveBoard(enc, act, partyId, map)
+  const [menu, setMenu] = useState(false)
+  const [noteSeen, setNoteSeen] = useState(() => readSeen().includes(enc.id))
+  const seeNote = () => {
+    setNoteSeen(true)
+    try { localStorage.setItem(NOTE_KEY, JSON.stringify([...readSeen().filter(id => id !== enc.id), enc.id].slice(-50))) } catch { /* private mode */ }
+  }
 
   const sizeOf = (c: Combatant): 1 | 2 | 3 | 4 => footprintOf(monsterOf(c)?.sizes?.[0])
   const combatantKey = enc.combatants.map(c => c.id).join(',')
@@ -92,7 +98,7 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
   }, [enc.board, enc.combatants])
 
   const picker = (
-    <select className="bm-picker" value="" onChange={e => pick(e.target.value)} aria-label={t('combat.map.pick')}>
+    <select className="bm-picker" value="" onChange={e => { pick(e.target.value); setMenu(false) }} aria-label={t('combat.map.pick')}>
       <option value="">{map ? t('combat.map.change') : t('combat.map.pick')}</option>
       <optgroup label={t('combat.map.starters')}>
         {TEMPLATE_IDS.map(id => <option key={id} value={templateMapId(id)}>{tplName(id)}</option>)}
@@ -106,30 +112,58 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
     </select>
   )
 
+  // No map yet: one line, so the initiative order stays near the top.
+  if (!map || !board) {
+    return (
+      <section className="glass encounter-map encounter-map-none" aria-label={t('combat.map.title')}>
+        <div className="row encounter-map-head">
+          <span className="muted">{t('combat.map.none')}</span>
+          <span className="muted" aria-hidden="true">·</span>
+          {picker}
+        </div>
+      </section>
+    )
+  }
+
+  const sharing = partyId && !deviceOnly
   return (
     <section className="glass encounter-map" aria-label={t('combat.map.title')}>
       <div className="row spread encounter-map-head">
-        <h3 className="glass-eyebrow">{map ? mapName(map.name, t) : t('combat.map.title')}</h3>
+        <h3 className="glass-eyebrow">{mapName(map.name, t)}</h3>
         <div className="row">
-          {partyId && !deviceOnly && (
+          {sharing && (
             live === 'on'
               ? <span className="tag live">{t('combat.map.live')}</span>
-              : <button type="button" className="glass-btn small" onClick={push} disabled={!enc.round}>{t('combat.map.share')}</button>
+              : <button type="button" className="glass-btn small" onClick={push} disabled={!enc.round} title={enc.round ? undefined : t('combat.map.shareAfterStart')}>{t('combat.map.share')}</button>
           )}
-          {(!partyId || deviceOnly) && <span className="tag">{t('combat.map.local')}</span>}
-          {picker}
-          {map && <button type="button" className="glass-btn small plain" onClick={() => changeMap(null, { ...(enc.board ?? EMPTY_BOARD), mapId: undefined })}>{t('combat.map.remove')}</button>}
+          {!sharing && <span className="tag" title={deviceOnly ? t('combat.map.deviceOnly') : undefined}>{t('combat.map.local')}</span>}
+          <div className="encounter-map-menu" onKeyDown={e => { if (e.key === 'Escape') setMenu(false) }}>
+            <button type="button" className="glass-btn small" aria-expanded={menu} onClick={() => setMenu(v => !v)}>{t('combat.map.menu')}</button>
+            {menu && (
+              <div className="glass-sheet encounter-map-pop" role="group" aria-label={t('combat.map.menu')}>
+                {picker}
+                <button type="button" className="glass-btn small plain" onClick={() => { setMenu(false); changeMap(null, { ...(enc.board ?? EMPTY_BOARD), mapId: undefined }) }}>{t('combat.map.remove')}</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      {deviceOnly && <p className="muted small encounter-map-hint">{t('combat.map.deviceOnly')}</p>}
-      {partyId && !deviceOnly && live !== 'on' && !enc.round && <p className="muted small encounter-map-hint">{t('combat.map.shareAfterStart')}</p>}
-      {map && board
-        ? (
-          <div className="encounter-map-stage">
-            <BattleMap map={map} board={board} encounter={enc} viewer={{ role: 'dm' }} onMove={move} onBoard={changeBoard} infoFor={infoFor} />
-          </div>
-        )
-        : <p className="muted">{t('combat.map.noMap')}</p>}
+      {deviceOnly && !noteSeen && (
+        <p className="muted small encounter-map-hint row spread">
+          <span>{t('combat.map.deviceOnly')}</span>
+          <button type="button" className="glass-btn small plain" onClick={seeNote}>{t('combat.map.gotIt')}</button>
+        </p>
+      )}
+      {sharing && live !== 'on' && !enc.round && <p className="muted small encounter-map-hint">{t('combat.map.shareAfterStart')}</p>}
+      <div className="encounter-map-stage">
+        <BattleMap map={map} board={board} encounter={enc} viewer={{ role: 'dm' }} onMove={move} onBoard={changeBoard} infoFor={infoFor} />
+      </div>
     </section>
   )
+}
+
+const NOTE_KEY = 'ff.mapDeviceNote.v1'
+/** Fights whose "this device only" note the DM has dismissed (shown once per fight). */
+function readSeen(): string[] {
+  try { const v = JSON.parse(localStorage.getItem(NOTE_KEY) ?? '[]'); return Array.isArray(v) ? v : [] } catch { return [] }
 }
