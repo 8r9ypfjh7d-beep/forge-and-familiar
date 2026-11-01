@@ -80,6 +80,10 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
   // The NPC creator opens prefilled: from a stat block, from a text NPC, or blank, in the campaign being run.
   const makeNpc = onNewNpc && ((p: Omit<NpcPrefill, 'partyId'> = {}) => { stashNpcPrefill({ ...p, partyId: party?.id }); onNewNpc() })
   const [tab, setTab] = useState<Tab>(initialTab ?? 'encounters')
+  // "Draw a new map" on a plan opens the editor; its back button returns to the plan.
+  const [drawFrom, setDrawFrom] = useState<{ mapId: string; planName: string } | null>(null)
+  const drawMap = (mapId: string, planName: string) => { setDrawFrom({ mapId, planName }); setTab('maps') }
+  useEffect(() => { if (tab !== 'maps') setDrawFrom(null) }, [tab])
   const requests = useRequests()
   // Opened straight on a later tab (from a request link): bring it into view on narrow screens.
   useEffect(() => {
@@ -197,10 +201,11 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
         </div>
         <div id="dm-tabpanel" role="tabpanel" aria-labelledby={`dm-tab-${tab}`} className="cs-tabpanel">
           {tab === 'rolls' && <RollsTab party={party} entries={rolls} />}
-          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} />}
+          {tab === 'encounters' && <EncountersTab userId={userId} state={state} update={update} monsters={monsters} npcs={npcs} onAddNpc={addNpcToPlan} onAdd={addToPlan} onRun={run} onOpenMonster={showMonster} onDrawMap={drawMap} />}
           {tab === 'monsters' && <MonstersTab monsters={monsters} openId={openMonster} onOpen={setOpenMonster} onAdd={addToPlan} planName={plan?.name} edition={edition} onEdition={setEdition}
             onMakeNpc={makeNpc && (m => makeNpc({ monster: { source: m.source, id: m.id } }))} />}
-          {tab === 'maps' && <MapsTab ownerId={userId} />}
+          {tab === 'maps' && <MapsTab key={drawFrom?.mapId ?? 'list'} ownerId={userId} initialOpenId={drawFrom?.mapId}
+            back={drawFrom ? { label: t('maps.backToPlan', { name: drawFrom.planName }), go: () => setTab('encounters') } : undefined} />}
           {tab === 'reference' && <ReferenceTab />}
           {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} onNew={makeNpc && (() => makeNpc())} />}
           {tab === 'npcs' && <NpcsTab state={state} update={update} onGiveStats={makeNpc && (n => makeNpc({ text: n }))} />}
@@ -367,7 +372,7 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
 
 // ---------- Encounters ----------
 
-function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd, onRun, onOpenMonster }: {
+function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd, onRun, onOpenMonster, onDrawMap }: {
   userId: string
   state: DmState
   update: Update
@@ -377,6 +382,8 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
   onAdd: (m: Monster) => void
   onRun: (p: EncounterPlan) => void
   onOpenMonster: (id: string) => void
+  /** Opens the Maps tab editor on a new map drawn for this plan. */
+  onDrawMap: (mapId: string, planName: string) => void
 }) {
   const { t, monsterName } = useI18n()
   const plan = activePlan(state)
@@ -444,7 +451,7 @@ function EncountersTab({ userId, state, update, monsters, npcs, onAddNpc, onAdd,
               <input type="checkbox" checked={!!plan.rollHp} onChange={e => update(s => updatePlan(s, plan.id, p => ({ ...p, rollHp: e.target.checked })))} />
               <span>{t('dm.rollHp')}</span>
             </label>
-            <MapPicker ownerId={userId} value={plan.mapId} onChange={mapId => update(s => updatePlan(s, plan.id, p => ({ ...p, mapId })))} />
+            <MapPicker ownerId={userId} value={plan.mapId} onChange={mapId => update(s => updatePlan(s, plan.id, p => ({ ...p, mapId })))} onDraw={id => onDrawMap(id, plan.name)} />
             <div className="row">
               <button className="btn primary" disabled={!plan.monsters.length || !monsters.length} onClick={() => onRun(plan)}>{t('dm.start')}</button>
             </div>

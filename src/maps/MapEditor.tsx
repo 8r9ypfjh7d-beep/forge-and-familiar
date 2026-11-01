@@ -18,7 +18,7 @@ const TOOL_GLYPH: Record<Tool, string> = { ...TERRAIN_GLYPH, pan: '✋', floor: 
 const EDGES: (Edge | 'none')[] = ['none', 'n', 's', 'e', 'w']
 const ZOOMS = [16, 22, 30, 40, 52]
 
-export function MapEditor({ map, onChange, onBack, status }: { map: BattleMapDef; onChange: (m: BattleMapDef) => void; onBack: () => void; status?: string }) {
+export function MapEditor({ map, onChange, onBack, backLabel, status }: { map: BattleMapDef; onChange: (m: BattleMapDef) => void; onBack: () => void; backLabel?: string; status?: string }) {
   const { t } = useI18n()
   const [tool, setTool] = useState<Tool>('wall')
   const [phone] = useState(() => typeof matchMedia === 'function' && matchMedia('(max-width: 559px)').matches)
@@ -128,7 +128,7 @@ export function MapEditor({ map, onChange, onBack, status }: { map: BattleMapDef
   return (
     <div className="ff-maps-editor">
       <div className="maps-head">
-        <button type="button" className="glass-btn" onClick={onBack}>{t('common.backArrow')} {t('maps.back')}</button>
+        <button type="button" className="glass-btn" onClick={onBack}>{t('common.backArrow')} {backLabel ?? t('maps.back')}</button>
         <input className="glass-field maps-name" value={map.name} placeholder={t('maps.untitled')} aria-label={t('maps.name')}
           onChange={e => onChange({ ...map, name: e.target.value })} />
         {status && <span className="hint maps-status" role="status">{status}</span>}

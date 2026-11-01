@@ -3,17 +3,19 @@ import { useEffect, useRef, useState } from 'react'
 import { ConfirmDialog } from '../builder/ConfirmDialog'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
-import { createMap, mapSummary } from './logic'
+import { mapSummary } from './logic'
 import { mapName } from './names'
 import { MapEditor, MapThumb } from './MapEditor'
 import { deleteMap, listMaps, MapSpaceError, onMapsChanged, saveMap, syncMaps } from './store'
-import { buildTemplate, TEMPLATE_IDS, type TemplateId } from './templates'
+import { newMap } from './newMap'
+import { TEMPLATE_IDS, type TemplateId } from './templates'
 import type { BattleMapDef } from './types'
 import './maps.css'
 
 const SAVE_DELAY = 400
 
-export function MapsTab({ ownerId, initialOpenId }: { ownerId: string; initialOpenId?: string }) {
+/** `back` sends the editor's back button somewhere else (to the fight plan that opened it), with its own label. */
+export function MapsTab({ ownerId, initialOpenId, back }: { ownerId: string; initialOpenId?: string; back?: { label: string; go: () => void } }) {
   const { t } = useI18n()
   const [maps, setMaps] = useState<BattleMapDef[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(initialOpenId ?? null)
@@ -52,10 +54,7 @@ export function MapsTab({ ownerId, initialOpenId }: { ownerId: string; initialOp
   }
 
   const create = async (template: TemplateId | 'blank') => {
-    const now = new Date().toISOString()
-    const id = crypto.randomUUID()
-    const name = template === 'blank' ? t('maps.untitled') : t(`maps.tpl.${template}` as MessageKey)
-    const map = template === 'blank' ? createMap(id, ownerId, name, now) : buildTemplate(template, id, ownerId, name, now, slug => t(`maps.lbl.${slug}` as MessageKey))
+    const map = newMap(template, ownerId, t)
     try {
       const saved = await saveMap(map)
       setMaps(prev => [saved, ...(prev ?? [])])
@@ -73,7 +72,10 @@ export function MapsTab({ ownerId, initialOpenId }: { ownerId: string; initialOp
 
   if (!maps) return null
   const open = openId ? maps.find(m => m.id === openId) : undefined
-  if (open) return <MapEditor map={open} onChange={change} onBack={() => setOpenId(null)} status={status} />
+  if (open) {
+    const leave = back && open.id === initialOpenId ? back : undefined
+    return <MapEditor map={open} onChange={change} onBack={leave ? leave.go : () => setOpenId(null)} backLabel={leave?.label} status={status} />
+  }
 
   return (
     <div className="ff-maps">
