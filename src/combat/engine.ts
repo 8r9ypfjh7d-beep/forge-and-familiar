@@ -342,3 +342,16 @@ export function syncPartyConditions(before: Encounter, after: Encounter, party: 
   }
   return out
 }
+
+/** Who a row can aim at, other side first: a monster's enemies are the party and the party's are the monsters. Never itself. */
+export function targetGroups(e: Encounter, attackerId: string): { enemies: Combatant[]; allies: Combatant[] } {
+  const me = e.combatants.find(c => c.id === attackerId)
+  const others = e.combatants.filter(c => c.id !== attackerId)
+  return { enemies: others.filter(c => c.kind !== me?.kind), allies: others.filter(c => c.kind === me?.kind) }
+}
+
+/** Rows still waiting for an initiative, in order; `players` is true when every one of them is a party member. */
+export function waitingForInitiative(e: Encounter): { rows: Combatant[]; players: boolean } {
+  const rows = e.combatants.filter(c => c.initiative === null)
+  return { rows, players: rows.length > 0 && rows.every(c => c.kind === 'pc') }
+}

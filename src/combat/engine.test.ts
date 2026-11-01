@@ -3,7 +3,7 @@ import { makeCharacter } from '../sheet/fixtures'
 import {
   addCombatant, addEffect, breakConcentration, concentrationDc, concentrationOf, createEncounter, damageNpc,
   critDice, effectConditions, elapsedSeconds, endCombat, isBloodied, legendaryCost, nextTurn, rechargeAction, removeCombatant, resolveCheck,
-  setInitiative, spendAction, startCombat, statusOf, syncPartyConditions, spendLegendary,
+  setInitiative, spendAction, startCombat, statusOf, syncPartyConditions, spendLegendary, targetGroups, waitingForInitiative,
 } from './engine'
 import type { Encounter } from './types'
 
@@ -223,5 +223,23 @@ describe('critical hit dice', () => {
     expect(critDice('2d10 + 6')).toBe('2d10')
     expect(critDice('1d8+1d6+3')).toBe('1d8+1d6')
     expect(critDice('5')).toBeNull()
+  })
+})
+
+describe('running turns', () => {
+  const hero = { id: 'thora', name: 'Thora', kind: 'pc' as const, characterId: 'c1', initiative: null, initBonus: 1 }
+  it('lists the other side first as targets, then allies, never the attacker', () => {
+    const e = addCombatant(party(), hero)
+    const g = targetGroups(e, 'goblin')
+    expect(g.enemies.map(c => c.id)).toEqual(['thora'])
+    expect(g.allies.map(c => c.id)).toEqual(['wizard', 'orc'])
+    expect(targetGroups(e, 'thora').enemies.map(c => c.id)).toEqual(['wizard', 'goblin', 'orc'])
+  })
+  it('names who still needs initiative and whether they are all players', () => {
+    let e = addCombatant(party(), hero)
+    expect(waitingForInitiative(e)).toEqual({ rows: [expect.objectContaining({ id: 'thora' })], players: true })
+    e = addCombatant(e, { ...npc('rat', 0), initiative: null })
+    expect(waitingForInitiative(e).players).toBe(false)
+    expect(waitingForInitiative(party())).toEqual({ rows: [], players: false })
   })
 })
