@@ -3,15 +3,15 @@ import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, ty
 import { roll as rollNotation } from '../roll'
 import { localHistoryStorage, RollHistory } from '../history'
 import type { RollOptions, RollResult } from '../types'
-import { RollFxBus } from '../fx'
+import { RollFxBus, type RecordOptions } from '../fx'
 import { RollFx } from './RollFx'
 
 interface DiceContextValue {
   history: RollHistory
   /** Every recorded roll, for the tumbling-die overlay. */
   fx: RollFxBus
-  /** Adds a finished roll (from rollSave, rollAttack...) to the history and returns it. */
-  record: (result: RollResult) => RollResult
+  /** Adds a finished roll (from rollSave, rollAttack...) to the history and returns it. `quiet` skips the nat 1/20 takeover (DM rolls for monsters and NPCs). */
+  record: (result: RollResult, opts?: RecordOptions) => RollResult
   /** Rolls free notation like "2d6+3" and records it. Throws DiceNotationError on bad input. */
   roll: (notation: string, opts?: RollOptions) => RollResult
 }
@@ -22,7 +22,7 @@ export function DiceProvider({ userId, limit = 100, children }: { userId: string
   const value = useMemo<DiceContextValue>(() => {
     const history = new RollHistory(limit, localHistoryStorage(`ff.rolls.v1.${userId}`))
     const fx = new RollFxBus()
-    const add = (r: RollResult) => { fx.push(r); return history.add(r) }
+    const add = (r: RollResult, opts?: RecordOptions) => { fx.push(r, opts); return history.add(r) }
     return {
       history,
       fx,

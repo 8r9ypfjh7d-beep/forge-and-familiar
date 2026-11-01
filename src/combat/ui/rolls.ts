@@ -5,10 +5,13 @@ import { derive } from '../../rules'
 import type { Party } from '../engine'
 import type { Combatant } from '../types'
 
+const QUIET = { quiet: true }
 const roller = (c: Combatant) => ({ characterId: c.characterId ?? c.id, characterName: c.name })
 
 export function useCombatRolls() {
-  const { record } = useDice()
+  const { record: shared } = useDice()
+  /** Every tracker roll is the DM's, so none takes over the screen; players roll on their own phones. */
+  const record = (r: RollResult) => shared(r, QUIET)
   return {
     /** Party members roll from their sheet (DEX, conditions); others from their modifier. */
     initiative(c: Combatant, party: Party): RollResult | undefined {

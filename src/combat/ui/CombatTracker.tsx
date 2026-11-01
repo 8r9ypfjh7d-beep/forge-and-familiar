@@ -9,6 +9,7 @@ import { deleteEncounter, listEncounters, saveEncounter } from '../storage'
 import type { Encounter } from '../types'
 import { EncounterMap } from '../map/EncounterMap'
 import { fightCreatures } from '../xp'
+import { rowName, shownVars } from '../names'
 import { AddCombatants } from './AddCombatants'
 import { CombatantRow } from './CombatantRow'
 import { Effects } from './Effects'
@@ -86,7 +87,7 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
   const { encounter: enc, party, remote, npcs, act, undo, canUndo } = useEncounter(encounterId)
   const rolls = useCombatRolls()
   const monsters = useMonsterIndex()
-  const { t } = useI18n()
+  const { t, monsterName } = useI18n()
   const [editingName, setEditingName] = useState(false)
   const [ending, setEnding] = useState(false)
   // Phones show the order or the map; wider screens show both.
@@ -114,6 +115,13 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
   if (enc === null) return <p>{t('combat.notFound')} <button className="glass-btn" onClick={onBack}>{t('common.back')}</button></p>
 
   const fighting = inCombat(enc)
+  // Library monster rows read in the page's language ("Goblin 1" → "גובלין 1"); the log follows.
+  const shown = new Map<string, string>()
+  for (const c of enc.combatants) {
+    const m = c.monster && !c.npcId ? monsters.get(`${c.monster.source}:${c.monster.id}`) : undefined
+    const name = m ? rowName(c, m.name, monsterName(m)) : c.name
+    if (name !== c.name) shown.set(c.name, name)
+  }
   const unrolled = enc.combatants.filter(c => c.initiative === null)
   const rollMissing = () => act((e, p) => {
     let next = e
@@ -189,7 +197,7 @@ function EncounterView({ encounterId, campaign, onBack }: { encounterId: string;
             <h3 className="glass-eyebrow">{t('combat.log')}</h3>
             {enc.log.length === 0
               ? <p className="muted small">{t('combat.logEmpty')}</p>
-              : <ol className="plain combat-log">{enc.log.map((l, i) => <li key={i}>{typeof l === 'string' ? l : t(l.key, l.vars)}</li>)}</ol>}
+              : <ol className="plain combat-log">{enc.log.map((l, i) => <li key={i}>{typeof l === 'string' ? l : t(l.key, shownVars(l.vars, shown))}</li>)}</ol>}
           </section>
         </div>
       </div>

@@ -12,6 +12,7 @@ import type { Ability } from '../../rules'
 import { addLog, critDice, legendaryCost, spendAction, rechargeAction, spendLegendary, type Party } from '../engine'
 import type { Combatant, Encounter } from '../types'
 import { legendaryCount } from '../../monsters/block'
+import { rowName } from '../names'
 import { applyDamage } from './apply'
 import type { Act } from './useEncounter'
 
@@ -36,8 +37,11 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
   act: Act
   onClose?: () => void
 }) {
-  const { t, term, abilityShort, locale, dir } = useI18n()
-  const { record } = useDice()
+  const { t, term, abilityShort, locale, dir, monsterName } = useI18n()
+  const shown = (x: Combatant) => { const xm = monsterOf?.(x); return rowName(x, xm?.name, xm && monsterName(xm)) }
+  const subtype = m.subtype?.split(/,\s*/).map(x => term('subtype', x, x)).join(', ')
+  const { record: shared } = useDice()
+  const record = (r: RollResult) => shared(r, { quiet: true })
   const [hit, setHit] = useState<Hit | null>(null)
   const [targetId, setTargetId] = useState('')
   const targets = enc.combatants.filter(x => x.id !== c.id)
@@ -146,7 +150,7 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
               ) : <b className="sb-name">{a.name}.</b>}
               {usage(a)}
               {save(a.save)}
-              {[...a.damage, ...(a.damageChoice ?? [])].map((d, j) => <span key={j} className="glass-chip dmg" dir="ltr">{d.dice} {d.type}</span>)}
+              {[...a.damage, ...(a.damageChoice ?? [])].map((d, j) => <span key={j} className="glass-chip dmg" lang={locale} dir={dir}><bdi dir="ltr">{d.dice}</bdi> {term('damage', d.type, d.type)}</span>)}
             </div>
             <p className="small sb-desc">{a.description}</p>
           </li>
@@ -157,10 +161,10 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
 
   return (
     <section className="statblock glass thick" lang="en" dir="ltr" aria-label={t('combat.statBlock')}>
-      <div className="sb-head">
+      <div className="sb-head" lang={locale} dir={dir}>
         <div>
-          <strong>{m.name}</strong>
-          <span className="muted small" lang={locale} dir={dir}> · {m.sizes.map(x => term('size', x, x)).join(' / ')} {term('creature', m.type, m.type)}{m.subtype ? ` (${m.subtype})` : ''} · {t('dm.cr', { cr: crLabel(m.challengeRating) })} · {t('stat.ac')} {m.armorClass[0]?.value}</span>
+          <strong><bdi>{monsterName(m)}</bdi></strong>
+          <span className="muted small"> · {m.sizes.map(x => term('size', x, x)).join(' / ')} {term('creature', m.type, m.type)}{subtype ? ` (${subtype})` : ''} · {t('dm.cr', { cr: crLabel(m.challengeRating) })} · {t('stat.ac')} {m.armorClass[0]?.value}</span>
         </div>
         {onClose && <button type="button" className="icon" onClick={onClose} aria-label={t('combat.hideBlock')}>✕</button>}
       </div>
@@ -168,7 +172,7 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
         <span>{t('combat.target')}</span>
         <select value={targetId} onChange={ev => setTargetId(ev.target.value)}>
           <option value="">—</option>
-          {targets.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+          {targets.map(x => <option key={x.id} value={x.id}>{shown(x)}</option>)}
         </select>
       </label>
       {hit && (
@@ -182,12 +186,12 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
             <div className="row sb-apply" lang={locale} dir={dir}>
               <button type="button" className={`glass-btn small ${verdict && !verdict.hits ? 'plain' : 'danger'}`} disabled={!target} title={target ? undefined : t('combat.noTarget')} onClick={() => apply(false)}>
                 {!target ? t('combat.noTarget')
-                  : verdict && !verdict.hits ? t('combat.applyAnyway', { amount: total(hit), name: target.name })
-                    : t('combat.applyTo', { amount: total(hit), name: target.name })}
+                  : verdict && !verdict.hits ? t('combat.applyAnyway', { amount: total(hit), name: shown(target) })
+                    : t('combat.applyTo', { amount: total(hit), name: shown(target) })}
               </button>
               {hit.save?.onSuccess === 'half' && (
                 <button type="button" className="glass-btn small" disabled={!target} onClick={() => apply(true)}>
-                  {t('combat.applyTo', { amount: Math.floor(total(hit) / 2), name: target?.name ?? '' })} · ½
+                  {t('combat.applyTo', { amount: Math.floor(total(hit) / 2), name: target ? shown(target) : '' })} · ½
                 </button>
               )}
             </div>
