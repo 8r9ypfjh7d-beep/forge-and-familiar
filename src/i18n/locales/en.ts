@@ -19,6 +19,7 @@ import { itemsEn } from './items.en'
 import { useEn } from './use.en'
 import { hurtEn } from './hurt.en'
 import { npcEn } from './npc.en'
+import { sessionsEn } from './sessions.en'
 import { npcBuildEn } from './npcbuild.en'
 import { suppliesEn } from './supplies.en'
 import { picks2014En } from './picks2014.en'
@@ -43,6 +44,7 @@ export const en = {
   ...useEn,
   ...hurtEn,
   ...npcEn,
+  ...sessionsEn,
   ...npcBuildEn,
   ...suppliesEn,
   ...picks2014En,
@@ -905,7 +907,7 @@ export const en = {
   'party.confirmLeave': 'Leave {name}? The campaign goes on for the others. Your character stays in My characters.',
   'party.end': 'End campaign',
   'party.confirmEnd': 'End {name} for everyone?',
-  'party.confirmEndBody': 'This can\'t be undone. The campaign disappears from every player\'s list, and its shared stash and coins, lore, hand-outs, polls, secret rolls and live map go with it. Characters stay in My characters; your NPCs, maps and planned fights stay on your DM screen.',
+  'party.confirmEndBody': 'This can\'t be undone. The campaign disappears from every player\'s list, and its shared stash and coins, lore, session notes, hand-outs, polls, secret rolls and live map go with it. Characters stay in My characters; your NPCs, maps and planned fights stay on your DM screen.',
   'party.endFailed': 'Couldn\'t end the campaign. Check your connection and try again.',
   'party.confirmEndUndoable': 'It leaves every player\'s list and moves to Ended campaigns at the bottom of Home. Nothing is lost: the stash, lore, maps and members all stay, and you can bring it back any time.',
   'party.endedTitle': 'Ended campaigns ({count})',

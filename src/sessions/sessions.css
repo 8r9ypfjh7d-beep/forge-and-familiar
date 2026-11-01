@@ -1,0 +1,74 @@
+/* Session notes, scoped to .ff-sessions and its viewer. Liquid Glass cards (src/design/DESIGN.md); logical properties for RTL. */
+.ff-sessions { margin-block-start: var(--sp-2); display: grid; gap: var(--sp-3); }
+.ff-sessions h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; margin: 0; }
+.ff-sessions h4 { margin: 0; }
+.ff-sessions .hint { margin: 0; }
+.ff-sessions .kind { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
+.ff-sessions .draft-tag, .ff-sessions-viewer .draft-tag { color: var(--accent); }
+.ff-sessions .new-tag { font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: var(--r-pill); background: var(--accent); color: var(--accent-ink); justify-self: start; }
+.ff-sessions .sessions-error { color: var(--bad); margin: 0; }
+
+.ff-sessions .sessions-start { padding: var(--sp-4); display: grid; gap: var(--sp-3); justify-items: start; }
+.ff-sessions .sessions-start p { margin: 0; }
+
+.ff-sessions .sessions-tonight { padding: var(--sp-4); display: grid; gap: var(--sp-3); border: 1px solid var(--accent); }
+.ff-sessions .sessions-plan { padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--accent-soft); }
+.ff-sessions .sessions-plan summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.ff-sessions .sessions-plan p { margin: var(--sp-2) 0 0; }
+.ff-sessions .sessions-pre, .ff-sessions-viewer .sessions-pre { white-space: pre-wrap; margin: 0; }
+
+.ff-sessions .sessions-jot { display: grid; gap: var(--sp-2); }
+.ff-sessions .sessions-jot .row { gap: var(--sp-2); }
+.ff-sessions .sessions-jot input { flex: 1; min-width: 0; }
+.ff-sessions .sessions-kinds { flex-wrap: wrap; }
+.ff-sessions .sessions-kinds button { min-height: 40px; }
+.ff-sessions .sessions-jots { list-style: none; padding: 0; margin: var(--sp-1) 0 0; display: grid; gap: 2px; }
+.ff-sessions .sessions-jots li { gap: var(--sp-2); align-items: baseline; padding-block: 2px; border-block-end: 1px solid var(--glass-hairline); }
+.ff-sessions .sessions-jots li > span { flex: 1; text-align: start; }
+.ff-sessions .sessions-jots time { min-width: 4.5ch; font-variant-numeric: tabular-nums; }
+.ff-sessions .sessions-gathered { margin: 0; display: grid; gap: var(--sp-1); font-size: 0.9rem; }
+.ff-sessions .sessions-gathered div { display: flex; gap: var(--sp-2); }
+.ff-sessions .sessions-gathered dt { font-weight: 600; min-width: 5ch; }
+.ff-sessions .sessions-gathered dd { margin: 0; }
+
+.ff-sessions .sessions-last, .ff-sessions .session-card {
+  appearance: none; font: inherit; color: inherit; margin: 0; box-sizing: border-box; cursor: pointer;
+  display: grid; gap: 4px; padding: var(--sp-3) var(--sp-4); width: 100%; text-align: start; justify-items: start;
+}
+.ff-sessions .sessions-last { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--glass-shadow); }
+.ff-sessions .sessions-last:focus-visible, .ff-sessions .session-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ff-sessions .sessions-read { color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+.ff-sessions .sessions-peek { color: var(--ink); font: italic 0.92rem/1.45 var(--font-lore, inherit); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ff-sessions .sessions-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.ff-sessions .session-card { height: 100%; }
+.ff-sessions .session-card.draft { border-style: dashed; border-color: var(--muted); }
+.ff-sessions .session-card.unread { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--glass-shadow); }
+.ff-sessions .sessions-search { width: 100%; }
+
+.ff-sessions .sessions-leads { padding: var(--sp-2) var(--sp-4); }
+.ff-sessions .sessions-leads summary { cursor: pointer; font-weight: 600; padding-block: var(--sp-1); }
+.ff-sessions .sessions-leads ul { list-style: none; padding: 0; margin: var(--sp-1) 0 0; display: grid; gap: var(--sp-1); }
+.ff-sessions .sessions-leads label { gap: var(--sp-2); align-items: center; display: inline-flex; min-height: 32px; cursor: pointer; }
+.ff-sessions .sessions-leads input { width: 20px; height: 20px; }
+.ff-sessions .sessions-leads li.done > :first-child, .ff-sessions-viewer .sessions-lead-list li.done { text-decoration: line-through; color: var(--muted); }
+
+.ff-sessions .sessions-editor { padding: var(--sp-4); display: grid; gap: var(--sp-3); }
+.ff-sessions .sessions-editor .field { margin: 0; display: grid; gap: 4px; }
+.ff-sessions .sessions-editor .field input, .ff-sessions .sessions-editor textarea { width: 100%; box-sizing: border-box; }
+.ff-sessions .sessions-editor textarea { resize: vertical; padding-block: var(--sp-2); }
+.ff-sessions .sessions-editor-top { display: grid; grid-template-columns: minmax(90px, 140px) minmax(140px, 220px); gap: var(--sp-3); }
+.ff-sessions .sessions-editor-lists { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.ff-sessions .sessions-private { border: 1px dashed var(--muted); border-radius: var(--r-sm); padding: var(--sp-3); display: grid; gap: var(--sp-3); margin: 0; }
+.ff-sessions .sessions-private legend { font-weight: 600; font-size: 0.9rem; padding-inline: 4px; }
+.ff-sessions .sessions-editor-actions { justify-content: flex-end; gap: var(--sp-2); }
+
+.ff-sessions-viewer .sessions-chips { display: grid; gap: 4px; }
+.ff-sessions-viewer .sessions-chips ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ff-sessions-viewer .sessions-lead-list { display: grid !important; }
+.ff-sessions-viewer .sessions-private-box { border: 1px dashed var(--muted); border-radius: var(--r-sm); padding: var(--sp-3); display: grid; gap: var(--sp-2); }
+.ff-sessions-viewer .sessions-private-box ul { margin: var(--sp-1) 0 0; padding-inline-start: 1.2em; }
+
+@media (max-width: 480px) {
+  .ff-sessions .sessions-editor-top { grid-template-columns: 1fr 1.4fr; }
+  .ff-sessions .sessions-editor-actions > * { flex: 1 1 auto; }
+}
