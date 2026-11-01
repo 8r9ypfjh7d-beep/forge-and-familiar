@@ -50,6 +50,8 @@ export default function App() {
   const [characters, setCharacters] = useState<Character[]>([])
   // The screen lives in the address bar (#/sheet/<id>): back, refresh and links keep your place. A bare visit opens Home.
   const [view, setView] = useHashView()
+  // Where the printable sheet's Back goes: the sheet or the list it was opened from.
+  const printFrom = useRef<'list' | 'sheet'>('list')
   const [diceOpen, setDiceOpen] = useState(false)
   const [familiarOpen, setFamiliarOpen] = useState(false)
   const [askEdit, setAskEdit] = useState<{ character: Character; note?: string; levelUp?: boolean } | null>(null)
@@ -231,7 +233,7 @@ export default function App() {
             onEdit={startEdit}
             onLevels={id => setView({ kind: 'levels', id })}
             onPlan={id => setView({ kind: 'plan', id })}
-            onPrint={id => setView({ kind: 'print', id })}
+            onPrint={id => { printFrom.current = 'list'; setView({ kind: 'print', id }) }}
             onImported={refresh}
             onDelete={async id => {
               await deleteCharacter(id)
@@ -296,6 +298,7 @@ export default function App() {
             userId={active.id}
             onEdit={() => startEdit(view.id)}
             onLevelUp={() => startLevelUp(view.id)}
+            onPrint={() => { printFrom.current = 'sheet'; setView({ kind: 'print', id: view.id }) }}
             onBack={() => {
               refresh()
               setView({ kind: 'list' })
@@ -323,7 +326,7 @@ export default function App() {
           />
         )}
         {view.kind === 'plan' && <PlanView characterId={view.id} onBack={() => { refresh(); setView({ kind: 'list' }) }} />}
-        {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView({ kind: 'list' })} />}
+        {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView(printFrom.current === 'sheet' ? { kind: 'sheet', id: view.id } : { kind: 'list' })} />}
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'familiar' && familiar && <FamiliarPage {...familiar} />}
         {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} campaign={partyDm ? playing.party : undefined} />}

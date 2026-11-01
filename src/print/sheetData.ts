@@ -1,9 +1,12 @@
 // Everything the printable sheet shows, flattened from a Character and derive(). Pure, no React.
+// Values stay ids and numbers; PrintSheet.tsx turns them into words in the reader's language.
 import type { Character } from '../model/character'
 import {
-  ABILITIES, ABILITY_NAMES, ALL_SKILLS, SKILLS, entryItem, getBackground, classById, derive, formatMod, raceById,
-  type Ability,
+  ABILITIES, ALL_SKILLS, SKILLS, entryItem, getBackground, derive, formatMod,
+  type Ability, type ConditionId, type DerivedStats, type SkillId,
 } from '../rules'
+
+type HitDie = DerivedStats['hitDice'][number]['die']
 
 export interface PrintOptions {
   /** Fill in current HP, used slots and resources. Off prints blank boxes for pencil play. */
@@ -11,25 +14,37 @@ export interface PrintOptions {
 }
 
 export interface Pips {
+  /** Resource id for a class resource, missing for the player's own trackers. */
+  id?: string
   label: string
   max: number
   used: number
-  note?: string
+  recharge?: 'short' | 'long' | 'dawn'
+}
+
+export interface SlotRow {
+  /** Spell level, 1-9 (a pact slot's level for pact slots). */
+  level: number
+  max: number
+  used: number
+  pact?: boolean
 }
 
 export interface PrintSheet {
   name: string
   playerName: string
-  classLine: string
+  classes: { classId: string; level: number }[]
   level: number
-  race: string
-  background: string
+  raceId: string
+  subraceId?: string
+  edition?: '2024'
+  background: { id: string; name: string }
   alignment: string
   xp: number
   portrait?: string
-  abilities: { id: Ability; name: string; score: number; mod: string }[]
-  saves: { name: string; bonus: string; proficient: boolean }[]
-  skills: { name: string; ability: string; bonus: string; proficient: boolean }[]
+  abilities: { id: Ability; score: number; mod: string }[]
+  saves: { id: Ability; bonus: string; proficient: boolean }[]
+  skills: { id: SkillId; ability: Ability; bonus: string; proficient: boolean; expertise: boolean }[]
   proficiencyBonus: string
   passivePerception: number
   armorClass: number
@@ -39,62 +54,61 @@ export interface PrintSheet {
   maxHp: number
   currentHp?: number
   tempHp?: number
-  hitDice: string
-  spellcasting?: { ability: string; saveDc: number; attackBonus: string }
-  spellSlots: Pips[]
+  hitDice: { die: HitDie; total: number; spent: number }[]
+  deathSaves: { successes: number; failures: number }
+  spellSlots: SlotRow[]
   resources: Pips[]
-  attacks: { name: string; bonus: string; damage: string; notes: string }[]
-  equipment: { name: string; qty: number; equipped: boolean }[]
+  attacks: { name: string; bonus: string; damage: string; damageType: string; versatile?: string; range?: string; extraDamage?: string }[]
+  equipment: { itemId: string; name: string; qty: number; equipped: boolean; weight: number }[]
   coins: { cp: number; sp: number; gp: number }
-  carried: string
-  features: string[]
-  traits: string[]
-  languages: string[]
-  conditions: string[]
+  carriedWeight: number
+  carryingCapacity: number
+  resistances: string[]
+  immunities: string[]
+  conditionImmunities: ConditionId[]
+  /** Heroic Inspiration held (play state only). */
+  inspiration: boolean
+  /** Charms and blessings the DM gave. Uses spent print only with play state. */
+  boons: { name: string; text?: string; kind: 'charm' | 'blessing'; uses: number; used: number; from?: string }[]
+  conditions: ConditionId[]
   warnings: string[]
   notes: string
 }
 
-const ORDINAL = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th']
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+const round = (n: number) => Math.round(n * 100) / 100
 
-export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
-  const d = derive(c)
+export function buildPrintSheet(c: Character, opts: PrintOptions, d: DerivedStats = derive(c)): PrintSheet {
   const play = opts.withPlayState
-  const race = raceById(c.raceId, c.rulesEdition)
-  const subrace = race?.subraces?.find(s => s.id === c.subraceId)
 
-  const spellSlots: Pips[] = d.spellSlots.slots.flatMap((max, i) =>
-    max > 0 ? [{ label: ORDINAL[i], max, used: play ? (c.state.spellSlotsUsed[i] ?? 0) : 0 }] : [],
+  const spellSlots: SlotRow[] = d.spellSlots.slots.flatMap((max, i) =>
+    max > 0 ? [{ level: i + 1, max, used: play ? (c.state.spellSlotsUsed[i] ?? 0) : 0 }] : [],
   )
   const pact = d.spellSlots.pact
-  if (pact) {
-    spellSlots.push({ label: `Pact (${ORDINAL[pact.level - 1]})`, max: pact.count, used: play ? c.state.pactSlotsUsed : 0, note: 'short rest' })
-  }
+  if (pact) spellSlots.push({ level: pact.level, max: pact.count, used: play ? c.state.pactSlotsUsed : 0, pact: true })
 
   const resources: Pips[] = [
-    ...d.resources.map(r => ({
-      label: r.label, max: r.max, used: play ? (c.state.resources[r.id]?.used ?? 0) : 0, note: `${r.recharge} rest`,
-    })),
+    ...d.resources.map(r => ({ id: r.id, label: r.label, max: r.max, used: play ? (c.state.resources[r.id]?.used ?? 0) : 0, recharge: r.recharge === 'none' ? undefined : r.recharge })),
     ...(c.state.counters ?? []).map(k => ({
-      label: k.label, max: k.max, used: play ? k.used : 0, note: k.recharge === 'none' ? undefined : `${k.recharge} rest`,
+      label: k.label, max: k.max, used: play ? k.used : 0, recharge: k.recharge === 'none' ? undefined : k.recharge,
     })),
   ]
 
   return {
     name: c.name,
     playerName: c.playerName,
-    classLine: c.classes.map(cl => `${classById(cl.classId, c.rulesEdition)?.name ?? cl.classId} ${cl.level}`).join(' / '),
+    classes: c.classes.map(cl => ({ classId: cl.classId, level: cl.level })),
     level: d.level,
-    race: c.rulesEdition === '2024' && race && subrace ? `${race.name} (${subrace.name})` : subrace?.name ?? race?.name ?? c.raceId,
-    background: getBackground(c)?.name ?? c.backgroundId,
+    raceId: c.raceId,
+    subraceId: c.subraceId,
+    edition: c.rulesEdition,
+    background: { id: getBackground(c)?.id ?? c.backgroundId, name: getBackground(c)?.name ?? c.backgroundId },
     alignment: c.alignment,
     xp: c.xp,
     portrait: c.portrait,
-    abilities: ABILITIES.map(a => ({ id: a, name: ABILITY_NAMES[a], score: d.abilities[a], mod: formatMod(d.mods[a]) })),
-    saves: ABILITIES.map(a => ({ name: ABILITY_NAMES[a], bonus: formatMod(d.saves[a].bonus), proficient: d.saves[a].proficient })),
+    abilities: ABILITIES.map(a => ({ id: a, score: d.abilities[a], mod: formatMod(d.mods[a]) })),
+    saves: ABILITIES.map(a => ({ id: a, bonus: formatMod(d.saves[a].bonus), proficient: d.saves[a].proficient })),
     skills: ALL_SKILLS.map(s => ({
-      name: SKILLS[s].name, ability: SKILLS[s].ability.toUpperCase(), bonus: formatMod(d.skills[s].bonus), proficient: d.skills[s].proficient,
+      id: s, ability: d.skills[s].ability ?? SKILLS[s].ability, bonus: formatMod(d.skills[s].bonus), proficient: d.skills[s].proficient, expertise: !!d.skills[s].expertise,
     })),
     proficiencyBonus: formatMod(d.proficiencyBonus),
     passivePerception: d.passivePerception,
@@ -105,24 +119,30 @@ export function buildPrintSheet(c: Character, opts: PrintOptions): PrintSheet {
     maxHp: d.maxHp,
     currentHp: play ? c.state.currentHp : undefined,
     tempHp: play && c.state.tempHp > 0 ? c.state.tempHp : undefined,
-    hitDice: d.hitDice.map(h => `${h.total}${h.die}`).join(' + '),
-    spellcasting: d.spellcasting && {
-      ability: ABILITY_NAMES[d.spellcasting.ability],
-      saveDc: d.spellcasting.saveDc,
-      attackBonus: formatMod(d.spellcasting.attackBonus),
-    },
+    hitDice: d.hitDice.map(h => ({ die: h.die, total: h.total, spent: play ? (c.state.hitDiceSpent[h.die] ?? 0) : 0 })),
+    deathSaves: play ? { ...c.state.deathSaves } : { successes: 0, failures: 0 },
     spellSlots,
     resources,
     attacks: d.attacks.map(a => ({
-      name: a.name, bonus: formatMod(a.bonus), damage: `${a.damage} ${a.damageType}`, notes: a.notes.join(', '),
+      name: a.name, bonus: formatMod(a.bonus), damage: a.damage, damageType: a.damageType,
+      ...(a.versatile ? { versatile: a.versatile } : {}), ...(a.range ? { range: a.range } : {}), ...(a.extraDamage ? { extraDamage: a.extraDamage } : {}),
     })),
-    equipment: c.inventory.map(e => ({ name: entryItem(e)?.name ?? e.itemId, qty: e.qty, equipped: e.equipped })),
+    equipment: c.inventory.map(e => {
+      const item = entryItem(e)
+      return { itemId: e.itemId, name: item?.name ?? e.itemId, qty: e.qty, equipped: e.equipped, weight: round((item?.weight ?? 0) * e.qty) }
+    }),
     coins: c.coins,
-    carried: `${d.carriedWeight} / ${d.carryingCapacity} lb`,
-    features: [...d.features.map(f => `${f.name}${f.detail ? `, ${f.detail}` : ''} (${f.className} ${f.level})`), ...d.feats.map(f => `${f} (feat)`)],
-    traits: d.traits,
-    languages: [...d.languages, ...d.tools],
-    conditions: play ? c.state.conditions.map(cap) : [],
+    carriedWeight: round(d.carriedWeight),
+    carryingCapacity: d.carryingCapacity,
+    resistances: d.defenses.resistances,
+    immunities: d.defenses.immunities,
+    conditionImmunities: d.defenses.conditionImmunities,
+    inspiration: play && !!c.state.inspiration,
+    boons: (c.state.boons ?? []).map(b => ({
+      name: b.name, ...(b.text ? { text: b.text } : {}), kind: b.kind, uses: b.kind === 'charm' ? (b.uses ?? 1) : 0,
+      used: play && b.kind === 'charm' ? (b.used ?? 0) : 0, ...(b.from ? { from: b.from } : {}),
+    })),
+    conditions: play ? c.state.conditions : [],
     warnings: d.warnings,
     notes: c.notes,
   }

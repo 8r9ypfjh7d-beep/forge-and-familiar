@@ -33,7 +33,7 @@ import { AbilitiesPanel, CharacterCard, CombatTabs, FeaturesTraits, Fight, HpChi
 import { canPowerUp, PowerUpCard } from '../powerup'
 import './sheet.css'
 
-export function CharacterSheet({ characterId, party, userId, onBack, onEdit, onLevelUp }: {
+export function CharacterSheet({ characterId, party, userId, onBack, onEdit, onLevelUp, onPrint }: {
   characterId: string
   /** The campaign in play: its live combat (src/combat/live) puts a Map tab in combat mode. */
   party?: Party
@@ -41,6 +41,8 @@ export function CharacterSheet({ characterId, party, userId, onBack, onEdit, onL
   onBack: () => void
   onEdit?: () => void
   onLevelUp?: () => void
+  /** Opens the printable sheet. */
+  onPrint?: () => void
 }) {
   const { character, apply, undo, undoTo, redo, canRedo, log } = useLiveCharacter(characterId)
   const { t } = useI18n()
@@ -55,7 +57,7 @@ export function CharacterSheet({ characterId, party, userId, onBack, onEdit, onL
     )
   }
 
-  return <Sheet character={character} party={party} userId={userId} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} onLevelUp={onLevelUp} />
+  return <Sheet character={character} party={party} userId={userId} apply={apply} undo={undo} undoTo={undoTo} redo={canRedo ? redo : undefined} log={log} onBack={onBack} onEdit={onEdit} onLevelUp={onLevelUp} onPrint={onPrint} />
 }
 
 /** The open sheet for the Familiar: its card, the live character, and the player's other characters by id. */
@@ -86,7 +88,7 @@ export interface ViewOnly {
   noticed: boolean
 }
 
-export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log, onBack, onEdit, onLevelUp, viewOnly }: {
+export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log, onBack, onEdit, onLevelUp, onPrint, viewOnly }: {
   character: Character
   party?: Party
   userId?: string
@@ -98,6 +100,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
   onBack: () => void
   onEdit?: () => void
   onLevelUp?: () => void
+  onPrint?: () => void
   viewOnly?: ViewOnly
 }) {
   const [mode, setMode] = useSheetMode(character.id)
@@ -150,7 +153,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
   }
   return (
     <div className={`ff-sheet mode-${mode}${viewOnly ? ' view-only' : ''}`}>
-      <Header character={character} onBack={onBack} onEdit={onEdit} familiar={!viewOnly} />
+      <Header character={character} onBack={onBack} onEdit={onEdit} onPrint={onPrint} familiar={!viewOnly} />
       {viewOnly && (
         <p className={`view-only-bar${viewOnly.noticed ? ' noticed' : ''}`} role="status">
           <span aria-hidden="true">👁</span> {t(viewOnly.noticed ? 'sheet.viewOnlyNotice' : 'sheet.viewOnly', { name: viewOnly.playerName })}
@@ -183,8 +186,8 @@ function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMo
   )
 }
 
-/** The character card below shows who the character is, so the header keeps only navigation, edit and export. */
-function Header({ character, onBack, onEdit, familiar }: { character: Character; onBack: () => void; onEdit?: () => void; familiar?: boolean }) {
+/** The character card below shows who the character is, so the header keeps only navigation, edit, print and export. */
+function Header({ character, onBack, onEdit, onPrint, familiar }: { character: Character; onBack: () => void; onEdit?: () => void; onPrint?: () => void; familiar?: boolean }) {
   const { t } = useI18n()
   return (
     <header className="sheet-header">
@@ -192,6 +195,7 @@ function Header({ character, onBack, onEdit, familiar }: { character: Character;
       <div className="who"><span className="sr-only">{character.name}</span></div>
       {familiar && <AskFamiliar label={t('familiar.askAbout', { name: character.name })} />}
       {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
+      {onPrint && <button type="button" className="btn small" onClick={onPrint}>{t('list.print')}</button>}
       <ExportButton character={character} />
     </header>
   )

@@ -2,9 +2,8 @@
 // AC and speed), the skills on the side, and tabs. Tabs reuse the sheet's own cards; only the
 // summary, skills rail, attacks table, effects, action lists and features view live here.
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BUNDLED, loadKind, type CharacterClass, type Equipment, type Feat, type Feature, type Spell, type Subclass, type Trait } from '../../content'
+import type { Feature } from '../../content'
 import type { RollMode } from '../../dice'
-import { explainKey, featExplainKey, optionKey, optionName } from '../../builder/why'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
@@ -24,9 +23,8 @@ import { PoolForm, UsePanel, useResourceUse } from '../components/Resources'
 import { turnActions, type TurnRow } from './turn'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
-import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, classOptionById, derive, entryItem, planUse, formatMod, getBackground, getFeats, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, splitTrait, subclassOf, totalLevel, xpForNextLevel, xpReady, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, derive, entryItem, planUse, formatMod, getBackground, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, totalLevel, xpForNextLevel, xpReady, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
-import { editionOf, sourceFor, spellSourcesFor } from '../../spellbook/access'
 import { FadingResult } from '../../dice/ui'
 import { RockSenseButton } from '../../rocksense'
 import { ammoForAttack, spendAmmo } from '../../supplies/supplies'
@@ -42,38 +40,9 @@ import './combat.css'
 import { LastRoll, type Shown } from './LastRoll'
 import { InspirationLine } from '../components/Inspiration'
 import type { Party } from '../../party/types'
+import { useLibrary } from './library'
+import { useFeatureTexts } from './featureTexts'
 
-interface Library {
-  spells: Spell[]
-  features: Feature[]
-  traits: Trait[]
-  feats: Feat[]
-  equipment: Equipment[]
-  classes: CharacterClass[]
-  subclasses: Subclass[]
-}
-
-const EMPTY: Library = { spells: [], features: [], traits: [], feats: [], equipment: [], classes: [], subclasses: [] }
-
-/** The character's edition of the content library. Empty while loading or if it fails: the page still works. */
-function useLibrary(character: Character): Library {
-  const edition = editionOf(character)
-  const source = sourceFor(edition)
-  const [lib, setLib] = useState<{ source: string; data: Library } | null>(null)
-  useEffect(() => {
-    let live = true
-    const sources = [source]
-    Promise.all([
-      loadKind('spells', { sources: spellSourcesFor(edition) }), loadKind('features', { sources }), loadKind('traits', { sources }),
-      loadKind('feats', { sources }), loadKind('equipment', { sources }),
-      loadKind('classes', { sources: spellSourcesFor(edition) }), loadKind('subclasses', { sources: spellSourcesFor(edition) }),
-    ])
-      .then(([spells, features, traits, feats, equipment, classes, subclasses]) => { if (live) setLib({ source, data: { spells, features, traits, feats, equipment, classes, subclasses } }) })
-      .catch(() => { if (live) setLib({ source, data: EMPTY }) })
-    return () => { live = false }
-  }, [source])
-  return lib?.source === source ? lib.data : EMPTY
-}
 
 // ---------- Character card (both modes) ----------
 
@@ -1070,73 +1039,34 @@ function CunningStrike({ character, d }: { character: Character; d: DerivedStats
 }
 
 export function FeaturesTraits({ character }: { character: Character }) {
-  const { t, term, locale } = useI18n()
-  const translated = locale !== 'en'
+  const { t } = useI18n()
   const lib = useLibrary(character)
-  const d = derive(character)
-  const bg = getBackground(character)
-  const source = BUNDLED.find(m => m.source.id === sourceFor(editionOf(character)))?.source
-  // In another language our translated summary comes first; the SRD text is English.
-  const traitText = (name: string) => {
-    // Homebrew traits written "Name: what it does".
-    if (character.raceId.startsWith('hb:') || character.subraceId?.startsWith('hb:')) {
-      const text = splitTrait(name).text
-      if (text) return text
-    }
-    const own = explainKey('trait', name) ?? explainKey('trait', name.replace(/\s*\(.*$/, ''))
-    if (translated && own) return t(own)
-    const base = name.replace(/\s*\(.*$/, '').toLowerCase()
-    return lib.traits.find(x => x.name.toLowerCase() === base)?.description ?? (own ? t(own) : undefined)
-  }
-  // Our own summary (every official feat has one), then the player's text, then the SRD library.
-  const feats = getFeats(character)
-  const featText = (f: (typeof feats)[number]) => {
-    const key = featExplainKey(f.id, rulesEdition(character))
-    return (key ? t(key) : undefined) || f.description || lib.feats.find(x => x.name.toLowerCase() === f.name.toLowerCase())?.description
-  }
-  // Custom subclass text, then that subclass's own summary or SRD entry (see featureDescription).
-  const option = (f: DerivedStats['features'][number]) => (f.optionId ? classOptionById(f.optionId, rulesEdition(character)) : undefined)
-  const featureName = (f: DerivedStats['features'][number]) => {
-    const o = option(f)
-    // A repeated 2024 invocation keeps its cantrip: "Agonizing Blast (Eldritch Blast)".
-    return o ? optionName(o, term) + f.name.slice(f.name.startsWith(o.name) ? o.name.length : f.name.length) : term('feature', f.name, f.name)
-  }
-  const featureText = (f: DerivedStats['features'][number]) => {
-    const o = option(f)
-    if (o) {
-      const k = optionKey(o)
-      return f.text || (k ? t(k) : undefined)
-    }
-    return featureDescription(lib.features, f, t, translated)
-  }
-  const list = (kind: string, xs: string[]) => xs.map(x => term(kind, x, x)).join(', ') || t('common.none')
+  const x = useFeatureTexts(character, lib)
+  const list = (xs: string[]) => xs.join(', ') || t('common.none')
   return (
     <section className="card cs-features" aria-labelledby="cs-features-title">
       <h2 id="cs-features-title">{t('cs.classFeatures')}</h2>
       <ul className="cs-rows">
-        {d.features.map(f => (
-          <Described key={`${f.className}-${f.level}-${f.optionId ?? f.name}`} name={featureName(f)} meta={t('cs.featureMeta', { cls: term('class', f.className.toLowerCase(), f.className), level: f.level }) + (f.detail ? ` · ${term('detail', f.detail, f.detail)}` : '')}
-            text={featureText(f)} />
-        ))}
+        {x.features.map(f => <Described key={f.key} name={f.name} meta={f.meta} text={f.text} />)}
       </ul>
       <h3 className="cs-sub">{t('cs.racialTraits')}</h3>
-      {d.traits.length
-        ? <ul className="cs-rows">{d.traits.map(x => <Described key={x} name={term('trait', splitTrait(x).name, splitTrait(x).name)} text={traitText(x)} />)}</ul>
+      {x.traits.length
+        ? <ul className="cs-rows">{x.traits.map(f => <Described key={f.key} name={f.name} text={f.text} />)}</ul>
         : <p className="hint">{t('common.none')}</p>}
-      {feats.length > 0 && <>
+      {x.feats.length > 0 && <>
         <h3 className="cs-sub">{t('cs.feats')}</h3>
-        <ul className="cs-rows">{feats.map((f, i) => <Described key={`${f.id}-${i}`} name={term('feat', f.id, f.name)} text={featText(f)} />)}</ul>
+        <ul className="cs-rows">{x.feats.map(f => <Described key={f.key} name={f.name} text={f.text} />)}</ul>
       </>}
-      {bg?.feature && <>
+      {x.backgroundFeature && <>
         <h3 className="cs-sub">{t('sheet.story.bgFeature')}</h3>
-        <p>{bg.feat ? term('feat', bg.feat.id, bg.feature) : term('bgFeature', bg.feature, term('feature', bg.feature, bg.feature))}</p>
+        <p>{x.backgroundFeature}</p>
       </>}
       <h3 className="cs-sub">{t('cs.proficiencies')}</h3>
       <dl className="story-facts">
-        <div><dt>{t('builder.languagesTitle')}</dt><dd>{list('language', d.languages)}</dd></div>
-        <div><dt>{t('builder.toolsTitle')}</dt><dd>{list('tool', d.tools)}</dd></div>
+        <div><dt>{t('builder.languagesTitle')}</dt><dd>{list(x.languages)}</dd></div>
+        <div><dt>{t('builder.toolsTitle')}</dt><dd>{list(x.tools)}</dd></div>
       </dl>
-      {source && <p className="hint cs-attribution">{source.attribution}</p>}
+      {x.attribution && <p className="hint cs-attribution">{x.attribution}</p>}
     </section>
   )
 }
