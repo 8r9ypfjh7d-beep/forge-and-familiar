@@ -147,6 +147,7 @@ function PageOne({ s, i, texts, spellRows }: { s: Sheet; i: T; texts: ReturnType
           <div className="p-stack">
             <Stat label={t('print.profBonus')} value={s.proficiencyBonus} inline />
             <Stat label={t('print.passivePerception')} value={String(s.passivePerception)} inline />
+            <div className="p-stat inline p-inspiration"><span className={`p-box-mark${s.inspiration ? ' on' : ''}`} /><span className="p-label">{t(s.edition === '2024' ? 'print.heroicInspiration' : 'print.inspiration')}</span></div>
             <Box title={t('print.saves')}>
               <ul className="p-checks">
                 {s.saves.map(x => <Check key={x.id} on={x.proficient} bonus={x.bonus} name={i.ability(x.id)} />)}
@@ -299,6 +300,19 @@ function PageGear({ s, i }: { s: Sheet; i: T }) {
               </table>
             ) : <div className="p-lines" style={{ '--lines': 3 } as CSSProperties} />}
           </Box>
+          {s.boons.length > 0 && (
+            <Box title={t('print.boons')}>
+              <ul className="p-list p-boons">
+                {s.boons.map((b, n) => (
+                  <li key={n}>
+                    <strong><bdi>{b.name}</bdi></strong> <small className="p-inline">{t(b.kind === 'charm' ? 'print.charm' : 'print.blessing')}{b.from ? ` · ${b.from}` : ''}</small>
+                    {b.uses > 0 && <Circles max={b.uses} used={b.used} />}
+                    {b.text && <small dir="auto">{b.text}</small>}
+                  </li>
+                ))}
+              </ul>
+            </Box>
+          )}
           <Box title={t('print.notes')} grow>
             {s.notes && <p className="p-notes" dir="auto">{s.notes}</p>}
             <div className="p-lines" style={{ '--lines': s.notes ? 10 : 24 } as CSSProperties} />

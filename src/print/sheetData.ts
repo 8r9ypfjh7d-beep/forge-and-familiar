@@ -66,6 +66,10 @@ export interface PrintSheet {
   resistances: string[]
   immunities: string[]
   conditionImmunities: ConditionId[]
+  /** Heroic Inspiration held (play state only). */
+  inspiration: boolean
+  /** Charms and blessings the DM gave. Uses spent print only with play state. */
+  boons: { name: string; text?: string; kind: 'charm' | 'blessing'; uses: number; used: number; from?: string }[]
   conditions: ConditionId[]
   warnings: string[]
   notes: string
@@ -133,6 +137,11 @@ export function buildPrintSheet(c: Character, opts: PrintOptions, d: DerivedStat
     resistances: d.defenses.resistances,
     immunities: d.defenses.immunities,
     conditionImmunities: d.defenses.conditionImmunities,
+    inspiration: play && !!c.state.inspiration,
+    boons: (c.state.boons ?? []).map(b => ({
+      name: b.name, ...(b.text ? { text: b.text } : {}), kind: b.kind, uses: b.kind === 'charm' ? (b.uses ?? 1) : 0,
+      used: play && b.kind === 'charm' ? (b.used ?? 0) : 0, ...(b.from ? { from: b.from } : {}),
+    })),
     conditions: play ? c.state.conditions : [],
     warnings: d.warnings,
     notes: c.notes,

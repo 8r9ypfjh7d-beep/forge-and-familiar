@@ -14,8 +14,8 @@ Paper-style character sheet for tables that play without phones. "Print or save 
 
 ## Pages
 
-1. Core: name, class, race or species, background, alignment, player, XP; abilities, saves and skills (expertise is a ringed dot); AC, initiative, speed, HP, hit dice, death saves; attacks plus attack and save spells (`spellAttackRows`); conditions, defenses; feature, trait and feat names; languages and tools.
-2. Gear and notes: equipment with weight and worn marks, carried weight, coins, class resources and trackers with their rest, notes.
+1. Core: name, class, race or species, background, alignment, player, XP; abilities, saves and skills (expertise is a ringed dot); Inspiration box (filled with play state); AC, initiative, speed, HP, hit dice, death saves; attacks plus attack and save spells (`spellAttackRows`); conditions, defenses; feature, trait and feat names; languages and tools.
+2. Gear and notes: equipment with weight and worn marks, carried weight, coins, class resources and trackers with their rest, the DM's charms (use circles) and blessings, notes.
 3. Spells, only when the character has a casting class, slots, or spells from race, feats or items: spellcasting box per class, slots (pact slots apart), spell tables by level with prepared dots, C/R tags, time, range, duration, components, and blank rows to pencil in new spells.
 4. Rules reference (the "rules text" checkbox, on by default): every feature, trait, feat and spell with its text in two columns, running over as many sheets as it needs. The SRD attribution prints at the end.
 

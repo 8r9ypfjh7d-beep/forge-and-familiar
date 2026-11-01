@@ -64,6 +64,21 @@ describe('buildPrintSheet', () => {
     expect(s.resources.find(r => r.label === 'Arrows')).toEqual({ label: 'Arrows', max: 20, used: 3, recharge: undefined })
   })
 
+  it('prints inspiration with play state and the DM\'s charms and blessings', () => {
+    const c = makeCharacter()
+    const given = { ...c, state: { ...c.state, inspiration: true, boons: [
+      { id: 'g1', name: 'Charm of Luck', kind: 'charm' as const, uses: 3, used: 1, from: 'Noa', at: '2026-11-01' },
+      { id: 'g2', name: 'Blessing of Health', kind: 'blessing' as const, at: '2026-11-01' },
+    ] } }
+    expect(buildPrintSheet(given, { withPlayState: false }).inspiration).toBe(false)
+    const s = buildPrintSheet(given, { withPlayState: true })
+    expect(s.inspiration).toBe(true)
+    expect(s.boons).toEqual([
+      { name: 'Charm of Luck', kind: 'charm', uses: 3, used: 1, from: 'Noa' },
+      { name: 'Blessing of Health', kind: 'blessing', uses: 0, used: 0 },
+    ])
+  })
+
   it('prints pact slots apart from regular slots', () => {
     const c = makeCharacter({ classes: [{ classId: 'warlock', level: 7 }] })
     const s = buildPrintSheet(c, { withPlayState: false })

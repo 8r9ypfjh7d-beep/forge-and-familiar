@@ -72,6 +72,10 @@
 .p-stat strong { display: block; font-size: 15pt; }
 .p-stat.inline { display: flex; align-items: center; gap: 6pt; text-align: start; padding: 3pt 6pt; }
 .p-stat.inline strong { font-size: 12pt; min-width: 22pt; text-align: center; border: 1pt solid var(--p-line); border-radius: 50%; }
+.p-box-mark { display: inline-block; inline-size: 14pt; block-size: 14pt; border: 1pt solid var(--p-line); border-radius: 3pt; flex: none; }
+.p-box-mark.on { background: var(--p-ink); box-shadow: inset 0 0 0 2pt #fff; }
+.paper small.p-inline { display: inline; }
+.p-boons li { margin-block-end: 3pt; }
 .p-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6pt; margin-block-end: 4pt; }
 .p-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
 
