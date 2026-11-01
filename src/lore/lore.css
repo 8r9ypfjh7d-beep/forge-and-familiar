@@ -154,3 +154,4 @@
 @keyframes lore-reveal-in { from { opacity: 0; transform: translateY(24px) scale(0.92); } }
 @keyframes lore-title-in { 0% { opacity: 0; letter-spacing: 0.3em; filter: blur(6px); } 100% { opacity: 1; letter-spacing: 0; filter: blur(0); } }
 .ff-lore-reveal.is-still, .ff-lore-reveal.is-still * { animation: none !important; }
+.ff-lore .lore-empty-dm { padding: var(--sp-3); display: grid; gap: var(--sp-2); justify-items: start; }
