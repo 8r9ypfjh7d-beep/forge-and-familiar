@@ -242,7 +242,7 @@ function DmNotes({ enc, act, fighting }: { enc: Encounter; act: Act; fighting: b
   return (
     <details className="glass combat-notes" open={open} onToggle={e => setOpen(e.currentTarget.open)}>
       <summary className="glass-eyebrow">{t('dm.notes')}</summary>
-      <textarea key={enc.notes ?? ''} rows={4} defaultValue={enc.notes ?? ''} placeholder={t('dm.notesPh')} aria-label={t('dm.notes')}
+      <textarea key={enc.notes ?? ''} dir="auto" rows={4} defaultValue={enc.notes ?? ''} placeholder={t('dm.notesPh')} aria-label={t('dm.notes')}
         onBlur={e => { const notes = e.target.value; if (notes !== (enc.notes ?? '')) act(x => ({ ...x, notes })) }} />
     </details>
   )
