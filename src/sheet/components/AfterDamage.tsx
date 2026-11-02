@@ -14,6 +14,7 @@ import { concentration, endEffect } from '../effects'
 import { damageToOne, retakeDamage, setResourceUsed, takeDamage, type HpSnapshot } from '../engine'
 import type { Apply } from '../types'
 import { useSpells } from './Effects'
+import { answerConcentrationCheck, owedConcentrationChecks } from '../../combat/hits'
 
 /** One hit, as the HP card took it. */
 export interface Hit {
@@ -187,6 +188,47 @@ export function AfterDamage({ hit, character, apply, onClose }: { hit: Hit; char
         </div>
       ))}
       <CastResult out={casting.out} outKey={casting.outKey} onDone={casting.clear} character={character} apply={apply} />
+    </div>
+  )
+}
+
+/**
+ * Concentration saves owed for the DM's hits in a live combat, which landed on this phone without the
+ * HP card's Damage button: one row each, Roll or Lost it, like the save after a hit typed here.
+ */
+export function OwedConcentration({ character, apply }: { character: Character; apply: Apply }) {
+  const { t } = useI18n()
+  const rolls = useSheetRolls(character)
+  const [last, setLast] = useState<{ key: string; shown: Shown[]; kept: boolean; name: string } | null>(null)
+  const owed = character.state.currentHp > 0 ? owedConcentrationChecks(character) : []
+  if (!owed.length && !last) return null
+  const answer = (id: string, name: string, kept: boolean, shown: Shown[]) => {
+    setLast({ key: id, shown, kept, name })
+    apply(t(kept ? 'hurt.log.keptConc' : 'hurt.log.lostConc', { name }), c => answerConcentrationCheck(c, id, kept))
+  }
+  const roll = (x: (typeof owed)[number]) => {
+    const d = derive(character)
+    const r = rolls.save(d, 'con', d.concentrationAdvantage ? 'advantage' : undefined)
+    answer(x.id, x.name, !r.autoFail && r.total >= x.dc, [{ roll: r, what: t('hurt.conc', { dc: x.dc, name: x.name }) }])
+  }
+  return (
+    <div className="hp-after" role="group" aria-live="polite">
+      {last && <button type="button" className="glass-btn small icon hp-after-close" aria-label={t('hurt.dismiss')} title={t('hurt.dismiss')} onClick={() => setLast(null)}>✕</button>}
+      {owed.map(x => (
+        <div key={x.id} className="hp-after-row">
+          <span>{t('hurt.conc.dm', { dc: x.dc, name: x.name })}</span>
+          <span className="hp-after-actions">
+            <button type="button" className="glass-btn small prominent" onClick={() => roll(x)}>{t('hurt.conc.roll')}</button>
+            <button type="button" className="glass-btn small" onClick={() => answer(x.id, x.name, false, [])}>{t('hurt.conc.lost')}</button>
+          </span>
+        </div>
+      ))}
+      {last && (
+        <>
+          {last.shown.length > 0 && <LastRoll key={last.key} rolls={last.shown} />}
+          <p className={`hp-after-outcome ${last.kept ? 'kept' : 'lost'}`}>{t(last.kept ? 'hurt.conc.kept' : 'hurt.conc.broke', { name: last.name })}</p>
+        </>
+      )}
     </div>
   )
 }

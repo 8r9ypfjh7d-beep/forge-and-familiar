@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { makeCharacter } from '../sheet/fixtures'
 import { addHit, createEncounter, HIT_LIMIT } from './engine'
-import { takeHits } from './hits'
+import { answerConcentrationCheck, owedConcentrationChecks, takeHits } from './hits'
 import { playerView } from './playerView'
 import type { Hit } from './types'
 
@@ -34,5 +34,33 @@ describe('live-combat hits for characters on players\' phones', () => {
     expect(once.appliedHits).toEqual(['a', 'b'])
     expect(takeHits(once, hits)).toBe(once)
     expect(takeHits(c, undefined)).toBe(c)
+  })
+})
+
+describe('concentration saves for the DM\'s hits', () => {
+  const concentrating = () => {
+    const c = makeCharacter()
+    return { ...c, state: { ...c.state, effects: [{ id: 'spell:bless', name: 'Bless', from: 'spell' as const, on: true, concentration: true, duration: '1 minute', ends: 'short' as const }] } }
+  }
+
+  it('queues one save per hit while concentrating, DC 10 or half the damage', () => {
+    const c = takeHits(concentrating(), [hit('a', 4), hit('b', 24)])
+    expect(owedConcentrationChecks(c).map(x => [x.id, x.dc, x.name])).toEqual([['a', 10, 'Bless'], ['b', 12, 'Bless']])
+  })
+
+  it('owes nothing when not concentrating or knocked out', () => {
+    expect(takeHits(makeCharacter(), [hit('a', 4)]).state.concentrationChecks).toBeUndefined()
+    const c = concentrating()
+    expect(owedConcentrationChecks(takeHits(c, [hit('a', c.state.currentHp + 1)]))).toEqual([])
+  })
+
+  it('a kept save drops that check; a failed one ends the spell and every check for it', () => {
+    const c = takeHits(concentrating(), [hit('a', 4), hit('b', 6)])
+    const kept = answerConcentrationCheck(c, 'a', true)
+    expect(owedConcentrationChecks(kept).map(x => x.id)).toEqual(['b'])
+    expect(kept.state.effects).toHaveLength(1)
+    const lost = answerConcentrationCheck(c, 'a', false)
+    expect(lost.state.effects).toEqual([])
+    expect(lost.state.concentrationChecks).toBeUndefined()
   })
 })

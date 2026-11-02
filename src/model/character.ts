@@ -32,6 +32,8 @@ export interface CharacterState {
   }[]
   /** Spells, features and items in effect right now (src/rules/usables.ts): cast or switched on, ended by the player, concentration or a rest. */
   effects?: LiveEffect[]
+  /** Concentration saves owed for damage the DM dealt in a live combat (src/combat/hits.ts), one per hit, until rolled on the sheet. */
+  concentrationChecks?: { id: string; effectId: string; name: string; dc: number }[]
   /** Ammo and food countdowns (src/supplies). Counts themselves are inventory quantities. */
   supplies?: {
     /** Pieces fired per ammo item id since the last battlefield search. */

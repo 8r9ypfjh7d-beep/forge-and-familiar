@@ -19,6 +19,8 @@ export const hurtHe: Messages = {
   'hurt.conc.kept': 'הריכוז ב-{name} נשמר',
   'hurt.conc.broke': 'הריכוז ב-{name} אבד',
   'hurt.log.lostConc': 'הריכוז ב-{name} אבד',
+  'hurt.log.keptConc': 'הריכוז ב-{name} נשמר',
+  'hurt.conc.dm': 'פגיעה מהמנחה: הצלת ריכוז דרגת קושי {dc} ({name})',
   'hurt.reprisal': 'פגיעת תגרה? {name} גורם {dice}{type} לתוקף',
   'hurt.reaction': 'תגובה: {name}',
   'cond.title': 'מצבים',
