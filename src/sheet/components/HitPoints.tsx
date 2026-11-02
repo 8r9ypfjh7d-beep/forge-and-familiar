@@ -7,7 +7,7 @@ import { editionOf } from '../../spellbook/access'
 import { concentration } from '../effects'
 import { effectiveMaxHp, grantTempHp, heal, hpSnapshot, takeDamage, vitals } from '../engine'
 import type { Apply } from '../types'
-import { AfterDamage, type Hit } from './AfterDamage'
+import { AfterDamage, OwedConcentration, type Hit } from './AfterDamage'
 import { Conditions } from './Conditions'
 
 export function HitPoints({ character, apply }: { character: Character; apply: Apply }) {
@@ -102,6 +102,7 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
       </label>
       {said && said.key === hit?.key && <p className="hp-said" aria-live="polite">{said.text}</p>}
       {hit && <AfterDamage key={hit.key} hit={hit} character={character} apply={apply} onClose={() => { setHit(null); setSaid(null) }} />}
+      <OwedConcentration character={character} apply={apply} />
       {currentHp === 0 && state !== 'dead' && (
         <label className="check">
           <input type="checkbox" checked={critical} onChange={e => setCritical(e.target.checked)} />

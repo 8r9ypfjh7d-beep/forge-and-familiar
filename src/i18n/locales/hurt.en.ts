@@ -19,6 +19,8 @@ export const hurtEn = {
   'hurt.conc.kept': 'Kept concentration on {name}',
   'hurt.conc.broke': 'Lost concentration on {name}',
   'hurt.log.lostConc': 'Lost concentration on {name}',
+  'hurt.log.keptConc': 'Kept concentration on {name}',
+  'hurt.conc.dm': 'Hit by the DM: concentration save DC {dc} ({name})',
   'hurt.reprisal': 'Melee hit? {name} deals {dice}{type} to the attacker',
   'hurt.reaction': 'Reaction: {name}',
   'cond.title': 'Conditions',
