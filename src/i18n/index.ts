@@ -1,5 +1,5 @@
-export { LOCALES, isLocale, spellTermId, term, translate, type Locale, type LocaleInfo, type Translate, type Vars } from './translate'
-export { getLocale, setLocale, subscribeLocale, t, tTerm } from './store'
+export { LOCALES, isLocale, isLocaleLoaded, loadLocale, registerLocale, spellTermId, term, translate, type Locale, type LocaleInfo, type Translate, type Vars } from './translate'
+export { getLocale, loadCurrentLocale, setLocale, subscribeLocale, t, tTerm } from './store'
 export { useI18n } from './useI18n'
 export { LanguagePicker } from './LanguagePicker'
 export { SpellName } from './SpellName'

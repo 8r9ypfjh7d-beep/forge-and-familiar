@@ -1,5 +1,5 @@
 // The chosen language: saved per device, mirrored onto <html lang dir>, observable for React.
-import { isLocale, LOCALES, translate, term, type Locale, type Vars } from './translate'
+import { isLocale, isLocaleLoaded, loadLocale, LOCALES, translate, term, type Locale, type Vars } from './translate'
 import type { MessageKey } from './locales/en'
 
 const KEY = 'ff.locale.v1'
@@ -32,7 +32,19 @@ applyToDocument()
 
 export const getLocale = () => current
 
-export function setLocale(locale: Locale) {
+let wanted: Locale = current
+
+/** Switches language. A locale whose tables are not loaded yet switches once its chunk arrives. */
+export function setLocale(locale: Locale): Promise<void> {
+  wanted = locale
+  if (!isLocaleLoaded(locale)) {
+    return loadLocale(locale).then(() => { if (wanted === locale) apply(locale) }, () => { wanted = current })
+  }
+  apply(locale)
+  return Promise.resolve()
+}
+
+function apply(locale: Locale) {
   if (locale === current) return
   current = locale
   try {
@@ -48,6 +60,9 @@ export function subscribeLocale(listener: () => void) {
   listeners.add(listener)
   return () => { listeners.delete(listener) }
 }
+
+/** Loads the saved language's tables; main.tsx awaits this before the first render so Hebrew never flashes English. */
+export const loadCurrentLocale = () => loadLocale(current)
 
 /** Translate with the current language, for code outside React components. */
 export const t = (key: MessageKey, vars?: Vars) => translate(current, key, vars)

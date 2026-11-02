@@ -12,7 +12,7 @@ Export a character to a `.character.json` file, import one (or a Foundry VTT or 
 | `store.ts` | Snapshot store in localStorage (`ff.snapshots.v1`), async API, max 30 per character |
 | `actions.ts` | `exportToFile()`, `importFromFile()`, `parseAnyFile()` (our file, else Foundry/Dicecloud with SRD spell names from `src/content`), `rollBack()` over both stores |
 | `download.ts` | Browser file download |
-| `ui/` | `ImportButton` (character list), `ExportButton` (character cards, sheet header), `LevelHistory` view (snapshots, rollback, export) |
+| `ui/` | `ImportButton` (character list), `ExportButton` (character cards, sheet header), `LevelHistory` view (snapshots, rollback, export; App lazy-loads it from `ui/LevelHistory.tsx`, so it is not in the barrel) |
 | `portability.test.ts` | File and snapshot tests |
 | `foreign.test.ts` | Foundry and Dicecloud fixtures |
 
