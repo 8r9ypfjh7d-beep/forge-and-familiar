@@ -15,7 +15,8 @@ import type { Board, CellKey, Combatant, Encounter, Token } from '../types'
 import type { Act } from '../ui/useEncounter'
 import { BattleMap, type TokenInfo } from './BattleMap'
 import { BLANK_ID, resolveMap, templateMapId } from './resolve'
-import { syncTokens } from './tokens'
+import { syncTokens, withTokenArt } from './tokens'
+import { sharedTokenArt, tokenArt } from '../../art/logic'
 import { useLiveBoard } from './useLiveBoard'
 
 /** The DM's saved maps (Maps tab on the DM screen): this device first, then the server's. */
@@ -66,6 +67,18 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [combatantKey, map?.id])
 
+  // Party members' token art rides on the board, so every player's map shows it.
+  const artOf = (tk: Token) => {
+    const ch = tk.kind === 'pc' && tk.characterId ? party[tk.characterId] : undefined
+    return ch ? sharedTokenArt(ch) : undefined
+  }
+  const artKey = (enc.board?.tokens ?? []).map(tk => `${tk.id}=${artOf(tk) ?? ''}`).join('|')
+  useEffect(() => {
+    if (!enc.board || !withTokenArt(enc.board.tokens, artOf)) return
+    changeBoard(b => ({ ...b, tokens: withTokenArt(b.tokens, artOf) ?? b.tokens }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artKey])
+
   const pick = (id: string) => {
     if (!id) return
     const next = resolveMap(id, enc.ownerId, saved, tplName, t('combat.map.blank'))
@@ -83,7 +96,7 @@ export function EncounterMap({ enc, act, party, partyId, monsterOf }: EncounterM
     if (c.kind === 'pc') {
       const ch = c.characterId ? party[c.characterId] : undefined
       const d = ch ? derive(ch) : undefined
-      return { name: c.name, hp: d ? { current: s.hp, max: d.maxHp } : undefined, speed: d?.speed, conditions: s.conditions.map(x => term('condition', x, x)) }
+      return { name: c.name, image: ch ? tokenArt(ch) : undefined, hp: d ? { current: s.hp, max: d.maxHp } : undefined, speed: d?.speed, conditions: s.conditions.map(x => term('condition', x, x)) }
     }
     const m = monsterOf(c)
     const walk = Number(/\d+/.exec(String(m?.speed?.walk ?? ''))?.[0])

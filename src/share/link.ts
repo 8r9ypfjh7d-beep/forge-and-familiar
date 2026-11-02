@@ -7,11 +7,18 @@ export const SHARE_PARAM = 'ff-character'
 /** Portraits above this size (characters of a data URL) are left out so the link stays short enough to paste. */
 export const MAX_PORTRAIT = 40_000
 
-/** What a share link carries: the character without its owner id and private notes. */
+/** What a share link carries: the character without its owner id and private notes. Gallery pictures go only as links. */
 export function forShare(c: Character): Character {
-  const { ownerId: _o, notes: _n, portrait, ...rest } = structuredClone(c)
-  const keep = portrait && portrait.length <= MAX_PORTRAIT ? { portrait } : {}
-  return { ...rest, ...keep, ownerId: '', notes: '' }
+  const { ownerId: _o, notes: _n, portrait, token, gallery, ...rest } = structuredClone(c)
+  const small = (url?: string) => !!url && url.length <= MAX_PORTRAIT
+  const linked = (gallery ?? []).filter(p => p.url.startsWith('https://'))
+  return {
+    ...rest,
+    ...(small(portrait) ? { portrait } : {}),
+    ...(small(token) ? { token } : {}),
+    ...(linked.length ? { gallery: linked } : {}),
+    ownerId: '', notes: '',
+  }
 }
 
 const toBase64Url = (bytes: Uint8Array) => {

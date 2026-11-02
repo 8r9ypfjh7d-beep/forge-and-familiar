@@ -25,3 +25,16 @@ export function syncTokens(enc: Encounter, map: BattleMapDef, sizeOf: (c: Combat
   const byId = new Map(placed.map(t => [t.combatantId, t]))
   return enc.combatants.flatMap(c => byId.get(c.id) ?? [])
 }
+
+/** Tokens with each one's art from `artOf` (undefined clears it), or null when nothing changes. */
+export function withTokenArt(tokens: Token[], artOf: (tk: Token) => string | undefined): Token[] | null {
+  let changed = false
+  const next = tokens.map(tk => {
+    const art = artOf(tk)
+    if (art === tk.art) return tk
+    changed = true
+    const { art: _old, ...rest } = tk
+    return art ? { ...rest, art } : rest
+  })
+  return changed ? next : null
+}

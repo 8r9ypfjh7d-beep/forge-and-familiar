@@ -4,7 +4,7 @@
 
 | File | Purpose |
 |------|---------|
-| `character.ts` | `Character`, `CharacterState`, `UserProfile`, `ClassLevel`, `HitDie`, `CustomBackground`, `Improvement` |
+| `character.ts` | `Character`, `ArtPiece`, `CharacterState`, `UserProfile`, `ClassLevel`, `HitDie`, `CustomBackground`, `Improvement` |
 
 ## What it is
 
@@ -21,6 +21,7 @@ Nothing computable is stored: final scores, max HP, AC, slots and resource maxim
 - `quickCast` (optional) lists pinned entries; its spell entries are story mode's pinned spells and join combat's attacks table. See `src/quickcast/QUICKCAST.md`.
 - `spells` (optional) lists known or prepared spells as `{ id, classId, prepared? }` (`prepared: false` marks a wizard spellbook spell that isn't prepared; missing means prepared, so old saves need no migration), ids from the content library; `spellEdition` (optional, `'2024'` or missing for 2014) picks which SRD's spell lists and counts apply. See `src/spellbook/SPELLBOOK.md`.
 - `inventory` entries (`InventoryEntry` in `rules/types.ts`): `itemId`, `qty`, `equipped`, plus optional `item` (the full item, embedded for library and custom items so their stats stay editable), `name`, `notes`, `magicBonus` (+1 to +3), `pact` (one warlock pact weapon), `extraDamage` (e.g. `1d6 fire`), `damageType` (the pact weapon's chosen damage type, 2024 Pact of the Blade), `effects` (stat effects that apply while equipped, see `ItemEffect`). An item's `charges` effect keeps its spent count in `state.resources['item:<uid>']`. All optional, so old saves need no migration. See `src/inventory/INVENTORY.md`.
+- `portrait`, `token` and `gallery` (`ArtPiece[]`: `{ id, url, caption? }`) are the character's art: public links to the `art` bucket, or small data URLs without the cloud. All optional. See `src/art/ART.md`.
 - `schemaVersion` lets storage migrate old saves.
 - Characters of signed-in accounts sync to the cloud (`src/sync/SYNC.md`); `updatedAt` decides which copy wins a conflict.
 - Old saves may still hold `state.exhaustion`, `state.attuned` and `state.clock`. Those features were removed; `normalize()` in `sheet/engine.ts` drops the fields on load.

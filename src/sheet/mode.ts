@@ -23,6 +23,8 @@ export type SheetSection =
   | 'powerUp'
   // The party's live battle map (src/combat/live), only while the DM runs a combat.
   | 'map'
+  // Portrait, map token art and the picture gallery (src/art).
+  | 'art'
 
 /** Tabs of the combat page's main panel, like Roll20's character sheet. */
 export type CombatTab = 'combat' | 'map' | 'checks' | 'spells' | 'inventory' | 'features' | 'notes'
@@ -43,7 +45,7 @@ export const COMBAT_TABS: Partial<Record<CombatTab, SheetSection[]>> = {
   inventory: ['inventory', 'supplies'],
   // Uses of class, subclass, race and feat features (Channel Divinity, Second Wind) sit above the features they belong to.
   features: ['resources', 'features'],
-  notes: ['notes', 'history'],
+  notes: ['notes', 'art', 'history'],
 }
 
 /** Phones: abilities and skills move into a Checks tab, so the tabs sit right under HP and Rest. */
@@ -80,7 +82,7 @@ export function sheetLayout(mode: SheetMode, { dying, powerUp, narrow, liveMap }
   const vitals: SheetSection[] = ['hp', 'rests']
   if (phoneCombat) return { top, columns: [[], ['tabs']], vitals, tabs: withMap(PHONE_COMBAT_TABS, liveMap) }
   if (mode === 'combat') return { top, columns: [SHARED_SIDE, ['tabs']], vitals, tabs: withMap(COMBAT_TABS, liveMap) }
-  return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'effects', 'boons', 'attacks', 'inventory']], vitals }
+  return { top, columns: [['spellCard', ...SHARED_SIDE], ['notes', 'effects', 'boons', 'attacks', 'inventory', 'art']], vitals }
 }
 
 /** The Map tab right after Combat, only while a live combat exists. */

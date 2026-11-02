@@ -10,7 +10,7 @@ export interface Snapshot {
   /** Total character level when taken. */
   level: number
   takenAt: string
-  /** The character at that moment, without its portrait (restores keep the current one). */
+  /** The character at that moment, without its art (restores keep the current one). */
   character: Character
 }
 
@@ -26,7 +26,7 @@ export const totalLevel = (c: Pick<Character, 'classes'>) => c.classes.reduce((n
 const uid = () => crypto.randomUUID()
 
 export function takeSnapshot(c: Character, label?: string, now = new Date()): Snapshot {
-  const { portrait: _, ...character } = structuredClone(c)
+  const { portrait: _, token: _t, gallery: _g, ...character } = structuredClone(c)
   const level = totalLevel(c)
   return {
     id: uid(),
