@@ -6,14 +6,41 @@ import type { Plugin } from 'vite'
 
 const SKIP = [/\.map$/, /^sw\.js$/, /^version\.json$/, /^docs\//]
 
-/** Fills the service worker template with the files to precache and a version that changes with their contents. */
-export function renderServiceWorker(template: string, files: { path: string; content: Buffer | string }[]): string {
+type BuiltFile = { path: string; content: Buffer | string }
+
+/**
+ * Hashed files the first screen loads: what index.html references, plus every chunk those import statically.
+ * Lazy screens (`import()`) are left out; they are fetched in the background once the app is open.
+ */
+export function startupFiles(files: BuiltFile[]): Set<string> {
+  const byPath = new Map(files.map((f) => [f.path, String(f.content)]))
+  const html = byPath.get('index.html') ?? ''
+  const queue = [...html.matchAll(/(?:src|href)="(?:\.?\/)?(assets\/[^"]+)"/g)].map((m) => m[1])
+  const seen = new Set<string>()
+  for (let path = queue.pop(); path !== undefined; path = queue.pop()) {
+    if (seen.has(path) || !byPath.has(path)) continue
+    seen.add(path)
+    if (!path.endsWith('.js')) continue
+    const dir = path.slice(0, path.lastIndexOf('/') + 1)
+    // Static imports only: `import x from "./a.js"` and `import "./a.js"`, never `import("./a.js")`.
+    for (const m of byPath.get(path)!.matchAll(/\bimport\s*(?:[\w$*{},\s]+?\s*from\s*)?["']\.\/([^"']+)["']/g)) queue.push(dir + m[1])
+  }
+  return seen
+}
+
+/** Fills the service worker template with the files to cache and a version that changes with their contents. */
+export function renderServiceWorker(template: string, files: BuiltFile[]): string {
   const kept = files.filter((f) => !SKIP.some((re) => re.test(f.path))).sort((a, b) => a.path.localeCompare(b.path))
   const hash = createHash('sha256')
   for (const f of kept) hash.update(f.path).update(f.content)
+  const startup = startupFiles(kept)
+  const hashed = (p: string) => p.startsWith('assets/')
+  const paths = kept.map((f) => f.path)
   return template
     .replace("'__VERSION__'", JSON.stringify(hash.digest('hex').slice(0, 12)))
-    .replace('__PRECACHE__', JSON.stringify(kept.map((f) => f.path)))
+    .replace('__SHELL__', JSON.stringify(paths.filter((p) => !hashed(p))))
+    .replace('__CORE__', JSON.stringify(paths.filter((p) => hashed(p) && startup.has(p))))
+    .replace('__LAZY__', JSON.stringify(paths.filter((p) => hashed(p) && !startup.has(p))))
 }
 
 function listFiles(dir: string, root = dir): string[] {

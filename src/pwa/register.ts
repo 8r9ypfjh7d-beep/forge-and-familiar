@@ -51,6 +51,18 @@ function track(worker: ServiceWorker | null) {
   worker.addEventListener('statechange', check)
 }
 
+/**
+ * Once the first screen is up, asks the worker to fetch every other screen and the content library in the background,
+ * so the DM screen, spells and monsters open with no signal too. Skipped when the browser asks to save data.
+ */
+function warmWhenIdle() {
+  const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData
+  if (saveData) return
+  setTimeout(() => {
+    navigator.serviceWorker.ready.then((reg) => reg.active?.postMessage('WARM')).catch(() => {})
+  }, 3000)
+}
+
 export function registerServiceWorker() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault()
@@ -68,6 +80,7 @@ export function registerServiceWorker() {
       const reg = await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`)
       track(reg.waiting)
       reg.addEventListener('updatefound', () => track(reg.installing))
+      warmWhenIdle()
       // Long sessions at the table still hear about new versions.
       setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000)
     } catch (err) {

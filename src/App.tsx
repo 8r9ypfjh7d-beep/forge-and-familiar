@@ -1,34 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ComponentType } from 'react'
 import './a11y'
 import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
 import { AccountBadge, ActivateScreen, CloudLinkNotice, activate, activateErrorKey, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
-import { AdminPage } from './admin'
-import { Builder, EditCharacter, UnfinishedDraft } from './builder/Builder'
+import { UnfinishedDraft } from './builder/UnfinishedDraft'
 import { PromptDialog } from './builder/ConfirmDialog'
-import { LevelUp } from './builder/LevelUp'
-import { CombatTracker } from './combat/ui/CombatTracker'
 import { useLiveHits } from './combat/ui/useLiveHits'
-import { DmScreen, loadDm, saveDm, useDmTools } from './dm'
+import { loadDm, saveDm } from './dm/store'
+import { useDmTools } from './dm/dmTools'
 import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
 import { FamiliarFab, FamiliarPage, dmPrepare, screenFor } from './familiar/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
-import { ExportButton, ImportButton, LevelHistory } from './portability/ui'
+import { ExportButton, ImportButton } from './portability/ui'
 import { campaignTarget, CampaignsHome, LevelUpPrompt, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, useCharacterAccess, useXpAwards, type Party } from './party'
 import { xpForNextLevel, xpReady } from './rules'
-import { RulesQA } from './rulesqa'
 import { ShareButton } from './share'
-import { PlanView } from './planner'
-import { PrintSheet } from './print'
-import { Homebrew, loadHomebrew } from './homebrew'
+import { loadHomebrew } from './homebrew'
 import { useI18n } from './i18n'
 import type { MessageKey } from './i18n/locales/en'
 import { AppNav, canOpen, useHashView } from './nav'
-import { CharacterSheet } from './sheet/CharacterSheet'
-import { WatchSheet } from './sheet/WatchSheet'
-import { NpcBuilder, NpcScreen } from './npc/ui'
-import { StarterPicker } from './starters'
 import './list/list.css'
 import { DuplicatePrompt, SyncBadge, useCloudSync } from './sync'
 import { RevealMoment } from './lore'
@@ -39,6 +30,30 @@ import {
 
 
 const newId = () => crypto.randomUUID()
+
+// Every screen but the home pages is its own chunk, fetched when first opened (and kept by the service worker),
+// so a phone at the table parses only what it shows.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function screen<M, K extends keyof M>(load: () => Promise<M>, name: K): M[K] & ComponentType<any> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return lazy(async () => ({ default: (await load())[name] as ComponentType<any> })) as never
+}
+const AdminPage = screen(() => import('./admin/AdminPage'), 'AdminPage')
+const Builder = screen(() => import('./builder/Builder'), 'Builder')
+const EditCharacter = screen(() => import('./builder/Builder'), 'EditCharacter')
+const LevelUp = screen(() => import('./builder/LevelUp'), 'LevelUp')
+const CombatTracker = screen(() => import('./combat/ui/CombatTracker'), 'CombatTracker')
+const DmScreen = screen(() => import('./dm/DmScreen'), 'DmScreen')
+const LevelHistory = screen(() => import('./portability/ui/LevelHistory'), 'LevelHistory')
+const RulesQA = screen(() => import('./rulesqa/RulesQA'), 'RulesQA')
+const PlanView = screen(() => import('./planner/PlanView'), 'PlanView')
+const PrintSheet = screen(() => import('./print/PrintSheet'), 'PrintSheet')
+const Homebrew = screen(() => import('./homebrew/ui/Homebrew'), 'Homebrew')
+const CharacterSheet = screen(() => import('./sheet/CharacterSheet'), 'CharacterSheet')
+const WatchSheet = screen(() => import('./sheet/WatchSheet'), 'WatchSheet')
+const NpcBuilder = screen(() => import('./npc/ui/NpcBuilder'), 'NpcBuilder')
+const NpcScreen = screen(() => import('./npc/ui/NpcBuilder'), 'NpcScreen')
+const StarterPicker = screen(() => import('./starters/StarterPicker'), 'StarterPicker')
 
 // Register saved homebrew items with the rules engine before any sheet derives stats.
 loadHomebrew()
@@ -209,6 +224,7 @@ export default function App() {
       </AppNav>
       <AccessibilityDialog ref={a11yDialog} />
       <main id="main" ref={mainRef} tabIndex={-1}>
+        <Suspense fallback={<p className="muted screen-loading" role="status">{t('common.loading')}</p>}>
         {ownProfile && view.kind !== 'campaigns' && <CloudLinkNotice />}
         {ownProfile && <DuplicatePrompt characters={characters} />}
         {(view.kind === 'campaigns' || view.kind === 'list') && <UnfinishedDraft key={active.id} ownerId={active.id} onContinue={() => setView({ kind: 'build' })} />}
@@ -356,6 +372,7 @@ export default function App() {
             onRoute={(partyId, replace) => setView(partyId ? { kind: 'party', partyId } : { kind: 'party' }, replace)}
             onOpenCharacter={id => setView({ kind: 'sheet', id })} onWatchCharacter={partyDm || admin ? id => setView({ kind: 'watch', id }) : undefined} />
         )}
+        </Suspense>
       </main>
       {familiar && view.kind !== 'familiar' && <FamiliarFab {...familiar} open={familiarOpen} onOpenChange={o => { setFamiliarOpen(o); if (o) setDiceOpen(false) }} />}
       <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}

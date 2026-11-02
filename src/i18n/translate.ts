@@ -1,6 +1,5 @@
 // Pure lookup: message keys, {var} interpolation, plurals and SRD term names. No React, no storage.
 import { en, type MessageKey } from './locales/en'
-import { he } from './locales/he'
 
 export type Locale = 'en' | 'he'
 export type Vars = Record<string, string | number>
@@ -23,10 +22,34 @@ export interface LocaleInfo {
 
 export const LOCALES: Record<Locale, LocaleInfo> = {
   en: { code: 'en', name: 'English', dir: 'ltr', messages: en, terms: {} },
-  he: { code: 'he', name: 'עברית', dir: 'rtl', messages: he.messages, terms: he.terms },
+  // Hebrew tables are a separate chunk, filled by loadLocale('he'); until then lookups fall back to English.
+  he: { code: 'he', name: 'עברית', dir: 'rtl', messages: {}, terms: {} },
 }
 
 export const isLocale = (s: unknown): s is Locale => typeof s === 'string' && s in LOCALES
+
+const loaded = new Set<Locale>(['en'])
+/** Whether `locale`'s tables are in memory. English always is. */
+export const isLocaleLoaded = (locale: Locale) => loaded.has(locale)
+
+/** Puts a locale's tables in place. loadLocale does this after fetching the chunk; tests call it directly. */
+export function registerLocale(locale: Locale, tables: { messages: Messages; terms: Terms }) {
+  LOCALES[locale].messages = tables.messages
+  LOCALES[locale].terms = tables.terms
+  loaded.add(locale)
+}
+
+const pending = new Map<Locale, Promise<void>>()
+/** Fetches a locale's tables once (Hebrew is ~half the text in the app, so English players never download it). */
+export function loadLocale(locale: Locale): Promise<void> {
+  if (loaded.has(locale)) return Promise.resolve()
+  let p = pending.get(locale)
+  if (!p) {
+    p = import('./locales/he').then(m => registerLocale('he', m.he)).finally(() => pending.delete(locale))
+    pending.set(locale, p)
+  }
+  return p
+}
 
 const plurals = new Map<Locale, Intl.PluralRules>()
 const pluralOf = (locale: Locale, n: number) => {
