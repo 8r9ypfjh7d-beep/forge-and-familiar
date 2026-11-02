@@ -157,8 +157,12 @@
 .fam-foot details p { margin-block-start: var(--sp-1); }
 
 @media (max-width: 640px) {
-  /* Above the tab bar and the dice button, which sits 76px up there. */
-  .app:has(> .nav) .fam-fab { inset-block-end: calc(76px + env(safe-area-inset-bottom) + 68px); }
+  /* Beside the dice button (76px up, above the tab bar), not stacked over it: a second floating button higher up
+     covered the right-edge controls of whatever card scrolled under it (+ New fight, HP, row buttons). */
+  .app:has(> .nav) .fam-fab {
+    inset-block-end: calc(82px + env(safe-area-inset-bottom));
+    inset-inline-end: calc(max(16px, env(safe-area-inset-right)) + 64px);
+  }
   .app:has(.nav-panel:not([hidden])) .fam-fab { display: none; }
   /* Bottom sheet that covers the tab bar; the scrim closes it. */
   .fam-scrim { background: var(--glass-scrim); }
