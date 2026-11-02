@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
-import { ABILITY_NAMES, ITEMS, SKILLS, THROWN_SUFFIX, allRaces, classById, raceById, type Ability, type RulesEdition, type SkillId } from '../rules'
+import { ABILITY_NAMES, ITEMS, SKILLS, THROWN_SUFFIX, allRaces, backgroundsFor, classById, raceById, type Ability, type RulesEdition, type SkillId } from '../rules'
 import type { MessageKey } from './locales/en'
 import { getLocale, setLocale, subscribeLocale } from './store'
 import { spellNoteHe } from './locales/notes.he'
 import { spellMeasureHe } from './locales/spells.he'
 import { LOCALES, spellTermId, term, translate, type Vars } from './translate'
+import { rollLabel } from './rollLabel'
+import type { RollType } from '../dice/types'
 
 /** Term keys of items, races and subraces by English name, for labels that only carry a name (a spell's source). */
 let named: Map<string, string> | undefined
@@ -17,6 +19,7 @@ function namedKey(name: string): string | undefined {
         named.set(r.name, `race.${r.id}`)
         for (const s of r.subraces ?? []) if (!named.has(s.name)) named.set(s.name, `race.${s.id}`)
       }
+      for (const b of backgroundsFor(edition)) if (!named.has(b.name)) named.set(b.name, `background.${b.id}`)
     }
   }
   return named.get(name)
@@ -90,6 +93,34 @@ export function useI18n() {
         const own = key ? LOCALES[locale].terms[key] : undefined
         return own ?? (tr('feat', spellTermId(name), '') || tr('feature', name, name))
       },
+      /** Where the AC comes from, as the engine writes it ("Unarmored Defense (Barbarian) + Shield + 1 magic"), part by part. */
+      acSource: (source: string): string => {
+        if (locale === 'en') return source
+        const part = (p: string): string => {
+          if (p === 'Unarmored') return t('ac.unarmored')
+          if (p === 'feats') return t('cs.feats')
+          if (p === 'Shield') return tr('item', 'shield', p)
+          const magic = /^(\d+) magic$/.exec(p)
+          if (magic) return t('ac.magic', { n: magic[1] })
+          const named = /^(.+) \((.+)\)$/.exec(p)
+          if (named) return `${tr('feature', named[1], named[1])} (${className(named[2].toLowerCase())})`
+          const key = namedKey(p)
+          return (key ? LOCALES[locale].terms[key] : undefined) ?? tr('feature', p, tr('spell', spellTermId(p), p))
+        }
+        return source.split(' + ').map(part).join(' + ')
+      },
+      /** A race or species pick's short rule text (draconic ancestry, resistance picks); other text stays as written. */
+      optionDetail: (text: string): string => {
+        if (locale === 'en') return text
+        const dmg = (d: string) => tr('damage', d.toLowerCase(), d)
+        let m = /^(\w+) damage: breath weapon \(15 ft\. cone or 30 ft\. line, DEX save\) and resistance$/.exec(text)
+        if (m) return t('detail.breath2024', { type: dmg(m[1]) })
+        m = /^(\w+)(?: damage)?, (5 by 30 ft\. line|15 ft\. cone) \((\w+) save\)$/.exec(text)
+        if (m) return t(m[2].startsWith('5') ? 'detail.breathLine' : 'detail.breathCone', { type: dmg(m[1]), ability: m[3] })
+        m = /^Resistance to (\w+) damage$/.exec(text)
+        if (m) return t('detail.resist', { type: dmg(m[1]) })
+        return text
+      },
       /** A granted spell's note ("at will", "once per long rest"). */
       spellNote: (text: string) => (locale === 'he' ? spellNoteHe(text) : text),
       /** Attacks are named after their weapon (or "Unarmed Strike"); a thrown line is "<weapon> (thrown)". */
@@ -99,6 +130,16 @@ export function useI18n() {
           return item ? tr('item', item.id, n) : tr('attack', n, n)
         }
         return name.endsWith(THROWN_SUFFIX) ? t('sheet.attacks.thrownName', { name: plain(name.slice(0, -THROWN_SUFFIX.length)) }) : plain(name)
+      },
+      /** A saved roll's English label ("DEX save", "Longsword slashing (crit)") in the current language. */
+      rollLabel: (label: string, type: RollType): string => {
+        if (locale === 'en') return label
+        const plain = (n: string) => { const item = ITEMS.find(i => i.name === n); return item ? tr('item', item.id, n) : tr('attack', n, tr('spell', spellTermId(n), n)) }
+        const named = (n: string) => { const key = namedKey(n); return (key ? LOCALES[locale].terms[key] : undefined) ?? (tr('feat', spellTermId(n), '') || tr('feature', n, tr('spell', spellTermId(n), n))) }
+        return rollLabel(label, type, {
+          t, ability: a => tr('ability', a, ABILITY_NAMES[a]), abilityShort: a => tr('abilityShort', a, a.toUpperCase()),
+          skill: s => tr('skill', s, SKILLS[s].name), attackName: plain, name: named, damageType: d => tr('damage', d, d),
+        })
       },
       /** "Fighter 3 / Wizard 2" */
       classLine: (classes: { classId: string; level: number }[]) =>

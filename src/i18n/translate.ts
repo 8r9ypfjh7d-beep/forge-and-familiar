@@ -70,8 +70,17 @@ export function translate(locale: Locale, key: MessageKey, vars?: Vars): string 
     text = table[form] ?? table[`${key}_other`] ?? fallback[`${key}_${pluralOf('en', vars.count)}`] ?? fallback[`${key}_other`]
   }
   text ??= table[key] ?? fallback[key] ?? key
-  return vars ? text.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m)) : text
+  if (!vars) return text
+  return text.replace(/\{(\w+)\}/g, (m, name: string, at: number) => {
+    if (!(name in vars)) return m
+    const value = String(vars[name])
+    // Hebrew glues a one-letter prefix (ל, ב, מ, ה...) to the next word; before a Latin name or a number it takes a hyphen: "ל-Nackella".
+    return locale === 'he' && PREFIX_BEFORE.test(text.slice(Math.max(0, at - 2), at)) && /^[A-Za-z0-9]/.test(value) ? `-${value}` : value
+  })
 }
+
+/** A lone Hebrew prefix letter at the start of a word, right before a {var}. */
+const PREFIX_BEFORE = /(^|[^\u05d0-\u05ea])[בהוכלמש]$/
 
 /**
  * Where else a name may be translated: a resource is named after its feature or racial trait (Lucky, Large Form),

@@ -222,7 +222,7 @@ function AsiPick({ character, step, set }: { character: Character; step: PlanSte
 
 /** Where the plan ends up: level 20 stats. */
 function Summary({ character, step }: { character: Character; step: PlanStep }) {
-  const { t, classLine, abilityShort } = useI18n()
+  const { t, classLine, abilityShort, sourceName } = useI18n()
   const s = step.stats
   const top = topSlotLevel(s)
   const classes = classLine(planAt(character, step.level).classes)
@@ -238,7 +238,7 @@ function Summary({ character, step }: { character: Character; step: PlanStep }) 
         {top > 0 && <div><dt>{t('plan.topSlot')}</dt><dd>{top}</dd></div>}
         {ABILITIES.map(a => <div key={a}><dt>{abilityShort(a)}</dt><dd>{s.abilities[a]}</dd></div>)}
       </dl>
-      {s.feats.length > 0 && <p className="small">{t('plan.feats', { feats: s.feats.join(', ') })}</p>}
+      {s.feats.length > 0 && <p className="small">{t('plan.feats', { feats: s.feats.map(sourceName).join(', ') })}</p>}
     </section>
   )
 }

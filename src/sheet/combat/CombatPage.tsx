@@ -510,7 +510,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         {spells.map(r => (
           <li key={`spell-${r.name}`}>
             <button type="button" className="cs-attack spell" onClick={() => cast(r)}
-              aria-label={t('cs.castLabel', { name: r.name })}>
+              aria-label={t('cs.castLabel', { name: i18n.spellName(r.name) })}>
               <span className="name"><bdi>{i18n.spellName(r.name)}</bdi><small>{t(r.kind === 'attack' ? 'cs.spellAttack' : r.kind === 'auto' ? 'cs.spellAuto' : 'cs.spellSave')}{r.level === 0 ? ` · ${t('cs.cantrip')}` : ''}</small></span>
               <span className="range">{i18n.spellMeasure(r.range)}</span>
               <span className="hit" dir="ltr">{r.kind === 'attack' ? formatMod(r.value) : r.kind === 'auto' ? t('cs.autoHit') : `${r.save ? abilityShort(r.save) : ''} ${r.value}`}</span>
@@ -629,14 +629,14 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
                   <li key={a.id} className="cs-action">
                     <div className="cs-action-row">
                       {a.description
-                        ? <details><summary><span>{a.name}</span></summary><p className="cs-desc-text">{a.description}</p></details>
-                        : <span className="cs-action-name">{a.name}</span>}
+                        ? <details><summary><span>{term('feature', a.name, a.name)}</span></summary><p className="cs-desc-text">{a.description}</p></details>
+                        : <span className="cs-action-name">{term('feature', a.name, a.name)}</span>}
                       <span className="cs-action-tools">
                         {uses && <span className={`cs-uses${uses.left ? '' : ' empty'}`} title={t('use.left', { n: uses.left, max: uses.max })} dir="ltr">{uses.left}/{uses.max}</span>}
                         {isUsable(a)
                           ? (
                             <button type="button" className="glass-btn small prominent cs-action-use" onClick={() => onUse(a)}
-                              aria-label={sum ? t('cs.useAction', { name: a.name, what: sum }) : t('use.useName', { label: a.name })}>
+                              aria-label={sum ? t('cs.useAction', { name: term('feature', a.name, a.name), what: sum }) : t('use.useName', { label: term('feature', a.name, a.name) })}>
                               {t('use.use')}{sum && <> · <span dir="ltr">{sum}</span></>}
                             </button>
                           )

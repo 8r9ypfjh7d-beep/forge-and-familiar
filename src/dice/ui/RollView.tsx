@@ -59,7 +59,7 @@ function Sources({ terms }: { terms: TermResult[] }) {
 export function RollView({ roll, compact = false }: { roll: RollResult; compact?: boolean }) {
   const crit = roll.d20?.crit && roll.type !== 'deathSave'
   const fumble = roll.d20?.fumble
-  const { t } = useI18n()
+  const { t, rollLabel } = useI18n()
   const plain = !roll.label || roll.label.trim() === roll.notation
   const sources = hasSources(roll)
   return (
@@ -67,7 +67,7 @@ export function RollView({ roll, compact = false }: { roll: RollResult; compact?
       <div className="ff-roll__head">
         <span className="ff-roll__label">
           {roll.roller && <span className="ff-roll__who">{roll.roller.characterName} · </span>}
-          {plain ? <Notation text={roll.notation} /> : roll.label}
+          {plain ? <Notation text={roll.notation} /> : rollLabel(roll.label!, roll.type)}
           {roll.d20 && roll.d20.mode !== 'normal' && (
             <span className="ff-roll__mode">{t(roll.d20.mode === 'advantage' ? 'dice.advShort' : 'dice.disShort')}</span>
           )}
@@ -87,12 +87,12 @@ export function RollView({ roll, compact = false }: { roll: RollResult; compact?
 
 /** One line of an action card: "To hit … 27 Critical!" or "Damage (slashing) … 93" with its dice. */
 function ActionPart({ roll }: { roll: RollResult }) {
-  const { t, term } = useI18n()
+  const { t, term, rollLabel } = useI18n()
   const crit = roll.d20?.crit
   const fumble = roll.d20?.fumble
   const type = roll.damageType ?? /\b(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)\b/.exec(roll.label ?? '')?.[1]
   const what = roll.type === 'attack' ? t('cs.roll.toHit')
-    : roll.type !== 'damage' ? roll.label ?? roll.notation
+    : roll.type !== 'damage' ? (roll.label ? rollLabel(roll.label, roll.type) : roll.notation)
       : type === 'healing' ? t('cs.roll.healing')
         : type ? t('cs.roll.damage', { type: term('damage', type, type) }) : t('cs.roll.damagePlain')
   return (

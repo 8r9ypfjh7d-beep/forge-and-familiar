@@ -96,7 +96,7 @@ function RaceStep({ draft, update }: StepProps) {
   // Only the race's own picks: background and class languages are picked on their steps.
   const raceLanguagePicks = languagePickCount({ ...draft, backgroundId: '', classes: [] })
   const i18n = useI18n()
-  const { t, term, abilityShort, skill } = i18n
+  const { t, term, abilityShort, skill, optionDetail } = i18n
   // Legacy (2014) races under 2024 rules keep their 2014 pitch and subrace explanations.
   const racePitch = race && (pitchKey(edition === '2024' && !race.legacy ? 'race2024' : 'race', race.id))
   const subBonus = (b: Partial<Record<Ability, number>>) => (Object.keys(b).length ? ` (${bonusText(b, abilityShort)})` : '')
@@ -211,16 +211,16 @@ function RaceStep({ draft, update }: StepProps) {
               <button
                 key={o.id}
                 className={`glass-chip ${draft.traitChoices?.[race.traitChoice!.id] === o.id ? 'on' : ''}`}
-                title={o.detail}
+                title={o.detail && optionDetail(o.detail)}
                 onClick={() => update({ traitChoices: { ...draft.traitChoices, [race.traitChoice!.id]: o.id } })}
               >
-                {o.name}
+                {term('trait', o.name, o.name)}
               </button>
             ))}
           </div>
           {(() => {
             const o = race.traitChoice.options.find(x => x.id === draft.traitChoices?.[race.traitChoice!.id])
-            return o && <p className="muted small" dir="auto">{o.detail}</p>
+            return o && <p className="muted small" dir="auto">{o.detail && optionDetail(o.detail)}</p>
           })()}
         </div>
       )}
@@ -232,12 +232,12 @@ function RaceStep({ draft, update }: StepProps) {
             <label>{term('trait', ch.name, ch.name)}{(ch.count ?? 1) > 1 ? ` (${picked.length}/${ch.count})` : ''} {key && <Why title={term('trait', ch.name, ch.name)} text={t(key)} />}</label>
             <div className="row">
               {ch.options.map(o => (
-                <button key={o.id} className={`glass-chip ${picked.includes(o.id) ? 'on' : ''}`} title={o.detail} onClick={() => toggleOption(ch, o.id)}>
+                <button key={o.id} className={`glass-chip ${picked.includes(o.id) ? 'on' : ''}`} title={o.detail && optionDetail(o.detail)} onClick={() => toggleOption(ch, o.id)}>
                   {optionLabel(o)}
                 </button>
               ))}
             </div>
-            {ch.options.filter(o => picked.includes(o.id) && o.detail).map(o => <p key={o.id} className="muted small" dir="auto">{optionLabel(o)}: {o.detail}</p>)}
+            {ch.options.filter(o => picked.includes(o.id) && o.detail).map(o => <p key={o.id} className="muted small" dir="auto">{optionLabel(o)}: {optionDetail(o.detail!)}</p>)}
           </div>
         )
       })}
@@ -430,7 +430,7 @@ function ClassChoices({ draft, update, classId: only }: StepProps & { classId: s
         ) : (
           <div className="row">
             {choice.options.map(o => (
-              <button key={o.id} className={`glass-chip ${picked?.id === o.id ? 'on' : ''}`} title={o.detail} onClick={() => pick(classId, choice.id, o.id)}>
+              <button key={o.id} className={`glass-chip ${picked?.id === o.id ? 'on' : ''}`} title={(() => { const k = choiceOptionKey(choice, o); return k ? t(k) : o.detail })()} onClick={() => pick(classId, choice.id, o.id)}>
                 {label(o)}
               </button>
             ))}

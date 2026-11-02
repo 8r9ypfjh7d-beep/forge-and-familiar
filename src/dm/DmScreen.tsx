@@ -668,7 +668,7 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition, i
                 {budget && tooStrongAlone(m.xp, budget) && <small className="dm-strong"> · {t('dm.tooStrong')}</small>}
               </button>
               <span className="muted small">{t('dm.crXp', { cr: crLabel(m.challengeRating), xp: m.xp.toLocaleString() })}</span>
-              <button className={`btn small${flash === key ? ' dm-added' : ''}`} onClick={() => add(m)} aria-label={t('dm.addNamed', { name: m.name })}>{addLabel(m)}</button>
+              <button className={`btn small${flash === key ? ' dm-added' : ''}`} onClick={() => add(m)} aria-label={t('dm.addNamed', { name: monsterName(m) })}>{addLabel(m)}</button>
               {inline && on && (
                 <div className="dm-inline-block">
                   <StatBlock m={m} legacy={m.legacy} actions={<div className="row">
@@ -738,10 +738,10 @@ const DCS: [MessageKey, number][] = [
 const COVER: [MessageKey, MessageKey][] = [
   ['dm.ref.cover.half', 'dm.ref.cover.halfRule'], ['dm.ref.cover.threeQuarters', 'dm.ref.cover.threeQuartersRule'], ['dm.ref.cover.total', 'dm.ref.cover.totalRule'],
 ]
-const PACE: [MessageKey, string, string, string, MessageKey][] = [
-  ['dm.ref.pace.fast', '400 ft.', '4', '30', 'dm.ref.pace.fastRule'],
-  ['dm.ref.pace.normal', '300 ft.', '3', '24', 'dm.ref.pace.normalRule'],
-  ['dm.ref.pace.slow', '200 ft.', '2', '18', 'dm.ref.pace.slowRule'],
+const PACE: [MessageKey, number, string, string, MessageKey][] = [
+  ['dm.ref.pace.fast', 400, '4', '30', 'dm.ref.pace.fastRule'],
+  ['dm.ref.pace.normal', 300, '3', '24', 'dm.ref.pace.normalRule'],
+  ['dm.ref.pace.slow', 200, '2', '18', 'dm.ref.pace.slowRule'],
 ]
 const LIGHT: [MessageKey, MessageKey][] = [
   ['dm.ref.light.dim', 'dm.ref.light.dimRule'], ['dm.ref.light.dark', 'dm.ref.light.darkRule'], ['dm.ref.light.darkvision', 'dm.ref.light.darkvisionRule'],
@@ -770,7 +770,7 @@ function ReferenceTab() {
         <table className="dm-table">
           <thead><tr><th>{t('dm.ref.pace.pace')}</th><th>{t('dm.ref.pace.minute')}</th><th>{t('dm.ref.pace.hour')}</th><th>{t('dm.ref.pace.day')}</th></tr></thead>
           <tbody>{PACE.map(([k, min, hour, day, rule]) => (
-            <tr key={k}><th scope="row">{t(k)}<small>{t(rule)}</small></th><td dir="ltr">{min}</td><td>{hour}</td><td>{day}</td></tr>
+            <tr key={k}><th scope="row">{t(k)}<small>{t(rule)}</small></th><td>{t('cs.feet', { n: min })}</td><td>{hour}</td><td>{day}</td></tr>
           ))}</tbody>
         </table>
       </RefCard>
