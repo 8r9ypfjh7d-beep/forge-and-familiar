@@ -14,7 +14,7 @@ export interface StarterHero {
   backstory: string
   /** Short "how to play" tips, saved into the character's notes. */
   tips: string[]
-  /** SRD spells worth picking first; the app has no spell list yet, so these go into notes. */
+  /** Spells worth trying first, listed in the notes. The sheet gets real picks from withStarterSpells (spells.ts). */
   spells?: string[]
   draft: Omit<CharacterDraft, 'ownerId' | 'playerName'>
 }

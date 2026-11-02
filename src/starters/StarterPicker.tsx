@@ -3,6 +3,7 @@ import type { Character } from '../model/character'
 import { useI18n } from '../i18n'
 import { derive, formatMod } from '../rules'
 import { STARTER_HEROES, createStarter, type StarterHero } from './heroes'
+import { withStarterSpells } from './spells'
 import './starters.css'
 
 /** Grid of ready-to-play level 1 heroes. Picking one saves a copy owned by the player. */
@@ -34,7 +35,7 @@ export function StarterPicker({ ownerId, playerName, onCreate, onCustom, onCance
             hero={h}
             expanded={open === h.id}
             onToggle={() => setOpen(open === h.id ? null : h.id)}
-            onPick={() => onCreate(createStarter(h, ownerId, playerName))}
+            onPick={() => { void withStarterSpells(createStarter(h, ownerId, playerName)).then(onCreate) }}
           />
         ))}
       </div>

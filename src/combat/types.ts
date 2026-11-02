@@ -156,6 +156,8 @@ export interface Encounter {
   endedAt?: string
   /** The last round fought before End combat. */
   endedRound?: number
+  /** A campaign fight ended and its XP is neither given nor skipped yet: the tracker keeps offering it, even after a reload. */
+  xpPending?: boolean
   createdAt: string
   updatedAt: string
 }

@@ -14,6 +14,7 @@ Eight pre-made level 1 heroes for new players, one per class role. Picking one s
 ## Notes
 
 - Each hero is a finished `CharacterDraft` (standard array, a fitting PHB background each: Soldier, Urchin, Acolyte, Sage, Outlander, Noble, Charlatan, Entertainer); `createStarter()` runs it through `createCharacter()` so stats stay derived.
-- Backstory, tips and suggested spells are written into `notes`, since there is no spell list yet.
+- Backstory, tips and suggested spells are written into `notes`.
+- Casters get real spells on the sheet when picked: `withStarterSpells` (spells.ts) runs the builder's `suggestedSpells`, so Level Up only asks for what the new level adds.
 - Adding a hero: append to `STARTER_HEROES`; the tests check it is valid. Class must be unique.
 - Picker labels go through `t()` (`starters.*`, `stat.*`); hero names, pitches and tips are English content marked `lang="en" dir="auto"` so they read correctly in Hebrew.

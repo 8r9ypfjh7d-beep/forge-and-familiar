@@ -25,6 +25,8 @@ import { AddCombatants } from './AddCombatants'
 import { CombatantRow } from './CombatantRow'
 import { Effects } from './Effects'
 import { FightXp } from './FightXp'
+import { phoneInitiatives } from '../phoneInit'
+import { useDmRolls } from '../../dm/useDmRolls'
 import { PendingChecks } from './PendingChecks'
 import { useCombatRolls } from './rolls'
 import { useEncounter, type Act } from './useEncounter'
@@ -149,11 +151,27 @@ function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounte
     }
     if (auto.endWhenWon && inCombat(e) && fightOutcome(e, hp) === 'won' && fightOutcome(before, rowHp(before, p)) !== 'won') {
       e = addLog(endCombat(e), 'combat.log.won')
+      if (campaign) e = { ...e, xpPending: true }
       wonNow.current = true
     }
     return 'encounter' in out ? { ...out, encounter: e } : e
   }
   const wonNow = useRef(false)
+  // Initiative the players rolled on their own phones fills their waiting rows, each roll once.
+  const feed = useDmRolls(campaign)
+  const usedInit = useRef(new Set<string>())
+  useEffect(() => {
+    if (!enc || inCombat(enc)) return
+    const found = phoneInitiatives(enc, feed.map(f => f.roll), usedInit.current)
+    if (!found.length) return
+    for (const f of found) usedInit.current.add(f.roll.id)
+    act(e => found.reduce((acc, f) => {
+      const c = acc.combatants.find(x => x.id === f.combatantId)
+      return c && c.initiative === null ? addLog(setInitiative(acc, c.id, f.roll.total), 'combat.log.phoneInit', { name: c.name, total: f.roll.total }) : acc
+    }, e))
+  }, [enc, feed, act])
+  // Given or skipped: the card stops coming back when the tracker reopens.
+  const doneWithXp = () => { if (enc?.xpPending) act(e => ({ ...e, xpPending: undefined })) }
   const autoAct: Act = change => {
     wonNow.current = false
     act((e, p, r, n) => settle(change(e, p, r, n), e, p, n))
@@ -254,7 +272,7 @@ function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounte
         {unrolled.length > 0 && <button className="glass-btn roll-init" onClick={rollMissing}>{t(waiting.players ? 'combat.rollPlayers' : 'combat.rollInit', { count: unrolled.length })}</button>}
         {fighting
           ? <button className="glass-btn prominent next" onClick={next}>{t('combat.next')}</button>
-          : <button className="glass-btn prominent next" disabled={!enc.combatants.length || pcsWaiting.length > 0} onClick={start}
+          : <button className={`glass-btn next${enc.endedAt ? '' : ' prominent'}`} disabled={!enc.combatants.length || pcsWaiting.length > 0} onClick={start}
               title={pcsWaiting.length ? t('combat.needInit') : undefined}>{t(enc.endedAt ? 'combat.startAgain' : 'combat.start')}</button>}
         {fighting && <button className="glass-btn" onClick={() => setEnding(true)}>{t('combat.end')}</button>}
         <button className="glass-btn plain" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
@@ -273,7 +291,7 @@ function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounte
         <p className="combat-wait">
           {t('combat.waitingInit', { names: unrolled.map(c => shown.get(c.name) ?? c.name).join(', ') })}{' '}
           <button type="button" className="link-btn" onClick={typeFirst}>{t('combat.typeInit')}</button>{' '}
-          {t('combat.orRollThem')}
+          {t('combat.orRollThem')}{campaign && waiting.players && <> {t('combat.phoneInitHint')}</>}
         </p>
       )}
       </div>
@@ -292,10 +310,10 @@ function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounte
         </div>
       )}
 
-      <ConfirmDialog open={ending} title={t('combat.endConfirm')} yes={t('combat.end')} onYes={() => { act(e => endCombat(e)); setXpCard(!!campaign) }} onClose={() => setEnding(false)} />
+      <ConfirmDialog open={ending} title={t('combat.endConfirm')} yes={t('combat.end')} onYes={() => { act(e => campaign && inCombat(e) ? { ...endCombat(e), xpPending: true } : endCombat(e)); setXpCard(!!campaign) }} onClose={() => setEnding(false)} />
 
-      {xpCard && campaign && !fighting && (
-        <FightXp enc={enc} campaign={campaign} characters={party} onClose={() => setXpCard(false)}
+      {(xpCard || enc.xpPending) && campaign && !fighting && (
+        <FightXp enc={enc} campaign={campaign} characters={party} onGiven={doneWithXp} onClose={() => { setXpCard(false); doneWithXp() }}
           creatures={fightCreatures(enc, c => monsterOf(c)?.xp, c => (c.npcId && npcs[c.npcId] ? npcs[c.npcId]!.state.currentHp <= 0 : isDefeated(c)))} />
       )}
 
