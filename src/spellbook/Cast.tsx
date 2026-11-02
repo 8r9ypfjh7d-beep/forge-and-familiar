@@ -183,16 +183,16 @@ export function ConfirmCast({ text, onYes, onNo }: { text: string; onYes: () => 
 
 /** ▾ and the slots to cast with, when there is more than one to choose from. */
 export function SlotPicker({ character, spell, onPick }: { character: Character; spell: Spell; onPick: (slot: SlotChoice) => void }) {
-  const { t } = useI18n()
+  const { t, spellName } = useI18n()
   const [picking, setPicking] = useState(false)
   const choices = slotChoices(character, spell.level)
   if (choices.length < 2) return null
   const name = (s: SlotChoice) => `${t(`sheet.slot.${s.level}` as MessageKey)}${s.source === 'pact' ? ` ${t('cast.pact')}` : ''} · ${s.remaining}`
   return (
     <>
-      <button type="button" className="glass-btn small icon" aria-expanded={picking} aria-label={t('cast.higher', { name: spell.name })} onClick={() => setPicking(p => !p)}>▾</button>
+      <button type="button" className="glass-btn small icon" aria-expanded={picking} aria-label={t('cast.higher', { name: spellName(spell.name) })} onClick={() => setPicking(p => !p)}>▾</button>
       {picking && (
-        <span className="sb-cast-levels" role="group" aria-label={t('cast.higher', { name: spell.name })}>
+        <span className="sb-cast-levels" role="group" aria-label={t('cast.higher', { name: spellName(spell.name) })}>
           {choices.map(s => (
             <button key={`${s.source}-${s.level}`} type="button" className="glass-chip" onClick={() => { setPicking(false); onPick(s) }}>{name(s)}</button>
           ))}
@@ -204,7 +204,7 @@ export function SlotPicker({ character, spell, onPick }: { character: Character;
 
 /** Cast, plus ▾ to pick a higher slot. A cast with no slot left, or one that ends concentration, asks first. */
 export function CastButton({ character, spell, onCast }: { character: Character; spell: Spell; onCast: (spell: Spell, slot?: SlotChoice) => void }) {
-  const { t } = useI18n()
+  const { t, spellName } = useI18n()
   const warning = useCastWarning(character)
   const [pending, setPending] = useState<{ slot?: SlotChoice; text: string } | null>(null)
   const go = (slot?: SlotChoice) => {
@@ -214,7 +214,7 @@ export function CastButton({ character, spell, onCast }: { character: Character;
   }
   return (
     <span className="sb-cast">
-      <button type="button" className="glass-btn small prominent" aria-label={t('cast.castName', { name: spell.name })} onClick={() => go()}>
+      <button type="button" className="glass-btn small prominent" aria-label={t('cast.castName', { name: spellName(spell.name) })} onClick={() => go()}>
         {t('cast.cast')}
       </button>
       <SlotPicker character={character} spell={spell} onPick={go} />

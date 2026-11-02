@@ -1,7 +1,8 @@
 // Secret rolls in a party: players roll a check only the DM sees; the DM gets the results log.
 import { useEffect, useState } from 'react'
 import type { Character } from '../../model/character'
-import { ABILITIES, ABILITY_NAMES, ALL_SKILLS, derive, SKILLS, type Ability, type SkillId } from '../../rules'
+import { ABILITIES, ALL_SKILLS, derive, type Ability, type SkillId } from '../../rules'
+import { useI18n } from '../../i18n'
 import { rollCheck, rollSave, rollSkill } from '../character'
 import { loadSecretRolls, onSecretRollsChanged, secretView, type SecretRoll } from '../secret'
 import { clearSharedSecretRolls, shareSecretRoll, watchSecretRolls } from '../secretCloud'
@@ -11,7 +12,6 @@ import './dice.css'
 
 type Choice = `skill:${SkillId}` | `check:${Ability}` | `save:${Ability}`
 
-const SKILL_ORDER = [...ALL_SKILLS].sort((a, b) => SKILLS[a].name.localeCompare(SKILLS[b].name))
 
 interface Props {
   party: { id: string; dmId: string }
@@ -40,19 +40,20 @@ export function SecretRolls({ party, userId, character, nameOf }: Props) {
 }
 
 function DmLog({ partyId, rolls, nameOf }: { partyId: string; rolls: SecretRoll[]; nameOf: (id: string) => string }) {
+  const { t } = useI18n()
   return (
-    <section className="glass ff-secret" aria-label="Secret rolls">
+    <section className="glass ff-secret" aria-label={t('secret.title')}>
       <div className="row spread">
         <div>
-          <h3>Secret rolls</h3>
-          <p className="muted small">Only you see these results.</p>
+          <h3>{t('secret.title')}</h3>
+          <p className="muted small">{t('secret.onlyYou')}</p>
         </div>
         {rolls.length > 0 && (
-          <button className="glass-btn small ghost" onClick={() => confirm('Clear all secret rolls?') && void clearSharedSecretRolls(partyId)}>Clear</button>
+          <button className="glass-btn small ghost" onClick={() => confirm(t('secret.clearAsk')) && void clearSharedSecretRolls(partyId)}>{t('dice.clear')}</button>
         )}
       </div>
       <ol className="ff-secret__list" aria-live="polite">
-        {rolls.length === 0 && <li className="muted small">No secret rolls yet. Players can roll a hidden check from this party page.</li>}
+        {rolls.length === 0 && <li className="muted small">{t('secret.none')}</li>}
         {rolls.map(({ roll, fromUserId }, i) => (
           <li key={roll.id}>
             <span className="muted small">{nameOf(fromUserId)} · {time(roll.timestamp)}</span>
@@ -72,11 +73,16 @@ function SecretRoller({ partyId, userId, character, sent }: {
 }) {
   const [pick, setPick] = useState<Choice>('skill:stealth')
   const [mode, setMode] = useState<RollMode>('normal')
+  const { t, skill, ability, abilityShort, locale } = useI18n()
+  const skills = [...ALL_SKILLS].sort((a, b) => skill(a).localeCompare(skill(b), locale))
+  const labelOf = (kind: string, key: string) => kind === 'skill' ? skill(key as SkillId)
+    : kind === 'save' ? t('math.saveTitle', { ability: abilityShort(key as Ability) })
+    : t('cs.roll.check', { ability: ability(key as Ability) })
 
   const roll = () => {
     const stats = derive(character)
-    const opts = { character, mode }
     const [kind, key] = pick.split(':') as ['skill' | 'check' | 'save', string]
+    const opts = { character, mode, label: labelOf(kind, key) }
     const r = kind === 'skill' ? rollSkill(stats, key as SkillId, opts)
       : kind === 'save' ? rollSave(stats, key as Ability, opts)
       : rollCheck(stats, key as Ability, opts)
@@ -84,35 +90,35 @@ function SecretRoller({ partyId, userId, character, sent }: {
   }
 
   return (
-    <section className="glass ff-secret" aria-label="Secret roll to the DM">
-      <h3>Secret roll</h3>
-      <p className="muted small">The DM sees the result. You won't.</p>
+    <section className="glass ff-secret" aria-label={t('secret.rollTitle')}>
+      <h3>{t('secret.roll')}</h3>
+      <p className="muted small">{t('secret.dmSees')}</p>
       <div className="row">
-        <select className="glass-field" value={pick} onChange={e => setPick(e.target.value as Choice)} aria-label="What to roll">
-          <optgroup label="Skills">
-            {SKILL_ORDER.map(s => <option key={s} value={`skill:${s}`}>{SKILLS[s].name}</option>)}
+        <select className="glass-field" value={pick} onChange={e => setPick(e.target.value as Choice)} aria-label={t('secret.what')}>
+          <optgroup label={t('secret.skills')}>
+            {skills.map(s => <option key={s} value={`skill:${s}`}>{skill(s)}</option>)}
           </optgroup>
-          <optgroup label="Ability checks">
-            {ABILITIES.map(a => <option key={a} value={`check:${a}`}>{ABILITY_NAMES[a]} check</option>)}
+          <optgroup label={t('secret.checks')}>
+            {ABILITIES.map(a => <option key={a} value={`check:${a}`}>{labelOf('check', a)}</option>)}
           </optgroup>
-          <optgroup label="Saving throws">
-            {ABILITIES.map(a => <option key={a} value={`save:${a}`}>{ABILITY_NAMES[a]} save</option>)}
+          <optgroup label={t('secret.saves')}>
+            {ABILITIES.map(a => <option key={a} value={`save:${a}`}>{t('math.saveTitle', { ability: ability(a) })}</option>)}
           </optgroup>
         </select>
-        <div className="glass-segmented" role="radiogroup" aria-label="Advantage">
+        <div className="glass-segmented" role="radiogroup" aria-label={t('dice.advantageGroup')}>
           {(['disadvantage', 'normal', 'advantage'] as const).map(m => (
             <button key={m} type="button" role="radio" aria-checked={mode === m}
               onClick={() => setMode(m)}>
-              {m === 'normal' ? 'Normal' : m === 'advantage' ? 'Adv' : 'Dis'}
+              {m === 'normal' ? t('dice.normal') : m === 'advantage' ? t('dice.adv') : t('dice.dis')}
             </button>
           ))}
         </div>
-        <button className="glass-btn prominent" onClick={roll}>Roll for the DM</button>
+        <button className="glass-btn prominent" onClick={roll}>{t('secret.rollForDm')}</button>
       </div>
       {sent.length > 0 && (
         <ol className="ff-secret__list ff-secret__sent" aria-live="polite">
           {sent.slice(0, 5).map(s => (
-            <li key={s.id} className="small"><span aria-hidden>🔒</span> {s.label} sent to the DM · <span className="muted">{time(s.timestamp)}</span></li>
+            <li key={s.id} className="small"><span aria-hidden>🔒</span> {t('secret.sent', { label: s.label })} · <span className="muted">{time(s.timestamp)}</span></li>
           ))}
         </ol>
       )}
@@ -120,4 +126,4 @@ function SecretRoller({ partyId, userId, character, sent }: {
   )
 }
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const time = (iso: string) => new Date(iso).toLocaleTimeString(document.documentElement.lang || [], { hour: '2-digit', minute: '2-digit' })

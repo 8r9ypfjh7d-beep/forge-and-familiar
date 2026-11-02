@@ -5,9 +5,11 @@ import { ITEMS, ALIGNMENTS, BACKGROUNDS, BOOK_FEATS, BOOK_FEATS_2024, BOOK_RACES
 import { en } from './locales/en'
 import { he } from './locales/he'
 import { LOCALES, spellTermId, term, translate } from './translate'
+import { rollLabel } from './rollLabel'
 import { spellMeasureHe } from './locales/spells.he'
 import { spellNoteHe } from './locales/notes.he'
 import { loadKind } from '../content'
+import { shopItem } from '../builder/shop'
 
 describe('translate', () => {
   it('fills vars and falls back to English, then to the key', () => {
@@ -22,6 +24,12 @@ describe('translate', () => {
     expect(translate('he', 'party.members', { count: 1 })).toBe('חבר אחד')
     expect(translate('he', 'party.members', { count: 2 })).toBe('שני חברים')
     expect(translate('he', 'party.members', { count: 7 })).toBe('7 חברים')
+  })
+
+  it('hyphenates a Hebrew one-letter prefix before a Latin name or a number', () => {
+    expect(translate('he', 'insp.give', { name: 'Nackella' })).toBe('לתת ל-Nackella')
+    expect(translate('he', 'insp.give', { name: 'דוד' })).toBe('לתת לדוד')
+    expect(translate('he', 'list.title', { name: 'Ziv' })).toBe('הדמויות של Ziv')
   })
 
   it('keeps the English name for unknown terms', () => {
@@ -93,6 +101,12 @@ describe('Hebrew coverage', () => {
     expect([...new Set(spells.map(sp => `spell.${sp.id}`))].filter(k => !(k in he.terms))).toEqual([])
   })
 
+  // Every item the shop sells (SRD 5.1 and 5.2 library gear) has a Hebrew name under the shop's item id.
+  it('names every shop item', async () => {
+    const gear = await loadKind('equipment')
+    expect([...new Set(gear.map(e => `item.${shopItem(e).itemId}`))].filter(k => !(k in he.terms))).toEqual([])
+  })
+
   // Every SRD monster (both editions) has a Hebrew name by id. Book and pack monsters carry their own `nameHe`.
   it('names every SRD monster', async () => {
     const monsters = await loadKind('monsters', { sources: ['srd-5.1', 'srd-5.2'] })
@@ -153,5 +167,21 @@ describe('Hebrew coverage', () => {
     expect(spellNoteHe('proficiency bonus times per long rest')).not.toMatch(/[a-z]/)
     expect(spellNoteHe('3 charges')).toBe('3 מטענים')
     expect(spellNoteHe('when the moon is full')).toBe('when the moon is full')
+  })
+})
+
+describe('roll labels', () => {
+  const words = {
+    t: (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) => translate('he', k, v),
+    ability: (a: string) => term('he', 'ability', a, a), abilityShort: (a: string) => term('he', 'abilityShort', a, a.toUpperCase()),
+    skill: (s: string) => term('he', 'skill', s, s), attackName: (n: string) => term('he', 'item', n.toLowerCase(), n),
+    name: (n: string) => term('he', 'spell', spellTermId(n), n), damageType: (d: string) => term('he', 'damage', d, d),
+  }
+  it('rewords the English labels the dice module saves', () => {
+    expect(rollLabel('Initiative', 'initiative', words)).toBe(translate('he', 'math.initTitle'))
+    expect(rollLabel('DEX save', 'save', words)).toContain(term('he', 'abilityShort', 'dex', 'DEX'))
+    expect(rollLabel('Stealth', 'skill', words)).toBe(term('he', 'skill', 'stealth', 'Stealth'))
+    expect(rollLabel('Longsword slashing + Bless (crit)', 'damage', words)).toBe(`${translate('he', 'roll.damage', { name: term('he', 'item', 'longsword', 'Longsword'), type: term('he', 'damage', 'slashing', 'slashing') })} + ${term('he', 'spell', 'bless', 'Bless')} (קריטי)`)
+    expect(rollLabel('Sneaky trick', 'custom', words)).toBe('Sneaky trick')
   })
 })

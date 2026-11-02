@@ -122,7 +122,7 @@ function LevelUpForm({ character: c, onDone }: { character: Character; onDone: (
           <label>{t('levelup.new', { level: from + 1 })}</label>
           {gain.profUp && <p className="small">{t('levelup.profUp')}</p>}
           {gain.features.length > 0
-            ? <ExplainList items={gain.features.map(f => ({ name: term('feature', f.name, f.name), note: f.className, key: explainKey('feature', f.name), text: f.text }))} />
+            ? <ExplainList items={gain.features.map(f => ({ name: term('feature', f.name, f.name), note: term('class', f.className.toLowerCase(), f.className), key: explainKey('feature', f.name), text: f.text }))} />
             : <p className="muted small">{t('levelup.noFeatures')}</p>}
         </div>
 

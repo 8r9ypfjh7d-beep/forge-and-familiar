@@ -69,7 +69,7 @@ export function Spellbook({ character, apply }: { character: Character; apply: A
             <div className="sb-classes" role="group" aria-label={t('spells.class')}>
               {access.map(a => (
                 <button key={a.classId} type="button" className={`glass-chip${a === current ? ' on' : ''}`} aria-pressed={a === current} onClick={() => setClassId(a.classId)}>
-                  {a.className}
+                  {term('class', a.classId, a.className)}
                 </button>
               ))}
             </div>
@@ -328,7 +328,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
                     {pinned ? t('spells.pinned') : t('spells.pin')}
                   </button>
                   {editing && !always && (
-                    <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.removeName', { name: s.name })}
+                    <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.removeName', { name: spellName(s.name) })}
                       onClick={() => confirm(t('sheet.confirmRemove', { name: s.name })) && apply(t('spells.log.remove', { name: s.name }), c => removeSpell(c, access.classId, s.id))}>
                       ✕
                     </button>
@@ -344,7 +344,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
 }
 
 function Browse({ character, apply, access, spells }: { character: Character; apply: Apply; access: SpellAccess; spells: Spell[] }) {
-  const { t, spellName } = useI18n()
+  const { t, term, spellName } = useI18n()
   const levelName = useLevelName()
   const [query, setQuery] = useState('')
   const [level, setLevel] = useState<number | 'all'>('all')
@@ -355,7 +355,7 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
 
   return (
     <div className="sb-browse">
-      <p className="hint">{t('spells.available', { count: available.length, className: access.className, ordinal: levelName(access.maxLevel) })}</p>
+      <p className="hint">{t('spells.available', { count: available.length, className: term('class', access.classId, access.className), ordinal: levelName(access.maxLevel) })}</p>
       <SearchField value={query} onChange={e => setQuery(e.target.value)} placeholder={t('spells.search')} aria-label={t('spells.search')} />
       <div className="sb-levels" role="group" aria-label={t('spells.levelFilter')}>
         <button type="button" className={`glass-chip${level === 'all' ? ' on' : ''}`} aria-pressed={level === 'all'} onClick={() => setLevel('all')}>{t('spells.all')}</button>
@@ -375,7 +375,7 @@ function Browse({ character, apply, access, spells }: { character: Character; ap
               return (
                 <SpellRow key={s.id} spell={s} badge={always ? t('spells.always') : level === 'all' ? (s.level === 0 ? t('spells.cantrip') : levelName(s.level)) : undefined}>
                   <button type="button" className={`glass-btn small${has ? '' : ' sb-add'}`} disabled={always} aria-pressed={has}
-                    aria-label={has ? t('spells.removeName', { name: s.name }) : t('spells.addName', { name: s.name })}
+                    aria-label={has ? t('spells.removeName', { name: spellName(s.name) }) : t('spells.addName', { name: spellName(s.name) })}
                     onClick={() => apply(
                       t(has ? 'spells.log.remove' : 'spells.log.add', { name: s.name }),
                       c => (has ? removeSpell(c, access.classId, s.id) : addSpell(c, access.classId, s.id)),

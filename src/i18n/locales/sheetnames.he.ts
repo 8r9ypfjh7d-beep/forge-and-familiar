@@ -152,4 +152,14 @@ export const sheetTermsHe: Terms = {
   'when.to track plants': 'כדי לעקוב אחרי צמחים',
   'when.to track undead': 'כדי לעקוב אחרי מתים־חיים',
   'when.to track two humanoid races': 'כדי לעקוב אחרי שני עמים דמויי אדם',
+  // Draconic ancestry picks (dragonborn in both editions, Fizban's dragonborn) and resistance picks
+  'trait.Black': 'שחור', 'trait.Blue': 'כחול', 'trait.Brass': 'פליז', 'trait.Bronze': 'ארד', 'trait.Copper': 'נחושת',
+  'trait.Gold': 'זהב', 'trait.Green': 'ירוק', 'trait.Red': 'אדום', 'trait.Silver': 'כסף', 'trait.White': 'לבן',
+  'trait.Amethyst': 'אמתיסט', 'trait.Crystal': 'בדולח', 'trait.Emerald': 'אזמרגד', 'trait.Sapphire': 'ספיר', 'trait.Topaz': 'טופז',
+  'trait.Cold': 'קור', 'trait.Necrotic': 'נמק', 'trait.Poison': 'רעל',
+  // Feat and trait uses the sheet counts by name
+  'feature.Chaotic Flare': 'התלקחות כאוטית', 'feature.Grasp of Avarice': 'אחיזת החמדנות', 'feature.Last Stand': 'עמידה אחרונה',
+  'feature.Precise Strike': 'מכה מדויקת', 'feature.Protective Wings': 'כנפיים מגינות', 'feature.Reactive Resistance': 'עמידות תגובתית',
+  'feature.Rune spell': 'לחש רונה', 'feature.Soothe Pain': 'הרגעת כאב', 'feature.Sorcery Points': 'נקודות כישוף',
+  'feature.Stasis Strike': 'מכת קיפאון', 'feature.Strike of the Giants': 'מכת הענקים', 'feature.Treats': 'מטעמים',
 }

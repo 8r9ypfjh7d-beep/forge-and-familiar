@@ -2,6 +2,7 @@
 // (standard array, a fitting PHB background, valid skill picks) plus beginner-friendly flavour and tips.
 import type { Character } from '../model/character'
 import { createCharacter, type CharacterDraft } from '../rules'
+import { term, translate, type Locale } from '../i18n/translate'
 
 export type StarterRole = 'Defender' | 'Striker' | 'Healer' | 'Spellcaster' | 'Support' | 'Skirmisher'
 
@@ -183,19 +184,34 @@ export const STARTER_HEROES: StarterHero[] = [
 
 export const starterById = (id: string) => STARTER_HEROES.find(h => h.id === id)
 
-/** The notes text a starter hero begins with. */
-export function starterNotes(hero: StarterHero): string {
+/** The notes text a starter hero begins with, in the player's language. */
+export function starterNotes(hero: StarterHero, locale: Locale = 'en'): string {
+  const text = starterText(hero, locale)
   return [
-    hero.backstory,
+    text.backstory,
     '',
-    'How to play:',
-    ...hero.tips.map(t => `- ${t}`),
-    ...(hero.spells ? ['', 'Suggested spells:', ...hero.spells.map(s => `- ${s}`)] : []),
+    translate(locale, 'starters.more') + ':',
+    ...text.tips.map(t => `- ${t}`),
+    ...(text.spells ? ['', translate(locale, 'starters.spells') + ':', ...text.spells.map(s => `- ${s}`)] : []),
   ].join('\n')
 }
 
+export type StarterText = Pick<StarterHero, 'pitch' | 'backstory' | 'tips' | 'spells'>
+
+/** Pitch, backstory, tips and spells in the given language (English for anything it has no text for). */
+export function starterText(hero: StarterHero, locale: Locale): StarterText {
+  if (locale === 'en') return hero
+  const own = (key: string, english: string) => term(locale, 'starter', `${hero.id}.${key}`, english)
+  return {
+    pitch: own('pitch', hero.pitch),
+    backstory: own('backstory', hero.backstory),
+    tips: hero.tips.map((tip, i) => own(`tip.${i}`, tip)),
+    spells: hero.spells?.map((line, i) => own(`spells.${i}`, line)),
+  }
+}
+
 /** A playable copy of a starter hero, owned by the given player. */
-export function createStarter(hero: StarterHero, ownerId: string, playerName: string, now = new Date()): Character {
+export function createStarter(hero: StarterHero, ownerId: string, playerName: string, now = new Date(), locale: Locale = 'en'): Character {
   const draft: CharacterDraft = { ...structuredClone(hero.draft), ownerId, playerName }
-  return { ...createCharacter(draft, now), notes: starterNotes(hero) }
+  return { ...createCharacter(draft, now), notes: starterNotes(hero, locale) }
 }

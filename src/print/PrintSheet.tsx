@@ -166,7 +166,7 @@ function PageOne({ s, i, texts, spellRows }: { s: Sheet; i: T; texts: ReturnType
 
         <div className="p-col">
           <div className="p-trio">
-            <Stat label={t('print.armorClass')} value={String(s.armorClass)} sub={i.locale === 'en' ? s.armorSource : undefined} />
+            <Stat label={t('print.armorClass')} value={String(s.armorClass)} sub={i.acSource(s.armorSource)} />
             <Stat label={t('print.initiative')} value={s.initiative} />
             <Stat label={t('print.speed')} value={t('print.feet', { n: s.speed })} ltr={false} />
           </div>

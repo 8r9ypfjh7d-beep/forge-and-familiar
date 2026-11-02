@@ -24,7 +24,7 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
   const warnings = d?.warnings.filter(w => scoresSet || !w.startsWith('Multiclass prerequisite')) ?? []
   // d.abilities are final scores, so pass them with no race to avoid adding racial bonuses twice.
   const casters = d ? getSpellcastingByClass({ ...draft, baseAbilities: d.abilities, freeAbilityBonuses: [], raceId: '', improvements: [] }) : []
-  const { t, term, raceName, abilityShort, attackName, classLine } = useI18n()
+  const { t, term, sourceName, acSource, raceName, abilityShort, attackName, classLine } = useI18n()
 
   return (
     <aside className="glass summary" aria-label={t('summary.label')}>
@@ -37,7 +37,7 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
       {d && (
         <>
           <div className="stat-row">
-            <Stat label={t('stat.ac')} value={d.armorClass.value} title={d.armorClass.source} />
+            <Stat label={t('stat.ac')} value={d.armorClass.value} title={acSource(d.armorClass.source)} />
             <Stat label={t('stat.hp')} value={d.maxHp} />
             <Stat label={t('stat.init')} value={formatMod(d.initiative)} />
             <Stat label={t('stat.speed')} value={`${d.speed}`} />
@@ -78,7 +78,7 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
           )}
           {d.languages.length > 0 && <p className="small"><strong>{t('summary.languages')}</strong> {d.languages.map(l => term('language', l, l)).join(', ')}</p>}
           {d.tools.length > 0 && <p className="small"><strong>{t('summary.tools')}</strong> {d.tools.map(x => term('tool', x, x)).join(', ')}</p>}
-          {d.feats.length > 0 && <p className="small"><strong>{t('summary.feats')}</strong> {d.feats.join(', ')}</p>}
+          {d.feats.length > 0 && <p className="small"><strong>{t('summary.feats')}</strong> {d.feats.map(sourceName).join(', ')}</p>}
           <p className="small muted">{t('summary.carrying', { weight: d.carriedWeight, capacity: d.carryingCapacity })}</p>
           {warnings.map(w => <p key={w} className="small bad">{w}</p>)}
         </>

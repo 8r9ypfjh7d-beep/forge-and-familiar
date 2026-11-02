@@ -89,7 +89,7 @@ function SpellPicker({ pool, chosen, onToggle, label }: { pool: Spell[]; chosen:
       {picked.length > 0 && (
         <div className="bs-picked" role="group" aria-label={t('builder.spells.picked')}>
           {picked.map(s => (
-            <button key={s.id} type="button" className="glass-chip on" aria-label={t('spells.removeName', { name: s.name })} onClick={() => onToggle(s)}>
+            <button key={s.id} type="button" className="glass-chip on" aria-label={t('spells.removeName', { name: spellName(s.name) })} onClick={() => onToggle(s)}>
               <bdi>{spellName(s.id, s.name)}</bdi> ✕
             </button>
           ))}
@@ -115,7 +115,7 @@ function SpellPicker({ pool, chosen, onToggle, label }: { pool: Spell[]; chosen:
               return (
                 <SpellRow key={s.id} spell={s} badge={level === 'all' ? (s.level === 0 ? t('spells.cantrip') : t(`sheet.slot.${s.level}` as MessageKey)) : undefined}>
                   <button type="button" className={`glass-btn small${has ? '' : ' sb-add'}`} aria-pressed={has}
-                    aria-label={has ? t('spells.removeName', { name: s.name }) : t('spells.addName', { name: s.name })}
+                    aria-label={has ? t('spells.removeName', { name: spellName(s.name) }) : t('spells.addName', { name: spellName(s.name) })}
                     onClick={() => onToggle(s)}>
                     {has ? t('spells.added') : t('spells.add')}
                   </button>
