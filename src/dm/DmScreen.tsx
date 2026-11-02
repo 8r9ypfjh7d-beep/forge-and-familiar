@@ -249,7 +249,7 @@ function LoreNoCampaign({ what = 'lore', runs, onPick, onStart }: { what?: 'lore
 
 // ---------- Top card: the party and its XP budget ----------
 
-interface PartyHero { id: string; name: string; level: number }
+interface PartyHero { id: string; name: string; level: number; portrait?: string }
 
 /** The player characters in the campaign (the DM's own watching seat left out), from this device or the cloud; null while loading. */
 function usePartyHeroes(party?: Party): PartyHero[] | null {
@@ -263,7 +263,7 @@ function usePartyHeroes(party?: Party): PartyHero[] | null {
       const local = await Promise.all(list.map(getCharacter))
       const missing = list.filter((_, i) => !local[i])
       const remote = new Map((missing.length ? await fetchPartyCharacters(missing).catch(() => []) : []).map(c => [c.id, c]))
-      const found = list.flatMap((id, i) => { const c = local[i] ?? remote.get(id); return c ? [{ id, name: c.name, level: totalLevel(c) }] : [] })
+      const found = list.flatMap((id, i) => { const c = local[i] ?? remote.get(id); return c ? [{ id, name: c.name, level: totalLevel(c), ...(c.portrait ? { portrait: c.portrait } : {}) }] : [] })
       if (live) setHeroes(found)
     })()
     return () => { live = false }
@@ -350,6 +350,7 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
                 <ul className="plain dm-sheet-list">
                   {sheets.heroes.map(h => (
                     <li key={h.id}>
+                      {h.portrait ? <img className="dm-sheet-portrait" src={h.portrait} alt="" /> : <span className="dm-sheet-portrait portrait-empty" aria-hidden="true">{h.name.slice(0, 1)}</span>}
                       <button className="btn small" onClick={() => sheets.onOpen(h.id)}>{h.name}</button>
                       <span className="hint">{t('dm.level')} {h.level}</span>
                     </li>

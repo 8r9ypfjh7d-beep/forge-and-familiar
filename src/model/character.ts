@@ -235,6 +235,14 @@ export interface UserProfile {
   displayName: string
 }
 
+/** One picture in a character's gallery (src/art). */
+export interface ArtPiece {
+  id: string
+  /** Public link in the `art` bucket, or a data URL when it could not be uploaded. */
+  url: string
+  caption?: string
+}
+
 export interface Character {
   id: string
   /** UserProfile.id of the player who owns this character. */
@@ -243,7 +251,12 @@ export interface Character {
   name: string
   playerName: string
   alignment: string
+  /** Portrait: a public link to the `art` bucket (src/art) or, without the cloud, a small data URL. */
   portrait?: string
+  /** Round token art for battle maps (src/art); missing uses the portrait. Same forms as `portrait`. */
+  token?: string
+  /** More pictures of the character (src/art), newest first. */
+  gallery?: ArtPiece[]
   /** Rules edition for the whole character: '2024' uses the SRD 5.2. Missing means 2014 (SRD 5.1). */
   rulesEdition?: '2024'
   raceId: string

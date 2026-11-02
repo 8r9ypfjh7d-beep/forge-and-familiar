@@ -28,8 +28,8 @@ function loadLog(id: string): LogEntry[] {
   try { return JSON.parse(sessionStorage.getItem(logKey(id)) ?? '[]') as LogEntry[] } catch { return [] }
 }
 function saveLog(id: string, entries: LogEntry[]) {
-  // Undo only reads play state, so drop the portrait (can be a large data URL).
-  const slim = entries.map(e => ({ ...e, before: { ...e.before, portrait: undefined } }))
+  // Undo only reads play state, so drop the art (portraits and gallery pictures can be large data URLs).
+  const slim = entries.map(e => ({ ...e, before: { ...e.before, portrait: undefined, token: undefined, gallery: undefined } }))
   try { sessionStorage.setItem(logKey(id), JSON.stringify(slim)) } catch { /* private mode or full */ }
 }
 

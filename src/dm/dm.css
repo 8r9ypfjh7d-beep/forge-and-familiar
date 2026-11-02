@@ -219,6 +219,7 @@
 .dm-sheets { margin-block-start: var(--sp-4); padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
 .dm-sheet-list { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); }
 .dm-sheet-list li { display: flex; align-items: center; gap: var(--sp-2); }
+.dm-sheet-list .dm-sheet-portrait { inline-size: 32px; block-size: 32px; border-radius: 50%; object-fit: cover; font-size: 0.85rem; flex: none; }
 
 
 /* Rolls tab: player chips, kind filter and the live log */

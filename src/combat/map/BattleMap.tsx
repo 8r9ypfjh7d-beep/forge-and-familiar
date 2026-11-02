@@ -19,6 +19,8 @@ export type Viewer = { role: 'dm' } | { role: 'player'; characterId: string }
 /** What the parent knows about a token's combatant; everything is optional. */
 export interface TokenInfo {
   name?: string
+  /** A picture for the token (src/art); else the token's own `art`, else its label. */
+  image?: string
   hp?: { current: number; max: number }
   health?: Health
   /** Walking speed in feet, for the movement budget. */
@@ -418,6 +420,7 @@ function TokenView({ token: tk, view, info, isDm, active, selected, movable, min
   const pct = hp ? Math.max(0, Math.min(1, hp.current / Math.max(1, hp.max))) : null
   const health: Health | undefined = info?.health ?? (hp ? (hp.current <= 0 ? 'down' : hp.current * 2 <= hp.max ? 'bloodied' : 'healthy') : undefined)
   const name = info?.name ?? tk.label
+  const image = info?.image ?? tk.art
   const parts = [name]
   if (hp) parts.push(`${hp.current}/${hp.max}`)
   else if (health) parts.push(t(HEALTH_KEY[health]))
@@ -430,11 +433,11 @@ function TokenView({ token: tk, view, info, isDm, active, selected, movable, min
     ...(tk.color ? { '--token': tk.color } : {}),
   }
   return (
-    <button type="button" className={`bm-token kind-${tk.kind} ${active ? 'active' : ''} ${selected ? 'selected' : ''} ${tk.hidden ? 'hidden-token' : ''} ${health ? `health-${health}` : ''} ${movable ? 'movable' : ''} ${mine ? 'mine' : ''}`}
+    <button type="button" className={`bm-token kind-${tk.kind}${image ? ' has-art' : ''} ${active ? 'active' : ''} ${selected ? 'selected' : ''} ${tk.hidden ? 'hidden-token' : ''} ${health ? `health-${health}` : ''} ${movable ? 'movable' : ''} ${mine ? 'mine' : ''}`}
       style={style} aria-label={parts.join(', ')} aria-pressed={selected} title={parts.join(' · ')}
       onClick={e => { if (e.detail === 0) onPick() }}>
       <span className="bm-ring" aria-hidden="true" />
-      <span className="bm-label">{tk.label}</span>
+      {image ? <img className="bm-art" src={image} alt="" draggable={false} /> : <span className="bm-label">{tk.label}</span>}
       {isDm && tk.hidden && <span className="bm-badge eye" aria-hidden="true">◌</span>}
       {info?.conditions?.length ? <span className="bm-badge cond" aria-hidden="true">{info.conditions.length}</span> : null}
       {health === 'down' && <span className="bm-down" aria-hidden="true">✕</span>}

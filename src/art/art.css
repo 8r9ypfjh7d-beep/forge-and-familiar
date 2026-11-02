@@ -1,0 +1,31 @@
+/* Art card (src/art/Gallery.tsx): portrait and token side by side, then a grid of gallery pictures. */
+.art-card .art-main { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); align-items: start; max-inline-size: 420px; }
+.art-card .art-slot { margin: 0; display: grid; justify-items: center; gap: 6px; text-align: center; }
+.art-card .art-slot figcaption { font-weight: 600; }
+.art-card .art-slot figcaption .art-hint { display: block; font-weight: 400; }
+.art-card .art-portrait, .art-card .art-token { padding: 0; border: 0; background: none; cursor: zoom-in; display: block; }
+.art-card .art-portrait, .art-card .art-portrait img { inline-size: 120px; block-size: 140px; border-radius: var(--r-md); object-fit: cover; box-shadow: var(--glass-shadow); }
+.art-card .art-portrait.portrait-empty { aspect-ratio: auto; font-size: 2.4rem; cursor: default; }
+.art-card .art-token { cursor: default; }
+.art-card .art-token, .art-card .art-token img { inline-size: 88px; block-size: 88px; border-radius: 50%; object-fit: cover; }
+.art-card .art-token { box-shadow: 0 0 0 3px var(--accent), var(--glass-shadow); margin-block: 26px; }
+.art-card .art-token.portrait-empty { font-size: 2rem; }
+.art-card .art-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.art-card .glass-btn.disabled { opacity: 0.6; pointer-events: none; }
+.art-card .art-gallery-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-block-start: var(--sp-4); }
+.art-card .art-gallery-head .sub-title { margin: 0; }
+.art-card .art-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-block: 8px 0; }
+.art-card .art-thumb { position: relative; display: block; inline-size: 100%; aspect-ratio: 1; padding: 0; border: 0; border-radius: var(--r-sm); overflow: hidden; cursor: zoom-in; background: var(--accent-soft); box-shadow: var(--glass-shadow); }
+.art-card .art-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+.art-card .art-thumb:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.art-card .art-thumb-caption {
+  position: absolute; inset-inline: 0; inset-block-end: 0; padding: 4px 6px; font-size: 0.72rem; text-align: start; color: var(--on-fill);
+  background: linear-gradient(to top, color-mix(in srgb, black 65%, transparent), transparent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.art-viewer.glass-dialog { inline-size: min(92vw, 760px); max-block-size: 92vh; padding: var(--sp-3); }
+.art-viewer[open] { display: grid; gap: 10px; }
+.art-viewer .art-viewer-img { inline-size: 100%; max-block-size: 68vh; object-fit: contain; border-radius: var(--r-md); }
+.art-viewer .art-viewer-caption { margin: 0; text-align: center; }
+.art-viewer .art-viewer-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.art-viewer .glass-btn.danger { color: var(--bad); }

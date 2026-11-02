@@ -1,3 +1,4 @@
+import { ArtCard } from '../art/Gallery'
 import { useCallback, useMemo, useState } from 'react'
 import { useI18n } from '../i18n'
 import { ExportButton } from '../portability/ui'
@@ -149,6 +150,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
       case 'fight': return <Fight key={s} {...p} />
       case 'features': return <FeaturesTraits key={s} character={character} />
       case 'powerUp': return <PowerUpCard key={s} {...p} />
+      case 'art': return <ArtCard key={s} {...p} readOnly={!!viewOnly} />
     }
   }
   return (

@@ -88,6 +88,8 @@ export interface Token {
   /** DM-only: the token (and its combatant) exist only on the DM's view. A hidden combatant row hides its token too. */
   hidden?: boolean
   color?: string
+  /** pc tokens: the character's token art (src/art) as a public link, so every player's map shows it. */
+  art?: string
 }
 
 /** A cell as a key, "x,y" (src/maps uses the same keys). */

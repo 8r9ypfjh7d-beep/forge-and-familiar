@@ -1,6 +1,7 @@
 // The Map tab of the sheet's combat mode: the party's live battle map (src/combat/live) as a player
 // sees it. Shows the round and whose turn it is, lets the player move the token of the character they
 // bring (checked here and again on the server), and opens the map full screen with the HP chip pinned.
+import { tokenArt } from '../../art/logic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { pullLiveCombat, moveToken, watchLiveCombat } from '../../combat/live'
 import type { LiveCombat } from '../../combat/liveLogic'
@@ -119,7 +120,7 @@ function MapStage({ live, character, onMove }: { live: LiveCombat; character: Ch
   const infoFor = (tk: Token): TokenInfo => {
     const c = live.encounter.combatants.find(x => x.id === tk.combatantId)
     const { hp, health } = tokenHealth(live, tk)
-    return { name: c?.name ?? tk.label, hp, health, conditions: c?.conditions, ...(tk.characterId === character.id ? { speed } : {}) }
+    return { name: c?.name ?? tk.label, hp, health, conditions: c?.conditions, ...(tk.characterId === character.id ? { speed, image: tokenArt(character) } : {}) }
   }
   return <BattleMap map={map} board={live.board} encounter={live.encounter} viewer={{ role: 'player', characterId: character.id }} onMove={onMove} infoFor={infoFor} />
 }
