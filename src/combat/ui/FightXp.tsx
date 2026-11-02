@@ -10,16 +10,21 @@ import { fightPlayers, xpShare, type FightCreature } from '../xp'
  * Shown after End combat in a campaign fight: the XP of the creatures the party beat (ticked), split evenly
  * between the players who fought. Giving it is a party award, as on the campaign page's Give XP card.
  */
-export function FightXp({ enc, campaign, creatures, characters, onClose }: {
+export function FightXp({ enc, campaign, creatures, characters, onGiven, onClose }: {
   enc: Encounter
   campaign: Campaign
   creatures: FightCreature[]
   characters: Record<string, Character | undefined>
+  /** The XP went out: the fight stops asking for it. */
+  onGiven: () => void
   onClose: () => void
 }) {
   const { t } = useI18n()
   const players = fightPlayers(campaign, enc)
-  const [ticked, setTicked] = useState(() => new Set(creatures.filter(c => c.beaten).map(c => c.id)))
+  // The DM's taps over the default (beaten creatures ticked). Kept as overrides because monster XP can load after the first render.
+  const [picks, setPicks] = useState<Record<string, boolean>>({})
+  const [given, setGiven] = useState(false)
+  const ticked = new Set(given ? [] : creatures.filter(c => picks[c.id] ?? c.beaten).map(c => c.id))
   const [off, setOff] = useState<Set<string>>(new Set())
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -43,8 +48,9 @@ export function FightXp({ enc, campaign, creatures, characters, onClose }: {
     })
     setBusy(false)
     if (res.ok) {
+      onGiven()
       setNote(t('xp.give.done', { xp: each, count: picked.length }))
-      setTicked(new Set())
+      setGiven(true)
     } else setNote(res.reason)
   }
 
@@ -54,7 +60,7 @@ export function FightXp({ enc, campaign, creatures, characters, onClose }: {
       <p className="muted small">{t('xp.fight.hint')}</p>
       <div className="row" role="group" aria-label={t('xp.fight.creatures')}>
         {creatures.map(c => (
-          <button key={c.id} type="button" className={`glass-chip ${ticked.has(c.id) ? 'on' : ''}`} aria-pressed={ticked.has(c.id)} onClick={() => flip(setTicked, c.id)}>
+          <button key={c.id} type="button" className={`glass-chip ${ticked.has(c.id) ? 'on' : ''}`} aria-pressed={ticked.has(c.id)} onClick={() => { setGiven(false); setPicks(p => ({ ...p, [c.id]: !ticked.has(c.id) })) }}>
             {t('xp.fight.creature', { name: c.name, xp: c.xp.toLocaleString() })}
           </button>
         ))}
