@@ -124,7 +124,16 @@
 }
 .ff-crit--nat20 .ff-crit__kicker { color: #ffe9a3; text-shadow: 0 0 14px #ff9d00, 0 2px 0 #4a1d00; animation: ff-crit-rise 500ms ease-out 1000ms both; }
 .ff-crit--nat20 .ff-crit__line { color: #fff8e6; text-shadow: 0 1px 3px #000; animation: ff-crit-rise 500ms ease-out 1350ms both; }
-.ff-crit--nat20 .ff-crit--nat1.is-leaving { animation: ff-crit-out 280ms ease-in forwards; }
+
+/* ---------- Natural 1: the exact opposite ---------- */
+.ff-crit--nat1 {
+  color: #c9d1db;
+  background: radial-gradient(circle at 50% 45%, rgb(70 80 96 / 0.86) 0, rgb(22 26 34 / 0.94) 65%, #07090c 100%);
+  -webkit-backdrop-filter: grayscale(1) blur(3px);
+  backdrop-filter: grayscale(1) blur(3px);
+  animation: ff-crit-lights-out 700ms steps(1) both;
+}
+.ff-crit--nat1.is-leaving { animation: ff-crit-out 280ms ease-in forwards; }
 .ff-crit--nat1 .ff-crit__vignette {
   position: absolute;
   inset: 0;
@@ -169,7 +178,23 @@
 }
 .ff-crit--nat1 .ff-crit__kicker { color: #8f99a6; font-style: italic; animation: ff-crit-droop 700ms ease-out 2300ms both; }
 .ff-crit--nat1 .ff-crit__line { color: #b7c0cb; animation: ff-crit-rise 500ms ease-out 2600ms both; }
-.ff-crit--nat1 @keyframes ff-crit-ring { 0% { opacity: 1; transform: scale(0.3); border-width: 14px; } 100% { opacity: 0; transform: scale(4.5); border-width: 1px; } }
+
+/* ---------- Keyframes ---------- */
+@keyframes ff-crit-in { from { opacity: 0; } }
+@keyframes ff-crit-out { to { opacity: 0; } }
+@keyframes ff-crit-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes ff-crit-spin { to { rotate: 360deg; } }
+@keyframes ff-crit-rays-in { from { opacity: 0; scale: 0.2; } }
+@keyframes ff-crit-shake {
+  0%, 100% { transform: none; }
+  10% { transform: translate(-14px, 8px) rotate(-1deg); }
+  25% { transform: translate(12px, -10px) rotate(1deg); }
+  40% { transform: translate(-9px, -6px); }
+  55% { transform: translate(8px, 7px); }
+  70% { transform: translate(-4px, 3px); }
+  85% { transform: translate(3px, -2px); }
+}
+@keyframes ff-crit-ring { 0% { opacity: 1; transform: scale(0.3); border-width: 14px; } 100% { opacity: 0; transform: scale(4.5); border-width: 1px; } }
 @keyframes ff-crit-spark {
   0% { opacity: 1; transform: rotate(var(--a)) translateX(0) scale(1.4); }
   80% { opacity: 1; }
