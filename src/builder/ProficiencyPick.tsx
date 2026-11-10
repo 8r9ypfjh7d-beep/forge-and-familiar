@@ -72,10 +72,19 @@ export function PickOrWrite({ value, onChange, groups, write, placeholder, ariaL
 /** Picker groups for languages in this edition, leaving out `hide` (already known or picked elsewhere). */
 export function useLanguageGroups(edition: RulesEdition, hide: (lang: string) => boolean, prefix = ''): PickGroup[] {
   const { t, term } = useI18n()
-  const groups = languageGroups(edition).map(g => ({
+  const item = (l: string) => ({ value: prefix + l, label: term('language', l, l) })
+  // Tongues of other worlds, regions and monsters share one last group, so the table languages read first.
+  const RARE = ['species', 'setting', 'monster']
+  const all = languageGroups(edition)
+  const groups = all.filter(g => !RARE.includes(g.id)).map(g => ({
     label: t(`builder.langGroup.${g.id}`),
-    items: g.languages.filter(l => !hide(l)).map(l => ({ value: prefix + l, label: term('language', l, l) })),
+    items: g.languages.filter(l => !hide(l)).map(item),
   }))
+  groups.push({
+    label: t('builder.langGroup.rarer'),
+    items: all.filter(g => RARE.includes(g.id)).flatMap(g => g.languages).filter(l => !hide(l)).map(item)
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  })
   // Languages from the group's homebrew packs.
   return [...groups, { label: t('builder.homebrewGroup'), items: homebrewLanguageNames().filter(l => !hide(l)).map(l => ({ value: prefix + l, label: l })) }]
 }

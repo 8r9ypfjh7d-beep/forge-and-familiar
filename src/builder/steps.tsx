@@ -29,7 +29,7 @@ import { SpellsStep } from './SpellsStep'
 import { suggestedArray, suggestedImprovements, suggestedSkillStep } from './suggest'
 import { grantedSkills, skillPicks, stepIssues, subclassSlots, type StepId } from './validate'
 import { Explain, ExplainList, Why } from './Why'
-import { ChoicePicker, Fold, useFilter } from './Compact'
+import { ChoicePicker, Fold, bookRank, useFilter } from './Compact'
 import { choiceOptionKey, choiceTopic, explainKey, featExplainKey, featureKey, optionKey, optionName, pitchKey } from './why'
 import { groupKitItems } from './kit'
 import { effectText } from '../inventory/Inventory'
@@ -73,7 +73,7 @@ function EditionPicker({ draft, update }: StepProps) {
   const edition = rulesEdition(draft)
   return (
     <div className="field edition-pick">
-      <label>{t('builder.edition')} <Why id="edition" /></label>
+      <label>{t('builder.edition')}</label>
       <div className="glass-segmented" role="radiogroup" aria-label={t('builder.edition')}>
         {(['2014', '2024'] as const).map(e => (
           <button
@@ -86,7 +86,11 @@ function EditionPicker({ draft, update }: StepProps) {
           </button>
         ))}
       </div>
-      <p className="muted small">{t(`builder.edition.${edition}.hint`)} {t('builder.edition.unsure')}</p>
+      {/* One line; what the editions change and that switching clears picks sit behind why?. */}
+      <p className="muted small">
+        {t('builder.edition.short')}{' '}
+        <Why title={t('why.edition.title')} text={`${t('why.edition.text')} ${t(`builder.edition.${edition}.hint`)} ${t('builder.edition.unsure')}`} />
+      </p>
     </div>
   )
 }
@@ -127,15 +131,10 @@ function RaceStep({ draft, update }: StepProps) {
   return (
     <>
       <EditionPicker draft={draft} update={update} />
-      <p className="muted small why-legend">
-        {t('builder.cardLegend')}
-        <Why id={edition === '2024' ? 'bgBonus' : 'racial'} label={t('builder.legend.bonus')} />
-        <Why id="size" label={t('builder.legend.size')} />
-        <Why id="speed" label={t('builder.legend.speed')} />
-      </p>
       <ChoicePicker
         label={t(edition === '2024' ? 'builder.step.race2024' : 'builder.step.race')}
         firstGroup={t('builder.compact.srd')}
+        addOwn={{ href: '#/homebrew', hint: t(edition === '2024' ? 'builder.race.homebrewHint2024' : 'builder.race.homebrewHint') }}
         value={draft.raceId}
         onPick={id => update(racePatch(draft, id))}
         items={allRaces(edition).map(r => ({
@@ -146,7 +145,7 @@ function RaceStep({ draft, update }: StepProps) {
           meta: (
             <>
               <span className="muted small">
-                {edition === '2024' ? t('builder.race.noBonus') : r.flexibleAbilityBonuses ? t('builder.race.flexBonus') : bonusText(r.abilityBonuses, abilityShort)}
+                {edition === '2024' ? '' : r.flexibleAbilityBonuses ? t('builder.race.flexBonus') : bonusText(r.abilityBonuses, abilityShort)}
                 {r.freeAbilityBonuses ? (r.freeAbilityBonuses.value === 2 ? t('builder.race.plusTwo') : t('builder.race.freeBonus', { count: r.freeAbilityBonuses.count })) : ''}
               </span>
               <span className="muted small">{t('builder.race.sizeSpeed', { size: (r.sizeOptions ?? [r.size]).map(x => term('size', x, x)).join(' / '), speed: r.speed })}</span>
@@ -164,15 +163,18 @@ function RaceStep({ draft, update }: StepProps) {
                 {t('builder.race.noSubrace')}
               </button>
             )}
-            {race.subraces.filter(s => !s.source).map(subChip)}
+            {race.subraces.filter(s => bookRank(s.source ?? '') <= 2).map(subChip)}
           </div>
-          {/* Book subraces under their own label, so a new player sees the core ones first. */}
-          {race.subraces.some(s => s.source) && (
-            <>
-              <p className="muted small">{t('builder.subrace.otherBooks')}</p>
-              <div className="row">{race.subraces.filter(s => s.source).map(subChip)}</div>
-            </>
-          )}
+          {/* Core and Player's Handbook subraces as chips; rarer books wait in one closed fold. */}
+          {(() => {
+            const rare = race.subraces.filter(s => bookRank(s.source ?? '') > 2)
+            if (!rare.length) return null
+            return (
+              <Fold title={t('builder.compact.otherBooks')} status={rare.length} defaultOpen={rare.some(s => s.id === draft.subraceId)}>
+                <div className="row">{rare.map(subChip)}</div>
+              </Fold>
+            )
+          })()}
           {draft.subraceId && <Explain kind={edition === '2024' && !race.legacy ? 'sub2024' : 'sub2014'} id={draft.subraceId} />}
         </div>
       )}
@@ -242,7 +244,6 @@ function RaceStep({ draft, update }: StepProps) {
           </div>
         )
       })}
-      <p className="muted small">{t('builder.race.homebrewHint')}</p>
       {race && (
         <p className="small">
           {racePitch && <><strong>{t('why.pick', { name: term('race', race.id, race.name) })}</strong> {t(racePitch)}<br /></>}
@@ -264,7 +265,11 @@ function RaceStep({ draft, update }: StepProps) {
         const picked = ch ? pickedOptions(draft, ch.id).map(id => ch.options.find(o => o.id === id)).filter(o => !!o) : []
         return { name, key: traitKey(name), text: text ?? (picked.length ? picked.map(o => (o.detail ? `${o.name}: ${o.detail}` : o.name)).join(' · ') : undefined) }
       })} />}
-      {canSwapOrigin(draft) && <OriginSwapsPicker draft={draft} update={update} />}
+      {canSwapOrigin(draft) && (
+        <Fold className="advanced" title={t('builder.advanced')} defaultOpen={draft.originSwaps !== undefined}>
+          <OriginSwapsPicker draft={draft} update={update} />
+        </Fold>
+      )}
     </>
   )
 }
@@ -328,12 +333,6 @@ function ClassStep({ draft, update, editing }: StepProps) {
   const detailOf = (d?: string) => (d ? ` · ${term('detail', d, d)}` : '')
   return (
     <>
-      <p className="muted small why-legend">
-        {t('builder.cardLegend')}
-        <Why id="hitDie" label={t('builder.legend.hitDie')} />
-        <Why id="primary" label={t('builder.legend.primary')} />
-        <Why id="casting" label={t('builder.legend.casting')} />
-      </p>
       <ChoicePicker
         label={t('builder.step.class')}
         value={current?.classId}
@@ -351,8 +350,8 @@ function ClassStep({ draft, update, editing }: StepProps) {
           ),
         }))}
         firstGroup={t('builder.compact.official')}
+        addOwn={{ href: '#/homebrew', hint: t('builder.class.homebrewHint') }}
       />
-      <p className="muted small">{t('builder.class.homebrewHint')}</p>
       <div className="field">
         <label htmlFor="level">{t(editing ? 'builder.editLevel' : 'builder.startLevel')} <Why id="level" /></label>
         <select
@@ -381,7 +380,10 @@ function ClassStep({ draft, update, editing }: StepProps) {
         </Fold>
       )}
       {cls && <ClassPicksFor draft={draft} update={update} classId={cls.id} />}
-      <MulticlassPicker draft={draft} update={update} picksFor={classId => <ClassPicksFor draft={draft} update={update} classId={classId} />} />
+      {/* Expert options wait at the end in one closed fold; it starts open once used. */}
+      <Fold className="advanced" title={t('builder.advanced')} defaultOpen={draft.classes.length > 1}>
+        <MulticlassPicker draft={draft} update={update} picksFor={classId => <ClassPicksFor draft={draft} update={update} classId={classId} />} />
+      </Fold>
     </>
   )
 }
@@ -609,9 +611,8 @@ function AbilitiesStep({ draft, update }: StepProps) {
         ))}
         <Why id={`method.${draft.abilityMethod}`} />
         {draft.abilityMethod === 'standard' && (
-          <button className="glass-btn small" onClick={suggest}>{t('builder.suggest')}</button>
+          <button className="glass-btn small prominent" title={t('why.suggest.text')} onClick={suggest}>{t('builder.suggest')}</button>
         )}
-        {draft.abilityMethod === 'standard' && <Why id="suggest" />}
       </div>
       {draft.abilityMethod === 'rolled' && <RolledScores draft={draft} update={update} />}
       {draft.abilityMethod === 'pointBuy' && (
@@ -623,12 +624,20 @@ function AbilitiesStep({ draft, update }: StepProps) {
       {flexible && <FlexibleRaceBonuses draft={draft} />}
       <table className="ability-table">
         <thead>
-          <tr><th>{t('builder.col.ability')}</th><th>{t('builder.col.base')}</th><th>{t(edition === '2024' ? 'builder.col.background' : 'builder.col.racial')}<Why id={edition === '2024' ? 'bgBonus' : 'racial'} compact /></th>{hasAsi && <th>{t('builder.col.asi')}</th>}<th>{t('builder.col.score')}</th><th>{t('builder.col.mod')}<Why id="modifier" compact /></th>{free && <th>+{free.value ?? 1}<Why id="freeBonus" compact /></th>}</tr>
+          {/* Heads and ability names are the "why?" buttons themselves; ASI shows inside the score ("18 (+1)"), so phones fit five columns. */}
+          <tr>
+            <th>{t('builder.col.ability')}</th>
+            <th>{t('builder.col.base')}</th>
+            <th>{edition === '2024' ? <Why term id="bgBonus" label={t('builder.col.background')} /> : <Why term id="racial" label={t('builder.col.racial')} />}</th>
+            <th>{hasAsi ? <Why term id="asi" label={t('builder.col.score')} /> : t('builder.col.score')}</th>
+            <th><Why term id="modifier" label={t('builder.col.mod')} /></th>
+            {free && <th><Why term id="freeBonus" label={`+${free.value ?? 1}`} /></th>}
+          </tr>
         </thead>
         <tbody>
           {ABILITIES.map(a => (
             <tr key={a}>
-              <th scope="row">{ability(a)}<Why title={ability(a)} text={t(`why.ability.${a}`)} compact /></th>
+              <th scope="row"><Why term label={ability(a)} title={ability(a)} text={t(`why.ability.${a}`)} /></th>
               <td>
                 {draft.abilityMethod === 'standard' && (
                   <select value={draft.baseAbilities[a]} onChange={e => setStandard(a, Number(e.target.value))} aria-label={t('builder.baseOf', { ability: ability(a) })}>
@@ -658,8 +667,10 @@ function AbilitiesStep({ draft, update }: StepProps) {
                   ? <BackgroundBonusPick draft={draft} update={update} a={a} />
                   : bonus[a] ? fmtMod(bonus[a]) : ''}
               </td>
-              {hasAsi && <td className="muted">{asi[a] ? fmtMod(asi[a]) : ''}</td>}
-              <td className="num strong">{draft.baseAbilities[a] ? final[a] : '—'}</td>
+              <td className="num strong">
+                {draft.baseAbilities[a] ? final[a] : '—'}
+                {asi[a] ? <span className="muted small asi-in-score" title={t('builder.col.asi')}> ({fmtMod(asi[a])})</span> : null}
+              </td>
               <td className="num">{draft.baseAbilities[a] ? fmtMod(abilityMod(final[a])) : ''}</td>
               {free && (
                 <td>
@@ -675,8 +686,12 @@ function AbilitiesStep({ draft, update }: StepProps) {
           ))}
         </tbody>
       </table>
-      {edition === '2014' && <MoveRacialBonuses draft={draft} update={update} />}
       <Improvements draft={draft} update={update} />
+      {edition === '2014' && fixedRacialBonuses(draft).length > 0 && (
+        <Fold className="advanced" title={t('builder.advanced')} defaultOpen={draft.racialBonusTargets !== undefined}>
+          <MoveRacialBonuses draft={draft} update={update} />
+        </Fold>
+      )}
     </>
   )
 }
@@ -746,6 +761,12 @@ function BackgroundBonuses({ draft, update }: StepProps) {
       <BackgroundPicker edition="2024" value={draft.backgroundId} onPick={id => update(backgroundPatch(draft, id))} />
       <BackgroundExplain kind="bg2024" bg={bg} id={draft.backgroundId} />
       <BackgroundSource id={draft.backgroundId} edition="2024" />
+      {bg?.feat && (
+        <p className="muted small">
+          {t('builder.bgFeat', { feat: `${term('feat', bg.feat.id, featById(bg.feat.id, '2024')?.name ?? bg.feat.name ?? bg.feat.id)}${bg.feat.note ? ` (${bg.feat.note})` : ''}` })}
+          {' '}{t('builder.bgFeat.bonusNote')}
+        </p>
+      )}
       <p className="small">
         {bg
           ? t('builder.bgBonus.intro', { total, background: term('background', bg.id, bg.name), abilities: listed.map(a => ability(a)).join(', ') })
@@ -896,20 +917,30 @@ function SkillsStep({ draft, update }: StepProps) {
   const pickBackground = (id: string) => update(backgroundPatch(draft, id))
   return (
     <>
+      {/* 2024 picks the background with the abilities (step 3); here it is one read-only line. */}
+      {edition === '2024' ? (
+        <div className="field">
+          <p className="small">
+            {bg
+              ? t('builder.bg2024.readOnly', { background: term('background', bg.id, bg.name) })
+              : t('builder.bg2024.none')}
+          </p>
+        </div>
+      ) : (
       <div className="field">
         <label>{t('builder.background')} <Why id="background" /></label>
         <BackgroundPicker edition={edition} value={draft.backgroundId} onPick={pickBackground}
-          custom={edition === '2014' ? { on: custom, onPick: () => pickBackground(CUSTOM_BACKGROUND) } : undefined} />
-        {!custom && <BackgroundExplain kind={edition === '2024' ? 'bg2024' : 'bg'} bg={bg} id={draft.backgroundId} />}
+          custom={{ on: custom, onPick: () => pickBackground(CUSTOM_BACKGROUND) }} />
+        {!custom && <BackgroundExplain kind="bg" bg={bg} id={draft.backgroundId} />}
         {!custom && <BackgroundSource id={draft.backgroundId} edition={edition} />}
-        {bg && !custom && edition === '2014' && <p className="muted small">{t('builder.bgFeature', { feature: term('bgFeature', bg.feature, bg.feature) })}</p>}
-        {bg?.feat && (edition === '2024' || featById(bg.feat.id, edition)) && (
+        {bg && !custom && <p className="muted small">{t('builder.bgFeature', { feature: term('bgFeature', bg.feature, bg.feature) })}</p>}
+        {bg?.feat && featById(bg.feat.id, edition) && (
           <p className="muted small">
             {t('builder.bgFeat', { feat: `${term('feat', bg.feat.id, featById(bg.feat.id, edition)?.name ?? bg.feat.name ?? bg.feat.id)}${bg.feat.note ? ` (${bg.feat.note})` : ''}` })}
-            {edition === '2024' && <> {t('builder.bgFeat.bonusNote')}</>}
           </p>
         )}
       </div>
+      )}
       {custom && <CustomBackgroundForm draft={draft} update={update} />}
       <p className="small">
         {raceCount
@@ -917,11 +948,11 @@ function SkillsStep({ draft, update }: StepProps) {
           : t('builder.chosenClass', { chosen: draft.chosenSkills.length, total })}
         <Why id="skills" />
         {stepIssues('skills', draft).length > 0 && (
-          <> <button className="glass-btn small" onClick={() => update(suggestedSkillStep(draft))}>{t('builder.suggestSkills')}</button></>
+          <> <button className="glass-btn small prominent" onClick={() => update(suggestedSkillStep(draft))}>{t('builder.suggestSkills')}</button></>
         )}
       </p>
       {bgCount > 0 && <p className="small">{t('builder.bgSkills', { count: bgCount, skills: bgFrom.map(s => skill(s)).join(', ') })}</p>}
-      {raceListCount > 0 && <p className="small">{t('builder.raceSkills', { count: raceListCount, skills: raceFrom.map(s => skill(s)).join(', ') })}</p>}
+      {raceListCount > 0 && <p className="small">{t(edition === '2024' ? 'builder.raceSkills2024' : 'builder.raceSkills', { count: raceListCount, skills: raceFrom.map(s => skill(s)).join(', ') })}</p>}
       <div className="skill-grid">
         {ALL_SKILLS.map(s => {
           const isGranted = granted.has(s)
@@ -931,8 +962,7 @@ function SkillsStep({ draft, update }: StepProps) {
           return (
             <label key={s} className={`skill ${isGranted ? 'granted' : ''} ${!suggested && !isGranted ? 'dim' : ''}`}>
               <input type="checkbox" checked={checked} disabled={isGranted} onChange={() => toggle(s)} />
-              {skill(s)} <span className="muted small">{abilityShort(SKILLS[s].ability)}</span>
-              <Why title={skill(s)} text={t(`why.skill.${s}`)} compact />
+              <Why term label={skill(s)} title={skill(s)} text={t(`why.skill.${s}`)} /> <span className="muted small">{abilityShort(SKILLS[s].ability)}</span>
               {isGranted && <span className="tag">{t('builder.tag.granted')}</span>}
               {!isGranted && classFrom.includes(s) && <span className="tag class">{t('builder.tag.class')}</span>}
               {!isGranted && bgFrom.includes(s) && <span className="tag class">{t('builder.tag.background')}</span>}
@@ -1278,7 +1308,6 @@ function EquipmentStep({ draft, update }: StepProps) {
   const classGold = takesClassGold(draft)
   return (
     <>
-      <p className="small">{t('builder.kitIntro')} <Why id="kit" /></p>
       {edition === '2014' && <WealthChoice draft={draft} update={update} />}
       {!classGold && <EquipmentChoices draft={draft} update={update} />}
       {edition === '2024' && <BackgroundGearChoice draft={draft} update={update} />}

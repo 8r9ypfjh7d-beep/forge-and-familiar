@@ -8,11 +8,13 @@ type WhyProps = {
   /** Shows a capsule with this text instead of "why?" (or "?" when compact). */
   label?: string
   compact?: boolean
+  /** The label is the term itself (ability, skill, column head): plain text with a dotted underline, no capsule. */
+  term?: boolean
 } & ({ id: WhyId } | { title: string; text: string })
 
 /** A small "why?" button that opens a plain-language explanation for new players. */
 export function Why(props: WhyProps) {
-  const { label, compact } = props
+  const { label, compact, term } = props
   const [open, setOpen] = useState(false)
   const [alignEnd, setAlignEnd] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
@@ -58,7 +60,7 @@ export function Why(props: WhyProps) {
   }, [open, alignEnd])
 
   return (
-    <span className={`why ${compact ? 'compact' : ''}`} ref={ref}>
+    <span className={`why ${compact ? 'compact' : ''} ${term ? 'term' : ''}`} ref={ref}>
       <button
         type="button"
         className="why-btn"

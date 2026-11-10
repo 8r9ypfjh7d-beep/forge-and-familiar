@@ -123,6 +123,7 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
       }
       break
     case 'abilities': {
+      if (edition === '2024' && !getBackground(d)) out.push(t('builder.issue.background'))
       const scores = ABILITIES.map(a => d.baseAbilities[a])
       if (d.abilityMethod === 'standard') {
         const sorted = [...scores].sort((a, b) => b - a)
@@ -172,7 +173,8 @@ export function stepIssues(step: StepId, d: CharacterDraft, t: Translate = engli
           ? t('builder.issue.skillsMixed', { classCount, raceCount })
           : t('builder.issue.skillsClass', { classCount }))
       }
-      if (!getBackground(d)) out.push(t('builder.issue.background'))
+      // 2024 picks the background on the Background & abilities step, so it's asked for there.
+      if (!getBackground(d) && edition !== '2024') out.push(t('builder.issue.background'))
       if (d.backgroundId === CUSTOM_BACKGROUND && edition === '2014') {
         const cb = d.customBackground
         if (!cb?.name.trim()) out.push(t('builder.issue.customName'))

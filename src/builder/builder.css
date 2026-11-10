@@ -38,8 +38,37 @@
 .builder-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--sp-4); align-items: start; }
 @media (max-width: 860px) { .builder-body { grid-template-columns: 1fr; } }
 .builder-step { min-height: 420px; display: flex; flex-direction: column; padding: var(--sp-5); }
-.builder-step > h2 { font-size: 1.75rem; letter-spacing: -0.02em; margin-block-end: var(--sp-1); }
-.builder-nav { display: flex; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; margin-block-start: auto; padding-block-start: var(--sp-5); }
+.step-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-block-end: var(--sp-1); }
+.step-head > h2 { font-size: 1.75rem; letter-spacing: -0.02em; margin: 0; }
+.step-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+/* Back/Next float at the bottom of the screen while the step scrolls under them. */
+.builder-main { display: grid; gap: var(--sp-2); min-inline-size: 0; }
+.builder-foot {
+  position: sticky; inset-block-end: max(var(--sp-2), env(safe-area-inset-bottom)); z-index: 20;
+  display: grid; gap: var(--sp-2); padding: var(--sp-2); border-radius: var(--r-xl);
+  border: 1px solid var(--glass-stroke); background: var(--glass-thick);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-lift);
+}
+.builder-nav { display: flex; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; }
+.builder-foot .issues { margin: 0; max-block-size: 5.5em; overflow-y: auto; }
+/* The step's preview: a side column on wide screens, one line in the bottom bar below 860px. */
+.summary-peek { display: none; }
+@media (max-width: 860px) {
+  .summary-side { display: none; }
+  .summary-peek { display: grid; gap: var(--sp-2); }
+}
+.summary-peek-line {
+  font: inherit; font-size: 0.85rem; color: var(--ink); display: flex; align-items: center; gap: var(--sp-2);
+  min-block-size: 40px; padding-inline: var(--sp-3); border: 0; border-radius: var(--r-md);
+  background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); cursor: pointer; text-align: start;
+}
+.summary-peek-line > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.summary-peek-line > .muted { flex: 1 1 0; min-inline-size: 0; }
+.summary-peek-stats { flex: none; font-variant-numeric: tabular-nums; font-weight: 600; }
+.summary-peek-chev { flex: none; color: var(--muted); }
+.summary-peek-body { max-block-size: 55vh; overflow-y: auto; overscroll-behavior: contain; }
+.summary-peek-body .summary { position: static; padding: var(--sp-2); background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .issues {
   margin-block: var(--sp-3) 0; padding-block: var(--sp-2); padding-inline: var(--sp-6) var(--sp-3);
   border-radius: var(--r-md); background: color-mix(in srgb, var(--bad) 8%, transparent);
@@ -116,7 +145,8 @@
 
 /* Summary: sticky glass card; clears the floating top bar on wide screens. */
 .summary { position: sticky; inset-block-start: 76px; padding: var(--sp-4); }
-@media (max-width: 860px) { .summary { position: static; } }
+.summary-side { position: sticky; inset-block-start: 76px; }
+.summary-side > .summary { position: static; }
 .summary > h3 { font-family: var(--font-lore); font-size: 1.4rem; letter-spacing: 0; margin-block-end: var(--sp-1); overflow-wrap: anywhere; }
 .summary h4 { font-size: 0.8rem; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
 .summary-portrait { inline-size: 100%; aspect-ratio: 1; object-fit: cover; border-radius: calc(var(--r-lg) - var(--sp-4) + 4px); margin-block-end: var(--sp-3); }
@@ -277,7 +307,12 @@
 }
 /* Long chip and item lists scroll inside their box instead of stretching the page. */
 .builder .chip-scroll { max-block-size: 14rem; overflow-y: auto; overscroll-behavior: contain; padding-block: 2px; }
-.builder-spells .sb-list { max-block-size: 26rem; overflow-y: auto; overscroll-behavior: contain; }
+/* Spells: the list grows with the page; the pick counters stay in view at the top while scrolling it. */
+.builder-spells .bs-section > .bs-counts {
+  position: sticky; inset-block-start: var(--sp-2); z-index: 4; padding: var(--sp-1); border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--panel) 92%, transparent); box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+@media (min-width: 641px) { .builder-spells .bs-section > .bs-counts { inset-block-start: 76px; } }
 /* Phones: the ability table fits the card instead of pushing the page sideways. */
 .builder-body > * { min-inline-size: 0; }
 @media (max-width: 640px) {
@@ -290,3 +325,8 @@
 /* Level-up: "Wizard 1 → 2" with a quiet link to pick another class. */
 .levelup-class { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; }
 .levelup .link-btn { font: inherit; padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.picker-add-own { margin: 0; }
+.picker-add-own a { color: var(--accent); }
+.builder-spells .sb-list { max-block-size: none; overflow: visible; }
+/* Advanced options (swap racial proficiencies, move racial bonuses, multiclass): one closed fold at the end of the step. */
+.fold.advanced { margin-block-start: var(--sp-4); }

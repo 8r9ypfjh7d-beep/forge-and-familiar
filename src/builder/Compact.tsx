@@ -72,7 +72,7 @@ export function bookRank(group: string, homebrew = false): number {
  * `extra` adds a last tile/chip outside the groups (Custom subclass). `after` renders under the chosen tile
  * and is hidden while browsing, so the old pick's details don't stretch the open list.
  */
-export function ChoicePicker({ items, value, onPick, variant = 'card', firstGroup, label, extra, extraOn, after, searchAt = 14 }: {
+export function ChoicePicker({ items, value, onPick, variant = 'card', firstGroup, label, extra, extraOn, after, searchAt = 14, addOwn }: {
   items: PickItem[]
   value?: string
   onPick: (id: string) => void
@@ -87,6 +87,8 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
   after?: ReactNode
   /** Show the search field from this many items. */
   searchAt?: number
+  /** A last "Not here? Add your own" link (to Homebrew) at the end of the list; `hint` is its tooltip. */
+  addOwn?: { href: string; hint: string }
 }) {
   const { t } = useI18n()
   const picked = items.find(i => i.id === value)
@@ -160,16 +162,23 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
         const homebrew = all.slice(1).filter(isHomebrew)
         const rest = all.slice(1).filter(g => !isHomebrew(g))
         // A first group of one or two (the 2014 SRD has only Acolyte) reads like "there is nothing else":
-        // open the next book too, so a new player sees real choices.
+        // open the Player's Handbook too, so a new player sees real choices.
         const thin = all[0][1].length < 3
+        // The Player's Handbook (either edition) stays beside the core group; every other book waits in one closed fold.
+        const isPhb = ([g]: [string, PickItem[]]) => bookRank(g) <= 2
+        const phb = rest.filter(isPhb)
+        const others = rest.filter(g => !isPhb(g))
         return (
           <>
             {fold(all[0], true)}
             {homebrew.map(g => fold(g, true))}
-            <Fold className="picker-group" title={t('builder.compact.moreBooks', { count: rest.length })} status={rest.reduce((n, [, its]) => n + its.length, 0)}
-              defaultOpen={thin || rest.some(([, its]) => its.some(it => it.id === value))}>
-              <div className="picker-groups">{rest.map((g, i) => fold(g, thin && i === 0))}</div>
-            </Fold>
+            {phb.map((g, i) => fold(g, thin && i === 0))}
+            {others.length > 0 && (
+              <Fold className="picker-group" title={t('builder.compact.otherBooks')} status={others.reduce((n, [, its]) => n + its.length, 0)}
+                defaultOpen={others.some(([, its]) => its.some(it => it.id === value))}>
+                <div className="picker-groups">{others.map(g => fold(g, false))}</div>
+              </Fold>
+            )}
           </>
         )
       })()}
@@ -178,6 +187,7 @@ export function ChoicePicker({ items, value, onPick, variant = 'card', firstGrou
           <button type="button" className={`glass-chip ${extraOn ? 'on' : ''}`} aria-pressed={!!extraOn} onClick={() => { setBrowsing(false); extra.onPick() }}>{extra.name}</button>
         </div>
       )}
+      {addOwn && <p className="small picker-add-own"><a href={addOwn.href} title={addOwn.hint}>{t('builder.compact.addOwn')}</a></p>}
     </div>
   )
 }
