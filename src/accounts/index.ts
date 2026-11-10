@@ -1,4 +1,5 @@
 export { isAdmin, ROSTER, rosterName } from './roster'
 export { activate, activateErrorKey, getSession, onSessionChanged } from './session'
-export { AccountBadge, ActivateScreen, cloudLinkSnoozed, CloudLinkNotice, CodeForm } from './ui'
+export { openActivationPrompt } from './activationPrompt'
+export { AccountBadge, ActivateScreen, ActivationPromptHost, cloudLinkSnoozed, CloudLinkNotice, CodeForm } from './ui'
 export type { Account, AccountRole, ActivateError, Session } from './types'

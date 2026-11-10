@@ -32,3 +32,7 @@ A page for the group's admin account (Ziv, `acct-ziv`) to see and manage everyon
 ## Limits
 
 Without the server (cloud off, not signed in, or offline) the page sees only this browser's data, and friends' data reaches it as a backup file or a character Export.
+
+## Calm defaults (2026-11-10)
+
+People rows show names only (account id in the tooltip) and a labelled character count. Device data keeps Download/Restore on top; the per-key table sits in a collapsed "Advanced" section. Every destructive action uses the in-app `useConfirm()` dialog (`src/builder/ConfirmDialog.tsx`), never `confirm()`. Tabs stay on one scrolling row. When unlinked, the notice has an "Enter activation code" button (`openActivationPrompt`).

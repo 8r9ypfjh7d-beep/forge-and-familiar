@@ -35,3 +35,5 @@ Ask a rules question in plain words and get the answer quoted from the SRD 5.1, 
 ## Translations
 
 UI strings are `rulesqa.*` keys in `src/i18n/locales`. The SRD text, example questions and breadcrumbs stay English and are marked `lang="en" dir="ltr"`; the Hebrew screen tells people to ask in English because the search only matches English words.
+
+`searchRulesFor(question)` (`handoff.ts`) opens `#/rules` and asks the question there once the rules load; the Familiar uses it while offline.

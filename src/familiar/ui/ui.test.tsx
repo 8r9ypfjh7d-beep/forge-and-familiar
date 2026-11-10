@@ -8,6 +8,7 @@ import { navItems } from '../../nav/items'
 import type { Content, Thread } from '../types'
 import { FamiliarChat } from './FamiliarChat'
 import { parseMarkdown } from './markdown'
+import { recentThread } from './useFamiliarChat'
 import { screenFor } from './onScreen'
 import type { FamiliarChatState } from './useFamiliarChat'
 import { blockedReason, bubbles, canRetry, chipKeys, resetText } from './view'
@@ -96,6 +97,22 @@ describe('panel', () => {
   it('asks a local profile for the activation code', () => {
     setLocale('en')
     expect(render({ blocked: 'signIn' })).toContain('Sign in with your activation code')
+  })
+
+  it('offline keeps the box open and offers the rules search', () => {
+    setLocale('en')
+    const html = render({ blocked: 'offline' })
+    expect(html).toContain('Search the rules instead')
+    expect(html).not.toMatch(/<textarea[^>]*disabled/)
+    expect(html).not.toContain('How does grappling work?')
+  })
+
+  it('reopens a chat used in the last hour, not an older one', () => {
+    const now = Date.parse('2026-11-10T12:00:00Z')
+    const at = (iso: string) => ({ ...thread(convo), updatedAt: iso })
+    expect(recentThread([at('2026-11-10T11:30:00Z')], now)).not.toBeNull()
+    expect(recentThread([at('2026-11-10T10:30:00Z')], now)).toBeNull()
+    expect(recentThread([], now)).toBeNull()
   })
 
   it('renders answers with what they looked up, and the stream in progress', () => {
