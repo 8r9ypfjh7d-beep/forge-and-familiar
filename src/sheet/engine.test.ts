@@ -3,7 +3,7 @@ import { getMaxHp, getResources } from '../rules'
 import {
   canLongRest, grantTempHp, heal, hitDiceRemaining, longRest, rollDeathSave,
   setPactUsed, setResourceUsed, setSlotUsed, shortRest, spendHitDie, stabilize,
-  takeDamage, upsertCounter, vitals, dawn, dawnCounters, hitDieAverage, hitDicePreview,
+  takeDamage, upsertCounter, vitals, dawn, dawnCounters, hitDieAverage, hitDicePreview, restGains,
 } from './engine'
 import { makeCharacter } from './fixtures'
 
@@ -224,5 +224,19 @@ describe('hit dice preview', () => {
     expect(p.enough).toBe(p.heal >= p.missing)
     c = { ...c, state: { ...c.state, hitDiceSpent: Object.fromEntries(hitDiceRemaining(c).map(h => [h.die, h.total])) } }
     expect(hitDicePreview(c)).toMatchObject({ dice: 0, heal: 0, enough: false })
+  })
+})
+
+describe('restGains', () => {
+  it('lists what a long rest gave back', () => {
+    let c = takeDamage(fighter, 3)
+    c = setResourceUsed(c, 'arcane-recovery', 1)
+    const g = restGains(c, longRest(c))
+    expect(g).toMatchObject({ hp: 3, full: true, hitDice: 0 })
+    expect(g.resources).toContain('arcane-recovery')
+  })
+
+  it('is empty when nothing was spent', () => {
+    expect(restGains(fighter, shortRest(fighter))).toEqual({ hp: 0, full: true, slots: 0, hitDice: 0, resources: [] })
   })
 })

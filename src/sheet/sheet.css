@@ -52,7 +52,7 @@
 .ff-sheet .btn:hover:not(:disabled) { background: var(--glass-thick); }
 .ff-sheet .btn:active:not(:disabled) { transform: scale(.96); }
 .ff-sheet .btn:disabled { opacity: .45; cursor: not-allowed; }
-.ff-sheet .btn.primary, .ff-sheet .btn.danger, .ff-sheet .btn.heal {
+.ff-sheet .btn.primary, .ff-sheet .btn.danger, .ff-sheet .btn.heal, .ff-sheet .btn.temp {
   border-color: transparent; color: var(--on-fill);
   box-shadow: var(--glass-tint-highlight), 0 4px 14px color-mix(in srgb, var(--btn-fill) 30%, transparent);
   background: var(--btn-fill);
@@ -60,10 +60,11 @@
 .ff-sheet .btn.primary { --btn-fill: var(--s-accent); color: var(--accent-ink); }
 .ff-sheet .btn.danger { --btn-fill: var(--s-bad); }
 .ff-sheet .btn.heal { --btn-fill: var(--s-good); }
-.ff-sheet .btn.primary:hover:not(:disabled), .ff-sheet .btn.danger:hover:not(:disabled), .ff-sheet .btn.heal:hover:not(:disabled) {
+.ff-sheet .btn.temp { --btn-fill: var(--s-temp); }
+.ff-sheet .btn.primary:hover:not(:disabled), .ff-sheet .btn.danger:hover:not(:disabled), .ff-sheet .btn.heal:hover:not(:disabled), .ff-sheet .btn.temp:hover:not(:disabled) {
   background: color-mix(in srgb, var(--btn-fill) 88%, white);
 }
-.ff-sheet .btn:disabled.primary, .ff-sheet .btn:disabled.danger, .ff-sheet .btn:disabled.heal { box-shadow: none; }
+.ff-sheet .btn:disabled.primary, .ff-sheet .btn:disabled.danger, .ff-sheet .btn:disabled.heal, .ff-sheet .btn:disabled.temp { box-shadow: none; }
 .ff-sheet .btn.ghost { background: transparent; border-color: transparent; box-shadow: none; }
 .ff-sheet .btn.ghost:hover:not(:disabled) { background: var(--glass-thin); }
 .ff-sheet .btn.small { min-height: 32px; padding: 0 10px; font-size: .8rem; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -121,6 +122,7 @@
   .hp-controls { grid-template-columns: 1fr 1fr 1fr; }
   .hp-controls input { grid-column: 1 / -1; }
 }
+.hp-type-chip { margin-block-start: var(--sp-2); }
 .hp-type { display: flex; align-items: center; gap: var(--sp-2); margin-block-start: var(--sp-2); font-size: .875rem; color: var(--s-muted); }
 .hp-type select { flex: 1; min-width: 0; min-height: 36px; font-size: .9rem; }
 .hp-said { margin: var(--sp-2) 0 0; font-weight: 600; }

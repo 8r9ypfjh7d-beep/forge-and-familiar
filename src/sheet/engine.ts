@@ -304,6 +304,20 @@ export function longRest(c: Character): Character {
   return gainsInspirationOnLongRest(c) ? gainInspiration(healed) : healed
 }
 
+/** What a rest gave back, from the character before and after it: HP, spell slots, hit dice and the resources that refilled. */
+export function restGains(before: Character, after: Character): { hp: number; full: boolean; slots: number; hitDice: number; resources: string[] } {
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
+  const b = before.state
+  const a = after.state
+  return {
+    hp: Math.max(0, a.currentHp - b.currentHp),
+    full: a.currentHp >= effectiveMaxHp(after),
+    slots: Math.max(0, sum(b.spellSlotsUsed) - sum(a.spellSlotsUsed)) + Math.max(0, (b.pactSlotsUsed ?? 0) - (a.pactSlotsUsed ?? 0)),
+    hitDice: Math.max(0, sum(Object.values(b.hitDiceSpent ?? {}) as number[]) - sum(Object.values(a.hitDiceSpent ?? {}) as number[])),
+    resources: Object.keys(b.resources).filter(id => (b.resources[id]?.used ?? 0) > (a.resources[id]?.used ?? 0)),
+  }
+}
+
 /** The free-text notes on the character (backstory, personality, reminders). */
 export function setNotes(c: Character, notes: string): Character {
   return c.notes === notes ? c : { ...c, notes }
