@@ -3,7 +3,7 @@ import { derive } from '../rules'
 import { makeCharacter } from '../sheet/fixtures'
 import { boonLeft, canPassInspiration, dropSpareInspiration, passInspiration, removeBoon, spendInspiration, spendBoon } from '../sheet/boons'
 import { longRest } from '../sheet/engine'
-import { takeGifts } from './gifts'
+import { payPurse, takeGifts } from './gifts'
 import { applyStash, getStash, parseStashLog, type StashAction } from './stash'
 import type { Party } from './types'
 
@@ -103,5 +103,51 @@ describe('Rewards from the DM', () => {
 
   it('needs a name', () => {
     expect(applyStash(party, 'dm', { type: 'gift', boon: { kind: 'charm', name: '  ' }, to: [roy], names: [] }).ok).toBe(false)
+  })
+})
+
+describe('Stash loot onto the sheet', () => {
+  const step = (p: Party, by: string, a: StashAction) => {
+    const res = applyStash(p, by, a)
+    if (!res.ok) throw new Error(res.reason)
+    return res.party
+  }
+  const pip = () => makeCharacter({ id: 'pip', ownerId: 'tamir' })
+
+  it('Split pays every share once, and Take pays the taker', () => {
+    let p = step(party, 'dm', { type: 'coins', delta: { gp: 10, sp: 1 } })
+    p = step(p, 'dm', { type: 'split' })
+    const start = vex({ coins: { gp: 1, sp: 0, cp: 0 } })
+    const once = takeGifts(start, [p])
+    expect(once.coins).toEqual({ gp: 6, sp: 0, cp: 5 })
+    expect(takeGifts(once, [p])).toBe(once)
+    expect(takeGifts(pip(), [p]).coins.gp - pip().coins.gp).toBe(5)
+  })
+
+  it('Carry puts the item in the inventory, Take it moves it, Put back removes it', () => {
+    let p = step(party, 'dm', { type: 'add', name: 'Hempen Rope (50 ft)', qty: 1, itemId: 'rope' })
+    p = step(p, 'dm', { type: 'add', name: 'Idol of the moon', qty: 1, note: 'cold to touch' })
+    const [rope, idol] = getStash(p).items
+    p = step(p, 'roy', { type: 'hold', id: idol.id, carry: true })
+    let v = takeGifts(vex(), [p])
+    const line = v.inventory.find(e => e.stashId === idol.id)!
+    expect(line.item?.name).toBe('Idol of the moon')
+    expect(line.notes).toBe('cold to touch')
+    p = step(p, 'tamir', { type: 'hold', id: idol.id, carry: true })
+    v = takeGifts(v, [p])
+    expect(v.inventory.some(e => e.stashId === idol.id)).toBe(false)
+    expect(takeGifts(pip(), [p]).inventory.some(e => e.stashId === idol.id)).toBe(true)
+    p = step(p, 'roy', { type: 'hold', id: rope.id, carry: true })
+    v = takeGifts(v, [p])
+    expect(v.inventory.find(e => e.stashId === rope.id)?.itemId).toBe('rope')
+    p = step(p, 'roy', { type: 'hold', id: rope.id, carry: false })
+    expect(takeGifts(v, [p]).inventory.some(e => e.stashId === rope.id)).toBe(false)
+  })
+
+  it('pays a gp/sp/cp purse in any coin and makes change', () => {
+    expect(payPurse({ gp: 0, sp: 0, cp: 0 }, { pp: 1, ep: 1 })).toEqual({ gp: 10, sp: 5, cp: 0 })
+    expect(payPurse({ gp: 2, sp: 0, cp: 0 }, { cp: -5 })).toEqual({ gp: 1, sp: 9, cp: 5 })
+    expect(payPurse({ gp: 0, sp: 9, cp: 5 }, { gp: -1 })).toEqual({ gp: 0, sp: 0, cp: 0 })
+    expect(payPurse({ gp: 0, sp: 20, cp: 0 }, { gp: -1 })).toEqual({ gp: 0, sp: 10, cp: 0 })
   })
 })
