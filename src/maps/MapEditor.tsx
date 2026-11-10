@@ -18,10 +18,39 @@ const TOOL_GLYPH: Record<Tool, string> = { ...TERRAIN_GLYPH, pan: '✋', floor: 
 const EDGES: (Edge | 'none')[] = ['none', 'n', 's', 'e', 'w']
 const ZOOMS = [16, 22, 30, 40, 52]
 
-export function MapEditor({ map, onChange, onBack, backLabel, status }: { map: BattleMapDef; onChange: (m: BattleMapDef) => void; onBack: () => void; backLabel?: string; status?: string }) {
+const HISTORY = 50
+
+export function MapEditor({ map, onChange: save, onBack, backLabel, status }: { map: BattleMapDef; onChange: (m: BattleMapDef) => void; onBack: () => void; backLabel?: string; status?: string }) {
   const { t } = useI18n()
   const [tool, setTool] = useState<Tool>('wall')
-  const [phone] = useState(() => typeof matchMedia === 'function' && matchMedia('(max-width: 559px)').matches)
+  // Undo and Redo: every change but typing the name is one step back.
+  const [past, setPast] = useState<BattleMapDef[]>([])
+  const [future, setFuture] = useState<BattleMapDef[]>([])
+  const onChange = useCallback((next: BattleMapDef) => {
+    setPast(p => [...p.slice(1 - HISTORY), map])
+    setFuture([])
+    save(next)
+  }, [map, save])
+  const undo = () => {
+    const prev = past.at(-1)
+    if (!prev) return
+    setPast(p => p.slice(0, -1))
+    setFuture(f => [map, ...f])
+    save(prev)
+  }
+  const redo = () => {
+    const next = future[0]
+    if (!next) return
+    setFuture(f => f.slice(1))
+    setPast(p => [...p, map])
+    save(next)
+  }
+  const shortcut = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!(e.ctrlKey || e.metaKey) || (e.target as HTMLElement).matches('input, textarea, select')) return
+    const k = e.key.toLowerCase()
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
+    else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); redo() }
+  }
   const [zoom, setZoom] = useState(2)
   const [drag, setDrag] = useState<{ from: Cell; to: Cell } | null>(null)
   const [cursor, setCursor] = useState<Cell>({ x: 0, y: 0 })
@@ -126,16 +155,16 @@ export function MapEditor({ map, onChange, onBack, backLabel, status }: { map: B
   const canvasLabel = t('maps.canvas', { w: map.width, h: map.height })
 
   return (
-    <div className="ff-maps-editor">
+    <div className="ff-maps-editor" onKeyDown={shortcut}>
       <div className="maps-head">
         <button type="button" className="glass-btn" onClick={onBack}>{t('common.backArrow')} {backLabel ?? t('maps.back')}</button>
         <input className="glass-field maps-name" value={map.name} placeholder={t('maps.untitled')} aria-label={t('maps.name')}
-          onChange={e => onChange({ ...map, name: e.target.value })} />
+          onChange={e => save({ ...map, name: e.target.value })} />
         {status && <span className="hint maps-status" role="status">{status}</span>}
       </div>
 
-      {/* Set once per map, so folded on phones: the tools and the grid share the first screen there. */}
-      <details className="maps-setup" open={!phone}>
+      {/* Set once per map, so folded: the tools and the grid share the first screen. */}
+      <details className="maps-setup">
       <summary className="maps-setup-sum">{t('maps.setup')}</summary>
       <div className="maps-settings">
         {sizeField('width')}
@@ -181,6 +210,15 @@ export function MapEditor({ map, onChange, onBack, backLabel, status }: { map: B
 
       </details>
 
+      <div className="maps-zoom">
+        <button type="button" className="glass-btn" aria-label={t('maps.zoomOut')} disabled={zoom === 0} onClick={() => setZoom(z => z - 1)}>−</button>
+        <button type="button" className="glass-btn" aria-label={t('maps.zoomIn')} disabled={zoom === ZOOMS.length - 1} onClick={() => setZoom(z => z + 1)}>+</button>
+        <button type="button" className="glass-btn maps-undo" title={t('maps.undo')} aria-label={t('maps.undo')} disabled={!past.length} onClick={undo}>↶</button>
+        <button type="button" className="glass-btn maps-undo" title={t('maps.redo')} aria-label={t('maps.redo')} disabled={!future.length} onClick={redo}>↷</button>
+        <span className="hint maps-cell" aria-live="polite">{cellLine(cursor)}</span>
+      </div>
+
+      <div className="maps-work">
       <div className="maps-tools" role="toolbar" aria-label={t('maps.tools')}>
         {TOOLS.map(id => (
           <button key={id} type="button" className={`glass-chip maps-tool${tool === id ? ' on' : ''}`} title={t(`maps.tool.${id}` as MessageKey)} aria-pressed={tool === id} onClick={() => setTool(id)}>
@@ -189,18 +227,12 @@ export function MapEditor({ map, onChange, onBack, backLabel, status }: { map: B
           </button>
         ))}
       </div>
-      <p className="hint">{t('maps.toolHint')}</p>
-
-      <div className="maps-zoom">
-        <button type="button" className="glass-btn" aria-label={t('maps.zoomOut')} disabled={zoom === 0} onClick={() => setZoom(z => z - 1)}>−</button>
-        <button type="button" className="glass-btn" aria-label={t('maps.zoomIn')} disabled={zoom === ZOOMS.length - 1} onClick={() => setZoom(z => z + 1)}>+</button>
-        <span className="hint maps-cell" aria-live="polite">{cellLine(cursor)}</span>
-      </div>
-
       <div className={`maps-scroll${tool === 'pan' ? ' is-pan' : ''}`}>
         <canvas ref={canvasRef} className="maps-canvas" width={map.width * px} height={map.height * px} tabIndex={0} role="img" aria-label={canvasLabel}
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setDrag(null)} onKeyDown={key} />
       </div>
+      </div>
+      <p className="hint">{t('maps.toolHint')}</p>
 
       <PromptDialog open={!!labelCell} title={t('maps.labelAsk', { cell: labelCell ? cellName(labelCell.x, labelCell.y) : '' })} yes={t('maps.saveLabel')}
         placeholder={existing?.text ?? t('maps.labelPlaceholder')}
