@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canOpen, litKey, navItems, navKeyFor } from './items'
+import { canOpen, litKey, navItems, navKeyFor, splitMore } from './items'
 import { DM_VIEWS, hashToView, viewToHash, type View } from './route'
 
 const keys = (items: { key: string }[]) => items.map(i => i.key)
@@ -120,5 +120,16 @@ describe('hash routes', () => {
     expect(hashToView('#/dm/nope')).toEqual({ kind: 'dm' })
     expect(hashToView('#/npc')).toEqual({ kind: 'dm' })
     expect(hashToView('#/sheet/%E0%A4%A')).toEqual({ kind: 'campaigns' })
+  })
+})
+
+describe('splitMore', () => {
+  it('makes Familiar, Rules and Homebrew wide-screen tabs and keeps the rest under More', () => {
+    const { more } = navItems({ isDm: true, partyDm: false, admin: true })
+    const { wide, rest } = splitMore(more)
+    expect(wide.map(i => i.key)).toEqual(['familiar', 'rules', 'homebrew'])
+    expect(rest.map(i => i.key)).toEqual(['admin'])
+    const player = splitMore(navItems({ isDm: false, partyDm: false }).more)
+    expect(player.rest.map(i => i.label)).toEqual(['nav.iAmDm'])
   })
 })

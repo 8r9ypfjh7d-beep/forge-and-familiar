@@ -83,7 +83,7 @@
 .hb-field.wide { grid-column: 1 / -1; }
 .hb-field input, .hb-field select, .hb-field textarea { inline-size: 100%; }
 .hb-field textarea { resize: vertical; }
-.hb-check { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 32px; font-size: 0.9rem; }
+.hb-check { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 36px; padding-inline-end: var(--sp-2); cursor: pointer; font-size: 0.9rem; }
 /* Weapon property names are lowercase words in the data; skill names already carry their own case. */
 .hb-props .hb-check { text-transform: capitalize; }
 .hb-check.hb-plain { text-transform: none; }

@@ -5,7 +5,7 @@ import { useA11yActiveCount } from '../a11y/ui'
 import { LanguagePicker, useI18n } from '../i18n'
 import { inbox, useRequests } from '../requests'
 import { NavIcon } from './icons'
-import { litKey, navItems, navKeyFor, type NavContext, type NavKey } from './items'
+import { litKey, navItems, navKeyFor, splitMore, type NavContext, type NavKey } from './items'
 import './nav.css'
 
 export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmTools, dmBadge, onAccessibility, children }: NavContext & {
@@ -15,8 +15,8 @@ export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmToo
   /** Shown next to the player's name, e.g. the DM badge. */
   dmBadge?: ReactNode
   onAccessibility: () => void
-  /** Extra controls for the player menu, e.g. the player switcher. */
-  children?: ReactNode
+  /** Extra controls for the player menu, e.g. the player switcher; a function gets the menu's close. */
+  children?: ReactNode | ((close: () => void) => ReactNode)
 }) {
   const { t } = useI18n()
   const { main, more } = navItems({ isDm, partyDm, admin, dmTools })
@@ -28,9 +28,12 @@ export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmToo
   const waiting = isDm && requests ? inbox(requests).length : 0
   const a11yOn = useA11yActiveCount()
   const inMore = more.find(i => i.key === current)
+  const { wide, rest } = splitMore(more)
+  // On wide screens the reference pages are tabs, so More lights only for what stays in it.
+  const moreLit = !inMore ? '' : wide.includes(inMore) ? 'on lit-narrow' : 'on'
 
-  const tab = (key: NavKey, label: string, short: string, badge = 0, icon: NavKey = key) => (
-    <button key={key} type="button" className={`nav-tab ${current === key ? 'on' : ''}`}
+  const tab = (key: NavKey, label: string, short: string, badge = 0, icon: NavKey = key, extra = '') => (
+    <button key={key} type="button" className={`nav-tab ${current === key ? 'on' : ''} ${extra}`}
       aria-current={current === key ? 'page' : undefined} onClick={() => onGo(key)}
       aria-label={badge > 0 ? `${label} (${badge})` : label}>
       <span className="nav-icon"><NavIcon name={icon} />{badge > 0 && <span className="nav-badge">{badge}</span>}</span>
@@ -45,14 +48,16 @@ export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmToo
         {main.map(i => i.key === 'dm' && fight
           ? tab('dm', t('app.combat'), t('nav.combatShort'), waiting, 'combat')
           : tab(i.key, t(i.label), t(i.short ?? i.label), i.key === 'dm' ? waiting : 0))}
+        {wide.map(i => tab(i.key, t(i.label), t(i.short ?? i.label), 0, i.key, 'nav-wide-only'))}
         <Menu
-          className={`nav-tab ${inMore ? 'on' : ''}`}
-          label={<><span className="nav-icon"><NavIcon name="more" /></span><span className="nav-label">{t('nav.more')}</span></>}
+          boxClass={rest.length === 0 ? 'nav-narrow-only' : ''}
+          className={`nav-tab nav-more ${moreLit}`}
+          label={<><span className="nav-icon"><NavIcon name="more" /></span><span className="nav-label">{t('nav.more')}<Chevron /></span></>}
           title={t('nav.more')}
           menu
         >
           {close => more.map(i => (
-            <button key={i.key} type="button" role="menuitem" className={`nav-item ${view === i.key ? 'on' : ''}`}
+            <button key={i.key} type="button" role="menuitem" className={`nav-item ${view === i.key ? 'on' : ''} ${wide.includes(i) ? 'nav-narrow-only' : ''}`}
               aria-current={view === i.key ? 'page' : undefined} onClick={() => { close(); onGo(i.key) }}>
               <NavIcon name={i.key} />{t(i.label)}
             </button>
@@ -67,10 +72,10 @@ export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmToo
       >
         {close => (
           <div className="nav-settings">
-            {children}
+            {typeof children === 'function' ? children(close) : children}
             <label className="nav-field">
               <span className="muted small">{t('app.language')}</span>
-              <LanguagePicker />
+              <LanguagePicker onChange={close} />
             </label>
             <button type="button" className="nav-item" onClick={() => { close(); onAccessibility() }}>
               <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="4" r="2" fill="currentColor"/><path d="M3.5 7.5 10 9l6.5-1.5M10 9v4l-3 5M10 13l3 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -84,9 +89,16 @@ export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmToo
   )
 }
 
+/** Marks the More button as a menu: points down on wide screens, up on phones where the menu opens above the bar. */
+function Chevron() {
+  return <svg className="nav-chevron" aria-hidden="true" viewBox="0 0 10 10" width="10" height="10"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+}
+
 /** A button with a drop-down panel that closes on outside click, Escape, or by the panel itself. */
-function Menu({ className, label, title, end, menu, children }: {
+function Menu({ className, boxClass = '', label, title, end, menu, children }: {
   className: string
+  /** Class for the wrapper, e.g. to hide the whole menu on wide screens. */
+  boxClass?: string
   label: ReactNode
   title: string
   end?: boolean
@@ -116,7 +128,7 @@ function Menu({ className, label, title, end, menu, children }: {
   }, [open])
 
   return (
-    <div className="nav-menu" ref={box}>
+    <div className={`nav-menu ${boxClass}`} ref={box}>
       <button ref={button} type="button" className={className} aria-haspopup={menu ? 'menu' : undefined} aria-expanded={open} aria-controls={id}
         title={title} onClick={() => setOpen(o => !o)}>
         {label}

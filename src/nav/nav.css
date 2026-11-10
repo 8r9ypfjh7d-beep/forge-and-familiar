@@ -61,6 +61,28 @@
 .nav-field { display: grid; gap: 4px; }
 .nav-label.short { display: none; }
 
+/* More reads as a menu: a chevron after its label (up on phones, where the menu opens above the bar). */
+.nav-chevron { margin-inline-start: 4px; vertical-align: middle; opacity: 0.7; transition: transform var(--dur-fast) var(--ease-glass); }
+.nav-more[aria-expanded="true"] .nav-chevron { transform: rotate(180deg); }
+
+/* Player menu: who is playing and whether it syncs, then the other players as rows, then account actions. */
+.nav-account { display: grid; gap: 2px; }
+.nav-who { display: flex; align-items: center; gap: 10px; padding: 6px 8px 10px; border-block-end: 1px solid var(--glass-hairline); margin-block-end: 4px; }
+.nav-who .nav-avatar { width: 34px; height: 34px; font-size: 1rem; flex: none; }
+.nav-who-text { display: grid; gap: 2px; min-width: 0; }
+.nav-who-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-profiles { display: grid; gap: 2px; padding-block-end: 4px; margin-block-end: 2px; border-block-end: 1px solid var(--glass-hairline); }
+.nav-check { inline-size: 18px; flex: none; text-align: center; color: var(--accent); font-weight: 700; }
+.nav-signout { color: var(--bad); }
+
+/* Wide screens have room: the reference pages (Familiar, Rules, Homebrew) are tabs, not More items. */
+.nav-wide-only { display: none; }
+@media (min-width: 1024px) {
+  .nav-wide-only { display: inline-flex; }
+  .nav-narrow-only { display: none; }
+  .nav-tab.on.lit-narrow { color: var(--muted); font-weight: 500; background: transparent; box-shadow: none; }
+}
+
 @media (max-width: 640px) {
   /* Floating tab bar: inset from the edges, lifted off the home indicator, at most 68px tall
      so the dice button (76px up) and PWA banner keep clearing it. */
@@ -85,6 +107,12 @@
   .nav-label, .nav-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.03em; }
   .nav-player .account-badge { display: none; }
   .nav-avatar { width: 24px; height: 24px; font-size: 0.75rem; }
+  .nav-chevron { transform: rotate(180deg); margin-inline-start: 2px; }
+  .nav-more[aria-expanded="true"] .nav-chevron { transform: none; }
+  /* Large text (130% and up, src/a11y): labels no longer fit five tabs, so the bar shows icons only;
+     each tab keeps its aria-label. The icons grow a little to stay easy to hit. */
+  :root[data-text="large"] .nav-label, :root[data-text="large"] .nav-name { display: none !important; }
+  :root[data-text="large"] .nav-icon svg { width: 26px; height: 26px; }
   .nav-panel, .nav-panel.end {
     position: fixed; inset-block-start: auto; inset-inline: 10px; min-width: 0;
     inset-block-end: calc(80px + env(safe-area-inset-bottom)); transform-origin: bottom;

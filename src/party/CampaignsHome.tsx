@@ -54,7 +54,7 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
           <div className="campaigns-actions">
             <button className="glass-btn prominent" onClick={onBuild}>{t('home.build')}</button>
           </div>
-          <p className="small"><a href="#/starters">{t('home.readyMade')}</a></p>
+          <p className="small"><a className="home-ready-link" href="#/starters">{t('home.readyMade')}</a></p>
         </div>
       ) : (
         <ul className="home-heroes">

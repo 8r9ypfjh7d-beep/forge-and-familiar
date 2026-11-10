@@ -1,9 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ComponentType } from 'react'
 import './a11y'
 import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
-import { AccountBadge, ActivateScreen, ActivationPromptHost, CloudLinkNotice, getSession, openActivationPrompt, isAdmin, onSessionChanged, type Session } from './accounts'
+import { AccountBadge, ActivateScreen, ActivationPromptHost, CloudLinkNotice, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
 import { UnfinishedDraft } from './builder/UnfinishedDraft'
-import { PromptDialog } from './builder/ConfirmDialog'
 import { useLiveHits } from './combat/ui/useLiveHits'
 import { loadDm, saveDm } from './dm/store'
 import { useDmTools } from './dm/dmTools'
@@ -16,7 +15,7 @@ import { campaignTarget, CampaignsHome, LevelUpPrompt, PartyRollRelay, PartySwit
 import { xpForNextLevel, xpReady } from './rules'
 import { loadHomebrew } from './homebrew'
 import { useI18n } from './i18n'
-import { AppNav, canOpen, useHashView } from './nav'
+import { AppNav, canOpen, PlayerPanel, useHashView } from './nav'
 import { CharacterList } from './list/CharacterList'
 import { InstallMenuItem } from './pwa'
 import { DuplicatePrompt, SyncBadge, useCloudSync } from './sync'
@@ -221,10 +220,11 @@ export default function App() {
         dmBadge={<><AccountBadge dm={partyDm} /><SyncBadge compact /></>}
         onAccessibility={() => a11yDialog.current?.showModal()}
       >
-        <SyncBadge />
-        <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
-        <InstallMenuItem />
-        {playing.parties && <PartySwitcher parties={playing.parties} party={playing.party} onPick={switchCampaign} />}
+        {close => <>
+          <PlayerPanel profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} signedIn={ownProfile} close={close} />
+          <InstallMenuItem />
+          {playing.parties && <PartySwitcher parties={playing.parties} party={playing.party} onPick={switchCampaign} />}
+        </>}
       </AppNav>
       <AccessibilityDialog ref={a11yDialog} />
       <main id="main" ref={mainRef} tabIndex={-1}>
@@ -385,26 +385,5 @@ export default function App() {
         secretTo={playing.party && !playing.isDm ? { partyId: playing.party.id, userId: active.id } : undefined} />}
     </div>
     </DiceProvider>
-  )
-}
-
-function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
-  profiles: UserProfile[]
-  active: UserProfile
-  onSwitch: (id: string) => void
-  onAdd: (name: string) => void
-}) {
-  const { t } = useI18n()
-  const [asking, setAsking] = useState<'player' | null>(null)
-  return (
-    <div className="row profile">
-      <label className="muted small" htmlFor="profile">{t('app.player')}</label>
-      <select id="profile" value={active.id} onChange={e => onSwitch(e.target.value)}>
-        {profiles.map(p => <option key={p.id} value={p.id}>{p.displayName}</option>)}
-      </select>
-      <button type="button" className="nav-item" onClick={() => setAsking('player')}>{t('app.addPlayer')}</button>
-      <button type="button" className="nav-item" onClick={openActivationPrompt}>{t('account.enterCode')}</button>
-      <PromptDialog open={asking === 'player'} title={t('app.newPlayerPrompt')} yes={t('app.addPlayerYes')} onClose={() => setAsking(null)} onSubmit={onAdd} />
-    </div>
   )
 }

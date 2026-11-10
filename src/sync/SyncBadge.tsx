@@ -5,10 +5,11 @@ import { getSyncStatus, onSyncStatus } from './runner'
 import './sync.css'
 
 /** `compact`: only a dot, and only when something is wrong (offline or failed), for the menu button. */
-export function SyncBadge({ compact = false }: { compact?: boolean }) {
+/** `local`: say "This device only" while sync is off, instead of showing nothing (the player menu's status line). */
+export function SyncBadge({ compact = false, local = false }: { compact?: boolean; local?: boolean }) {
   const { t } = useI18n()
   const s = useSyncExternalStore(onSyncStatus, getSyncStatus)
-  if (s.state === 'off') return null
+  if (s.state === 'off') return local ? <span className="sync-badge sync-off" role="status"><span className="sync-dot" aria-hidden="true" />{t('sync.off')}</span> : null
   const label = s.state === 'idle' && s.pending ? t('sync.pending', { count: s.pending }) : t(`sync.${s.state}`)
   if (compact) {
     if (s.state !== 'offline' && s.state !== 'error') return null

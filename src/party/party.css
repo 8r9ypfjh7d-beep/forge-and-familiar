@@ -208,3 +208,5 @@
 .ff-party .party-dm-link { padding: var(--sp-3) var(--sp-4); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); }
 .ff-party .party-dm-link p { margin: 0; flex: 1 1 14em; }
 .ff-party .party-dm-link a { text-decoration: none; }
+/* "New to D&D?" link: padded to a 32px tap target without looking bigger. */
+.home-ready-link { display: inline-block; padding-block: 8px; }

@@ -59,6 +59,8 @@ export function toAttributes(s: A11ySettings): Record<string, string | null> {
     'data-transparency': s.reduceTransparency ? 'reduce' : null,
     'data-focus': s.strongFocus ? 'strong' : null,
     'data-targets': s.largeTargets ? 'large' : null,
+    // 130% and up: the phone tab bar shows icons only, since labels no longer fit (src/nav/nav.css).
+    'data-text': s.textSize >= 130 ? 'large' : null,
   }
 }
 

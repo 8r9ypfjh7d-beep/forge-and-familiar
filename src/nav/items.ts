@@ -55,6 +55,15 @@ export function navItems({ isDm, partyDm, admin, dmTools }: NavContext): { main:
   return { main: main.map(k => ITEM[k]), more: items }
 }
 
+/** Reference screens that get their own tab on wide screens (nav.css shows them from 1024px), so only the
+ *  admin, DM extras and "I'm a DM" stay under More there. Phones keep them under More. */
+export const WIDE_TABS: readonly NavKey[] = ['familiar', 'rules', 'homebrew']
+
+/** Splits the More items into those that become tabs on wide screens and those that stay in the menu. */
+export function splitMore(more: readonly NavItem[]): { wide: NavItem[]; rest: NavItem[] } {
+  return { wide: more.filter(i => WIDE_TABS.includes(i.key)), rest: more.filter(i => !WIDE_TABS.includes(i.key)) }
+}
+
 /** Whether this account may open a screen; the DM pages and the admin page are guarded, not just hidden. */
 export function canOpen(viewKind: string, { isDm, admin }: NavContext): boolean {
   if (DM_ONLY.includes(viewKind)) return isDm
