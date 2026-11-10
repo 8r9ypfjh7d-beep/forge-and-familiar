@@ -73,6 +73,12 @@ export interface Gift {
   to: { userId: string; characterId: string }[]
   inspiration?: boolean
   boon?: GiftBoon
+  /** Coins paid into the purse (negative: out of it): a share of a stash split, or coins taken from or put in the stash. */
+  coins?: Partial<Coins>
+  /** A stash item this character now carries: it goes into the inventory, marked with its stash id. */
+  item?: { stashId: string; name: string; qty: number; itemId?: string; note?: string }
+  /** A carried stash item went back to the bag or to someone else: the inventory line with this stash id goes. */
+  dropItem?: string
 }
 
 /** A reward as the DM wrote it; each character gets its own copy with the gift's id. */

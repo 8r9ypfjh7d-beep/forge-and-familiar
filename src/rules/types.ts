@@ -526,6 +526,8 @@ export interface InventoryEntry {
   extraDamage?: string
   /** What the item does to the character's numbers while equipped. */
   effects?: ItemEffect[]
+  /** The party stash item this came from (src/party): putting it back in the bag removes this line. */
+  stashId?: string
 }
 
 /** A flat bonus an item gives while worn. `attack` and `damage` apply to weapon attacks (and the unarmed strike). */

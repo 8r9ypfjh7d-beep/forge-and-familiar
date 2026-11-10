@@ -46,10 +46,11 @@ export function useSheetRolls(c: Character) {
     /**
      * A spell from the attacks table: the spell attack (if any), then its damage plus riders.
      * A crit doubles the dice; a natural 1 on the attack rolls no damage.
+     * `action` groups several calls into one history entry (Magic Missile's darts, Scorching Ray's rays).
      */
-    spell(name: string, opts: { attackBonus?: number; damage?: string; damageType?: string; mode?: RollMode; riders?: { name: string; damage: string; damageType?: string }[] }): AttackOutcome | { damage?: RollResult } {
+    spell(name: string, opts: { attackBonus?: number; damage?: string; damageType?: string; mode?: RollMode; riders?: { name: string; damage: string; damageType?: string }[]; action?: { id: string; name: string } }): AttackOutcome | { damage?: RollResult } {
       const hit = opts.attackBonus === undefined ? undefined : rollAttack({ name, bonus: opts.attackBonus }, { character, mode: opts.mode, lucky })
-      const action = hit && opts.damage && !hit.d20?.fumble ? { id: hit.id, name } : undefined
+      const action = opts.action ?? (hit && opts.damage && !hit.d20?.fumble ? { id: hit.id, name } : undefined)
       if (hit) record(Object.assign(hit, action && { action }))
       if (hit?.d20?.fumble || !opts.damage) return hit ? { attack: hit } : {}
       const riders = opts.riders ?? []

@@ -38,11 +38,25 @@ describe('coins', () => {
     expect(applyStash(p, 'ana', { type: 'coins', delta: { gp: -31 } })).toEqual({ ok: false, reason: "The stash doesn't have those coins." })
   })
 
-  it('split empties the purse down to the leftover copper', () => {
-    const p = run(party, { type: 'coins', delta: { pp: 1, gp: 1 } }, { type: 'split', ways: 4 })
+  it('split empties the purse down to the leftover copper and pays every player', () => {
+    const four: Party = { ...party, members: [...party.members, ...['ana', 'bo', 'cy', 'di'].map(u => ({ userId: u, characterId: `c-${u}`, joinedAt: party.createdAt }))] }
+    const p = run(four, { type: 'coins', delta: { pp: 1, gp: 1 } }, { type: 'split' })
     expect(getStash(p).coins).toEqual({ pp: 0, gp: 0, ep: 0, sp: 0, cp: 0 })
     expect(getStash(p).log[0].text).toBe('split the coin 4 ways: 2 gp 7 sp 5 cp each')
-    expect(applyStash(p, 'ana', { type: 'split', ways: 4 }).ok).toBe(false)
+    const [gift] = getStash(p).gifts!
+    expect(gift.coins).toEqual({ gp: 2, sp: 7, cp: 5 })
+    expect(gift.to.map(x => x.characterId)).toEqual(['c-ana', 'c-bo', 'c-cy', 'c-di'])
+    expect(applyStash(p, 'ana', { type: 'split' }).ok).toBe(false)
+    expect(applyStash(party, 'ana', { type: 'split' }).ok).toBe(false)
+  })
+
+  it('pays your purse on take and from it on add only when asked', () => {
+    const withAna: Party = { ...party, members: [...party.members, { userId: 'ana', characterId: 'c-ana', joinedAt: party.createdAt }] }
+    const p = run(withAna, { type: 'coins', delta: { gp: 50 } }, { type: 'coins', delta: { gp: -20 }, purse: true }, { type: 'coins', delta: { sp: 5 }, purse: true })
+    const gifts = getStash(p).gifts!
+    expect(gifts.map(g => g.coins)).toEqual([{ sp: -5 }, { gp: 20 }])
+    expect(gifts[0].to).toEqual([{ userId: 'ana', characterId: 'c-ana' }])
+    expect(getStash(p).coins.gp).toBe(30)
   })
 })
 

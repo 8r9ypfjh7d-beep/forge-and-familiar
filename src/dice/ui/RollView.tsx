@@ -1,4 +1,4 @@
-// One roll: label, dice (dropped dice struck through), total, crit/fumble badge. Or one action: to-hit and damage on one card.
+// One roll: label, dice (dropped dice struck through), total, crit/fumble badge. Raw notation shows only as the label of a typed formula. Or one action: to-hit and damage on one card.
 import { useI18n } from '../../i18n'
 import { actionName } from '../history'
 import { bySource, hasSources } from '../roll'
@@ -79,7 +79,6 @@ export function RollView({ roll, compact = false }: { roll: RollResult; compact?
         {crit && <span className="ff-roll__badge">{t('dice.crit')}</span>}
         {fumble && <span className="ff-roll__badge">{t('dice.nat1')}</span>}
         {roll.autoFail && <span className="ff-roll__badge">{t('dice.autoFail')}</span>}
-        {!compact && !plain && <span className="ff-roll__notation"><Notation text={roll.notation} /></span>}
       </div>
     </div>
   )
@@ -109,12 +108,7 @@ function ActionPart({ roll }: { roll: RollResult }) {
         <span className="ff-roll__total" aria-label={t('dice.total', { total: roll.total })}>{roll.total}</span>
       </div>
       <div className="ff-roll__detail">
-        {hasSources(roll) ? <Sources terms={roll.terms} /> : (
-          <>
-            <Terms terms={roll.terms} />
-            <span className="ff-roll__notation"><Notation text={roll.notation} /></span>
-          </>
-        )}
+        {hasSources(roll) ? <Sources terms={roll.terms} /> : <Terms terms={roll.terms} />}
       </div>
     </div>
   )

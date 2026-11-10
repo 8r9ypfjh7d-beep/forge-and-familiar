@@ -73,16 +73,18 @@ export function PartyStash({ party, userId, nameOf }: { party: Party; userId: st
   }
   // Split among members who bring a character; the DM watching doesn't take a share.
   const players = party.members.filter(m => m.characterId).length
+  // Takes and carries go onto this character's sheet.
+  const hasCharacter = party.members.some(m => m.userId === userId && m.characterId)
 
   return (
     <section className="glass stash" aria-labelledby="stash-title">
       <div className="stash-head">
         <h3 id="stash-title">{t('stash.title')}</h3>
-        <span className="muted small">{t('stash.intro')}</span>
+        <span className="muted small">{t(hasCharacter ? 'stash.introSheet' : 'stash.intro')}</span>
       </div>
 
       <div className="stash-cols">
-        <CoinPurse coins={stash.coins} players={players} act={act} />
+        <CoinPurse coins={stash.coins} players={players} hasCharacter={hasCharacter} act={act} />
         <ItemList party={party} userId={userId} nameOf={nameOf} act={act} />
       </div>
 
@@ -105,23 +107,27 @@ export function PartyStash({ party, userId, nameOf }: { party: Party; userId: st
   )
 }
 
-function CoinPurse({ coins, players, act }: {
+function CoinPurse({ coins, players, hasCharacter, act }: {
   coins: ReturnType<typeof getStash>['coins']
   players: number
+  hasCharacter: boolean
   act: (a: StashAction) => Promise<boolean>
 }) {
   const { t } = useI18n()
   const [amount, setAmount] = useState('')
   const [coin, setCoin] = useState<Coin>('gp')
   const [reason, setReason] = useState('')
+  const [fromPurse, setFromPurse] = useState(false)
   const [splitting, setSplitting] = useState(false)
   const n = Math.floor(Number(amount))
   const valid = n > 0
+  // Taking always pays your purse; adding comes out of it only when ticked (found loot doesn't).
   const move = async (sign: 1 | -1) => {
-    if (await act({ type: 'coins', delta: { [coin]: sign * n }, reason })) { setAmount(''); setReason('') }
+    const purse = hasCharacter && (sign < 0 || fromPurse)
+    if (await act({ type: 'coins', delta: { [coin]: sign * n }, reason, purse })) { setAmount(''); setReason('') }
   }
   const split = splitCoins(coins, players)
-  const canSplit = players > 0 && toCp(split.share) > 0
+  const canSplit = players > 1 && toCp(split.share) > 0
 
   return (
     <div className="purse">
@@ -139,14 +145,22 @@ function CoinPurse({ coins, players, act }: {
         </select>
         <input className="glass-field grow" value={reason} onChange={e => setReason(e.target.value)} placeholder={t('stash.reasonPlaceholder')} aria-label={t('stash.reason')} />
         <button className="glass-btn small prominent" disabled={!valid}>{t('stash.add')}</button>
-        <button type="button" className="glass-btn small" disabled={!valid} onClick={() => move(-1)}>{t('stash.take')}</button>
+        <button type="button" className="glass-btn small" disabled={!valid} onClick={() => move(-1)}
+          title={hasCharacter ? t('stash.takeHint') : undefined}>{t('stash.take')}</button>
       </form>
+      {hasCharacter && (
+        <label className="small row from-purse">
+          <input type="checkbox" checked={fromPurse} onChange={e => setFromPurse(e.target.checked)} /> {t('stash.fromPurse')}
+        </label>
+      )}
 
-      <button className="glass-btn small" disabled={!canSplit} onClick={() => setSplitting(true)}>
-        {canSplit ? t('stash.splitWays', { count: players, coins: coinText(split.share, t) }) : t('stash.splitAmong')}
-      </button>
+      {players > 1 && (
+        <button className="glass-btn small" disabled={!canSplit} onClick={() => setSplitting(true)}>
+          {canSplit ? t('stash.splitWays', { count: players, coins: coinText(split.share, t) }) : t('stash.splitAmong')}
+        </button>
+      )}
       <ConfirmDialog open={splitting} title={t('stash.splitConfirm', { count: players, coins: coinText(split.share, t) })} yes={t('stash.split')}
-        onYes={() => void act({ type: 'split', ways: players })} onClose={() => setSplitting(false)} />
+        onYes={() => void act({ type: 'split' })} onClose={() => setSplitting(false)} />
       {canSplit && split.leftoverCp > 0 && <p className="muted small">{t('stash.leftover', { count: split.leftoverCp })}</p>}
     </div>
   )
@@ -189,11 +203,11 @@ function ItemList({ party, userId, nameOf, act }: {
                     {it.note && <span className="muted small"> · {it.note}</span>}
                     <div className="muted small">{mine ? t('stash.carriedByYou') : it.heldBy ? t('stash.carriedBy', { name: nameOf(it.heldBy) }) : t('stash.inBag')}</div>
                   </div>
-                  <div className="qty" role="group" aria-label={t('stash.qtyLabel', { name: itemText(it.name, it.itemId, i18n) })}>
+                  {it.heldBy ? <span className="qty muted">×{it.qty}</span> : <div className="qty" role="group" aria-label={t('stash.qtyLabel', { name: itemText(it.name, it.itemId, i18n) })}>
                     <button className="glass-btn small ghost icon" onClick={() => act({ type: 'qty', id: it.id, delta: -1 })} aria-label={t('stash.useOne', { name: itemText(it.name, it.itemId, i18n) })}>−</button>
                     <span>{it.qty}</span>
                     <button className="glass-btn small ghost icon" onClick={() => act({ type: 'qty', id: it.id, delta: 1 })} aria-label={t('stash.addOne', { name: itemText(it.name, it.itemId, i18n) })}>+</button>
-                  </div>
+                  </div>}
                   <button className="glass-btn small" onClick={() => act({ type: 'hold', id: it.id, carry: !mine })}>
                     {mine ? t('stash.putBack') : it.heldBy ? t('stash.takeIt') : t('stash.carry')}
                   </button>

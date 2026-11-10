@@ -1,5 +1,6 @@
 // Full-screen natural 20 / natural 1 moment: a god-power burst for a 20, a comic crash for a 1.
-// It stays until the player taps anywhere, presses ✕ or Escape. Reduce motion keeps a still card with the same words.
+// It never blocks play: taps go through to the sheet (and close it), and it leaves on its own once the joke has been read.
+// ✕ and Escape close it early. Reduce motion keeps a still card with the same words.
 import { useEffect, useState, type CSSProperties } from 'react'
 import { useI18n } from '../../i18n'
 import type { MessageKey } from '../../i18n/locales/en'
@@ -10,6 +11,9 @@ const LEAVE_MS = 280
 const SPARKS = 30
 const RAYS = 3
 const RAIN = 26
+/** How long each moment stays: until its last line has been on screen about a second (see crit.css delays). */
+export const CRIT_STAY_MS: Record<CritKind, number> = { nat20: 2600, nat1: 3400 }
+const STILL_STAY_MS = 2200
 
 export interface Crit {
   key: number
@@ -73,9 +77,17 @@ export function CritFx({ crit, still, onDone }: { crit: Crit; still: boolean; on
   }, [leaving, still, onDone])
 
   useEffect(() => {
+    const id = window.setTimeout(() => setLeaving(true), still ? STILL_STAY_MS : CRIT_STAY_MS[kind])
+    return () => clearTimeout(id)
+  }, [crit.key, kind, still])
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLeaving(true) }
+    // The overlay lets taps through, so the player's next tap does what it was for and also closes the moment.
+    const onTap = () => setLeaving(true)
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onTap, true)
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onTap, true) }
   }, [])
 
   const close = () => setLeaving(true)
@@ -83,7 +95,6 @@ export function CritFx({ crit, still, onDone }: { crit: Crit; still: boolean; on
     <div
       className={`ff-crit ff-crit--${kind}${still ? ' is-still' : ''}${leaving ? ' is-leaving' : ''}`}
       role="status"
-      onClick={close}
       data-testid="crit-fx"
     >
       <div className="ff-crit__stage">
@@ -118,7 +129,6 @@ export function CritFx({ crit, still, onDone }: { crit: Crit; still: boolean; on
           <span className="ff-crit__kicker">{t(`dice.${kind}.kicker` as MessageKey)}</span>
           <span className="ff-crit__line">{t(`dice.${kind}.line${crit.line}` as MessageKey)}</span>
         </div>
-        <span className="ff-crit__hint" aria-hidden="true">{t('dice.crit.tap')}</span>
       </div>
       <button type="button" className="ff-crit__close" onClick={e => { e.stopPropagation(); close() }} aria-label={t('dice.nat20.dismiss')} title={t('dice.nat20.dismiss')}>✕</button>
     </div>
