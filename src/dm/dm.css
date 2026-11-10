@@ -139,7 +139,7 @@
 
 /* ---- Monster browser ---- */
 .dm-filters { display: grid; gap: var(--sp-2); grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block-end: var(--sp-2); }
-.dm-filters input { grid-column: 1 / -1; }
+.dm-filters .dm-edition { grid-column: 1 / -1; margin: 0; }
 .dm-monster-list { max-block-size: 28rem; overflow-y: auto; }
 /* The open monster: the lens. */
 .dm-monster-list li.on {
@@ -285,7 +285,12 @@
 
 /* ---- Fights tab building (fight audit unit 2) ---- */
 .ff-dm .dm-trim { margin-block: calc(-1 * var(--sp-2)) var(--sp-3); color: var(--bad); }
-.ff-dm .dm-strong { color: var(--bad); font-weight: 600; }
+.ff-dm .dm-strong { display: inline-block; margin-inline-start: 6px; padding: 0 6px; border-radius: var(--r-pill); background: var(--glass-thin); border: 1px solid var(--glass-hairline); color: var(--muted); font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+/* Search, then one row of chips: Fits this party and Filters (source, CR, type and rules edition fold behind it). */
+.ff-dm .dm-search { inline-size: 100%; margin-block-end: var(--sp-2); }
+.ff-dm .dm-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-block-end: var(--sp-2); }
+.ff-dm .dm-chips .dm-fit { margin: 0; }
+.ff-dm .dm-filter-chip.on { border-color: var(--accent); color: var(--accent); }
 .ff-dm .dm-fit { margin-block-end: var(--sp-2); }
 .ff-dm .dm-fit.on { background: var(--glass-tint); border-color: var(--accent); color: var(--accent); }
 .ff-sheet.ff-dm .btn.dm-added { border-color: var(--good); color: var(--good); }
@@ -314,7 +319,8 @@
 }
 /* Phones: clear the floating tab bar and keep the dice button's corner free. */
 @media (max-width: 640px) {
-  .app:has(> .nav) .dm-fight-sum { inset-block-end: calc(76px + env(safe-area-inset-bottom)); margin-inline-end: 68px; }
+  /* Above the floating dice and Familiar buttons, so the line keeps the full width. */
+  .app:has(> .nav) .dm-fight-sum { inset-block-end: calc(140px + env(safe-area-inset-bottom)); }
 }
 /* Narrow: the plan row's XP goes under the name so long names keep their width. */
 @media (max-width: 520px) {

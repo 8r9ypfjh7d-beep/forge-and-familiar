@@ -641,44 +641,58 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition, i
     clearTimeout(flashTimer.current)
     flashTimer.current = setTimeout(() => setFlash(null), 1200)
   }
-  const addLabel = (m: Monster) => (flash === monsterKey(m) && countOf ? t('dm.added', { n: countOf(m) }) : t('dm.add'))
+  // Every monster already in the plan says so, not only the last one tapped.
+  const addLabel = (m: Monster) => {
+    const n = countOf?.(m) ?? 0
+    return flash === monsterKey(m) && n ? t('dm.added', { n }) : n ? t('dm.inPlan', { n }) : t('dm.add')
+  }
+  // Source, CR and type fold behind one chip that counts the ones in use; search and "Fits this party" stay out.
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const active = (q.book ? 1 : 0) + (!fitOn && q.minCr != null ? 1 : 0) + (!fitOn && q.maxCr != null ? 1 : 0) + (q.type ? 1 : 0)
   if (!monsters.length) return <p className="hint">{t('common.loading')}</p>
   return (
     <div className="dm-browser">
-      {edition && onEdition && (
-        <div className="dm-edition" role="group" aria-label={t('dm.rulesEdition')}>
-          {(['2014', '2024'] as Edition[]).map(e => (
-            <button key={e} type="button" className={`btn small${edition === e ? ' primary' : ''}`} aria-pressed={edition === e} onClick={() => onEdition(e)}>{t(e === '2024' ? 'dm.edition2024' : 'dm.edition2014')}</button>
-          ))}
+      <input type="search" className="dm-search" value={q.text} onChange={e => setQ({ ...q, text: e.target.value })} placeholder={t('dm.searchMonsters')} aria-label={t('dm.searchMonsters')} />
+      <div className="dm-chips">
+        {fit && (
+          <button type="button" className={`chip dm-fit${fitOn ? ' on' : ''}`} aria-pressed={fitOn}
+            onClick={() => setQ(fitOn ? { ...q, fit: false } : { ...q, fit: true, text: '', minCr: null, maxCr: null })}>
+            {t('dm.fitParty', { min: crLabel(fit.min), max: crLabel(fit.max) })}
+          </button>
+        )}
+        <button type="button" className={`chip dm-filter-chip${active ? ' on' : ''}`} aria-expanded={filtersOpen} aria-controls="dm-filters" onClick={() => setFiltersOpen(o => !o)}>
+          {active ? t('dm.filtersN', { n: active }) : t('dm.filters')} <span aria-hidden="true">{filtersOpen ? '▴' : '▾'}</span>
+        </button>
+      </div>
+      {filtersOpen && (
+        <div id="dm-filters" className="dm-filters">
+          {edition && onEdition && (
+            <div className="dm-edition" role="group" aria-label={t('dm.rulesEdition')}>
+              {(['2014', '2024'] as Edition[]).map(e => (
+                <button key={e} type="button" className={`btn small${edition === e ? ' primary' : ''}`} aria-pressed={edition === e} onClick={() => onEdition(e)}>{t(e === '2024' ? 'dm.edition2024' : 'dm.edition2014')}</button>
+              ))}
+            </div>
+          )}
+          {groups.length > 1 && (
+            <select className="dm-source" aria-label={t('dm.source')} value={q.book ?? ''} onChange={e => setQ({ ...q, book: e.target.value })}>
+              <option value="">{t('dm.anySource')}</option>
+              {groups.map(g => <option key={g} value={g}>{groupName(g)}</option>)}
+            </select>
+          )}
+          <select aria-label={t('dm.minCr')} value={eff.minCr ?? ''} onChange={e => setQ({ ...eff, fit: false, minCr: cr(e.target.value) })}>
+            <option value="">{t('dm.minCr')}</option>
+            {crs.map(c => <option key={c} value={c}>{t('dm.cr', { cr: crLabel(c) })}</option>)}
+          </select>
+          <select aria-label={t('dm.maxCr')} value={eff.maxCr ?? ''} onChange={e => setQ({ ...eff, fit: false, maxCr: cr(e.target.value) })}>
+            <option value="">{t('dm.maxCr')}</option>
+            {crs.map(c => <option key={c} value={c}>{t('dm.cr', { cr: crLabel(c) })}</option>)}
+          </select>
+          <select aria-label={t('dm.type')} value={q.type} onChange={e => setQ({ ...q, type: e.target.value })}>
+            <option value="">{t('dm.anyType')}</option>
+            {types.map(x => <option key={x} value={x}>{typeName(x)}</option>)}
+          </select>
         </div>
       )}
-      {fit && (
-        <button type="button" className={`chip dm-fit${fitOn ? ' on' : ''}`} aria-pressed={fitOn}
-          onClick={() => setQ(fitOn ? { ...q, fit: false } : { ...q, fit: true, text: '', minCr: null, maxCr: null })}>
-          {t('dm.fitParty', { min: crLabel(fit.min), max: crLabel(fit.max) })}
-        </button>
-      )}
-      <div className="dm-filters">
-        <input type="search" value={q.text} onChange={e => setQ({ ...q, text: e.target.value })} placeholder={t('dm.searchMonsters')} aria-label={t('dm.searchMonsters')} />
-        {groups.length > 1 && (
-          <select className="dm-source" aria-label={t('dm.source')} value={q.book ?? ''} onChange={e => setQ({ ...q, book: e.target.value })}>
-            <option value="">{t('dm.anySource')}</option>
-            {groups.map(g => <option key={g} value={g}>{groupName(g)}</option>)}
-          </select>
-        )}
-        <select aria-label={t('dm.minCr')} value={eff.minCr ?? ''} onChange={e => setQ({ ...eff, fit: false, minCr: cr(e.target.value) })}>
-          <option value="">{t('dm.minCr')}</option>
-          {crs.map(c => <option key={c} value={c}>{t('dm.cr', { cr: crLabel(c) })}</option>)}
-        </select>
-        <select aria-label={t('dm.maxCr')} value={eff.maxCr ?? ''} onChange={e => setQ({ ...eff, fit: false, maxCr: cr(e.target.value) })}>
-          <option value="">{t('dm.maxCr')}</option>
-          {crs.map(c => <option key={c} value={c}>{t('dm.cr', { cr: crLabel(c) })}</option>)}
-        </select>
-        <select aria-label={t('dm.type')} value={q.type} onChange={e => setQ({ ...q, type: e.target.value })}>
-          <option value="">{t('dm.anyType')}</option>
-          {types.map(x => <option key={x} value={x}>{typeName(x)}</option>)}
-        </select>
-      </div>
       {found.length === 0 ? <p className="hint">{t('dm.noMonsters')}</p> : (
         <ul className="plain dm-monster-list">
           {found.map(m => { const key = monsterKey(m); const on = inline ? expanded === key : openId === key; return (
@@ -686,10 +700,10 @@ function MonsterBrowser({ monsters, onAdd, onOpen, openId, edition, onEdition, i
               <button className="link-btn" onClick={() => (inline ? setExpanded(on ? null : key) : onOpen(key))}
                 aria-current={!inline && on ? 'true' : undefined} aria-expanded={inline ? on : undefined}>
                 {monsterName(m)}{m.legacy && <small className="dm-legacy"> · {t('dm.legacy')}</small>}
-                {budget && tooStrongAlone(m.xp, budget) && <small className="dm-strong"> · {t('dm.tooStrong')}</small>}
               </button>
-              <span className="muted small">{t('dm.crXp', { cr: crLabel(m.challengeRating), xp: m.xp.toLocaleString() })}</span>
-              <button className={`btn small${flash === key ? ' dm-added' : ''}`} onClick={() => add(m)} aria-label={t('dm.addNamed', { name: monsterName(m) })}>{addLabel(m)}</button>
+              <span className="muted small">{t('dm.crXp', { cr: crLabel(m.challengeRating), xp: m.xp.toLocaleString() })}
+                {budget && tooStrongAlone(m.xp, budget) && <small className="dm-strong">{t('dm.tooStrong')}</small>}</span>
+              <button className={`btn small${flash === key || (countOf?.(m) ?? 0) > 0 ? ' dm-added' : ''}`} onClick={() => add(m)} aria-label={t('dm.addNamed', { name: monsterName(m) })}>{addLabel(m)}</button>
               {inline && on && (
                 <div className="dm-inline-block">
                   <StatBlock m={m} legacy={m.legacy} actions={<div className="row">
