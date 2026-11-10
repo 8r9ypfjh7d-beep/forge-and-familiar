@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CloudLinkNotice } from '../accounts'
 import { ConfirmDialog, TypedConfirmDialog } from '../builder/ConfirmDialog'
 import { useI18n } from '../i18n'
+import { InstallCard } from '../pwa'
 import type { Character } from '../model/character'
 import { campaignTarget, canEndParty, canRestoreParty, isPartyDm } from './active'
 import { listProfiles } from '../storage'
@@ -10,9 +11,10 @@ import { canUndoEnd, deleteParty, endParty, leaveParty, listEndedParties, onPart
 import type { Party } from './types'
 import './party.css'
 
-/** The first screen on opening the app: the campaigns this player is in. Tapping one plays it: the DM gets
- *  the DM screen, a player their sheet. With no campaign yet: sign in, join with a code, start one, or build. */
-export function CampaignsHome({ userId, playerName, parties, current, characters, onPlay, onJoin, onStart, onBuild, onCharacters, dmTools, onDmScreen }: {
+/** The first screen on opening the app: the player's characters first (tap one to open its sheet), then the
+ *  campaigns they're in. Tapping a campaign plays it: the DM gets the DM screen, a player their sheet. With no
+ *  character yet, building one is the one prominent action; joining or starting a campaign sits below. */
+export function CampaignsHome({ userId, playerName, parties, current, characters, signedIn, onPlay, onOpenCharacter, onJoin, onStart, onBuild, dmTools, onDmScreen }: {
   userId: string
   playerName: string
   /** Null while loading. */
@@ -20,40 +22,66 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
   current?: Party
   /** This player's own characters on the device. */
   characters: Character[]
+  /** The profile came from an activation code: only then may it ask to turn sync back on. */
+  signedIn: boolean
   onPlay: (party: Party) => void
+  onOpenCharacter: (id: string) => void
   onJoin: () => void
   onStart: () => void
   onBuild: () => void
-  onCharacters: () => void
-  /** Whether this profile keeps the DM pages without running a campaign; undefined hides the button (already the DM). */
+  /** True when this profile keeps the DM pages without running a campaign: shows a DM screen button. */
   dmTools?: boolean
-  /** Opens the DM screen, turning DM tools on first. */
+  /** Opens the DM screen. */
   onDmScreen?: () => void
 }) {
-  const { t, classLine } = useI18n()
+  const { t, classLine, raceName } = useI18n()
   const names = useNames()
   if (parties === null) return null
   const ownIds = characters.map(c => c.id)
 
   return (
-    <section className="ff-party campaigns-home" aria-labelledby="campaigns-title">
+    <section className="ff-party campaigns-home" aria-labelledby="home-title">
       <div className="campaigns-head">
         <span className="glass-eyebrow">{t(parties.length || characters.length ? 'home.eyebrow' : 'home.eyebrowNew', { name: playerName })}</span>
-        <h2 id="campaigns-title" className="glass-title">{t('home.title')}</h2>
+        <h2 id="home-title" className="glass-title">{t('home.charactersTitle')}</h2>
       </div>
-      {/* Campaigns live on the server: a device not signed in to its account can't see them. */}
-      {parties.length === 0 && <CloudLinkNotice />}
-      {parties.length === 0 ? (
+      {/* Campaigns live on the server: a device whose code was entered before but is no longer signed in can't see them. */}
+      {signedIn && <CloudLinkNotice />}
+      {characters.length === 0 ? (
         <div className="glass campaigns-empty">
-          <div className="portrait-empty" aria-hidden="true">⚔</div>
-          <p className="campaigns-empty-title">{t('home.emptyTitle')}</p>
-          <p className="muted">{t('home.emptyBody')}</p>
+          <div className="portrait-empty" aria-hidden="true">✦</div>
+          <p className="campaigns-empty-title">{t('home.noCharacters')}</p>
           <div className="campaigns-actions">
-            <button className="glass-btn prominent" onClick={onJoin}>{t('home.join')}</button>
-            <button className="glass-btn" onClick={onStart}>{t('home.start')}</button>
-            <button className="glass-btn" onClick={onBuild}>{t('home.build')}</button>
+            <button className="glass-btn prominent" onClick={onBuild}>{t('home.build')}</button>
           </div>
-          {characters.length === 0 && <p className="small"><a href="#/starters">{t('home.newToDnd')}</a></p>}
+          <p className="small"><a href="#/starters">{t('home.readyMade')}</a></p>
+        </div>
+      ) : (
+        <ul className="home-heroes">
+          {characters.map(c => (
+            <li key={c.id}>
+              <button className="glass home-hero" onClick={() => onOpenCharacter(c.id)}>
+                {c.portrait ? <img src={c.portrait} alt="" /> : <span className="portrait-empty" aria-hidden="true">{c.name.slice(0, 1)}</span>}
+                <span className="home-hero-text">
+                  <strong>{c.name}</strong>
+                  <span className="muted small">{raceName(c.raceId, c.subraceId, c.rulesEdition)} · {classLine(c.classes)}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {characters.length > 0 && <InstallCard />}
+
+      <h3 className="home-section">{t('home.campaignsTitle')}</h3>
+      {parties.length === 0 ? (
+        <div className="glass campaigns-none">
+          <p className="campaigns-empty-title">{t('home.emptyTitle')}</p>
+          <p className="muted small">{t('home.emptyBody')}</p>
+          <div className="campaigns-actions">
+            <button className="glass-btn" onClick={onJoin}>{t('home.join')}</button>
+            <button className="glass-btn" onClick={onStart}>{t('home.start')}</button>
+          </div>
         </div>
       ) : (
         <div className="campaigns-list">
@@ -86,12 +114,12 @@ export function CampaignsHome({ userId, playerName, parties, current, characters
         </div>
       )}
       <EndedCampaigns userId={userId} names={names} />
-      {parties.length > 0 && <CloudLinkNotice />}
-      <div className="campaigns-foot">
-        {parties.length > 0 && <button className="glass-btn" onClick={onJoin}>{t('home.joinAnother')}</button>}
-        <button className="glass-btn" onClick={onCharacters}>{t('home.myCharacters')}</button>
-        {dmTools !== undefined && onDmScreen && <button className="glass-btn" onClick={onDmScreen}>{t(dmTools ? 'home.dmScreen' : 'home.iAmDm')}</button>}
-      </div>
+      {(parties.length > 0 || (dmTools && onDmScreen)) && (
+        <div className="campaigns-foot">
+          {parties.length > 0 && <button className="glass-btn" onClick={onJoin}>{t('home.joinAnother')}</button>}
+          {dmTools && onDmScreen && <button className="glass-btn" onClick={onDmScreen}>{t('home.dmScreen')}</button>}
+        </div>
+      )}
     </section>
   )
 }

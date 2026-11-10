@@ -12,15 +12,13 @@ import { DiceFab, DiceProvider } from './dice/ui'
 import { FamiliarFab, FamiliarPage, dmPrepare, screenFor } from './familiar/ui'
 import type { Character, UserProfile } from './model/character'
 import { deleteSnapshotsFor } from './portability'
-import { ExportButton, ImportButton } from './portability/ui'
 import { campaignTarget, CampaignsHome, LevelUpPrompt, PartyRollRelay, PartySwitcher, PartyView, useActiveParty, useCharacterAccess, useXpAwards, type Party } from './party'
 import { xpForNextLevel, xpReady } from './rules'
-import { ShareButton } from './share'
 import { loadHomebrew } from './homebrew'
 import { useI18n } from './i18n'
-import type { MessageKey } from './i18n/locales/en'
 import { AppNav, canOpen, useHashView } from './nav'
-import './list/list.css'
+import { CharacterList } from './list/CharacterList'
+import { InstallMenuItem } from './pwa'
 import { DuplicatePrompt, SyncBadge, useCloudSync } from './sync'
 import { RevealMoment } from './lore'
 import {
@@ -212,7 +210,11 @@ export default function App() {
       <SkipLink />
       <AppNav
         viewKind={view.kind}
-        onGo={key => setView({ kind: key })}
+        onGo={key => {
+          // "I'm a DM" under More turns the DM pages on for this profile, then opens the DM screen.
+          if (key === 'dm' && !isDm) enableDmTools()
+          setView({ kind: key })
+        }}
         playerName={active.displayName}
         {...nav}
         dmBadge={<><AccountBadge dm={partyDm} /><SyncBadge compact /></>}
@@ -220,6 +222,7 @@ export default function App() {
       >
         <SyncBadge />
         <ProfileSwitcher profiles={profiles} active={active} onSwitch={switchProfile} onAdd={addProfile} />
+        <InstallMenuItem />
         {playing.parties && <PartySwitcher parties={playing.parties} party={playing.party} onPick={switchCampaign} />}
       </AppNav>
       <AccessibilityDialog ref={a11yDialog} />
@@ -238,10 +241,11 @@ export default function App() {
             onPlay={playCampaign}
             onJoin={() => setView({ kind: 'party', startWith: 'join' })}
             onStart={() => setView({ kind: 'party', startWith: 'start' })}
+            signedIn={ownProfile}
+            onOpenCharacter={id => setView({ kind: 'sheet', id })}
             onBuild={() => setView({ kind: 'build' })}
-            onCharacters={() => setView({ kind: 'list' })}
-            dmTools={partyDm ? undefined : dmTools}
-            onDmScreen={() => { enableDmTools(); setView({ kind: 'dm' }) }}
+            dmTools={!partyDm && dmTools}
+            onDmScreen={() => setView({ kind: 'dm' })}
           />
         )}
         {view.kind === 'list' && (
@@ -394,91 +398,12 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
   return (
     <div className="row profile">
       <label className="muted small" htmlFor="profile">{t('app.player')}</label>
-      <select
-        id="profile"
-        value={active.id}
-        onChange={e => {
-          if (e.target.value === '__new') setAsking('player')
-          else if (e.target.value === '__code') openActivationPrompt()
-          else onSwitch(e.target.value)
-        }}
-      >
+      <select id="profile" value={active.id} onChange={e => onSwitch(e.target.value)}>
         {profiles.map(p => <option key={p.id} value={p.id}>{p.displayName}</option>)}
-        <option value="__new">{t('app.addPlayer')}</option>
-        <option value="__code">{t('account.enterCode')}</option>
       </select>
+      <button type="button" className="nav-item" onClick={() => setAsking('player')}>{t('app.addPlayer')}</button>
+      <button type="button" className="nav-item" onClick={openActivationPrompt}>{t('account.enterCode')}</button>
       <PromptDialog open={asking === 'player'} title={t('app.newPlayerPrompt')} yes={t('app.addPlayerYes')} onClose={() => setAsking(null)} onSubmit={onAdd} />
     </div>
   )
 }
-
-function CharacterList({ owner, characters, onNew, onStarter, onOpen, editState, onEdit, onLevels, onPlan, onPrint, onImported, onDelete }: {
-  owner: UserProfile
-  characters: Character[]
-  onNew: () => void
-  onStarter: () => void
-  onOpen: (id: string) => void
-  editState: (id: string) => EditState
-  onEdit: (id: string) => void
-  onLevels: (id: string) => void
-  onPlan: (id: string) => void
-  onPrint: (id: string) => void
-  onImported: () => void
-  onDelete: (id: string) => void
-}) {
-  const { t, classLine, raceName } = useI18n()
-  const actions = (
-    <>
-      <ImportButton ownerId={owner.id} onImported={onImported} className="glass-btn" />
-      <button className="glass-btn" onClick={onStarter}>{t('list.starters')}</button>
-      <button className="glass-btn prominent" onClick={onNew}>{t('list.new')}</button>
-    </>
-  )
-  return (
-    <section className="heroes">
-      <header className="heroes-head">
-        <h2 className="glass-title">{t('list.title', { name: owner.displayName })}</h2>
-        {characters.length > 0 && <div className="heroes-actions">{actions}</div>}
-      </header>
-      {characters.length === 0 ? (
-        <div className="glass heroes-empty">
-          <div className="portrait-empty" aria-hidden="true">✦</div>
-          <p>{t('list.empty')}</p>
-          <div className="heroes-actions">
-            <button className="glass-btn prominent" onClick={onNew}>{t('list.buildFirst')}</button>
-            <button className="glass-btn" onClick={onStarter}>{t('list.newToDnd')}</button>
-            <ImportButton ownerId={owner.id} onImported={onImported} className="glass-btn" />
-          </div>
-        </div>
-      ) : (
-        <div className="heroes-grid">
-          {characters.map(c => (
-            <article key={c.id} className="glass heroes-card">
-              <div className="heroes-id">
-                {c.portrait ? <img src={c.portrait} alt="" /> : <div className="portrait-empty" aria-hidden="true">{c.name.slice(0, 1)}</div>}
-                <div>
-                  <h3>{c.name}</h3>
-                  <p className="muted small">{raceName(c.raceId, c.subraceId, c.rulesEdition)} · {classLine(c.classes)}</p>
-                </div>
-              </div>
-              <div className="heroes-main">
-                <button className="glass-btn prominent" onClick={() => onOpen(c.id)}>{t('common.openSheet')}</button>
-                <button className="glass-btn" onClick={() => onEdit(c.id)} aria-label={`${t(EDIT_LABEL[editState(c.id)])}: ${c.name}`}>{t(EDIT_LABEL[editState(c.id)])}</button>
-              </div>
-              <div className="heroes-tools">
-                <button className="heroes-tool" onClick={() => onLevels(c.id)}>{t('list.levels')}</button>
-                <button className="heroes-tool" onClick={() => onPlan(c.id)}>{t('list.plan')}</button>
-                <button className="heroes-tool" onClick={() => onPrint(c.id)}>{t('list.print')}</button>
-                <ExportButton character={c} className="heroes-tool" />
-                <ShareButton character={c} className="heroes-tool" />
-                <button className="heroes-tool danger" onClick={() => confirm(t('list.confirmDelete', { name: c.name })) && onDelete(c.id)}>{t('common.delete')}</button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-const EDIT_LABEL: Record<EditState, MessageKey> = { approved: 'list.edit', pending: 'list.editRequested', none: 'list.askEdit' }

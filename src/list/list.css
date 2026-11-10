@@ -1,6 +1,5 @@
-/* Heroes list (CharacterList in App.tsx), Liquid Glass (src/design/DESIGN.md).
-   Each hero is a content glass card: portrait, name, then one tinted "Open sheet", Edit,
-   and a quiet tool strip (Levels, Print, Export, Delete). Logical properties only. */
+/* Characters page (CharacterList.tsx), Liquid Glass (src/design/DESIGN.md).
+   Each hero is a glass card that opens its sheet, with one Edit button and a "⋯" menu for the rest. Logical properties only. */
 .heroes { display: grid; gap: var(--sp-5); }
 
 .heroes-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--sp-3) var(--sp-4); }
@@ -11,38 +10,51 @@
 
 .heroes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: var(--sp-4); }
 
-/* Card: padding 12px inside a 24px radius, so inner tiles use 24 - 12 = 12px (concentric). */
-.heroes-card { display: grid; gap: var(--sp-3); padding: var(--sp-3); min-width: 0; }
-.heroes-id { display: flex; gap: var(--sp-3); align-items: center; min-width: 0; }
-.heroes-id img, .heroes-id .portrait-empty {
-  inline-size: 64px; block-size: 64px; flex: none; object-fit: cover;
+/* Card: the identity row is one button that opens the sheet and stretches over the whole card (::after),
+   with Edit and the "⋯" menu raised above it. Padding 12px inside a 24px radius, inner tiles 12px (concentric). */
+.heroes-card { position: relative; display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); min-width: 0; transition: background-color var(--dur-fast); }
+.heroes-card:has(.heroes-open:hover) { background: var(--glass-thick); }
+.heroes-card:has(.heroes-menu-panel:not([hidden])) { z-index: 5; }
+.heroes-open {
+  font: inherit; color: inherit; text-align: start; background: none; border: 0; padding: 0; cursor: pointer;
+  display: flex; gap: var(--sp-3); align-items: center; flex: 1 1 auto; min-width: 0;
+}
+.heroes-open::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.heroes-card:has(.heroes-open:active) { transform: scale(0.99); }
+.heroes-open:focus-visible { outline: none; }
+.heroes-card:has(.heroes-open:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.heroes-open img, .heroes-open .portrait-empty {
+  inline-size: 64px; block-size: 64px; flex: none; object-fit: cover; display: grid; place-items: center;
   border-radius: var(--r-sm); font-family: var(--font-lore); font-size: 1.6rem;
   box-shadow: var(--glass-highlight), var(--glass-control-shadow);
 }
-.heroes-id .portrait-empty { background: var(--glass-tint); }
-.heroes-id > div { min-width: 0; }
-.heroes-id h3 { margin: 0; font-family: var(--font-lore); font-size: 1.2rem; letter-spacing: 0; overflow-wrap: anywhere; }
-.heroes-id p { margin: 2px 0 0; }
+.heroes-open .portrait-empty { background: var(--glass-tint); }
+.heroes-name { display: grid; gap: 2px; min-width: 0; }
+.heroes-name strong { font-family: var(--font-lore); font-size: 1.2rem; font-weight: 600; overflow-wrap: anywhere; }
 
-.heroes-main { display: flex; gap: var(--sp-2); }
-.heroes-main > .glass-btn { flex: 1 1 0; min-width: 0; }
+.heroes-main { position: relative; z-index: 1; display: flex; gap: var(--sp-2); align-items: center; flex: none; }
+.heroes-main .glass-btn { min-height: 40px; }
+.heroes-more { min-inline-size: 40px; padding-inline: var(--sp-2); font-size: 1.2rem; line-height: 1; }
 
-/* Tool strip: a thin glass track of quiet capsules, like a segmented control without a selection. */
-.heroes-tools {
-  display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); min-width: 0;
-  background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-inset);
+/* "⋯" menu: a glass sheet that grows out of its button, items full width, Delete last in red. */
+.heroes-menu { position: relative; }
+.heroes-menu-panel {
+  position: absolute; inset-block-start: calc(100% + 6px); inset-inline-end: 0; z-index: 30;
+  min-inline-size: 180px; padding: 6px; display: grid; gap: 2px;
 }
-.heroes-tools .ff-import { display: contents; }
-.heroes-tools .ff-import [role="alert"] { align-self: center; padding-inline: var(--sp-2); }
+.heroes-menu-panel[hidden] { display: none; }
+.heroes-menu-panel .ff-import { display: grid; }
 .heroes-tool {
-  font: inherit; font-size: 0.85rem; font-weight: 500; flex: 1 1 auto; min-width: 0; min-height: 34px;
-  padding: 0 var(--sp-2); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-glass), transform var(--dur-fast) var(--ease-spring);
+  font: inherit; font-size: 0.95rem; inline-size: 100%; min-height: 40px; padding: 0 var(--sp-3); text-align: start;
+  border: 0; border-radius: calc(var(--r-lg) - 6px); background: transparent; color: var(--ink); cursor: pointer; white-space: nowrap;
 }
-.heroes-tool:hover { background: var(--glass-thick); }
-.heroes-tool:active { transform: scale(0.95); }
+.heroes-tool:hover { background: var(--glass-thin); }
 .heroes-tool.danger { color: var(--bad); }
+
+/* Import file and Ready-made heroes: a quiet text row under the one prominent button. */
+.heroes-links { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); align-items: center; margin: 0; }
+.heroes-links .ff-import { display: contents; }
+.heroes-link { font: inherit; background: none; border: 0; padding: var(--sp-1) 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
 .heroes-empty { display: grid; justify-items: center; gap: var(--sp-3); padding: var(--sp-8) var(--sp-5); text-align: center; }
 .heroes-empty .portrait-empty { inline-size: 72px; block-size: 72px; border-radius: var(--r-md); background: var(--glass-tint); font-size: 2rem; }
@@ -51,18 +63,12 @@
 
 @media (max-width: 640px) {
   .heroes-head h2 { font-size: 1.6rem; }
-  .heroes-head > .heroes-actions { inline-size: 100%; }
-  .heroes-head > .heroes-actions > * { flex: 1 1 auto; }
-  .heroes-head > .heroes-actions > .prominent { flex-basis: 100%; order: -1; }
-  .heroes-main > .glass-btn, .heroes-head .glass-btn { min-height: 44px; }
-  .heroes-tool { min-height: 40px; }
-  /* Six tools don't fit one row on a phone: two rows of three, the track rounded to match. */
-  .heroes-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: var(--r-md); }
-  .heroes-tool { border-radius: calc(var(--r-md) - 3px); }
+  .heroes-new { inline-size: 100%; min-height: 44px; }
+  .heroes-main .glass-btn, .heroes-tool { min-height: 44px; }
+  .heroes-open img, .heroes-open .portrait-empty { inline-size: 56px; block-size: 56px; }
   .heroes-empty .heroes-actions { flex-direction: column; inline-size: 100%; }
   .heroes-empty .glass-btn { inline-size: 100%; min-height: 44px; }
 }
 
 /* High contrast: solid fills come from the tokens; draw the edges state would otherwise show by fill. */
 :root[data-contrast="high"] .heroes-card { border-width: 2px; }
-:root[data-contrast="high"] .heroes-tools { border: 2px solid var(--line); }

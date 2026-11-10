@@ -35,6 +35,8 @@ const ITEM: Record<NavKey, NavItem> = {
   admin: { key: 'admin', label: 'app.admin' },
 }
 
+const I_AM_DM: NavItem = { key: 'dm', label: 'nav.iAmDm' }
+
 /** Screens only the DM and the admin may open; `watch` is a player's sheet opened by the DM, `npc` an NPC's sheet (src/npc): players never see it. */
 const DM_ONLY: readonly string[] = ['dm', 'combat', 'watch', 'npc']
 
@@ -43,11 +45,14 @@ const DM_ONLY: readonly string[] = ['dm', 'combat', 'watch', 'npc']
  *  Players then get Campaign and Ask the DM. The campaign's DM gets DM screen and Campaign, with the
  *  initiative tracker under More (the DM screen's Run button opens it too). A DM without a campaign in play
  *  (dmTools) finds DM screen and tracker under More. The admin adds Admin. */
-export function navItems({ partyDm, admin, dmTools }: NavContext): { main: NavItem[]; more: NavItem[] } {
+export function navItems({ isDm, partyDm, admin, dmTools }: NavContext): { main: NavItem[]; more: NavItem[] } {
   const main: NavKey[] = ['campaigns', 'list', ...(partyDm ? ['dm', 'party'] as const : ['party', 'requests'] as const)]
   const more: NavKey[] = [...(partyDm ? ['combat'] as const : dmTools ? ['dm', 'combat'] as const : []), 'familiar', 'rules', 'homebrew']
   if (admin) more.unshift('admin')
-  return { main: main.map(k => ITEM[k]), more: more.map(k => ITEM[k]) }
+  const items = more.map(k => ITEM[k])
+  // A player who is not a DM yet finds "I'm a DM" last under More: it turns the DM pages on and opens the DM screen.
+  if (!isDm && !partyDm && !dmTools && !admin) items.push(I_AM_DM)
+  return { main: main.map(k => ITEM[k]), more: items }
 }
 
 /** Whether this account may open a screen; the DM pages and the admin page are guarded, not just hidden. */

@@ -23,3 +23,7 @@
 :root[data-contrast="high"] .ff-pwa { border-width: 2px; }
 .ff-pwa-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ff-pwa-note { flex: 1 1 200px; color: var(--ink); }
+
+/* Install offer on Home: a quiet card in the page flow, not a floating strip. */
+.ff-install-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-4); }
+.ff-install-card .ff-pwa-note { flex: 1 1 16em; }

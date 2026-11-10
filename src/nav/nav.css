@@ -74,14 +74,15 @@
   .nav-tabs { display: contents; }
   .nav-tabs > *, .nav > .nav-menu { flex: 1 1 0; min-width: 0; }
   .nav-tab, .nav-player {
-    width: 100%; min-height: 54px; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 2px;
+    width: 100%; min-height: 54px; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 0;
     border-radius: calc(var(--r-xl) - 5px); font-size: 0.68rem; font-weight: 500; color: var(--muted);
   }
   .nav-tab:hover, .nav-player:hover { background: transparent; }
   .nav-badge { inset-inline-end: -8px; }
   .nav-label:has(+ .nav-label.short) { display: none; }
   .nav-label.short { display: inline; }
-  .nav-label, .nav-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  /* Tight tracking so the longest tab names ("Characters", "Ask the DM") fit six tabs on a 360px phone. */
+  .nav-label, .nav-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.03em; }
   .nav-player .account-badge { display: none; }
   .nav-avatar { width: 24px; height: 24px; font-size: 0.75rem; }
   .nav-panel, .nav-panel.end {
