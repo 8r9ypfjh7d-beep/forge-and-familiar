@@ -355,7 +355,7 @@ export default function App() {
         )}
         {view.kind === 'plan' && <PlanView characterId={view.id} onBack={() => { refresh(); setView({ kind: 'list' }) }} />}
         {view.kind === 'print' && <PrintSheet characterId={view.id} onBack={() => setView(printFrom.current === 'sheet' ? { kind: 'sheet', id: view.id } : { kind: 'list' })} />}
-        {view.kind === 'rules' && <RulesQA />}
+        {view.kind === 'rules' && <RulesQA isDm={isDm} />}
         {view.kind === 'familiar' && familiar && <FamiliarPage {...familiar} />}
         {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} campaign={partyDm ? playing.party : undefined} onOpenPlan={openPlan} />}
         {view.kind === 'dm' && isDm && <DmScreen key={active.id} userId={active.id} initialTab={view.tab} onTab={tab => setView({ kind: 'dm', tab }, true)} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} onOpenSheet={id => setView({ kind: 'watch', id })} onOpenNpc={id => setView({ kind: 'npc', id })}

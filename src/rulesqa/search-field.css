@@ -12,3 +12,10 @@
 .search-field .search-input::placeholder { color: var(--muted); opacity: 1; }
 .search-field .search-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 :root[data-contrast="high"] .search-field .search-input { border: 2px solid var(--line); }
+/* The browser's blue clear button, redrawn as a muted × that matches the field. */
+.search-field .search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none; appearance: none; inline-size: 18px; block-size: 18px; margin-inline-start: var(--sp-2); cursor: pointer;
+  background-color: var(--muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-3.3 5.3L7.3 8.7 10.6 12l-3.3 3.3 1.4 1.4 3.3-3.3 3.3 3.3 1.4-1.4-3.3-3.3 3.3-3.3-1.4-1.4-3.3 3.3z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-3.3 5.3L7.3 8.7 10.6 12l-3.3 3.3 1.4 1.4 3.3-3.3 3.3 3.3 1.4-1.4-3.3-3.3 3.3-3.3-1.4-1.4-3.3 3.3z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
