@@ -1,7 +1,7 @@
 // The sheet's Inventory card: coins, carried weight, every item with equip, quantity and edit,
 // adding from the SRD library (gear and magic items) or a custom item, and the warlock's pact weapon.
 import { LRM, fmtMod } from '../i18n/signed'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BUNDLED, loadKind, searchEntries, type Edition, type Equipment, type MagicItem } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
@@ -12,8 +12,12 @@ import {
 import type { Apply } from '../sheet/types'
 import { editionOf, sourceFor } from '../spellbook/access'
 import { Why } from '../builder/Why'
+import { useAskConfirm } from '../builder/ConfirmDialog'
+import { viewToHash } from '../nav/route'
+import { getStash, toCp } from '../party/stash'
+import type { Party } from '../party/types'
 import {
-  addItem, COINS, fromLibrary, fromMagicItem, infusionStats, isWarlock, itemOf, knownInfusions, removeEntry, setCoins, setEquipped,
+  addItem, COINS, fromLibrary, fromMagicItem, infusionStats, isStackable, isWarlock, itemOf, knownInfusions, removeEntry, setCoins, setEquipped,
   setQty, updateEntry, withBase,
 } from './inventory'
 import { LastRoll, type Shown } from '../sheet/combat/LastRoll'
@@ -37,10 +41,12 @@ function useItemLibrary(edition: Edition, wanted: boolean): Library | 'error' | 
   return lib?.edition === edition ? lib.data : null
 }
 
-export function Inventory({ character, apply }: { character: Character; apply: Apply }) {
+export function Inventory({ character, apply, party }: { character: Character; apply: Apply; party?: Party }) {
   const { t } = useI18n()
   const [adding, setAdding] = useState(false)
-  const [editing, setEditing] = useState<string | null>(null)
+  // The item being edited, and whether its full editor opens straight away (a new custom or magic item).
+  const [editing, setEditing] = useState<{ uid: string; full: boolean } | null>(null)
+  const confirm = useAskConfirm()
   const stats = derive(character)
   const edition = editionOf(character)
   const lib = useItemLibrary(edition, adding)
@@ -64,7 +70,7 @@ export function Inventory({ character, apply }: { character: Character; apply: A
       uid = out.uid
       return out.character
     })
-    if (edit) { setAdding(false); setEditing(uid) }
+    if (edit) { setAdding(false); setEditing({ uid, full: true }) }
   }
 
   return (
@@ -97,16 +103,17 @@ export function Inventory({ character, apply }: { character: Character; apply: A
             </div>
           )}
           <ul className="inv-list">
-            {character.inventory.map(e => editing === e.uid
-              ? <li key={e.uid} className="inv-row editing"><ItemEditor character={character} entry={e} apply={apply} onDone={() => setEditing(null)} /></li>
-              : <Row key={e.uid} entry={e} apply={apply} onEdit={() => setEditing(e.uid)} onDrink={drink} />)}
+            {character.inventory.map(e => editing?.uid === e.uid
+              ? <li key={e.uid} className="inv-row editing"><ItemEditor character={character} entry={e} apply={apply} full={editing.full} ask={confirm.ask} onDone={() => setEditing(null)} /></li>
+              : <Row key={e.uid} entry={e} apply={apply} ask={confirm.ask} onEdit={() => setEditing({ uid: e.uid, full: false })} onDrink={drink} />)}
           </ul>
           </>
         )}
 
-      {adding
-        ? <AddPanel lib={lib} onAdd={add} onClose={() => setAdding(false)} source={BUNDLED.find(m => m.source.id === sourceFor(edition))?.source.title} />
-        : <button type="button" className="btn primary inv-add" onClick={() => setAdding(true)}>{t('inv.add')}</button>}
+      <button type="button" className="btn primary inv-add" onClick={() => setAdding(true)}>{t('inv.add')}</button>
+      {adding && <AddPanel lib={lib} onAdd={add} onClose={() => setAdding(false)} source={BUNDLED.find(m => m.source.id === sourceFor(edition))?.source.title} />}
+      {party && <StashLink party={party} />}
+      {confirm.dialog}
     </section>
   )
 }
@@ -149,7 +156,23 @@ export function advantageName({ t, term, skill }: T, on: AdvantageOn): string {
   return t(`inv.adv.${on as 'saves'}`)
 }
 
-function Row({ entry: e, apply, onEdit, onDrink }: { entry: InventoryEntry; apply: Apply; onEdit: () => void; onDrink: (e: InventoryEntry, name: string, dice?: string) => void }) {
+/** "Party stash: 120 gp · 1 item ›", a link to the campaign page where the stash lives. */
+function StashLink({ party }: { party: Party }) {
+  const { t } = useI18n()
+  const stash = getStash(party)
+  const gp = Math.floor(toCp(stash.coins) / 100)
+  return (
+    <a className="inv-stash" href={viewToHash({ kind: 'party', partyId: party.id })}>
+      <span aria-hidden="true">💰</span>
+      <span>{t('inv.stash', { gp, items: t('inv.stashItems', { count: stash.items.length }) })}</span>
+      <span aria-hidden="true" className="inv-stash-go">›</span>
+    </a>
+  )
+}
+
+type Ask = ReturnType<typeof useAskConfirm>['ask']
+
+function Row({ entry: e, apply, ask, onEdit, onDrink }: { entry: InventoryEntry; apply: Apply; ask: Ask; onEdit: () => void; onDrink: (e: InventoryEntry, name: string, dice?: string) => void }) {
   const i18n = useI18n()
   const { t, term } = i18n
   const [open, setOpen] = useState(false)
@@ -193,10 +216,16 @@ function Row({ entry: e, apply, onEdit, onDrink }: { entry: InventoryEntry; appl
               {t(e.equipped ? 'inv.equipped' : 'inv.equip')}
             </button>
           )}
-          <div className="inv-stepper">
-            <button type="button" aria-label={t('inv.less', { name })} onClick={() => (e.qty > 1 || confirm(t('sheet.confirmRemove', { name }))) && apply(t(e.qty > 1 ? 'inv.log.less' : 'inv.log.remove', { name }), c => setQty(c, e.uid, e.qty - 1))}>−</button>
-            <button type="button" aria-label={t('inv.more', { name })} onClick={() => apply(t('inv.log.more', { name }), c => setQty(c, e.uid, e.qty + 1))}>+</button>
-          </div>
+          {isStackable(e, item) && (
+            <div className="inv-stepper">
+              <button type="button" aria-label={t('inv.less', { name })} onClick={() => {
+                const less = () => apply(t(e.qty > 1 ? 'inv.log.less' : 'inv.log.remove', { name }), c => setQty(c, e.uid, e.qty - 1))
+                if (e.qty > 1) less()
+                else ask(t('sheet.confirmRemove', { name }), t('common.remove'), less)
+              }}>−</button>
+              <button type="button" aria-label={t('inv.more', { name })} onClick={() => apply(t('inv.log.more', { name }), c => setQty(c, e.uid, e.qty + 1))}>+</button>
+            </div>
+          )}
           <button type="button" className="btn ghost small inv-edit" aria-label={t('inv.editName', { name })} onClick={onEdit}>✎</button>
         </div>
       </div>
@@ -210,8 +239,10 @@ const DAMAGE_TYPES = ['slashing', 'piercing', 'bludgeoning', 'acid', 'cold', 'fi
 const BASES = ITEMS.filter(i => i.kind !== 'gear')
 
 /** Edit anything about an item: name, kind, weapon or armor stats, magic bonus, extra damage, pact weapon, notes. */
-function ItemEditor({ character, entry: e, apply, onDone }: { character: Character; entry: InventoryEntry; apply: Apply; onDone: () => void }) {
+function ItemEditor({ character, entry: e, apply, full, ask, onDone }: { character: Character; entry: InventoryEntry; apply: Apply; full: boolean; ask: Ask; onDone: () => void }) {
   const { t, term } = useI18n()
+  // Name, quantity, weight and notes first; kind, stats, magic and effects behind "More options".
+  const [more, setMore] = useState(full)
   const [item, setItem] = useState<Item>(() => ({ ...itemOf(e) }))
   const [qty, setQtyDraft] = useState(e.qty)
   const [notes, setNotes] = useState(e.notes ?? '')
@@ -259,113 +290,118 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
     }), e.uid, qty))
     onDone()
   }
-  const remove = () => {
-    if (!confirm(t('sheet.confirmRemove', { name: item.name }))) return
+  const remove = () => ask(t('sheet.confirmRemove', { name: item.name }), t('common.remove'), () => {
     apply(t('inv.log.remove', { name: item.name }), c => removeEntry(c, e.uid))
     onDone()
-  }
+  })
 
   return (
     <form className="inv-editor" onSubmit={save} aria-label={t('inv.editName', { name: item.name })}>
-      <label className="wide"><span className="inv-label">{t('inv.f.name')} <Why title={t('inv.why.name.title')} text={t('inv.why.name.text')} /></span><input value={item.name} onChange={ev => patch({ name: ev.target.value })} required /></label>
-      <label><span className="inv-label">{t('inv.f.kind')} <Why title={t('inv.why.kind.title')} text={t('inv.why.kind.text')} /></span>
-        <select value={item.kind} onChange={ev => setKind(ev.target.value as Item['kind'])}>
-          <option value="gear">{t('inv.kind.gear')}</option>
-          <option value="weapon">{t('inv.kind.weapon')}</option>
-          <option value="armor">{t('inv.kind.armor')}</option>
-        </select>
-      </label>
-      <label><span className="inv-label">{t('inv.f.qty')} <Why title={t('inv.why.qty.title')} text={t('inv.why.qty.text')} /></span><input type="number" min={1} value={qty} onChange={ev => setQtyDraft(Math.max(1, Number(ev.target.value) || 1))} /></label>
-      <label><span className="inv-label">{t('inv.f.weight')} <Why title={t('inv.why.weight.title')} text={t('inv.why.weight.text')} /></span><input type="number" min={0} step="0.25" value={item.weight} onChange={ev => patch({ weight: Math.max(0, Number(ev.target.value) || 0) })} /></label>
+      <label className="wide"><span className="inv-label">{t('inv.f.name')}</span><input value={item.name} onChange={ev => patch({ name: ev.target.value })} required /></label>
+      <label><span className="inv-label">{t('inv.f.qty')}</span><input type="number" min={1} value={qty} onChange={ev => setQtyDraft(Math.max(1, Number(ev.target.value) || 1))} /></label>
+      <label><span className="inv-label">{t('inv.f.weight')}</span><input type="number" min={0} step="0.25" value={item.weight} onChange={ev => patch({ weight: Math.max(0, Number(ev.target.value) || 0) })} /></label>
+      <label className="wide"><span className="inv-label">{t('inv.f.notes')}</span><textarea rows={2} value={notes} onChange={ev => setNotes(ev.target.value)} placeholder={t('inv.f.notesHint')} /></label>
 
-      {item.kind !== 'gear' && (
-        <label><span className="inv-label">{t('inv.f.base')} <Why title={t('inv.why.base.title')} text={t('inv.why.base.text')} /></span>
-          <select value="" onChange={ev => startFrom(ev.target.value)}>
-            <option value="">{t('inv.f.basePick')}</option>
-            {BASES.filter(b => b.kind === item.kind).map(b => <option key={b.id} value={b.id}>{term('item', b.id, b.name)}</option>)}
-          </select>
-        </label>
-      )}
-
-      {item.kind === 'weapon' && (
-        <>
-          <label><span className="inv-label">{t('inv.f.damage')} <Why title={t('inv.why.damage.title')} text={t('inv.why.damage.text')} /></span><input value={item.damage} onChange={ev => patch({ damage: ev.target.value })} dir="ltr" /></label>
-          <label><span className="inv-label">{t('inv.f.damageType')} <Why title={t('inv.why.damageType.title')} text={t('inv.why.damageType.text')} /></span>
-            <select value={item.damageType} onChange={ev => patch({ damageType: ev.target.value })}>
-              {DAMAGE_TYPES.map(d => <option key={d} value={d}>{term('damage', d, d)}</option>)}
+      {more
+        ? (
+          <>
+          <label><span className="inv-label">{t('inv.f.kind')} <Why title={t('inv.why.kind.title')} text={t('inv.why.kind.text')} /></span>
+            <select value={item.kind} onChange={ev => setKind(ev.target.value as Item['kind'])}>
+              <option value="gear">{t('inv.kind.gear')}</option>
+              <option value="weapon">{t('inv.kind.weapon')}</option>
+              <option value="armor">{t('inv.kind.armor')}</option>
             </select>
           </label>
-          <label><span className="inv-label">{t('inv.f.category')} <Why title={t('inv.why.category.title')} text={t('inv.why.category.text')} /></span>
-            <select value={item.category} onChange={ev => patch({ category: ev.target.value as 'simple' | 'martial' })}>
-              <option value="simple">{t('inv.simple')}</option>
-              <option value="martial">{t('inv.martial')}</option>
-            </select>
-          </label>
-          {item.properties.includes('versatile') && (
-            <label><span className="inv-label">{t('inv.f.versatile')} <Why title={t('inv.why.versatile.title')} text={t('inv.why.versatile.text')} /></span><input value={item.versatile ?? ''} onChange={ev => patch({ versatile: ev.target.value || undefined })} dir="ltr" /></label>
-          )}
-          {(item.properties.includes('ranged') || item.properties.includes('thrown')) && (
-            <label><span className="inv-label">{t('inv.f.range')} <Why title={t('inv.why.range.title')} text={t('inv.why.range.text')} /></span><input value={item.range ?? ''} placeholder="20/60" onChange={ev => patch({ range: ev.target.value || undefined })} dir="ltr" /></label>
-          )}
-          <fieldset className="wide inv-props">
-            <legend className="why-legend">{t('inv.f.properties')} <Why title={t('inv.why.properties.title')} text={t('inv.why.properties.text')} /></legend>
-            {PROPERTIES.map(p => (
-              <label key={p} className="check">
-                <input type="checkbox" checked={item.properties.includes(p)}
-                  onChange={ev => patch({ properties: ev.target.checked ? [...item.properties, p] : item.properties.filter(x => x !== p) })} />
-                {t(`inv.prop.${p}` as MessageKey)}
-                <Why compact title={t(`inv.prop.${p}` as MessageKey)} text={t(`inv.why.prop.${p}` as MessageKey)} />
-              </label>
-            ))}
-          </fieldset>
-          <label><span className="inv-label">{t('inv.f.extra')} <Why title={t('inv.why.extra.title')} text={t('inv.why.extra.text')} /></span><input value={extra} placeholder="1d6 fire" onChange={ev => setExtra(ev.target.value)} dir="ltr" /></label>
-        </>
-      )}
 
-      {item.kind === 'armor' && (
-        <>
-          <label><span className="inv-label">{t('inv.f.armorType')} <Why title={t('inv.why.armorType.title')} text={t('inv.why.armorType.text')} /></span>
-            <select value={item.category} onChange={ev => patch({ category: ev.target.value as 'light' })}>
-              {(['light', 'medium', 'heavy', 'shield'] as const).map(k => <option key={k} value={k}>{t(`inv.armor.${k}` as MessageKey)}</option>)}
-            </select>
-          </label>
-          <label><span className="inv-label">{t('inv.f.ac')} <Why title={t('inv.why.ac.title')} text={t('inv.why.ac.text')} /></span><input type="number" value={item.baseAc} onChange={ev => patch({ baseAc: Number(ev.target.value) || 0 })} /></label>
-          {item.category !== 'shield' && (
-            <label><span className="inv-label">{t('inv.f.dexCap')} <Why title={t('inv.why.dexCap.title')} text={t('inv.why.dexCap.text')} /></span>
-              <select value={item.dexCap ?? 'none'} onChange={ev => patch({ dexCap: ev.target.value === 'none' ? undefined : Number(ev.target.value) })}>
-                <option value="none">{t('inv.dexFull')}</option>
-                <option value="2">{t('inv.dexMax', { n: 2 })}</option>
-                <option value="0">{t('inv.dexNone')}</option>
+          {item.kind !== 'gear' && (
+            <label><span className="inv-label">{t('inv.f.base')} <Why title={t('inv.why.base.title')} text={t('inv.why.base.text')} /></span>
+              <select value="" onChange={ev => startFrom(ev.target.value)}>
+                <option value="">{t('inv.f.basePick')}</option>
+                {BASES.filter(b => b.kind === item.kind).map(b => <option key={b.id} value={b.id}>{term('item', b.id, b.name)}</option>)}
               </select>
             </label>
           )}
-        </>
-      )}
 
-      {item.kind !== 'gear' && (
-        <label><span className="inv-label">{t('inv.f.magic')} <Why title={t('inv.why.magic.title')} text={t('inv.why.magic.text')} /></span>
-          <select value={magic} onChange={ev => setMagic(Number(ev.target.value))}>
-            {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n ? fmtMod(n) : t('inv.none')}</option>)}
-          </select>
-        </label>
-      )}
-      {item.kind === 'weapon' && isWarlock(character) && (
-        <label className="check wide inv-pact">
-          <input type="checkbox" checked={pact} onChange={ev => setPact(ev.target.checked)} />
-          <span><span className="inv-label">{t('inv.f.pact')} <Why title={t('inv.why.pact.title')} text={t('inv.why.pact.text')} /></span><small>{t(uses2024Spells(character) ? 'inv.pactHint2024' : 'inv.pactHint')}</small></span>
-        </label>
-      )}
-      {infusions.length > 0 && (
-        <label className="wide"><span className="inv-label">{t('inv.f.infuse')} <Why title={t('inv.why.infuse.title')} text={t('inv.why.infuse.text')} /></span>
-          <select value="" onChange={ev => infuse(ev.target.value)}>
-            <option value="">{t('inv.infusePick')}</option>
-            {infusions.map(o => <option key={o.id} value={o.id}>{term('option', o.id, o.name)}</option>)}
-          </select>
-        </label>
-      )}
-      <EffectsEditor effects={effects} onChange={setEffects} />
-      <label className="wide"><span className="inv-label">{t('inv.f.notes')} <Why title={t('inv.why.notes.title')} text={t('inv.why.notes.text')} /></span><textarea rows={4} value={notes} onChange={ev => setNotes(ev.target.value)} placeholder={t('inv.f.notesHint')} /></label>
+          {item.kind === 'weapon' && (
+            <>
+              <label><span className="inv-label">{t('inv.f.damage')} <Why title={t('inv.why.damage.title')} text={t('inv.why.damage.text')} /></span><input value={item.damage} onChange={ev => patch({ damage: ev.target.value })} dir="ltr" /></label>
+              <label><span className="inv-label">{t('inv.f.damageType')} <Why title={t('inv.why.damageType.title')} text={t('inv.why.damageType.text')} /></span>
+                <select value={item.damageType} onChange={ev => patch({ damageType: ev.target.value })}>
+                  {DAMAGE_TYPES.map(d => <option key={d} value={d}>{term('damage', d, d)}</option>)}
+                </select>
+              </label>
+              <label><span className="inv-label">{t('inv.f.category')} <Why title={t('inv.why.category.title')} text={t('inv.why.category.text')} /></span>
+                <select value={item.category} onChange={ev => patch({ category: ev.target.value as 'simple' | 'martial' })}>
+                  <option value="simple">{t('inv.simple')}</option>
+                  <option value="martial">{t('inv.martial')}</option>
+                </select>
+              </label>
+              {item.properties.includes('versatile') && (
+                <label><span className="inv-label">{t('inv.f.versatile')} <Why title={t('inv.why.versatile.title')} text={t('inv.why.versatile.text')} /></span><input value={item.versatile ?? ''} onChange={ev => patch({ versatile: ev.target.value || undefined })} dir="ltr" /></label>
+              )}
+              {(item.properties.includes('ranged') || item.properties.includes('thrown')) && (
+                <label><span className="inv-label">{t('inv.f.range')} <Why title={t('inv.why.range.title')} text={t('inv.why.range.text')} /></span><input value={item.range ?? ''} placeholder="20/60" onChange={ev => patch({ range: ev.target.value || undefined })} dir="ltr" /></label>
+              )}
+              <fieldset className="wide inv-props">
+                <legend className="why-legend">{t('inv.f.properties')} <Why title={t('inv.why.properties.title')} text={t('inv.why.properties.text')} /></legend>
+                {PROPERTIES.map(p => (
+                  <label key={p} className="check">
+                    <input type="checkbox" checked={item.properties.includes(p)}
+                      onChange={ev => patch({ properties: ev.target.checked ? [...item.properties, p] : item.properties.filter(x => x !== p) })} />
+                    {t(`inv.prop.${p}` as MessageKey)}
+                    <Why compact title={t(`inv.prop.${p}` as MessageKey)} text={t(`inv.why.prop.${p}` as MessageKey)} />
+                  </label>
+                ))}
+              </fieldset>
+              <label><span className="inv-label">{t('inv.f.extra')} <Why title={t('inv.why.extra.title')} text={t('inv.why.extra.text')} /></span><input value={extra} placeholder="1d6 fire" onChange={ev => setExtra(ev.target.value)} dir="ltr" /></label>
+            </>
+          )}
 
+          {item.kind === 'armor' && (
+            <>
+              <label><span className="inv-label">{t('inv.f.armorType')} <Why title={t('inv.why.armorType.title')} text={t('inv.why.armorType.text')} /></span>
+                <select value={item.category} onChange={ev => patch({ category: ev.target.value as 'light' })}>
+                  {(['light', 'medium', 'heavy', 'shield'] as const).map(k => <option key={k} value={k}>{t(`inv.armor.${k}` as MessageKey)}</option>)}
+                </select>
+              </label>
+              <label><span className="inv-label">{t('inv.f.ac')} <Why title={t('inv.why.ac.title')} text={t('inv.why.ac.text')} /></span><input type="number" value={item.baseAc} onChange={ev => patch({ baseAc: Number(ev.target.value) || 0 })} /></label>
+              {item.category !== 'shield' && (
+                <label><span className="inv-label">{t('inv.f.dexCap')} <Why title={t('inv.why.dexCap.title')} text={t('inv.why.dexCap.text')} /></span>
+                  <select value={item.dexCap ?? 'none'} onChange={ev => patch({ dexCap: ev.target.value === 'none' ? undefined : Number(ev.target.value) })}>
+                    <option value="none">{t('inv.dexFull')}</option>
+                    <option value="2">{t('inv.dexMax', { n: 2 })}</option>
+                    <option value="0">{t('inv.dexNone')}</option>
+                  </select>
+                </label>
+              )}
+            </>
+          )}
+
+          {item.kind !== 'gear' && (
+            <label><span className="inv-label">{t('inv.f.magic')} <Why title={t('inv.why.magic.title')} text={t('inv.why.magic.text')} /></span>
+              <select value={magic} onChange={ev => setMagic(Number(ev.target.value))}>
+                {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n ? fmtMod(n) : t('inv.none')}</option>)}
+              </select>
+            </label>
+          )}
+          {item.kind === 'weapon' && isWarlock(character) && (
+            <label className="check wide inv-pact">
+              <input type="checkbox" checked={pact} onChange={ev => setPact(ev.target.checked)} />
+              <span><span className="inv-label">{t('inv.f.pact')} <Why title={t('inv.why.pact.title')} text={t('inv.why.pact.text')} /></span><small>{t(uses2024Spells(character) ? 'inv.pactHint2024' : 'inv.pactHint')}</small></span>
+            </label>
+          )}
+          {infusions.length > 0 && (
+            <label className="wide"><span className="inv-label">{t('inv.f.infuse')} <Why title={t('inv.why.infuse.title')} text={t('inv.why.infuse.text')} /></span>
+              <select value="" onChange={ev => infuse(ev.target.value)}>
+                <option value="">{t('inv.infusePick')}</option>
+                {infusions.map(o => <option key={o.id} value={o.id}>{term('option', o.id, o.name)}</option>)}
+              </select>
+            </label>
+          )}
+          <EffectsEditor effects={effects} onChange={setEffects} />
+          </>
+        )
+        : <button type="button" className="btn ghost small wide inv-more" aria-expanded={false} onClick={() => setMore(true)}>{t('inv.moreOptions')} <span aria-hidden="true">▾</span></button>}
       <div className="wide inv-editor-actions">
         <button type="submit" className="btn primary">{t('inv.save')}</button>
         <button type="button" className="btn" onClick={onDone}>{t('common.cancel')}</button>
@@ -554,17 +590,19 @@ function AddPanel({ lib, onAdd, onClose, source }: {
   const [query, setQuery] = useState('')
   const custom = () => onAdd({ itemId: `custom:${Date.now().toString(36)}`, item: { kind: 'gear', id: 'custom', name: t('inv.newItem'), weight: 0 } }, t('inv.newItem'), true)
 
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => { const d = ref.current; if (d && !d.open) d.showModal?.() }, [])
+
   return (
-    <div className="inv-panel">
+    <dialog ref={ref} className="inv-panel glass-sheet glass-dialog" aria-label={t('inv.add')} onCancel={e => { e.preventDefault(); onClose() }}>
       <div className="inv-panel-head">
-        <div className="segmented" role="tablist">
-          <button type="button" role="tab" aria-selected={tab === 'gear'} className={tab === 'gear' ? 'on' : ''} onClick={() => setTab('gear')}>{t('inv.tab.gear')}</button>
-          <button type="button" role="tab" aria-selected={tab === 'magic'} className={tab === 'magic' ? 'on' : ''} onClick={() => setTab('magic')}>{t('inv.tab.magic')}</button>
-        </div>
+        <input type="search" autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder={t('inv.search')} aria-label={t('inv.search')} lang="en" />
         <button type="button" className="btn ghost small" onClick={onClose} aria-label={t('inv.close')}>✕</button>
       </div>
-      <button type="button" className="btn inv-custom" onClick={custom}>{t('inv.custom')}</button>
-      <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t('inv.search')} aria-label={t('inv.search')} lang="en" />
+      <div className="segmented" role="tablist">
+        <button type="button" role="tab" aria-selected={tab === 'gear'} className={tab === 'gear' ? 'on' : ''} onClick={() => setTab('gear')}>{t('inv.tab.gear')}</button>
+        <button type="button" role="tab" aria-selected={tab === 'magic'} className={tab === 'magic' ? 'on' : ''} onClick={() => setTab('magic')}>{t('inv.tab.magic')}</button>
+      </div>
       {lib === null && <p className="hint">{t('common.loading')}</p>}
       {lib === 'error' && <p className="hint">{t('inv.failed')}</p>}
       {lib && lib !== 'error' && (
@@ -590,8 +628,9 @@ function AddPanel({ lib, onAdd, onClose, source }: {
             })}
         </ul>
       )}
+      <button type="button" className="btn inv-custom" onClick={custom}>{t('inv.custom')}</button>
       {source && <p className="hint inv-source">{t('inv.source', { title: source })}</p>}
-    </div>
+    </dialog>
   )
 }
 

@@ -28,6 +28,7 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
   const [modifier, setModifier] = useState(0)
   const [mode, setMode] = useState<RollMode>('normal')
   const [text, setText] = useState('')
+  const [typing, setTyping] = useState(false)
   const [error, setError] = useState<string>()
   const [secretOn, setSecretOn] = useState(false)
   const [sent, setSent] = useState<{ id: string; label: string }[]>([])
@@ -49,10 +50,13 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
     ...DICE.filter(s => pool[s]).map((s): Term => ({ kind: 'dice', sign: 1, count: pool[s], sides: s })),
     ...(modifier ? [{ kind: 'const', sign: modifier < 0 ? -1 : 1, value: Math.abs(modifier) } as Term] : []),
   ]
-  const poolNotation = poolTerms.some(t => t.kind === 'dice') ? formatNotation(poolTerms) : ''
-  const singleD20 = DICE.every(s => (s === 20 ? pool[s] === 1 : !pool[s]))
+  const picked = poolTerms.some(t => t.kind === 'dice')
+  // Nothing picked: the one Roll button rolls a d20 (with the modifier and advantage), the most common roll.
+  const poolNotation = picked ? formatNotation(poolTerms) : formatNotation([{ kind: 'dice', sign: 1, count: 1, sides: 20 }, ...poolTerms])
+  const singleD20 = !picked || DICE.every(s => (s === 20 ? pool[s] === 1 : !pool[s]))
 
   const add = (sides: number) => setPool(p => ({ ...p, [sides]: Math.min(99, (p[sides] ?? 0) + 1) }))
+  const drop = (sides: number) => setPool(p => ({ ...p, [sides]: Math.max(0, (p[sides] ?? 0) - 1) }))
   const reset = () => {
     setPool({})
     setModifier(0)
@@ -62,7 +66,6 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
   const rollLabel = d20Mode ? t(mode === 'advantage' ? 'dice.withAdv' : 'dice.withDis') : poolNotation
 
   function rollPool() {
-    if (!poolNotation) return
     // A lone d20 honours the advantage toggle; other pools roll as written.
     if (d20Mode) send(rollD20(modifier, { mode, roller, label: rollLabel }, 'custom'))
     else rollText(poolNotation, { roller })
@@ -122,29 +125,43 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
         </label>
       )}
 
-      <div className="ff-dice__row">
-        <button type="button" className="ff-dice__roll" disabled={!poolNotation} onClick={rollPool}>
-          {poolNotation ? t('dice.rollPool', { notation: poolNotation }) + (d20Mode ? t(mode === 'advantage' ? 'dice.advShort' : 'dice.disShort') : '') : t('dice.pick')}
-        </button>
-        <button type="button" className="ff-dice__ghost" onClick={reset} disabled={!poolNotation && !modifier}>
-          {t('dice.clear')}
-        </button>
-      </div>
+      {picked && (
+        <ul className="ff-dice__chips" aria-label={t('dice.picked')}>
+          {DICE.filter(s => pool[s]).map(s => (
+            <li key={s}>
+              <button type="button" className="ff-dice__chip" onClick={() => drop(s)} aria-label={t('dice.removeDie', { sides: s })}>
+                <bdi dir="ltr">{pool[s]}d{s}</bdi> <span aria-hidden="true">×</span>
+              </button>
+            </li>
+          ))}
+          <li><button type="button" className="ff-dice__ghost" onClick={reset}>{t('dice.clear')}</button></li>
+        </ul>
+      )}
 
-      <form className="ff-dice__row" onSubmit={submitText}>
-        <input
-          className="ff-dice__text"
-          value={text}
-          onChange={e => {
-            setText(e.target.value)
-            setError(undefined)
-          }}
-          placeholder="2d6+3, 4d6dl1, d%"
-          aria-label={t('dice.notation')}
-          aria-invalid={!!error}
-        />
-        <button type="submit" className="ff-dice__roll" disabled={!text.trim()}>{t('dice.roll')}</button>
-      </form>
+      <button type="button" className="ff-dice__roll ff-dice__roll--main" onClick={rollPool}>
+        <span aria-hidden="true">🎲 </span>{t('dice.rollPool', { notation: poolNotation }) + (d20Mode ? t(mode === 'advantage' ? 'dice.advShort' : 'dice.disShort') : '')}
+      </button>
+
+      {typing
+        ? (
+          <form className="ff-dice__row" onSubmit={submitText}>
+            <input
+              className="ff-dice__text"
+              autoFocus
+              value={text}
+              onChange={e => {
+                setText(e.target.value)
+                setError(undefined)
+              }}
+              placeholder="2d6+3, 4d6dl1, d%"
+              aria-label={t('dice.notation')}
+              aria-invalid={!!error}
+              dir="ltr"
+            />
+            <button type="submit" className="ff-dice__ghost" disabled={!text.trim()}>{t('dice.roll')}</button>
+          </form>
+        )
+        : <button type="button" className="ff-dice__link" onClick={() => setTyping(true)}>{t('dice.typeFormula')}</button>}
       {error && <p className="ff-dice__error" role="alert">{error}</p>}
       {secretTo && sent.length > 0 && (
         <ol className="ff-dice__sent" aria-live="polite">

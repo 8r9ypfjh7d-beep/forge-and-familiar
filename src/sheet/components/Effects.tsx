@@ -16,8 +16,11 @@ import { CastResult, ConfirmCast, SlotPicker, useCast, useCastWarning } from '..
 import { endEffect, endFight, endsWithFight, setEffectOn, startEffect } from '../effects'
 import type { Apply } from '../types'
 import { FormCard } from './WildShape'
+import { useAskConfirm } from '../../builder/ConfirmDialog'
 
 type T = ReturnType<typeof useI18n>['t']
+/** Opens an in-app yes/no dialog (useConfirm) and runs `run` on yes. */
+export type Ask = (title: string, yes: string, run: () => void) => void
 
 /** Casts a spell from its switch, at the picked slot or the lowest free one. */
 export type CastFn = (spell: Spell, slot?: SlotChoice) => unknown
@@ -26,10 +29,10 @@ export type CastFn = (spell: Spell, slot?: SlotChoice) => unknown
  * Flips one switch. On, a known spell that isn't running is cast (slot, temporary HP, rolls); off, a running
  * spell, feature or item effect ends. Custom actions are saved on the action. Rage and Sneak Attack use `local`.
  */
-export function toggleEffect(e: EffectToggle, value: boolean, apply: Apply, t: T, local: () => void, cast: CastFn, slot?: SlotChoice) {
+export function toggleEffect(e: EffectToggle, value: boolean, apply: Apply, t: T, local: () => void, cast: CastFn, slot: SlotChoice | undefined, ask: Ask) {
   const log = t(value ? 'cs.log.effectOn' : 'cs.log.effectOff', { name: e.name })
   if (e.id.startsWith('act:')) return apply(log, c => setActionActive(c, e.id.slice(4), value))
-  if (e.live) return value ? apply(log, c => setEffectOn(c, e.id, true)) : confirm(t('fx.confirmEnd', { name: e.name })) && apply(t('fx.log.end', { name: e.name }), c => endEffect(c, e.id))
+  if (e.live) return value ? apply(log, c => setEffectOn(c, e.id, true)) : ask(t('fx.confirmEnd', { name: e.name }), t('fx.end'), () => apply(t('fx.log.end', { name: e.name }), c => endEffect(c, e.id)))
   if (e.spell && value) return void cast(e.spell, slot ?? e.slot)
   if (e.start && value) return apply(log, c => startEffect(e.slot ? spendSlot(c, e.slot) : c, e.start!).character)
   local()
@@ -144,6 +147,7 @@ export function EffectsCard({ character, apply }: { character: Character; apply:
   const { t } = useI18n()
   const spells = useSpells(character)
   const casting = useCast(character, apply)
+  const confirm = useAskConfirm()
   const effects = effectToggles(character, derive(character), spells).filter(e => !e.feature)
   if (!effects.length) return null
   const isOn = (e: EffectToggle) => (e.id.startsWith('act:') ? !!character.customActions?.find(a => `act:${a.id}` === e.id)?.active : !!e.live?.on)
@@ -151,7 +155,8 @@ export function EffectsCard({ character, apply }: { character: Character; apply:
     <section className="card cs-fight fx-card" aria-labelledby="fx-title">
       <div className="card-head"><h2 id="fx-title">{t('cs.effects')}</h2></div>
       <CastResult out={casting.out} outKey={casting.outKey} onDone={casting.clear} character={character} apply={apply} />
-      <EffectRows character={character} effects={effects} isOn={isOn} apply={apply} onToggle={(e, v, slot) => toggleEffect(e, v, apply, t, () => {}, casting.cast, slot)} />
+      <EffectRows character={character} effects={effects} isOn={isOn} apply={apply} onToggle={(e, v, slot) => toggleEffect(e, v, apply, t, () => {}, casting.cast, slot, confirm.ask)} />
+      {confirm.dialog}
     </section>
   )
 }

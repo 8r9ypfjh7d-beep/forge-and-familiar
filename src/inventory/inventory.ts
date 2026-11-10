@@ -85,6 +85,12 @@ export const COINS: Coin[] = ['gp', 'sp', 'cp']
 export const setCoins = (c: Character, coin: Coin, value: number): Character =>
   ({ ...c, coins: { ...c.coins, [coin]: Math.max(0, Math.floor(value) || 0) } })
 
+/** Things carried in bunches that get used up: ammunition, potions, rations, torches, darts… */
+const CONSUMABLE = /\b(arrows?|bolts?|bullets?|needles?|darts?|javelins?|rations?|torch(es)?|candles?|oil|potion|elixir|philter|scroll|caltrops|ball bearings|pitons?|chalk|ink(?! pen)|parchment|paper|vial|flask|holy water|acid|alchemist's fire|antitoxin|healer's kit|ammunition)\b/i
+
+/** Gets − and + on its row: a stack (more than one) or something used up one at a time. Others change quantity in Edit. */
+export const isStackable = (e: Pick<InventoryEntry, 'qty'>, item: Pick<Item, 'name'>): boolean => e.qty > 1 || CONSUMABLE.test(item.name)
+
 export const isWarlock = (c: Pick<Character, 'classes'>) => c.classes.some(x => x.classId === 'warlock')
 
 /** Display item for an entry, or a stand-in so an unknown id still shows. */

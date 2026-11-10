@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Feature } from '../../content'
 import type { RollMode } from '../../dice'
 import { ShowMath } from '../../explain/ShowMath'
+import { useAskConfirm } from '../../builder/ConfirmDialog'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
 import type { Ability, ItemEffect, Recharge } from '../../rules/types'
@@ -86,7 +87,7 @@ export function CharacterCard({ character, vitals, onLevelUp, apply, party, user
             <p key={cl.classId} className="cs-warn" role="note">{t('cs.subclassMissing', { className: className(cl.classId), id: cl.subclassId! })}</p>
           ))}
           <p>{[raceName(character.raceId, character.subraceId, character.rulesEdition), bg && term('background', bg.id, bg.name)].filter(Boolean).join(' · ')}</p>
-          <XpLine character={character} next={next} apply={apply} />
+          <XpLine character={character} next={next} apply={apply} onLevelUp={onLevelUp && d.level < 20 && !xpReady(character) ? onLevelUp : undefined} />
         </div>
         <dl className="cs-stats">
           <div><dt>{t('stat.ac')}</dt><dd className="cs-shield">{m('ac', d.armorClass.value)}</dd></div>
@@ -96,10 +97,9 @@ export function CharacterCard({ character, vitals, onLevelUp, apply, party, user
         </dl>
         <Perks d={d} />
         <div className="cs-hero-actions">
-          {onLevelUp && d.level < 20 && (
-            <button type="button" className={`btn cs-levelup${xpReady(character) ? ' primary ready' : ''}`} onClick={onLevelUp}
-              title={xpReady(character) ? t('xp.ready', { level: d.level + 1 }) : undefined}>
-              {xpReady(character) && <span aria-hidden="true">⬆ </span>}{t('cs.levelUp')}
+          {onLevelUp && d.level < 20 && xpReady(character) && (
+            <button type="button" className="btn cs-levelup primary ready" onClick={onLevelUp} title={t('xp.ready', { level: d.level + 1 })}>
+              <span aria-hidden="true">⬆ </span>{t('cs.levelUp')}
             </button>
           )}
           <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
@@ -116,7 +116,7 @@ export function CharacterCard({ character, vitals, onLevelUp, apply, party, user
 }
 
 /** XP under the name: tap it to add XP (a minus number takes some away). */
-function XpLine({ character, next, apply }: { character: Character; next?: number; apply?: Apply }) {
+function XpLine({ character, next, apply, onLevelUp }: { character: Character; next?: number; apply?: Apply; onLevelUp?: () => void }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState('')
@@ -134,6 +134,7 @@ function XpLine({ character, next, apply }: { character: Character; next?: numbe
       <button type="button" className="cs-xp-btn" aria-expanded={open} onClick={() => setOpen(o => !o)} title={t('xp.add')}>
         {text} <span aria-hidden="true">＋</span>
       </button>
+      {onLevelUp && <button type="button" className="cs-levelup-link small" onClick={onLevelUp}>{t('cs.levelUp')}</button>}
       {xpReady(character) && <span className="cs-xp-ready small">{t('xp.ready', { level: totalLevel(character) + 1 })}</span>}
       {open && (
         <form className="cs-xp-add" onSubmit={e => { e.preventDefault(); add() }}>
@@ -363,8 +364,9 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         : !!on[e.id]
   // A spell switched on is cast like Cast, and its rolls and notes show in the result box.
   const casting = useCast(character, apply)
+  const confirm = useAskConfirm()
   const toggle = (e: EffectToggle, value: boolean, slot?: SlotChoice) =>
-    toggleEffect(e, value, apply, t, () => setOn(o => ({ ...o, [e.id]: value })), (spell, s) => show(casting.cast(spell, s)), slot)
+    toggleEffect(e, value, apply, t, () => setOn(o => ({ ...o, [e.id]: value })), (spell, s) => show(casting.cast(spell, s)), slot, confirm.ask)
   const active = effects.filter(isOn)
   const listed = effects.filter(e => !e.id.startsWith('act:'))
   const damaging = active.filter((e): e is EffectToggle & { damage: string } => !!e.damage)
@@ -575,6 +577,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
 
       <CustomActions character={character} apply={apply} onRoll={a => runAction(a)} onUse={spendUse}
         auto={k => <TurnRows rows={turn[k]} character={character} apply={apply} features={lib.features} onOut={show} />} hasAuto={k => turn[k].length > 0} />
+      {confirm.dialog}
     </section>
   )
 }
@@ -595,6 +598,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
   const d = derive(character)
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
+  const confirm = useAskConfirm()
   /** "+6 · 1d8+3 force" or "DC 14 WIS · 2d6" */
   const summary = (a: CustomAction) => {
     const r = actionRoll(a, d)
@@ -656,7 +660,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
                         )}
                         <button type="button" className="btn ghost small" aria-label={t('cs.editAction', { name: a.name })} onClick={() => setEditing(a.id)}>✎</button>
                         <button type="button" className="btn ghost small" aria-label={t('cs.removeAction', { name: a.name })}
-                          onClick={() => confirm(t('sheet.confirmRemove', { name: a.name })) && apply(t('cs.log.actionRemoved', { name: a.name }), c => removeAction(c, a.id))}>×</button>
+                          onClick={() => confirm.ask(t('sheet.confirmRemove', { name: a.name }), t('common.remove'), () => apply(t('cs.log.actionRemoved', { name: a.name }), c => removeAction(c, a.id)))}>×</button>
                       </span>
                     </div>
                   </li>
@@ -672,6 +676,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
             onSave={a => { apply(t('cs.log.actionAdded', { name: a.name }), c => addAction(c, { ...a, id: newActionId() })); setAdding(false) }} />
         )
         : <button type="button" className="glass-btn small cs-add-action" onClick={() => setAdding(true)}>+ {t('cs.addAction')}</button>}
+      {confirm.dialog}
     </>
   )
 }

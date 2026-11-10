@@ -8,9 +8,10 @@ pictures and the viewer without buttons.
 
 | File | Purpose |
 |------|---------|
-| `logic.ts` | Pure: sizes, `tokenArt` (token else portrait), `sharedTokenArt` (links only), gallery add/remove/caption, `droppedArt`, `artPath`, `squareCrop` |
+| `logic.ts` | Pure: sizes, `tokenArt` (token else portrait), `sharedTokenArt` (links only), gallery add/remove/caption, `droppedArt`, `artPath`, `squareCrop`, `framedSquare`/`dragFraming` (positioning) |
 | `image.ts` | `shrinkArt(file, kind, maxSide)`: JPEG data URL; token art is cut to a centred square |
 | `cloud.ts` | `storeArt(file, kind, characterId)`: uploads to the `art` bucket or falls back to a data URL; `removeArt(urls)` |
+| `Position.tsx` | `PositionDialog`: a new portrait or token is dragged (and zoomed) under a square or round frame and saved as that square; "Keep whole picture" saves it as picked |
 | `Gallery.tsx` | `ArtCard` and its picture viewer (caption, use as portrait, use as map token, remove) |
 | `art.css` | Card and viewer styles |
 | `art.test.ts` | Logic, token art on the board, share links and snapshots |

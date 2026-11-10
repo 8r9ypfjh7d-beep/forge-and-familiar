@@ -1,5 +1,5 @@
 import { fmtMod } from '../i18n/signed'
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import type { Spell } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
@@ -81,8 +81,10 @@ export function PrintPages({ character, withPlayState, withRules = false }: { ch
   const loading = lib === EMPTY
 
   const spellRows = spellAttackRows(character, d, lib.spells)
+  const ref = useRef<HTMLDivElement>(null)
+  const zoom = usePaperZoom(ref)
   return (
-    <div className="ff-print" lang={i.locale} dir={i.dir}>
+    <div ref={ref} className={`ff-print${zoom < 1 ? ' is-scaled' : ''}`} lang={i.locale} dir={i.dir} style={zoom < 1 ? { '--paper-zoom': zoom } as CSSProperties : undefined}>
       {loading && <p className="hint print-loading">{i.t('print.libLoading')}</p>}
       <PageOne s={s} i={i} texts={texts} spellRows={spellRows} />
       <PageGear s={s} i={i} />
@@ -90,6 +92,27 @@ export function PrintPages({ character, withPlayState, withRules = false }: { ch
       {withRules && <PageRules s={s} i={i} texts={texts} spells={spells.all} attribution={texts.attribution} />}
     </div>
   )
+}
+
+/** Width of the paper (A4, 8.27in) in CSS pixels. */
+const PAPER_PX = 794
+/**
+ * On a screen narrower than the paper, the preview is the real page scaled down to fit, instead of a reflowed
+ * layout whose fields overlap. Printing ignores it (print.css only applies the zoom on screen).
+ */
+function usePaperZoom(ref: RefObject<HTMLDivElement | null>): number {
+  const [zoom, setZoom] = useState(1)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const fit = () => setZoom(Math.min(1, Math.round((el.clientWidth / PAPER_PX) * 1000) / 1000))
+    fit()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [ref])
+  return zoom
 }
 
 function Head({ s, i, small }: { s: Sheet; i: T; small?: boolean }) {

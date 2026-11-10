@@ -25,4 +25,5 @@ Paper-style character sheet for tables that play without phones. "Print or save 
 - All text goes through `useI18n()` (`print.*` keys). In Hebrew, feature text is our Hebrew summary, spell names are Hebrew with the English name under them, and book spells use their Hebrew summary; SRD spell text stays English. Signed numbers and dice are `dir="ltr"`.
 - Play state is off by default, so HP, slots, death saves and conditions print empty for pencil play. The checkbox fills them from `character.state`.
 - The page title is set to "<name> - character sheet" while the view is open, which browsers use as the default PDF file name.
+- On a screen narrower than the paper the preview is the real page scaled to fit (`usePaperZoom`, CSS `zoom` on screen only), and the app bar and floating buttons are hidden on the print view.
 - Fits US Letter and A4. Spells and rules pages have no fixed height and drop the footer in print, so a page that runs on never leaves a lone footer on an extra sheet.

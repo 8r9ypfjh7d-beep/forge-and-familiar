@@ -61,7 +61,16 @@
   background: color-mix(in srgb, var(--panel) 70%, transparent);
 }
 .ff-dice__text { flex: 1; min-width: 0; }
-form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
+form.ff-dice__row .ff-dice__ghost { flex: 0 0 auto; min-width: 72px; min-height: 38px; }
+/* Picked dice as chips (tap one to take a die away), the one Roll button, and the formula link. */
+.ff-dice__chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ff-dice__chip {
+  min-height: 32px; padding: 0 10px; border: 1px solid var(--ff-dice-line); border-radius: var(--r-pill);
+  background: var(--glass-thick); color: inherit; font: inherit; font-weight: 600; cursor: pointer;
+}
+.ff-dice__chip span { color: var(--ff-dice-muted); }
+.ff-dice__roll--main { flex: none; inline-size: 100%; min-height: 46px; font-size: 1rem; }
+.ff-dice__link { align-self: center; background: none; border: 0; padding: 6px; color: var(--ff-dice-muted); font: inherit; font-size: 0.85rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 
 /* Advantage: a glass segmented control; the chosen mode is the raised thick segment. */
 .ff-dice__modes {
@@ -208,6 +217,9 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 .ff-dice-fab .ff-dice__history { max-height: 200px; }
 @media (prefers-reduced-motion: reduce) { .ff-dice-fab__button, .ff-dice-fab__panel { transition: none; animation: none; } }
 @media print { .ff-dice-fab { display: none; } }
+/* Tucked while the page scrolls down (tuck.ts). */
+:root[data-fabs="tucked"] .ff-dice-fab__button:not(.is-open) { transform: translateY(calc(100% + 24px)); opacity: 0; pointer-events: none; }
+.ff-dice-fab__button { transition: transform var(--dur-med) var(--ease-spring), box-shadow var(--dur-fast), opacity var(--dur-fast); }
 
 /* Solid fallbacks: tokens already go solid; high contrast also draws the edges that fills alone showed. */
 :root[data-contrast="high"] .ff-dice-fab__button { background: var(--accent); border: 2px solid var(--ink); box-shadow: none; }

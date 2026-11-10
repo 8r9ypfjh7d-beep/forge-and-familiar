@@ -27,6 +27,26 @@ export function squareCrop(width: number, height: number): { sx: number; sy: num
   return { sx: Math.round((width - side) / 2), sy: Math.round((height - side) / 2), side }
 }
 
+/** Where the player put a square cut of a picture: pan across the spare width and height (0 to 1) and zoom (1 = largest square). */
+export interface Framing { x: number; y: number; zoom: number }
+export const CENTRED: Framing = { x: 0.5, y: 0.5, zoom: 1 }
+const unit = (v: number) => Math.min(1, Math.max(0, v))
+
+/** The square of a picture that a framing shows. */
+export function framedSquare(width: number, height: number, f: Framing): { sx: number; sy: number; side: number } {
+  const side = Math.min(width, height) / Math.min(4, Math.max(1, f.zoom))
+  return { sx: (width - side) * unit(f.x), sy: (height - side) * unit(f.y), side }
+}
+
+/** Moves a framing by a drag of (dx, dy) pixels in a square view `view` pixels wide. */
+export function dragFraming(width: number, height: number, f: Framing, dx: number, dy: number, view: number): Framing {
+  const { side } = framedSquare(width, height, f)
+  const px = view / side
+  const spareX = (width - side) * px
+  const spareY = (height - side) * px
+  return { ...f, x: spareX ? unit(f.x - dx / spareX) : 0.5, y: spareY ? unit(f.y - dy / spareY) : 0.5 }
+}
+
 /** Width and height inside max on the longer side, never upscaled. */
 export function fitWithin(width: number, height: number, max: number): { width: number; height: number } {
   const scale = Math.min(1, max / Math.max(width, height))

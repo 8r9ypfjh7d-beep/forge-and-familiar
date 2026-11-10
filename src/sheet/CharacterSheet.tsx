@@ -1,7 +1,7 @@
 import { ArtCard } from '../art/Gallery'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n'
-import { ExportButton } from '../portability/ui'
+import { exportToFile } from '../portability'
 import type { Character } from '../model/character'
 import { EffectsCard } from './components/Effects'
 import { Attacks } from './components/Attacks'
@@ -138,7 +138,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
       case 'boons': return <Boons key={s} {...p} always={mode === 'combat'} />
       case 'attacks': return <Attacks key={s} {...p} />
       case 'spells': return <Spellbook key={s} {...p} />
-      case 'inventory': return <Inventory key={s} {...p} />
+      case 'inventory': return <Inventory key={s} {...p} party={brings ? party : undefined} />
       case 'resources': return <Resources key={s} {...p} />
       case 'metamagic': return <Metamagic key={s} {...p} />
       case 'supplies': return <Supplies key={s} {...p} />
@@ -188,17 +188,40 @@ function ModeSwitch({ mode, onChange }: { mode: SheetMode; onChange: (m: SheetMo
   )
 }
 
-/** The character card below shows who the character is, so the header keeps only navigation, edit, print and export. */
+/**
+ * The character card below shows who the character is, so the header keeps Back, Ask the Familiar and one
+ * "⋯" menu holding Edit, Print and Export, which fits a phone on one row.
+ */
 function Header({ character, onBack, onEdit, onPrint, familiar }: { character: Character; onBack: () => void; onEdit?: () => void; onPrint?: () => void; familiar?: boolean }) {
   const { t } = useI18n()
+  const ref = useRef<HTMLDetailsElement>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    const away = (e: PointerEvent) => { const d = ref.current; if (d?.open && !d.contains(e.target as Node)) d.open = false }
+    const esc = (e: KeyboardEvent) => { const d = ref.current; if (e.key === 'Escape' && d?.open) { d.open = false; d.querySelector('summary')?.focus() } }
+    document.addEventListener('pointerdown', away)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', esc) }
+  }, [])
+  const pick = (run: () => void) => () => { if (ref.current) ref.current.open = false; run() }
+  const doExport = async () => {
+    setFailed(false)
+    try { await exportToFile(character) } catch { setFailed(true) }
+  }
   return (
     <header className="sheet-header">
       <button type="button" className="btn ghost" onClick={onBack} aria-label={t('common.backToCharacters')}>{t('common.backArrow')}</button>
       <div className="who"><span className="sr-only">{character.name}</span></div>
       {familiar && <AskFamiliar label={t('familiar.askAbout', { name: character.name })} />}
-      {onEdit && <button type="button" className="btn small" onClick={onEdit}>✎ {t('sheet.edit')}</button>}
-      {onPrint && <button type="button" className="btn small" onClick={onPrint}>{t('list.print')}</button>}
-      <ExportButton character={character} />
+      <details ref={ref} className="sheet-menu">
+        <summary className="btn small" aria-label={t('sheet.menu')} title={t('sheet.menu')}><span aria-hidden="true">⋯</span></summary>
+        <div className="sheet-menu-list glass-sheet" role="menu">
+          {onEdit && <button type="button" role="menuitem" onClick={pick(onEdit)}><span aria-hidden="true">✎</span> {t('sheet.edit')}</button>}
+          {onPrint && <button type="button" role="menuitem" onClick={pick(onPrint)}><span aria-hidden="true">🖨</span> {t('list.print')}</button>}
+          <button type="button" role="menuitem" title={t('list.exportHint')} onClick={pick(doExport)}><span aria-hidden="true">⤓</span> {t('list.export')}</button>
+        </div>
+      </details>
+      {failed && <span role="alert" className="bad small">{t('levels.error')}</span>}
     </header>
   )
 }

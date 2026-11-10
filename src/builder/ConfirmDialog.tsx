@@ -45,6 +45,13 @@ export function useConfirm(): [(ask: ConfirmAsk) => void, ReactNode] {
   return [ask, dialog]
 }
 
+/** `useConfirm` with `ask(title, yes, run)`, for call sites that read like `confirm(title) && run()`. */
+export function useAskConfirm(): { ask: (title: string, yes: string, run: () => void, body?: string) => void; dialog: ReactNode } {
+  const [confirm, dialog] = useConfirm()
+  const ask = useCallback((title: string, yes: string, run: () => void, body?: string) => confirm({ title, yes, body, onYes: run }), [confirm])
+  return { ask, dialog }
+}
+
 /**
  * In-app glass dialog with one text field, used instead of the browser's prompt box. `onSubmit` gets the trimmed
  * text; when it returns an error message the dialog stays open and shows it.

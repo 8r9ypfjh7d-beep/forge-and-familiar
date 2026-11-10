@@ -3,6 +3,7 @@ import type { Equipment, MagicItem } from '../content'
 import type { Character } from '../model/character'
 import { createCharacter, derive, ITEMS, type CharacterDraft } from '../rules'
 import {
+  isStackable,
   addItem, fromLibrary, fromMagicItem, magicBonusOf, removeEntry, setCoins, setEquipped, setQty, updateEntry, withBase,
 } from './inventory'
 
@@ -156,5 +157,16 @@ describe('magic item effects reach the sheet', () => {
   it('fills in magic weapon bonuses from the table', () => {
     expect(magic('defender', 'Defender')).toMatchObject({ magicBonus: 3 })
     expect(magic('flame-tongue', 'Flame Tongue')).toMatchObject({ extraDamage: '2d6 fire' })
+  })
+})
+
+describe('isStackable', () => {
+  it('gives steppers to stacks and consumables only', () => {
+    expect(isStackable({ qty: 1 }, { name: 'Spellbook' })).toBe(false)
+    expect(isStackable({ qty: 1 }, { name: 'Common Clothes' })).toBe(false)
+    expect(isStackable({ qty: 2 }, { name: 'Pouch' })).toBe(true)
+    expect(isStackable({ qty: 1 }, { name: 'Arrows (20)' })).toBe(true)
+    expect(isStackable({ qty: 1 }, { name: 'Potion of Healing' })).toBe(true)
+    expect(isStackable({ qty: 1 }, { name: 'Rations (1 day)' })).toBe(true)
   })
 })
