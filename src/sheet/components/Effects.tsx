@@ -16,7 +16,7 @@ import { CastResult, ConfirmCast, SlotPicker, useCast, useCastWarning } from '..
 import { endEffect, endFight, endsWithFight, setEffectOn, startEffect } from '../effects'
 import type { Apply } from '../types'
 import { FormCard } from './WildShape'
-import { useConfirm } from '../../builder/ConfirmDialog'
+import { useAskConfirm } from '../../builder/ConfirmDialog'
 
 type T = ReturnType<typeof useI18n>['t']
 /** Opens an in-app yes/no dialog (useConfirm) and runs `run` on yes. */
@@ -147,7 +147,7 @@ export function EffectsCard({ character, apply }: { character: Character; apply:
   const { t } = useI18n()
   const spells = useSpells(character)
   const casting = useCast(character, apply)
-  const confirm = useConfirm()
+  const confirm = useAskConfirm()
   const effects = effectToggles(character, derive(character), spells).filter(e => !e.feature)
   if (!effects.length) return null
   const isOn = (e: EffectToggle) => (e.id.startsWith('act:') ? !!character.customActions?.find(a => `act:${a.id}` === e.id)?.active : !!e.live?.on)

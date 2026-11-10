@@ -45,16 +45,10 @@ export function useConfirm(): [(ask: ConfirmAsk) => void, ReactNode] {
   return [ask, dialog]
 }
 
-/**
- * The in-app stand-in for `confirm(text) && run()`: `ask(title, yes, run)` opens a ConfirmDialog and runs
- * `run` only on yes. Render `dialog` once anywhere in the component.
- */
-export function useConfirm(): { ask: (title: string, yes: string, run: () => void, body?: string) => void; dialog: ReactNode } {
-  const [q, setQ] = useState<{ title: string; yes: string; body?: string; run: () => void } | null>(null)
-  const ask = useCallback((title: string, yes: string, run: () => void, body?: string) => setQ({ title, yes, run, body }), [])
-  const dialog = (
-    <ConfirmDialog open={!!q} title={q?.title ?? ''} body={q?.body} yes={q?.yes ?? ''} onYes={() => q?.run()} onClose={() => setQ(null)} />
-  )
+/** `useConfirm` with `ask(title, yes, run)`, for call sites that read like `confirm(title) && run()`. */
+export function useAskConfirm(): { ask: (title: string, yes: string, run: () => void, body?: string) => void; dialog: ReactNode } {
+  const [confirm, dialog] = useConfirm()
+  const ask = useCallback((title: string, yes: string, run: () => void, body?: string) => confirm({ title, yes, body, onYes: run }), [confirm])
   return { ask, dialog }
 }
 

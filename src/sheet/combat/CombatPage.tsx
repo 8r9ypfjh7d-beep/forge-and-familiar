@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Feature } from '../../content'
 import type { RollMode } from '../../dice'
 import { ShowMath } from '../../explain/ShowMath'
-import { useConfirm } from '../../builder/ConfirmDialog'
+import { useAskConfirm } from '../../builder/ConfirmDialog'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { Character } from '../../model/character'
 import type { Ability, ItemEffect, Recharge } from '../../rules/types'
@@ -364,7 +364,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         : !!on[e.id]
   // A spell switched on is cast like Cast, and its rolls and notes show in the result box.
   const casting = useCast(character, apply)
-  const confirm = useConfirm()
+  const confirm = useAskConfirm()
   const toggle = (e: EffectToggle, value: boolean, slot?: SlotChoice) =>
     toggleEffect(e, value, apply, t, () => setOn(o => ({ ...o, [e.id]: value })), (spell, s) => show(casting.cast(spell, s)), slot, confirm.ask)
   const active = effects.filter(isOn)
@@ -598,7 +598,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
   const d = derive(character)
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
-  const confirm = useConfirm()
+  const confirm = useAskConfirm()
   /** "+6 · 1d8+3 force" or "DC 14 WIS · 2d6" */
   const summary = (a: CustomAction) => {
     const r = actionRoll(a, d)

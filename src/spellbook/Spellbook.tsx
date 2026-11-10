@@ -14,7 +14,7 @@ import { availableSpells, editionOf, spellAccess, spellSourcesFor, type SpellAcc
 import { grantedSpells, isExtraSpell } from './extra'
 import { addSpell, isPinned, isPrepared, pinnedSpells, removeSpell, setPrepared, spellsOf, toggleSpellPin, unpreparedIds } from './spellbook'
 import { CastButton, CastResult, itemSpellCaster, useCast } from './Cast'
-import { useConfirm } from '../builder/ConfirmDialog'
+import { useAskConfirm } from '../builder/ConfirmDialog'
 import './spellbook.css'
 
 interface Library {
@@ -273,7 +273,7 @@ function groupByLevel(spells: Spell[]) {
 function Mine({ character, apply, access, spells, onBrowse }: { character: Character; apply: Apply; access: SpellAccess; spells: Spell[]; onBrowse: () => void }) {
   const { t, term, spellName } = useI18n()
   const casting = useCast(character, apply)
-  const confirm = useConfirm()
+  const confirm = useAskConfirm()
   const levelName = useLevelName()
   // Rows keep only Cast; preparing, pinning and forgetting sit behind Edit list so names get the room on phones.
   const [editing, setEditing] = useState(false)

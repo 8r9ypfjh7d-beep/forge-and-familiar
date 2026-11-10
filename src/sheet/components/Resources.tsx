@@ -16,7 +16,7 @@ import { Pips, Stepper } from './Pips'
 import { itemSpellCaster, useCast } from '../../spellbook/Cast'
 import { useSpells } from './Effects'
 import { itemSpellsOf } from './SpellSlots'
-import { useConfirm } from '../../builder/ConfirmDialog'
+import { useAskConfirm } from '../../builder/ConfirmDialog'
 
 const RECHARGE = { short: 'rest.short', long: 'rest.long', dawn: 'rest.dawn', none: 'rest.none' } as const
 /** Pools larger than this show a stepper instead of a row of pips. */
@@ -28,7 +28,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
   const counters = character.state.counters ?? []
   const { t, term } = useI18n()
   const rolls = useSheetRolls(character)
-  const confirm = useConfirm()
+  const confirm = useAskConfirm()
   const atDawn = dawnCounters(character)
   // Item charges (from an item's effects) that come back at dawn, with what is spent.
   const dawnItems = resources.filter(r => r.recharge === 'dawn').map(r => ({ ...r, used: character.state.resources[r.id]?.used ?? 0 }))

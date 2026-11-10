@@ -12,7 +12,7 @@ import {
 import type { Apply } from '../sheet/types'
 import { editionOf, sourceFor } from '../spellbook/access'
 import { Why } from '../builder/Why'
-import { useConfirm } from '../builder/ConfirmDialog'
+import { useAskConfirm } from '../builder/ConfirmDialog'
 import { viewToHash } from '../nav/route'
 import { getStash, toCp } from '../party/stash'
 import type { Party } from '../party/types'
@@ -46,7 +46,7 @@ export function Inventory({ character, apply, party }: { character: Character; a
   const [adding, setAdding] = useState(false)
   // The item being edited, and whether its full editor opens straight away (a new custom or magic item).
   const [editing, setEditing] = useState<{ uid: string; full: boolean } | null>(null)
-  const confirm = useConfirm()
+  const confirm = useAskConfirm()
   const stats = derive(character)
   const edition = editionOf(character)
   const lib = useItemLibrary(edition, adding)
@@ -170,7 +170,7 @@ function StashLink({ party }: { party: Party }) {
   )
 }
 
-type Ask = ReturnType<typeof useConfirm>['ask']
+type Ask = ReturnType<typeof useAskConfirm>['ask']
 
 function Row({ entry: e, apply, ask, onEdit, onDrink }: { entry: InventoryEntry; apply: Apply; ask: Ask; onEdit: () => void; onDrink: (e: InventoryEntry, name: string, dice?: string) => void }) {
   const i18n = useI18n()
