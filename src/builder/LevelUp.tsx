@@ -41,6 +41,8 @@ function LevelUpForm({ character: c, onDone }: { character: Character; onDone: (
   const [classId, setClassId] = useState(planned.classId)
   const [draft, setDraft] = useState<CharacterDraft>(() => levelUpDraft(c, planned.classId))
   const [saving, setSaving] = useState(false)
+  // One class is the normal case: show "Wizard 1 → 2" and keep multiclassing behind a link.
+  const [chooseClass, setChooseClass] = useState(c.classes.length > 1)
   const update = (patch: Partial<CharacterDraft>) => setDraft(d => ({ ...d, ...patch }))
   const pickClass = (id: string) => {
     setClassId(id)
@@ -84,19 +86,26 @@ function LevelUpForm({ character: c, onDone }: { character: Character; onDone: (
 
       <section className="glass builder-step levelup-body">
         <div className="field">
-          <label>{t('levelup.class')} <Why id="multiclass" /></label>
-          <div className="row">
-            {c.classes.map(cl => (
-              <button key={cl.classId} type="button" className={`glass-chip ${classId === cl.classId ? 'on' : ''}`} aria-pressed={classId === cl.classId} onClick={() => pickClass(cl.classId)}>
-                {t('levelup.classTo', { className: className(cl.classId), level: cl.level + 1 })}
-              </button>
-            ))}
-            <select className="glass-field" aria-label={t('levelup.otherClass')} value={c.classes.some(cl => cl.classId === classId) ? '' : classId}
-              onChange={e => e.target.value && pickClass(e.target.value)}>
-              <option value="">{t('levelup.otherClass')}</option>
-              {others.map(x => <option key={x.id} value={x.id}>{className(x.id)}</option>)}
-            </select>
-          </div>
+          {!chooseClass ? (
+            <p className="levelup-class">
+              <strong>{t('levelup.classLine', { className: className(classId), from: gained ? gained.level - 1 : 0, to: gained?.level ?? 1 })}</strong>{' '}
+              <button type="button" className="link-btn small" onClick={() => setChooseClass(true)}>{t('levelup.differentClass')}</button> <Why id="multiclass" />
+            </p>
+          ) : (<>
+            <label>{t('levelup.class')} <Why id="multiclass" /></label>
+            <div className="row">
+              {c.classes.map(cl => (
+                <button key={cl.classId} type="button" className={`glass-chip ${classId === cl.classId ? 'on' : ''}`} aria-pressed={classId === cl.classId} onClick={() => pickClass(cl.classId)}>
+                  {t('levelup.classTo', { className: className(cl.classId), level: cl.level + 1 })}
+                </button>
+              ))}
+              <select className="glass-field" aria-label={t('levelup.otherClass')} value={c.classes.some(cl => cl.classId === classId) ? '' : classId}
+                onChange={e => e.target.value && pickClass(e.target.value)}>
+                <option value="">{t('levelup.otherClass')}</option>
+                {others.map(x => <option key={x.id} value={x.id}>{className(x.id)}</option>)}
+              </select>
+            </div>
+          </>)}
           {planned.planned && classId === planned.classId && <p className="muted small">{t('levelup.fromPlan')}</p>}
           {multiclassIssues.length > 0 && (
             <ul className="step-warnings small" role="note">{multiclassIssues.map(m => <li key={m}>{m}</li>)}</ul>
