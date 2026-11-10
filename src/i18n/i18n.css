@@ -8,7 +8,6 @@
 [dir='rtl'] .stat strong,
 [dir='rtl'] .ability-mini .small,
 [dir='rtl'] .ff-roll__detail,
-[dir='rtl'] .ff-roll__notation,
 [dir='rtl'] .ff-dice__text,
 [dir='rtl'] .stepper-value,
 [dir='rtl'] .track-count { direction: ltr; unicode-bidi: isolate; }

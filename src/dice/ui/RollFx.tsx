@@ -5,8 +5,8 @@ import { CRIT_LINES, fxCritKind, headlineDie, pickLine, type CritKind, type DieF
 import { CritFx, type Crit } from './CritFx'
 import './dice.css'
 
-const TUMBLE_MS = 650
-const HOLD_MS = 700
+const TUMBLE_MS = 500
+const HOLD_MS = 450
 
 export function motionReduced(): boolean {
   if (typeof document === 'undefined') return true
@@ -75,7 +75,7 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
     <>
       {shown && (
         <div key={shown.key} className={`ff-rollfx${shown.landed ? ' is-landed' : ''}`} aria-hidden="true">
-          <svg className="ff-rollfx__die" viewBox="0 0 100 100" width="88" height="88">
+          <svg className="ff-rollfx__die" viewBox="0 0 100 100" width="52" height="52">
             <polygon points={shapeFor(shown.face.sides)} />
             <text x="50" y="52" dominantBaseline="middle" textAnchor="middle">{shown.value}</text>
           </svg>

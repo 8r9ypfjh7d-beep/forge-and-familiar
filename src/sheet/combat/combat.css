@@ -206,7 +206,11 @@
 .cs-out {
   margin-block-start: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md);
   background: var(--glass-thin); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-highlight);
+  /* Scrolled into view clear of the sticky tab bar and the floating dice and Familiar buttons. */
+  scroll-margin-block: 72px 160px;
 }
+/* Under the attack row that rolled it. */
+.cs-attack-list > li > .cs-out { margin: 0 var(--sp-2) var(--sp-2); }
 
 /* Section headings inside the tabs: sentence case display type over a hairline */
 .cs-sub {

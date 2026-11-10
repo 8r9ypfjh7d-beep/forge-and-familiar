@@ -321,7 +321,8 @@ export function HpChip({ character }: { character: Character }) {
 
 // ---------- Combat tab: attacks, weapon mastery, effects, actions ----------
 
-interface Outcome { name: string; rolls: Shown[]; note?: string; effects?: UsedEffect[]; healMe?: number }
+/** `at` names the attacks-table row that rolled it, so the result shows right under that row. */
+interface Outcome { name: string; rolls: Shown[]; note?: string; effects?: UsedEffect[]; healMe?: number; at?: string }
 
 export function Fight({ character, apply }: { character: Character; apply: Apply }) {
   const i18n = useI18n()
@@ -337,7 +338,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   // Every tap gets a fresh card, so a repeat roll restarts its fade clock.
   const show = (o: Outcome) => { setOut(o); setOutKey(k => k + 1) }
   const outRef = useRef<HTMLDivElement>(null)
-  // Actions sit far below the result box, so bring the result into view after every roll.
+  // Bring the result into view after every roll (it sits under the tapped row, or above the action lists).
   useEffect(() => { if (out) outRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }) }, [out])
   const effects = effectToggles(character, d, lib.spells)
   // The attacks table holds action spells; bonus action and reaction spells (Hellish Rebuke) sit in their own lists below.
@@ -377,7 +378,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const ammoName = ammo && term('item', ammo.ammoId, ammo.ammoName)
     if (ammo?.left) apply(t('supplies.log.shot', { weapon: attackName(a.name), ammo: ammoName! }), c => spendAmmo(c, ammo.ammoId))
     show({
-      name: attackName(a.name),
+      name: attackName(a.name), at: `w:${a.name}`,
       ...(ammo && !ammo.left ? { note: t('supplies.out', { ammo: ammoName! }) } : {}),
       rolls: [{ roll: r.attack, what: t('cs.roll.toHit') }, ...(r.damage ? [{ roll: r.damage, what: mixed ? t('cs.roll.damagePlain') : t('cs.roll.damage', { type }) }] : [])],
       effects: effectsUsed(active, r.damage ? used.map(e => e.id) : [], f =>
@@ -416,16 +417,18 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     const half = r.kind === 'save' && spell?.save?.onSuccess === 'half'
     const list: Shown[] = []
     let hit = false
+    // Every dart or ray of one cast is one entry in the dice history and the party feed.
+    const action = beams > 1 ? { id: `cast-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`, name: r.name } : undefined
     for (let i = 1; i <= beams; i++) {
       const riders = used.filter(e => !(hit && e.oncePerTurn)).map(e => ({ name: e.name, damage: e.damage, damageType: e.damageType }))
-      const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders })
+      const res = rolls.spell(r.name, { attackBonus: r.kind === 'attack' ? r.value : undefined, damage, damageType: r.damageType, mode, riders, action })
       const what = (s: string) => (beams > 1 ? t(r.kind === 'auto' ? 'cs.roll.dart' : 'cs.roll.beam', { what: s, n: i }) : s)
       if ('attack' in res && res.attack) list.push({ roll: res.attack, what: what(t('cs.roll.toHit')) })
       if (res.damage) list.push({ roll: res.damage, what: what(r.damageType === 'healing' ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })), half })
       hit ||= !!res.damage
     }
     show({
-      name: r.name, rolls: list, note: notes.join(' · ') || undefined,
+      name: r.name, at: `s:${r.name}`, rolls: list, note: notes.join(' · ') || undefined,
       effects: effectsUsed(active, hit ? used.map(e => e.id) : [], f =>
         (r.kind === 'attack' ? f.kind === 'spellAttack' : f.kind === 'spellDc') || ((f.kind === 'ability' || f.kind === 'abilitySet') && f.ability === sc?.ability)),
     })
@@ -468,6 +471,37 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const mastered = masteredWeapons(character, d.attacks.flatMap(a => (a.itemId ? [a.itemId] : [])))
     .map(m => ({ weapon: i18n.item(m.itemId, itemById(m.itemId)?.name ?? m.itemId), mastery: m.mastery }))
 
+  const result = out && (
+    <FadingResult key={outKey} ref={outRef} className="cs-out" onDone={() => setOut(null)}>
+      <strong>{out.name}</strong>
+      <LastRoll rolls={out.rolls} note={out.note} />
+      {out.healMe !== undefined && healedKey !== outKey && character.state.currentHp > 0 && (
+        <button type="button" className="glass-btn small" onClick={() => {
+          setHealedKey(outKey)
+          apply(t('cast.log.healMe', { n: out.healMe!, name: out.name }), c => heal(c, out.healMe!))
+        }}>{t('cast.healMe', { n: out.healMe })}</button>
+      )}
+      {!!out.effects?.length && (
+        <div className="cs-used">
+          <span className="cs-used-title">{t('cs.effectsUsed')}</span>
+          <ul>
+            {out.effects.map(e => (
+              <li key={e.id}>
+                <strong>{e.name}</strong>{' '}
+                <span>{[
+                  e.damage ? t('cs.effectDice', { dice: e.damage.replace(/^\+/, ''), type: e.damageType ? ` ${term('damage', e.damageType, e.damageType)}` : '' }) : '',
+                  ...e.stats.map(f => effectText(i18n, f)),
+                ].filter(Boolean).join(' · ')}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </FadingResult>
+  )
+  /** The result under the row that rolled it. */
+  const under = (at: string) => out?.at === at && result
+
   return (
     <section className="card cs-fight" aria-labelledby="cs-attacks-title">
       <div className="card-head">
@@ -504,6 +538,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
                   {t('sheet.attacks.twoHanded')}
                 </label>
               )}
+              {under(`w:${a.name}`)}
             </li>
           )
         })}
@@ -516,37 +551,11 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
               <span className="hit" dir="ltr">{r.kind === 'attack' ? formatMod(r.value) : r.kind === 'auto' ? t('cs.autoHit') : `${r.save ? abilityShort(r.save) : ''} ${r.value}`}</span>
               <span className="dmg">{r.damage ? <><span dir="ltr">{r.beams ? `${r.beams}× ` : ''}{r.damage}</span> {r.damageType ? term('damage', r.damageType, r.damageType) : ''}</> : '—'}</span>
             </button>
+            {under(`s:${r.name}`)}
           </li>
         ))}
       </ul>
-      {out && (
-        <FadingResult key={outKey} ref={outRef} className="cs-out" onDone={() => setOut(null)}>
-          <strong>{out.name}</strong>
-          <LastRoll rolls={out.rolls} note={out.note} />
-          {out.healMe !== undefined && healedKey !== outKey && character.state.currentHp > 0 && (
-            <button type="button" className="glass-btn small" onClick={() => {
-              setHealedKey(outKey)
-              apply(t('cast.log.healMe', { n: out.healMe!, name: out.name }), c => heal(c, out.healMe!))
-            }}>{t('cast.healMe', { n: out.healMe })}</button>
-          )}
-          {!!out.effects?.length && (
-            <div className="cs-used">
-              <span className="cs-used-title">{t('cs.effectsUsed')}</span>
-              <ul>
-                {out.effects.map(e => (
-                  <li key={e.id}>
-                    <strong>{e.name}</strong>{' '}
-                    <span>{[
-                      e.damage ? t('cs.effectDice', { dice: e.damage.replace(/^\+/, ''), type: e.damageType ? ` ${term('damage', e.damageType, e.damageType)}` : '' }) : '',
-                      ...e.stats.map(f => effectText(i18n, f)),
-                    ].filter(Boolean).join(' · ')}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </FadingResult>
-      )}
+      {out && !out.at && result}
 
       {/* Weapon Mastery is a 2024 rule: characters without it (every 2014 one) get no box. */}
       {masteries > 0 && <>

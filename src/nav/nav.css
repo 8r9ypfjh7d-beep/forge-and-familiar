@@ -92,6 +92,7 @@
   /* Room for the bar under the page and the floating dice and Familiar, so the page's last buttons scroll clear of them. */
   .app:has(> .nav) { padding-block-start: 12px; padding-block-end: 144px; }
   .app:has(> .nav) .ff-dice-fab { inset-block-end: calc(76px + env(safe-area-inset-bottom)); }
+  :root:has(.app > .nav) .ff-rollfx { inset-block-end: calc(142px + env(safe-area-inset-bottom)); }
   .app:has(.nav-panel:not([hidden])) .ff-dice-fab { display: none; }
   body:has(.nav) .ff-pwa { bottom: calc(76px + env(safe-area-inset-bottom)); }
 }

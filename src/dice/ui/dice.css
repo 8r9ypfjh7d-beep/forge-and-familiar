@@ -120,7 +120,6 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 .ff-roll--crit .ff-roll__total { color: var(--ff-dice-crit, var(--good)); }
 .ff-roll--fumble .ff-roll__total { color: var(--ff-dice-fumble, var(--bad)); }
 .ff-roll__detail { overflow-wrap: anywhere; font-size: 0.8rem; color: var(--ff-dice-muted, var(--muted)); font-variant-numeric: tabular-nums; }
-.ff-roll__notation { margin-inline-start: var(--sp-2); opacity: 0.7; }
 .ff-roll__badge { margin-inline-start: var(--sp-2); font-weight: 600; }
 .ff-roll--crit .ff-roll__badge { color: var(--ff-dice-crit, var(--good)); }
 .ff-roll--fumble .ff-roll__badge { color: var(--ff-dice-fumble, var(--bad)); }
@@ -219,30 +218,28 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 :root[data-transparency="reduce"] .ff-dice-fab__button { background: var(--accent); }
 @media (prefers-reduced-transparency: reduce) { .ff-dice-fab__button { background: var(--accent); } }
 
-/* Roll effects (RollFx): a glass die tumbles above the dice button and lands on the result. */
+/* Roll effects (RollFx): a small glass die tumbles in one fixed spot just above the dice button, never over the page, and is gone within about a second. */
 .ff-rollfx {
   --ff-rollfx-bg: var(--glass-thick);
   --ff-rollfx-fg: var(--ink);
   --ff-rollfx-line: var(--accent);
   position: fixed;
-  inset-block-end: 96px;
-  inset-inline: 0;
-  margin-inline: auto;
-  width: fit-content;
+  inset-block-end: calc(max(16px, env(safe-area-inset-bottom)) + 66px);
+  inset-inline-end: max(16px, env(safe-area-inset-right));
+  width: 56px;
   z-index: 45;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sp-1);
   pointer-events: none;
-  animation: ff-rollfx-in 160ms ease-out, ff-rollfx-out 220ms ease-in forwards;
-  animation-delay: 0ms, 1100ms;
+  animation: ff-rollfx-in 120ms ease-out, ff-rollfx-out 200ms ease-in forwards;
+  animation-delay: 0ms, 800ms;
 }
-.ff-rollfx__die { overflow: visible; filter: drop-shadow(0 8px 14px rgb(0 0 0 / 0.28)) drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 25%, transparent)); animation: ff-rollfx-tumble 650ms cubic-bezier(.3,.7,.4,1); }
+.ff-rollfx__die { overflow: visible; filter: drop-shadow(0 8px 14px rgb(0 0 0 / 0.28)) drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 25%, transparent)); animation: ff-rollfx-tumble 500ms cubic-bezier(.3,.7,.4,1); }
 .ff-rollfx__die polygon { fill: var(--ff-rollfx-bg); stroke: var(--ff-rollfx-line); stroke-width: 5; stroke-linejoin: round; }
 .ff-rollfx__die text { fill: var(--ff-rollfx-fg); font-family: var(--font-display); font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ff-rollfx__sides {
-  font-size: 0.75rem; font-weight: 600; color: var(--ff-rollfx-fg); padding: 1px var(--sp-2); border-radius: var(--r-pill);
+  font-size: 0.65rem; margin-block-start: -6px; font-weight: 600; color: var(--ff-rollfx-fg); padding: 1px var(--sp-2); border-radius: var(--r-pill);
   background: var(--glass-thick); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-highlight), var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
 }
@@ -251,9 +248,9 @@ form.ff-dice__row .ff-dice__roll { flex: 0 0 auto; min-width: 88px; }
 @keyframes ff-rollfx-in { from { opacity: 0; } }
 @keyframes ff-rollfx-out { to { opacity: 0; } }
 @keyframes ff-rollfx-tumble {
-  0% { transform: translateY(-120px) rotate(-200deg) scale(0.6); }
+  0% { transform: translateY(-40px) rotate(-200deg) scale(0.6); }
   45% { transform: translateY(0) rotate(40deg) scale(1); }
-  65% { transform: translateY(-26px) rotate(-30deg); }
+  65% { transform: translateY(-10px) rotate(-30deg); }
   82% { transform: translateY(0) rotate(12deg); }
   100% { transform: translateY(0) rotate(0); }
 }
