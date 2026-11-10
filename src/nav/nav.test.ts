@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canOpen, navItems, navKeyFor } from './items'
+import { canOpen, litKey, navItems, navKeyFor } from './items'
 import { hashToView, viewToHash, type View } from './route'
 
 const keys = (items: { key: string }[]) => items.map(i => i.key)
@@ -29,6 +29,12 @@ describe('navItems', () => {
     const { main, more } = navItems({ isDm: true, partyDm: false, admin: true })
     expect(keys(main)).toEqual(['campaigns', 'list', 'party', 'requests'])
     expect(keys(more)[0]).toBe('admin')
+  })
+
+  it('lights the DM tab for an open fight, so More keeps its place', () => {
+    expect(litKey('combat', navItems({ isDm: true, partyDm: true }).main)).toBe('dm')
+    expect(litKey('combat', navItems({ isDm: true, partyDm: false, dmTools: true }).main)).toBe('combat')
+    expect(litKey('rules', navItems({ isDm: true, partyDm: true }).main)).toBe('rules')
   })
 
   it('keeps the DM screen and tracker under More for a DM without a campaign in play', () => {

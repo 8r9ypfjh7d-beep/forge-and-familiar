@@ -57,6 +57,13 @@ export function canOpen(viewKind: string, { isDm, admin }: NavContext): boolean 
   return true
 }
 
+/** The tab that lights up for a view. A DM with the DM screen as a tab sees a running fight as the DM tab's "Fight" state,
+ *  so the tracker never takes over the More button. */
+export function litKey(viewKind: string, main: readonly NavItem[]): NavKey {
+  const key = navKeyFor(viewKind)
+  return key === 'combat' && main.some(i => i.key === 'dm') ? 'dm' : key
+}
+
 /** The tab for a view: anything about one character belongs to Characters; an NPC's sheet to the DM screen. */
 export function navKeyFor(viewKind: string): NavKey {
   if (viewKind === 'npc') return 'dm'
