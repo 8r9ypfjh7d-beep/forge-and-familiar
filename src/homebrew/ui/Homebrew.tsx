@@ -15,6 +15,7 @@ import type {
   HomebrewMonster, HomebrewSpell, HomebrewSubclass, HomebrewTool,
 } from '../types'
 import { BackgroundForm, ClassOptionForm, FeatForm, ItemForm, LanguageForm, MonsterEntryForm, RaceForm, SpellForm, SubclassForm, ToolForm } from './forms'
+import { useAskConfirm } from '../../builder/ConfirmDialog'
 import { blankMonster } from '../../monsters/model'
 import { crLabel } from '../../monsters/format'
 import { ClassForm } from './ClassForm'
@@ -231,6 +232,10 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
   const [editing, setEditing] = useState<Editing | null>(null)
   const [adding, setAdding] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const { ask, dialog } = useAskConfirm()
+  const nameRef = useRef<HTMLInputElement>(null)
+  const menuRef = useRef<HTMLDetailsElement>(null)
+  const closeMenu = () => menuRef.current?.removeAttribute('open')
   const filled = KINDS.filter(k => pack[k].length > 0)
 
   const saveEntry = async (e: Editing, meta?: RestoreMeta) => {
@@ -261,8 +266,9 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
 
   const removeEntry = async (kind: ContentKind, id: string, name: string) => {
     const warn = kind === 'items' ? t('hb.deleteWarnItem') : kind === 'monsters' ? t('hb.deleteWarnMonster') : kind === 'races' || kind === 'subclasses' || kind === 'backgrounds' || kind === 'classOptions' || kind === 'classes' ? t('hb.deleteWarnBonus') : ''
-    if (!confirm(t('hb.deleteConfirm', { name }) + warn)) return
-    await savePack({ ...pack, [kind]: (pack[kind] as { id: string }[]).filter(x => x.id !== id) })
+    ask(t('hb.deleteConfirm', { name }), t('hb.deleteEntry'), () => {
+      void savePack({ ...pack, [kind]: (pack[kind] as { id: string }[]).filter(x => x.id !== id) })
+    }, warn.trim() || undefined)
   }
 
   const duplicate = async () => {
@@ -292,35 +298,45 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
 
   return (
     <section className="hb">
+      {dialog}
+      {!editing && <>
       <div className="row hb-head">
         <button className="glass-btn icon" onClick={onBack} aria-label={t('hb.back')}>{t('common.backArrow')}</button>
         <div className="hb-title">
           {mine ? (
-            <input
-              className="hb-name glass-title"
-              defaultValue={pack.name}
-              aria-label={t('hb.packName')}
-              onBlur={e => { const name = e.target.value.trim(); if (name && name !== pack.name) savePack({ ...pack, name }) }}
-            />
+            <label className="hb-name-wrap">
+              <input
+                ref={nameRef}
+                className="hb-name glass-title"
+                defaultValue={pack.name}
+                aria-label={t('hb.packName')}
+                onBlur={e => { const name = e.target.value.trim(); if (name && name !== pack.name) savePack({ ...pack, name }) }}
+              />
+              <span className="hb-pencil" aria-hidden="true">✎</span>
+            </label>
           ) : <h2 className="hb-name glass-title">{pack.name}</h2>}
           <p className="muted small">{mine ? t('hb.yourPack') : t('hb.readOnly', { name: pack.authorName })} · {packCounts(t, pack)}</p>
         </div>
         {!mine && <button className="glass-btn" onClick={duplicate}>{t('hb.copy')}</button>}
-        {filled.length > 0 && (
-          <button className={`glass-btn${sharing ? ' glass-lens' : ''}`} aria-expanded={sharing} onClick={() => setSharing(v => !v)}>{t('hb.share.button')}</button>
-        )}
-        <details className="hb-menu">
+        <details className="hb-menu" ref={menuRef}>
           <summary className="glass-btn icon" aria-label={t('hb.more')}>⋯</summary>
           <div className="glass thick hb-menu-pop" role="menu">
+            {mine && (
+              <button role="menuitem" className="glass-btn small hb-ghost" onClick={() => { closeMenu(); nameRef.current?.focus(); nameRef.current?.select() }}>{t('hb.rename')}</button>
+            )}
+            {filled.length > 0 && (
+              <button role="menuitem" className="glass-btn small hb-ghost" onClick={() => { closeMenu(); setSharing(v => !v) }}>{t('hb.share.button')}</button>
+            )}
             <button
               role="menuitem"
-              className="glass-btn small hb-danger"
-              onClick={async () => {
-                if (confirm(t('hb.removeConfirm', { name: pack.name }))) {
+              className="glass-btn small hb-ghost hb-danger"
+              onClick={() => {
+                closeMenu()
+                ask(t('hb.removeConfirm', { name: pack.name }), mine ? t('hb.deletePack') : t('hb.removePack'), async () => {
                   await deletePack(pack.id)
                   await deleteHistory(`hb:${pack.id}:`)
                   onBack()
-                }
+                })
               }}
             >
               {mine ? t('hb.deletePack') : t('hb.removePack')}
@@ -340,7 +356,8 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
         />
       ) : pack.description && <p>{pack.description}</p>}
 
-      {sharing && filled.length > 0 && <SharePanel pack={pack} />}
+      {sharing && filled.length > 0 && <SharePanel pack={pack} onClose={() => setSharing(false)} />}
+      </>}
 
       <div className="hb-body">
         <div>
@@ -348,11 +365,14 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
             <div className="hb-toolbar">
               <button className="glass-btn prominent hb-add" aria-expanded={adding} onClick={() => setAdding(v => !v)}>{t('hb.add')}</button>
               {adding && (
-                <div className="hb-add-pick" role="group" aria-label={t('hb.addWhat')}>
+                <div className="glass thick hb-add-pick" role="group" aria-label={t('hb.addWhat')}>
                   <p className="small muted">{t('hb.addWhat')}</p>
-                  <div className="row">
+                  <div className="hb-kinds">
                     {KINDS.map(k => (
-                      <button key={k} type="button" className="glass-chip" onClick={() => { setAdding(false); setEditing(blank(k)) }}>{t(`hb.kind.${k}`)}</button>
+                      <button key={k} type="button" className="glass-btn hb-kind" onClick={() => { setAdding(false); setEditing(blank(k)) }}>
+                        <strong>{t(`hb.kind.${k}`)}</strong>
+                        <span className="small muted">{t(`hb.kindHint.${k}`)}</span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -693,10 +713,11 @@ function GiveToCharacter({ item, profile }: { item: HomebrewItem; profile: UserP
   )
 }
 
-function SharePanel({ pack }: { pack: HomebrewPack }) {
+function SharePanel({ pack, onClose }: { pack: HomebrewPack; onClose: () => void }) {
   const { t } = useI18n()
   const code = encodeShareCode(pack)
   const [copiedCode, setCopiedCode] = useState('')
+  const [failed, setFailed] = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
 
   const copy = async () => {
@@ -704,7 +725,8 @@ function SharePanel({ pack }: { pack: HomebrewPack }) {
       await navigator.clipboard.writeText(code)
       setCopiedCode(code)
     } catch {
-      ref.current?.select()
+      // No clipboard access: show the code so it can be copied by hand.
+      setFailed(true)
     }
   }
   const download = async () => {
@@ -719,14 +741,17 @@ function SharePanel({ pack }: { pack: HomebrewPack }) {
 
   return (
     <aside className="glass thick hb-share">
-      <h3>{t('hb.share.title')}</h3>
+      <div className="row spread">
+        <h3>{t('hb.share.title')}</h3>
+        <button type="button" className="glass-btn small icon hb-ghost" aria-label={t('art.close')} onClick={onClose}>✕</button>
+      </div>
       <p className="muted small">{t('hb.share.lead')}</p>
-      <textarea className="glass-field" ref={ref} readOnly rows={4} value={code} aria-label={t('hb.import.aria')} onFocus={e => e.target.select()} />
+      {failed && <textarea className="glass-field" ref={ref} readOnly rows={4} value={code} aria-label={t('hb.import.aria')} onFocus={e => e.target.select()} autoFocus />}
       <div className="row">
         <button className="glass-btn prominent small" onClick={copy}>{copiedCode === code ? t('hb.share.copied') : t('hb.share.copy')}</button>
         <button className="glass-btn small" onClick={download}>{t('hb.share.download')}</button>
       </div>
-      <p className="muted small">{t('hb.share.size', { kb: Math.ceil(code.length / 1024) })}</p>
+      <p className="muted small">{t('hb.share.size', { kb: Math.ceil(code.length / 1024) })} {t('hb.share.party')}</p>
     </aside>
   )
 }

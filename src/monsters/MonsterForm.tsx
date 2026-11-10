@@ -39,8 +39,19 @@ function Field({ label, children, wide, why }: { label: string; children: ReactN
   )
 }
 
-function Section({ title, why, children, actions }: { title: string; why?: MessageKey; children: ReactNode; actions?: ReactNode }) {
+const DAMAGE_COUNT_KEYS = ['damageVulnerabilities', 'damageResistances', 'damageImmunities', 'conditionImmunities']
+
+/** A titled group of fields. `fold` makes it a closed fold that shows how many things are filled in. */
+function Section({ title, why, children, actions, fold, count }: { title: string; why?: MessageKey; children: ReactNode; actions?: ReactNode; fold?: boolean; count?: number }) {
   const { t } = useI18n()
+  if (fold) return (
+    <details className="mf-section mf-fold">
+      <summary><span>{title}</span>{!!count && <span className="mf-count">{count}</span>}</summary>
+      {why && <p className="muted small mf-fold-why">{t(why)}</p>}
+      {children}
+      {actions && <div className="row mf-section-actions">{actions}</div>}
+    </details>
+  )
   return (
     <fieldset className="mf-section">
       <legend className={why ? 'why-legend' : undefined}>{title}{why && <> <Why compact title={title} text={t(why)} /></>}</legend>
@@ -225,7 +236,7 @@ export function MonsterForm({ value: m, onChange }: MonsterFormProps) {
         </div>
       </Section>
 
-      <Section title={t('mf.sec.saves')} why="mf.why.saves">
+      <Section fold count={Object.keys(m.savingThrows).length} title={t('mf.sec.saves')} why="mf.why.saves">
         <div className="mf-grid-rows">
           {ABILITIES.map(a => {
             const v = m.savingThrows[a]
@@ -240,7 +251,7 @@ export function MonsterForm({ value: m, onChange }: MonsterFormProps) {
         </div>
       </Section>
 
-      <Section title={t('mf.sec.skills')} why="mf.why.skills">
+      <Section fold count={Object.keys(m.skills ?? {}).length} title={t('mf.sec.skills')} why="mf.why.skills">
         <div className="mf-grid-rows">
           {SKILL_IDS.map(s => {
             const level = skillLevel(s)
@@ -260,7 +271,7 @@ export function MonsterForm({ value: m, onChange }: MonsterFormProps) {
         </div>
       </Section>
 
-      <Section title={t('mf.sec.senses')} why="mf.why.senses">
+      <Section fold count={SENSE_KINDS.filter(k => m.senses[k]).length} title={t('mf.sec.senses')} why="mf.why.senses">
         <div className="mf-fields mf-speeds">
           {SENSE_KINDS.map(k => (
             <Field key={k} label={t(`mf.sense.${k}`)}>
@@ -276,7 +287,7 @@ export function MonsterForm({ value: m, onChange }: MonsterFormProps) {
         </div>
       </Section>
 
-      <Section title={t('mf.sec.damage')} why="mf.why.damage">
+      <Section fold count={DAMAGE_COUNT_KEYS.reduce((n, k) => n + ((m as unknown as Record<string, unknown[] | undefined>)[k]?.length ?? 0), 0)} title={t('mf.sec.damage')} why="mf.why.damage">
         {(['damageVulnerabilities', 'damageResistances', 'damageImmunities'] as const).map(k => (
           <div key={k} className="mf-field wide">
             <span>{t(`mf.f.${k}`)}</span>
@@ -298,6 +309,8 @@ export function MonsterForm({ value: m, onChange }: MonsterFormProps) {
       {ACTION_GROUPS.map(g => (
         <Section
           key={g}
+          fold={g !== 'actions'}
+          count={(m[g] ?? []).length}
           title={t(`mf.group.${g}`)}
           why={`mf.why.${g}` as MessageKey}
           actions={<button type="button" className="glass-btn small mf-add" onClick={() => setActions(g, [...(m[g] ?? []), blankAction()])}>{t(`mf.add.${g}`)}</button>}
@@ -335,6 +348,8 @@ export function MonsterForm({ value: m, onChange }: MonsterFormProps) {
       ))}
 
       <Section
+        fold
+        count={m.spellcasting ? 1 : 0}
         title={t('mf.sec.spellcasting')}
         why="mf.why.spellcasting"
         actions={m.spellcasting
@@ -372,7 +387,7 @@ export function MonsterForm({ value: m, onChange }: MonsterFormProps) {
         ) : <p className="muted small mf-empty">{t('mf.empty.spellcasting')}</p>}
       </Section>
 
-      <Section title={t('mf.sec.description')}>
+      <Section fold count={m.description ? 1 : 0} title={t('mf.sec.description')}>
         <textarea rows={4} value={m.description ?? ''} placeholder={t('mf.f.descriptionPlaceholder')} aria-label={t('mf.sec.description')} onChange={e => set({ description: e.target.value || undefined })} />
       </Section>
     </div>

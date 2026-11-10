@@ -381,7 +381,8 @@ export default function App() {
       </main>
       {familiar && view.kind !== 'familiar' && <FamiliarFab {...familiar} open={familiarOpen} onOpenChange={o => { setFamiliarOpen(o); if (o) setDiceOpen(false) }} />}
       <ActivationPromptHost />
-      {view.kind !== 'familiar' && <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}
+      {/* Dice belong on character and DM screens, not over the editing and reading pages. */}
+      {!['familiar', 'homebrew', 'rules', 'admin'].includes(view.kind) && <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}
         secretTo={playing.party && !playing.isDm ? { partyId: playing.party.id, userId: active.id } : undefined} />}
     </div>
     </DiceProvider>

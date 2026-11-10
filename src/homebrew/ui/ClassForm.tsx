@@ -10,7 +10,7 @@ import {
 } from '../../rules'
 import { classIssues, classWarnings, parseSteps, stepsText } from '../pack'
 import { HIT_DICE, type HomebrewClass } from '../types'
-import { Check, Field, FormShell, LinesField } from './forms'
+import { Check, Field, FormFold, FormShell, LinesField } from './forms'
 
 const ARMOR: ArmorCategory[] = ['light', 'medium', 'heavy', 'shield']
 const WEAPONS: WeaponCategory[] = ['simple', 'martial']
@@ -151,7 +151,7 @@ export function ClassForm({ initial, onSave, onCancel }: { initial: HomebrewClas
         <div className="row">{ABILITIES.map(a => <Check key={a} label={ability(a)} checked={c.savingThrows.includes(a)} onChange={() => set({ savingThrows: toggle(c.savingThrows, a) })} />)}</div>
       </div>
 
-      <h4 className="hb-field wide hb-section">{t('hb.cls.profs')}</h4>
+      <FormFold title={t('hb.cls.profs')} count={c.armor.length + c.weapons.length + c.skillChoices.count + c.tools.length}>
       <div className="hb-field wide">
         <Label text={t('hb.cls.armor')} why={t('hb.cls.armorWhy')} />
         <div className="row">
@@ -172,7 +172,9 @@ export function ClassForm({ initial, onSave, onCancel }: { initial: HomebrewClas
       </div>
       <LinesField label={t('hb.cls.tools')} value={c.tools} onChange={tools => set({ tools })} placeholder={t('hb.cls.toolsPlaceholder')} />
 
-      <h4 className="hb-field wide hb-section">{t('hb.cls.casting')}</h4>
+      </FormFold>
+
+      <FormFold title={t('hb.cls.casting')} count={(c.caster !== 'none' ? 1 : 0) + (c.unarmoredDefense ? 1 : 0)}>
       <WhyField text={t('hb.cls.caster')} why={t('hb.cls.casterWhy')}>{id => (
         <select id={id} value={c.caster} onChange={e => setCaster(e.target.value as CasterType)}>
           {CASTERS.map(k => <option key={k} value={k}>{t(`hb.cls.caster.${k}`)}</option>)}
@@ -205,11 +207,13 @@ export function ClassForm({ initial, onSave, onCancel }: { initial: HomebrewClas
       <WhyField text={t('hb.cls.unarmored')} why={t('hb.cls.unarmoredWhy')}>{id => (
         <select id={id} value={c.unarmoredDefense ?? ''} onChange={e => set({ unarmoredDefense: (e.target.value || undefined) as Ability | undefined })}>
           <option value="">{t('hb.f.none')}</option>
-          {ABILITIES.map(a => <option key={a} value={a}>{t('hb.cls.unarmoredWith', { ability: abilityShort(a) })}</option>)}
+          {ABILITIES.filter(a => a !== 'dex').map(a => <option key={a} value={a}>{t('hb.cls.unarmoredWith', { ability: abilityShort(a) })}</option>)}
         </select>
       )}</WhyField>
 
-      <h4 className="hb-field wide hb-section">{t('hb.cls.progression')}</h4>
+      </FormFold>
+
+      <FormFold title={t('hb.cls.levels')} count={c.asiLevels.length}>
       <Field label={t('hb.cls.subclassTitle')}><input value={c.subclassTitle} onChange={e => set({ subclassTitle: e.target.value })} placeholder={t('hb.cls.subclassTitlePlaceholder')} /></Field>
       <WhyField text={t('hb.cls.subclassLevel')} why={t('hb.cls.subclassLevelWhy')}>{id => (
         <select id={id} value={c.subclassLevel} onChange={e => set({ subclassLevel: Number(e.target.value) })}>
@@ -222,6 +226,8 @@ export function ClassForm({ initial, onSave, onCancel }: { initial: HomebrewClas
           {LEVELS.map(l => <Check key={l} label={String(l)} checked={c.asiLevels.includes(l)} onChange={() => set({ asiLevels: toggle(c.asiLevels, l).sort((a, b) => a - b) })} />)}
         </div>
       </div>
+
+      </FormFold>
 
       <div className="hb-field wide">
         <Label text={t('hb.f.features')} why={t('hb.cls.featuresWhy')} />
@@ -239,7 +245,8 @@ export function ClassForm({ initial, onSave, onCancel }: { initial: HomebrewClas
         </div>
       </div>
 
-      <h4 className="hb-field wide hb-section">{t('hb.cls.multiclass')} <Why compact title={t('hb.cls.multiclass')} text={t('hb.cls.multiclassWhy')} /></h4>
+      <FormFold title={t('hb.cls.multiclass')} count={Object.keys(c.multiclass.prereq).length + (c.startingGold ? 1 : 0)}>
+      <p className="muted small hb-field wide">{t('hb.cls.multiclassWhy')}</p>
       <div className="hb-field wide">
         <span>{t('hb.cls.prereq')}</span>
         <div className="row">
@@ -261,6 +268,7 @@ export function ClassForm({ initial, onSave, onCancel }: { initial: HomebrewClas
       <Field label={t('hb.cls.gold')}>
         <input type="number" min={0} max={10000} value={c.startingGold ?? ''} onChange={e => set({ startingGold: e.target.value === '' ? undefined : Math.max(0, Math.round(numOr(e.target.value, 0))) })} />
       </Field>
+      </FormFold>
 
       {warnings.length > 0 && (
         <ul className="hb-field wide hb-warnings small" aria-live="polite">
