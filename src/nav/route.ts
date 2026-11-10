@@ -7,12 +7,16 @@ export type View =
   | { kind: 'levels'; id: string } | { kind: 'plan'; id: string } | { kind: 'print'; id: string }
   /** A player's sheet opened by the DM, view only. */
   | { kind: 'watch'; id: string }
-  | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: 'requests' | 'rolls' | 'npcs' | 'lore' | 'sessions' } | { kind: 'requests' }
+  | { kind: 'combat'; encounterId?: string } | { kind: 'dm'; tab?: DmView } | { kind: 'requests' }
   | { kind: 'npc'; id: string }
   | { kind: 'party'; partyId?: string; startWith?: 'start' | 'join' }
   | { kind: 'rules' } | { kind: 'homebrew' } | { kind: 'admin' }
   /** The Familiar (AI assistant) full screen. */
   | { kind: 'familiar' }
+
+/** Every DM screen view; each keeps its own address so refresh and Back return to it. */
+export const DM_VIEWS = ['party', 'rolls', 'encounters', 'lore', 'sessions', 'maps', 'npcs', 'monsters', 'reference', 'requests'] as const
+export type DmView = (typeof DM_VIEWS)[number]
 
 const HOME: View = { kind: 'campaigns' }
 
@@ -45,7 +49,7 @@ export function hashToView(hash: string): View {
   if (name === 'npc') return arg ? { kind: 'npc', id: arg } : { kind: 'dm' }
   if ((WITH_ID as readonly string[]).includes(name)) return arg ? { kind: name as typeof WITH_ID[number], id: arg } : { kind: 'list' }
   if (name === 'combat') return arg ? { kind: 'combat', encounterId: arg } : { kind: 'combat' }
-  if (name === 'dm') return arg === 'requests' || arg === 'rolls' || arg === 'npcs' || arg === 'lore' || arg === 'sessions' ? { kind: 'dm', tab: arg } : { kind: 'dm' }
+  if (name === 'dm') return (DM_VIEWS as readonly string[]).includes(arg ?? '') ? { kind: 'dm', tab: arg as DmView } : { kind: 'dm' }
   if (name === 'party') return arg === 'start' || arg === 'join' ? { kind: 'party', startWith: arg } : arg ? { kind: 'party', partyId: arg } : { kind: 'party' }
   return HOME
 }

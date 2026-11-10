@@ -11,7 +11,8 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 | `logic.ts` | Pure: `XP_BUDGET` (SRD 5.2), `partyBudget`, `groupsFromLevels`/`sameGroups` (budget from the campaign's characters), `difficulty`, plan edits, `planCombatants` (tracker hand-off), `findMonsters` (English or translated name, folded by `foldText` so Hebrew final letters match, CR, type, source group; summon/companion stat blocks only when searched by name or under the "summon" type), `typeGroups`/`monsterTypes` (swarms under their base type, "X or Y" split; labels `dm.ctype.*`), `monsterGroups`, NPC generator with an injected picker, `normalizeDm` |
 | `dmTools.ts` | `useDmTools`: the DM pages without a campaign in play. On for good (`ff.dmTools.v1.<userId>`) once the profile DMs a campaign, has DM data (`hasDmData`: plans or NPC ideas), or taps "I'm a DM" on Home. App then allows the DM screen and tracker (under More); party-only tabs show their empty state. It never grants the DM's role in someone else's campaign (free edits, watching sheets stay with `partyDm`/admin) |
 | `store.ts` | `loadDm` / `syncDm` / `saveDm` / `onDmChanged`: device cache `ff.dm.v1.<userId>` synced with Supabase `dm_state` |
-| `DmScreen.tsx` | Top card (party and budget tiles; folded to one line by default, open state per device in `ff.dm.topOpen.v1`), story reminders (src/requests), and tabs: Encounters, Lore (src/lore Codex; offers to open or start a campaign when none the DM runs is in play), Sessions (src/sessions session notes, same empty state), Rolls, Monsters (stat block from src/monsters), Maps (src/maps `MapsTab`), Quick rules, NPCs, Requests |
+| `DmScreen.tsx` | One-line header (title, party size, budget, Requests button with the new-request badge), then six tabs: Party (Players / Rolls), Fights, Story (Lore / Sessions, src/lore and src/sessions; story reminders from src/requests on top; offers to open or start a campaign when none the DM runs is in play), Maps (src/maps `MapsTab`), NPCs, Library (Monsters / Quick rules). Every view has its own address `#/dm/<view>` (`DM_VIEWS` in src/nav/route.ts); a switch replaces the history entry through `onTab`. Party size and XP tiles fold under the plan meter on Fights (`ff.dm.topOpen.v1`) |
+| `PartyTab.tsx` | Party tab: the players' `MemberCard`s (src/party: HP, AC, passive Perception, Open sheet), `PartyLevelUp`, `GiveXp` (XP only; milestones are Party level's), `GiveRewards` |
 | `rolls.ts` | Pure: `mergeDmRolls` (players' public and secret rolls in one newest-first log), `filterRolls` (player, kind), `playerSummary` (count, last roll, natural 20s and 1s), `unseenCount` for the tab badge |
 | `RollsTab.tsx` | Rolls tab: player chips, kind filter, live log grouped by action, Clear secret rolls |
 | `useDmRolls.ts` | `useDmRolls` keeps the log live (own history, other tabs, Supabase realtime on `rolls` and `secret_rolls`), `useUnseenRolls` counts rolls since the DM last opened the tab |
@@ -43,16 +44,12 @@ The Dungeon Master's own page: plan fights against the party's XP budget, look u
 - **Grow the NPC tables:** add `dm.npc.<table>.<n>` keys in both locales and raise `NPC_TABLES`; the test checks they match.
 - **Change what syncs:** `store.ts` owns it. DM data is private to the DM (and the admin); the DM screen never reads players' characters.
 
-## Party sheets (2026-10-30)
+## One home for the party (2026-11-10)
 
-The top card lists the campaign's characters (`usePartyHeroes`, the DM's own watching seat left out) under "Party sheets"; each button opens that player's sheet view only (`onOpenSheet` → `#/watch/<id>`, `src/sheet/WatchSheet.tsx`). The same list feeds the XP budget levels. The DM screen still never changes a player's character.
+UI sim units 2 and 3 (`/mnt/project-files/ui-sim/dm.md`). Nothing sits above the tabs but the one-line header. The Party tab (default when a campaign is in play) holds the player cards that open each sheet (`onOpenSheet` → `#/watch/<id>`, Back returns to `#/dm/party`), Party level, Give XP and Inspiration and rewards. The DM's campaign page no longer repeats lore, session notes, XP, rewards or rolls: it shows invite code, next session, members, stash and End campaign, with "Open the DM screen". The Monsters list is under Library; Fights keeps its own "Add monsters".
 
-Phones: the folded top card keeps the tabs on the first screen. Under 900px the Monsters tab stacks, so opening a monster scrolls its stat block into view and the block gets a "Back to list" button. Grid columns use `minmax(0, 1fr)` and the stat block and credits wrap long URLs, so nothing widens the page.
+Phones: the six tabs share the bar under 520px. Under 900px the Monsters view stacks, so opening a monster scrolls its stat block into view and the block gets a "Back to list" button. Grid columns use `minmax(0, 1fr)` and the stat block and credits wrap long URLs, so nothing widens the page.
 
-## Party level (2026-11-01)
+## Party level, XP and rewards (Party tab)
 
-Under the top card, `PartyLevelUp` (src/party) shows the campaign's levels and a one-tap "Give a level" (milestone award to the ticked players) or "Catch up to level N" for players behind the party's top level. It opens by itself while anyone is still levelling up and lists each player as sent / choosing / levelled up. Players get `LevelUpPrompt` on their device, which opens the existing Level Up screen. See src/party/PARTY.md.
-
-## Inspiration and rewards (2026-11-01)
-
-Under the top card, a campaign in play shows `GiveRewards` (`src/party/GiveRewards.tsx`, also on the campaign page): one tap gives a player Inspiration (players who hold it show a filled star), and "Give a reward" hands out a charm or blessing from presets or written by hand. Gifts travel in the party stash like XP (see `src/party/PARTY.md`).
+`PartyLevelUp` (src/party) shows the campaign's levels and a one-tap "Give a level" (milestone award to the ticked players) or "Catch up to level N" for players behind the party's top level; it opens by itself while anyone is still levelling up and lists each player as sent / choosing / levelled up. Players get `LevelUpPrompt`, which opens Level Up. `GiveXp` gives XP amounts. `GiveRewards` gives Inspiration (holders show a filled star) and charms or blessings from presets or by hand. All travel in the party stash (see `src/party/PARTY.md`).

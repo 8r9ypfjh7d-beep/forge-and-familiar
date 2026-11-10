@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { canOpen, litKey, navItems, navKeyFor } from './items'
-import { hashToView, viewToHash, type View } from './route'
+import { DM_VIEWS, hashToView, viewToHash, type View } from './route'
 
 const keys = (items: { key: string }[]) => items.map(i => i.key)
 
@@ -115,6 +115,9 @@ describe('hash routes', () => {
     expect(viewToHash({ kind: 'npc', id: 'n1' })).toBe('#/npc/n1')
     expect(hashToView('#/npc/new')).toEqual({ kind: 'npc', id: 'new' })
     expect(hashToView('#/dm/npcs')).toEqual({ kind: 'dm', tab: 'npcs' })
+    // Every DM screen view keeps its address, so refresh and Back from a stat block, map or NPC land on it.
+    for (const tab of DM_VIEWS) expect(hashToView(viewToHash({ kind: 'dm', tab }))).toEqual({ kind: 'dm', tab })
+    expect(hashToView('#/dm/nope')).toEqual({ kind: 'dm' })
     expect(hashToView('#/npc')).toEqual({ kind: 'dm' })
     expect(hashToView('#/sheet/%E0%A4%A')).toEqual({ kind: 'campaigns' })
   })

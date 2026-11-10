@@ -121,7 +121,7 @@ export default function App() {
   const openPlan = async (planId: string) => {
     if (!active) return
     await saveDm(active.id, { ...(await loadDm(active.id)), activePlanId: planId })
-    setView({ kind: 'dm' })
+    setView({ kind: 'dm', tab: 'encounters' })
   }
   // Tapping a campaign on the home screen plays it: the DM screen for its DM, else the sheet the player brings.
   const playCampaign = (p: Party) => {
@@ -333,12 +333,12 @@ export default function App() {
           />
         )}
         {view.kind === 'watch' && isDm && (
-          <WatchSheet key={view.id} characterId={view.id} parties={playing.parties ?? undefined} onBack={() => setView(partyDm ? { kind: 'dm' } : { kind: 'party' })} />
+          <WatchSheet key={view.id} characterId={view.id} parties={playing.parties ?? undefined} onBack={() => setView(partyDm ? { kind: 'dm', tab: 'party' } : { kind: 'party' })} />
         )}
         {view.kind === 'npc' && isDm && view.id === 'new' && (
           <NpcBuilder key={active.id} ownerId={active.id} partyId={partyDm ? playing.party?.id : undefined}
-            onSaved={(npc, back) => setView(back ? { kind: 'dm' } : { kind: 'npc', id: npc.id }, true)}
-            onCancel={back => setView(back ? { kind: 'dm' } : { kind: 'dm', tab: 'npcs' })} />
+            onSaved={(npc, back) => setView(back ? { kind: 'dm', tab: 'encounters' } : { kind: 'npc', id: npc.id }, true)}
+            onCancel={back => setView(back ? { kind: 'dm', tab: 'encounters' } : { kind: 'dm', tab: 'npcs' })} />
         )}
         {view.kind === 'npc' && isDm && view.id !== 'new' && (
           <NpcScreen key={view.id} npcId={view.id} ownerId={active.id} partyId={partyDm ? playing.party?.id : undefined} onBack={() => setView({ kind: 'dm', tab: 'npcs' })} onOpenFight={id => setView({ kind: 'combat', encounterId: id })} />
@@ -358,7 +358,7 @@ export default function App() {
         {view.kind === 'rules' && <RulesQA />}
         {view.kind === 'familiar' && familiar && <FamiliarPage {...familiar} />}
         {view.kind === 'combat' && isDm && <CombatTracker key={`${active.id}:${view.encounterId ?? ''}`} ownerId={active.id} initialOpenId={view.encounterId} campaign={partyDm ? playing.party : undefined} onOpenPlan={openPlan} />}
-        {view.kind === 'dm' && isDm && <DmScreen key={`${active.id}:${view.tab ?? ''}`} userId={active.id} initialTab={view.tab} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} onOpenSheet={id => setView({ kind: 'watch', id })} onOpenNpc={id => setView({ kind: 'npc', id })}
+        {view.kind === 'dm' && isDm && <DmScreen key={active.id} userId={active.id} initialTab={view.tab} onTab={tab => setView({ kind: 'dm', tab }, true)} party={partyDm ? playing.party : undefined} onRunEncounter={id => setView({ kind: 'combat', encounterId: id })} onOpenSheet={id => setView({ kind: 'watch', id })} onOpenNpc={id => setView({ kind: 'npc', id })}
           onNewNpc={() => setView({ kind: 'npc', id: 'new' })}
           runs={playing.parties?.filter(p => p.dmId === active.id)} onPickCampaign={playing.choose} onStartCampaign={() => setView({ kind: 'party', startWith: 'start' })} />}
         {view.kind === 'requests' && <RequestsView key={active.id} userId={active.id} userName={active.displayName} />}

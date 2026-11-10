@@ -228,6 +228,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
   }, [party.members, userId])
 
   const me = party.members.find(m => m.userId === userId)
+  const isDmHere = userId === party.dmId
   const nameOf = (id: string) => profiles.find(p => p.id === id)?.displayName ?? accountNames[id] ?? t('party.unknownPlayer')
   // The DM (and the admin) open every member's sheet, view only; a player opens only their own.
   const watcher = !!onWatchCharacter && canWatchSheets(party, userId)
@@ -270,13 +271,20 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
         <CampaignManage party={party} userId={userId} />
       </div>
 
-      {/* On a phone the page is long: chips jump to each part. */}
+      {/* On a phone the page is long: chips jump to each part. The DM's notes and rolls live on the DM screen. */}
       <nav className="party-jump" aria-label={t('party.jump.label')}>
-        {(['members', 'notes', 'rolls', 'stash'] as const).map(k => (
+        {(isDmHere ? ['members', 'stash'] as const : ['members', 'notes', 'rolls', 'stash'] as const).map(k => (
           <button key={k} type="button" className="glass-chip"
             onClick={() => document.getElementById(`party-${k}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{t(`party.jump.${k}`)}</button>
         ))}
       </nav>
+      {/* The DM runs lore, notes, XP, rewards and rolls from the DM screen; here they keep the table's admin. */}
+      {isDmHere && (
+        <div className="glass thin party-dm-link">
+          <p className="muted small">{t('party.dmToolsThere')}</p>
+          <a className="glass-btn small prominent" href="#/dm/party">{t('party.openDmScreen')}</a>
+        </div>
+      )}
 
       <SessionScheduler party={party} userId={userId} nameOf={nameOf}
         quiet={party.members.some(m => m.characterId) || (party.stash?.log.length ?? 0) > 0} />
@@ -295,18 +303,21 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
         ))}
       </div>
 
-      {/* Lore sits right under the party so players find what the DM revealed without scrolling past the stash. */}
-      <div className="party-group" id="party-notes">
-        <Codex party={party} userId={userId} nameOf={nameOf} />
-        <SessionNotes party={party} userId={userId} />
-      </div>
-
-      <GiveXp party={party} userId={userId} characters={characters} nameOf={nameOf} />
-      <GiveRewards party={party} userId={userId} nameOf={nameOf} />
-      <div className="party-group" id="party-rolls">
-        <RollFeed party={party} nameOf={nameOf} />
-        <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
-      </div>
+      {!isDmHere && (
+        <>
+          {/* Lore sits right under the party so players find what the DM revealed without scrolling past the stash. */}
+          <div className="party-group" id="party-notes">
+            <Codex party={party} userId={userId} nameOf={nameOf} />
+            <SessionNotes party={party} userId={userId} />
+          </div>
+          <GiveXp party={party} userId={userId} characters={characters} nameOf={nameOf} />
+          <GiveRewards party={party} userId={userId} nameOf={nameOf} />
+          <div className="party-group" id="party-rolls">
+            <RollFeed party={party} nameOf={nameOf} />
+            <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
+          </div>
+        </>
+      )}
       <div className="party-group" id="party-stash">
         <PartyStash party={party} userId={userId} nameOf={nameOf} />
       </div>
@@ -316,7 +327,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
 
 const VITALS_LABEL = { dying: 'party.vital.dying', stable: 'party.vital.stable', dead: 'party.vital.dead' } as const
 
-function MemberCard({ member, playerName, isDm, character, mine, onOpen }: {
+export function MemberCard({ member, playerName, isDm, character, mine, onOpen }: {
   member: PartyMember
   playerName: string
   isDm: boolean
