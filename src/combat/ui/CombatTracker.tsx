@@ -87,13 +87,12 @@ export function CombatTracker({ ownerId, initialOpenId, campaign, onOpenPlan }: 
         {list?.map(e => (
           <li key={e.id} className="glass">
             <div>
-              <h3 className="encounter-name">{e.name}</h3>
+              <h3 className="encounter-name"><button type="button" className="encounter-open" onClick={() => setOpenId(e.id)} aria-label={t('combat.openFight', { name: e.name })}>{e.name}</button></h3>
               <p className="muted small">
                 {t('combat.combatants', { count: e.combatants.length })} · {statusText(e, t)}
               </p>
             </div>
             <div className="row">
-              <button className="glass-btn small" onClick={() => setOpenId(e.id)}>{t('combat.open')}</button>
               <button className="glass-btn small plain" onClick={() => setDeleting(e)}>{t('common.delete')}</button>
             </div>
           </li>
@@ -118,6 +117,8 @@ function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounte
   const [xpCard, setXpCard] = useState(false)
   // The fight ended on its own when the last enemy dropped.
   const [victory, setVictory] = useState(false)
+  // "150 XP sent to 3 players", once the fight's XP went out.
+  const [xpSent, setXpSent] = useState<{ xp: number; count: number } | null>(null)
   const [auto, setAuto] = useAutoSettings()
   // A row asked to unfold its stat block (legendary reminder).
   const [focus, setFocus] = useState<{ id: string; n: number } | null>(null)
@@ -274,8 +275,8 @@ function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounte
           ? <button className="glass-btn prominent next" onClick={next}>{t('combat.next')}</button>
           : <button className={`glass-btn next${enc.endedAt ? '' : ' prominent'}`} disabled={!enc.combatants.length || pcsWaiting.length > 0} onClick={start}
               title={pcsWaiting.length ? t('combat.needInit') : undefined}>{t(enc.endedAt ? 'combat.startAgain' : 'combat.start')}</button>}
-        {fighting && <button className="glass-btn" onClick={() => setEnding(true)}>{t('combat.end')}</button>}
         <button className="glass-btn plain" disabled={!canUndo} onClick={undo}>{t('combat.undo')}</button>
+        {fighting && <MoreActions label={t('combat.moreActions')} items={[{ label: t('combat.end'), onClick: () => setEnding(true), danger: true }]} />}
       </div>
       {now && <p className="combat-now" aria-live="polite">{t('combat.now')} <strong><bdi>{shown.get(now.name) ?? now.name}</bdi></strong>{nowOut.length > 0 && <> · <span className="bad">{t('combat.cantAct', { conditions: nowOut.map(x => term('condition', x, x)).join(', ') })}</span></>}</p>}
       {legendary.length > 0 && (
@@ -313,8 +314,15 @@ function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounte
       <ConfirmDialog open={ending} title={t('combat.endConfirm')} yes={t('combat.end')} onYes={() => { act(e => campaign && inCombat(e) ? { ...endCombat(e), xpPending: true } : endCombat(e)); setXpCard(!!campaign) }} onClose={() => setEnding(false)} />
 
       {(xpCard || enc.xpPending) && campaign && !fighting && (
-        <FightXp enc={enc} campaign={campaign} characters={party} onGiven={doneWithXp} onClose={() => { setXpCard(false); doneWithXp() }}
+        <FightXp enc={enc} campaign={campaign} characters={party} onGiven={(xp, count) => { setXpSent({ xp, count }); setXpCard(false); doneWithXp() }} onClose={() => { setXpCard(false); doneWithXp() }}
           creatures={fightCreatures(enc, c => monsterOf(c)?.xp, c => (c.npcId && npcs[c.npcId] ? npcs[c.npcId]!.state.currentHp <= 0 : isDefeated(c)))} />
+      )}
+
+      {xpSent && (
+        <div className="glass combat-outcome won" role="status">
+          <p>{t('combat.xpSent', { xp: xpSent.xp.toLocaleString(), count: xpSent.count })}</p>
+          <button className="glass-btn small plain" onClick={() => setXpSent(null)}>{t('combat.dismiss')}</button>
+        </div>
       )}
 
       {(enc.planId || enc.notes) && <DmNotes enc={enc} act={act} fighting={fighting} />}
@@ -359,17 +367,47 @@ function EncounterView({ encounterId, campaign, onBack, onOpenPlan }: { encounte
   )
 }
 
-/** The plan's DM notes, carried into the fight. Open before combat starts, folded once it runs; edits stay on this fight. */
+/** The plan's DM notes, carried into the fight. Open before combat starts when there are notes, folded once it runs
+ *  or while empty (one tap opens it); edits stay on this fight. */
 function DmNotes({ enc, act, fighting }: { enc: Encounter; act: Act; fighting: boolean }) {
   const { t } = useI18n()
-  const [open, setOpen] = useState(!fighting)
-  useEffect(() => { setOpen(!fighting) }, [fighting])
+  const hasNotes = !!enc.notes?.trim()
+  const [open, setOpen] = useState(!fighting && hasNotes)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only a start or end of the fight refolds it
+  useEffect(() => { setOpen(!fighting && hasNotes) }, [fighting])
   return (
     <details className="glass combat-notes" open={open} onToggle={e => setOpen(e.currentTarget.open)}>
       <summary className="glass-eyebrow">{t('dm.notes')}</summary>
       <textarea key={enc.notes ?? ''} dir="auto" rows={4} defaultValue={enc.notes ?? ''} placeholder={t('dm.notesPh')} aria-label={t('dm.notes')}
         onBlur={e => { const notes = e.target.value; if (notes !== (enc.notes ?? '')) act(x => ({ ...x, notes })) }} />
     </details>
+  )
+}
+
+/** A "⋯" button with a short menu of rarer fight actions (End combat), so they don't sit beside Next turn. */
+function MoreActions({ label, items }: { label: string; items: { label: string; onClick: () => void; danger?: boolean }[] }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const button = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); button.current?.focus() } }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey) }
+  }, [open])
+  return (
+    <div className="combat-more" ref={box}>
+      <button ref={button} type="button" className="glass-btn plain icon" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}>⋯</button>
+      {open && (
+        <div className="combat-more-menu glass-sheet" role="menu" aria-label={label}>
+          {items.map(i => (
+            <button key={i.label} type="button" role="menuitem" className={`glass-btn plain${i.danger ? ' danger' : ''}`} onClick={() => { setOpen(false); i.onClick() }}>{i.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

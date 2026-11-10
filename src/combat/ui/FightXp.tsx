@@ -15,8 +15,8 @@ export function FightXp({ enc, campaign, creatures, characters, onGiven, onClose
   campaign: Campaign
   creatures: FightCreature[]
   characters: Record<string, Character | undefined>
-  /** The XP went out: the fight stops asking for it. */
-  onGiven: () => void
+  /** The XP went out (each player's share, how many players): the fight stops asking for it. */
+  onGiven: (xp: number, count: number) => void
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -48,7 +48,7 @@ export function FightXp({ enc, campaign, creatures, characters, onGiven, onClose
     })
     setBusy(false)
     if (res.ok) {
-      onGiven()
+      onGiven(each, picked.length)
       setNote(t('xp.give.done', { xp: each, count: picked.length }))
       setGiven(true)
     } else setNote(res.reason)
