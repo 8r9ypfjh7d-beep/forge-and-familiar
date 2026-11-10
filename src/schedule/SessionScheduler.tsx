@@ -22,7 +22,11 @@ function useNow(everyMs = 60_000) {
 }
 
 /** Pick the next game date with the party: propose dates, mark availability, DM locks one in. */
-export function SessionScheduler({ party, userId, nameOf }: { party: Party; userId: string; nameOf: (id: string) => string }) {
+export function SessionScheduler({ party, userId, nameOf, quiet }: {
+  party: Party; userId: string; nameOf: (id: string) => string
+  /** The page has other content: with no poll running, show a small link instead of a card. */
+  quiet?: boolean
+}) {
   const [poll, setPoll] = useState<SessionPoll | null | undefined>(undefined)
   const now = useNow()
   const { t, locale } = useI18n()
@@ -45,6 +49,12 @@ export function SessionScheduler({ party, userId, nameOf }: { party: Party; user
 
   if (!poll || isFinished(poll, now)) {
     const last = poll && chosenOption(poll)
+    if (quiet) return (
+      <p className="ff-schedule-quiet small muted">
+        <button type="button" className="glass-btn small ghost" onClick={() => startPoll(party.id, userId)}>{t('schedule.plan')}</button>
+        {last && <span>{t('schedule.lastPlayed', { date: longFmt.format(new Date(last.startsAt)) })}</span>}
+      </p>
+    )
     return (
       <section className="glass ff-schedule" aria-labelledby="schedule-title">
         <div className="sched-head">

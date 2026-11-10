@@ -270,9 +270,18 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
         <CampaignManage party={party} userId={userId} />
       </div>
 
-      <SessionScheduler party={party} userId={userId} nameOf={nameOf} />
+      {/* On a phone the page is long: chips jump to each part. */}
+      <nav className="party-jump" aria-label={t('party.jump.label')}>
+        {(['members', 'notes', 'rolls', 'stash'] as const).map(k => (
+          <button key={k} type="button" className="glass-chip"
+            onClick={() => document.getElementById(`party-${k}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{t(`party.jump.${k}`)}</button>
+        ))}
+      </nav>
 
-      <div className="member-grid">
+      <SessionScheduler party={party} userId={userId} nameOf={nameOf}
+        quiet={party.members.some(m => m.characterId) || (party.stash?.log.length ?? 0) > 0} />
+
+      <div className="member-grid" id="party-members">
         {party.members.map(m => (
           <MemberCard
             key={m.userId}
@@ -287,14 +296,20 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
       </div>
 
       {/* Lore sits right under the party so players find what the DM revealed without scrolling past the stash. */}
-      <Codex party={party} userId={userId} nameOf={nameOf} />
-      <SessionNotes party={party} userId={userId} />
+      <div className="party-group" id="party-notes">
+        <Codex party={party} userId={userId} nameOf={nameOf} />
+        <SessionNotes party={party} userId={userId} />
+      </div>
 
       <GiveXp party={party} userId={userId} characters={characters} nameOf={nameOf} />
       <GiveRewards party={party} userId={userId} nameOf={nameOf} />
-      <RollFeed party={party} nameOf={nameOf} />
-      <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
-      <PartyStash party={party} userId={userId} nameOf={nameOf} />
+      <div className="party-group" id="party-rolls">
+        <RollFeed party={party} nameOf={nameOf} />
+        <SecretRolls party={party} userId={userId} character={me?.characterId ? characters[me.characterId] : undefined} nameOf={nameOf} />
+      </div>
+      <div className="party-group" id="party-stash">
+        <PartyStash party={party} userId={userId} nameOf={nameOf} />
+      </div>
     </section>
   )
 }

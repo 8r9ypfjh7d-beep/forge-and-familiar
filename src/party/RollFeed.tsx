@@ -6,6 +6,9 @@ import { fetchPartyRolls, sendRoll, watchPartyRolls } from './cloud'
 import { mergePartyRolls, mergeRollLists, onMemberRollsChanged, readMemberRolls, type FeedEntry } from './feed'
 import type { Party } from './types'
 
+/** Roll groups shown before "Show all". */
+const RECENT = 3
+
 /**
  * Mounted once in the app: sends each new sheet roll to the cloud right away, so party members see
  * it in their feed within a second instead of at the next cloud sync.
@@ -30,6 +33,7 @@ export function RollFeed({ party, nameOf }: { party: Party; nameOf: (userId: str
   const { t } = useI18n()
   const [feed, setFeed] = useState<FeedEntry[]>([])
   const [now, setNow] = useState(() => Date.now())
+  const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -63,6 +67,7 @@ export function RollFeed({ party, nameOf }: { party: Party; nameOf: (userId: str
     return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   }
 
+  const groups = groupByAction(feed, f => f.roll, (a, b) => a.userId === b.userId)
   return (
     <section className="glass roll-feed" aria-label={t('party.rolls.title')}>
       <h3>{t('party.rolls.title')}</h3>
@@ -70,7 +75,7 @@ export function RollFeed({ party, nameOf }: { party: Party; nameOf: (userId: str
         ? <p className="muted small">{t('party.rolls.empty')}</p>
         : (
           <ol aria-live="polite">
-            {groupByAction(feed, f => f.roll, (a, b) => a.userId === b.userId).map((group, i) => {
+            {groups.slice(0, showAll ? undefined : RECENT).map((group, i) => {
               const { roll, userId } = group[group.length - 1]
               return (
               <li key={group[0].roll.id} className={i === 0 ? 'latest' : ''}>
@@ -84,6 +89,11 @@ export function RollFeed({ party, nameOf }: { party: Party; nameOf: (userId: str
             })}
           </ol>
         )}
+      {groups.length > RECENT && (
+        <button type="button" className="glass-btn small ghost" onClick={() => setShowAll(v => !v)}>
+          {showAll ? t('party.rolls.showFewer') : t('party.rolls.showAll', { count: groups.length })}
+        </button>
+      )}
     </section>
   )
 }
