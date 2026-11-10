@@ -29,3 +29,17 @@
 .art-viewer .art-viewer-caption { margin: 0; text-align: center; }
 .art-viewer .art-viewer-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .art-viewer .glass-btn.danger { color: var(--bad); }
+
+/* Position a new portrait or token (Position.tsx). */
+.art-position[open] { display: grid; gap: var(--sp-3); justify-items: center; padding: var(--sp-4); }
+.art-position .confirm-dialog-actions { justify-self: stretch; }
+.art-position-view {
+  position: relative; overflow: hidden; border-radius: var(--r-md); cursor: grab; touch-action: none;
+  background: var(--ink); box-shadow: 0 0 0 3px var(--accent), var(--glass-shadow);
+}
+.art-position-view.round { border-radius: 50%; }
+.art-position-view:active { cursor: grabbing; }
+.art-position-view:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.art-position-view img { position: absolute; max-inline-size: none; user-select: none; pointer-events: none; }
+.art-position-zoom { display: flex; align-items: center; gap: var(--sp-2); inline-size: 240px; }
+.art-position-zoom input { flex: 1; }

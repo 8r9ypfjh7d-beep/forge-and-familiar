@@ -56,11 +56,12 @@
 .ff-sheet .inv-editor-actions .inv-delete { margin-inline-start: auto; color: var(--s-bad); }
 
 .inv-add { width: 100%; }
-.inv-panel { display: flex; flex-direction: column; gap: 8px; border-block-start: 1px solid var(--glass-hairline); padding-block-start: 12px; }
-.inv-panel-head .segmented button { white-space: nowrap; }
+.inv-panel[open] { display: flex; flex-direction: column; gap: 8px; padding: 16px; inline-size: min(520px, calc(100vw - 24px)); max-block-size: min(720px, calc(100dvh - 24px)); }
+.inv-panel .segmented { align-self: flex-start; }
+.inv-panel .segmented button { white-space: nowrap; }
 .inv-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.inv-panel input[type='search'] { width: 100%; }
-.inv-results { max-height: min(420px, 55vh); overflow-y: auto; overscroll-behavior: contain; margin: 0; }
+.inv-panel input[type='search'] { flex: 1; min-inline-size: 0; }
+.inv-results { flex: 1; min-block-size: 120px; max-height: min(420px, 55vh); overflow-y: auto; overscroll-behavior: contain; margin: 0; }
 .inv-results li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-block-end: 1px solid var(--glass-hairline); }
 .inv-results li > span { display: flex; flex-direction: column; min-width: 0; text-align: start; }
 .inv-results small { color: var(--s-muted); font-size: .75rem; }
@@ -82,3 +83,14 @@
 .inv-effect input:not([type]) { flex: 1 1 160px; min-width: 0; }
 .inv-effect input[type='number'] { width: 72px; flex: 0 0 auto; }
 .inv-effect .inv-effect-remove { width: 36px; padding: 0; margin-inline-start: auto; }
+
+/* Short edit form: More options opens the rest. */
+.inv-more { justify-self: start; }
+/* Link to the campaign's shared stash. */
+.inv-stash {
+  display: flex; align-items: center; gap: 8px; margin-block-start: 12px; padding: 10px 12px; min-block-size: 44px;
+  border: 1px solid var(--glass-hairline); border-radius: 12px; color: inherit; text-decoration: none;
+}
+.inv-stash:hover { background: var(--glass-thin); }
+.inv-stash-go { margin-inline-start: auto; color: var(--s-muted); }
+[dir="rtl"] .inv-stash-go { transform: scaleX(-1); }

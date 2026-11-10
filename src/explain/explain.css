@@ -5,6 +5,9 @@
   text-decoration: underline dotted; text-decoration-color: var(--s-muted, var(--muted));
   text-underline-offset: 3px;
 }
+/* Tap area of at least 32px around small numbers, without changing the layout. */
+.show-math { position: relative; }
+.show-math::after { content: ''; position: absolute; inset: min(0px, calc(50% - 16px)); }
 .show-math:hover { background: color-mix(in srgb, var(--s-accent, var(--accent)) 10%, transparent); }
 
 .math-pop {

@@ -428,3 +428,4 @@
 @media (max-width: 560px) {
   .cs-insp-how { margin-inline-start: 0; flex-basis: 100%; }
 }
+.cs-levelup-link { margin-inline-start: var(--sp-2); padding: 4px 2px; background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }

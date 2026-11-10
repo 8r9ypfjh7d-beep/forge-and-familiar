@@ -16,7 +16,9 @@ The sheet's Inventory card: coins, carried weight, every item the character owns
 - Items come from the content library (`src/content`) for the character's edition: equipment and magic items. An item the engine already has (e.g. `greatsword`) is saved by id; anything else is embedded in `entry.item`.
 - Custom items (a prosthetic limb, a story trinket) are embedded gear the player names and describes.
 - Magic weapons and armor need a base item: adding one opens the editor with a placeholder base and the item's rules text in notes.
-- The editor can change anything: kind, weapon damage, type, properties, range, armor AC and DEX cap, magic bonus, extra damage, notes. Saving always embeds `entry.item`, so edits never touch the SRD data.
+- Rows show − and + only for stacks and consumables (`isStackable`: quantity above 1, ammunition, potions, rations…); other items change quantity in Edit. Removing asks with the in-app `useConfirm` dialog, never the browser's `confirm()`.
+- "+ Add item" opens the catalog as a dialog with the search focused. When the player brings the character to a campaign, a "Party stash" row links to the campaign page.
+- The editor opens short (name, quantity, weight, notes, Save, Cancel, Delete); "More options" shows the rest, and opens straight away for a new custom or magic weapon/armor. The editor can change anything: kind, weapon damage, type, properties, range, armor AC and DEX cap, magic bonus, extra damage, notes. Saving always embeds `entry.item`, so edits never touch the SRD data.
 - Equipped weapons become attacks and equipped armor sets AC through `src/rules` (`entryItem`). Warlocks can mark one weapon as their pact weapon. Artificers get "Infuse with" in the item editor: a known Infusion or plan adds its magic bonus and effects to that item (picks never change the character by themselves).
 - Stat effects: adding a magic item copies its effects from `MAGIC_ITEM_STATS` (`src/rules/data/magicItemEffects.ts`) onto the entry, plus weapon and armor `magicBonus` and `extraDamage`. Every item, database or custom, can have its effects edited in the item editor. The kinds (see `ItemEffect` and `src/rules/RULES.md`), grouped in the picker:
   - Bonuses: AC, all saves, all checks, weapon attack and damage (melee or ranged only), initiative, spell attack and DC, speed, max HP, passive Perception.
@@ -24,7 +26,7 @@ The sheet's Inventory card: coins, carried weight, every item the character owns
   - Saves and skills: a bonus to one, proficiency (and expertise), advantage (always, or "only when…" as a reminder).
   - Defenses, movement and senses: damage resistance or immunity, condition immunity, fly/swim/climb/burrow speed, darkvision and other senses.
   - Spells and charges: extra spell slots of a level, extra pact slots, charges (on the Resources card, back on a rest or at dawn), spells the item casts (shown with the spell slots).
-- Explanations: every editor field, weapon property and effect kind has a "why?" bubble (`Why` from src/builder), text in `src/i18n/locales/items.en.ts` / `items.he.ts`.
+- Explanations: every advanced editor field, weapon property and effect kind has a "why?" bubble (`Why` from src/builder), text in `src/i18n/locales/items.en.ts` / `items.he.ts`.
 - The sheet shows what isn't a number on the character card (`Perks` in `src/sheet/combat/CombatPage.tsx`: fly speed, darkvision, resistances, advantages) and marks always-advantage skills and saves with ADV.
 - `EffectsEditor` and `effectText` are exported; the combat page's custom actions reuse them.
 - Effects work while the item is equipped. The app has no attunement, so magic items that need it in the rules work as soon as they are worn.

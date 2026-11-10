@@ -14,9 +14,10 @@
   -webkit-backdrop-filter: var(--glass-blur-strong); backdrop-filter: var(--glass-blur-strong);
   box-shadow: var(--glass-highlight), var(--glass-shadow-lift);
   cursor: pointer; -webkit-tap-highlight-color: transparent;
-  transition: transform var(--dur-med) var(--ease-spring), background-color var(--dur-fast);
+  transition: transform var(--dur-med) var(--ease-spring), background-color var(--dur-fast), opacity var(--dur-fast);
 }
 .fam-fab:hover { transform: scale(1.06); }
+:root[data-fabs="tucked"] .fam-fab:not(.is-open) { transform: translateY(calc(100% + 24px)); opacity: 0; pointer-events: none; }
 .fam-fab:active { transform: scale(0.92); }
 .fam-fab.is-open { background: var(--glass-tint); }
 .fam-fab:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }

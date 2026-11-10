@@ -16,6 +16,7 @@ import { Pips, Stepper } from './Pips'
 import { itemSpellCaster, useCast } from '../../spellbook/Cast'
 import { useSpells } from './Effects'
 import { itemSpellsOf } from './SpellSlots'
+import { useConfirm } from '../../builder/ConfirmDialog'
 
 const RECHARGE = { short: 'rest.short', long: 'rest.long', dawn: 'rest.dawn', none: 'rest.none' } as const
 /** Pools larger than this show a stepper instead of a row of pips. */
@@ -27,6 +28,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
   const counters = character.state.counters ?? []
   const { t, term } = useI18n()
   const rolls = useSheetRolls(character)
+  const confirm = useConfirm()
   const atDawn = dawnCounters(character)
   // Item charges (from an item's effects) that come back at dawn, with what is spent.
   const dawnItems = resources.filter(r => r.recharge === 'dawn').map(r => ({ ...r, used: character.state.resources[r.id]?.used ?? 0 }))
@@ -92,7 +94,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
             <Stepper value={k.max - k.used} max={k.max} label={k.label}
               onChange={v => apply(t(k.max - v > k.used ? 'sheet.log.used' : 'sheet.log.regained', { label: k.label }), c => upsertCounter(c, { ...k, used: k.max - v }))} />
             <button type="button" className="btn ghost small" aria-label={t('sheet.removeWhat', { label: k.label })}
-              onClick={() => confirm(t('sheet.confirmRemove', { name: k.label })) && apply(t('sheet.log.removedTracker', { label: k.label }), c => removeCounter(c, k.id))}>{t('common.remove')}</button>
+              onClick={() => confirm.ask(t('sheet.confirmRemove', { name: k.label }), t('common.remove'), () => apply(t('sheet.log.removedTracker', { label: k.label }), c => removeCounter(c, k.id)))}>{t('common.remove')}</button>
           </li>
         ))}
       </ul>
@@ -102,6 +104,7 @@ export function Resources({ character, apply }: { character: Character; apply: A
         </button>
       )}
       <AddCounter onAdd={k => apply(t('sheet.log.addedTracker', { label: k.label }), c => upsertCounter(c, k))} />
+      {confirm.dialog}
     </section>
   )
 }

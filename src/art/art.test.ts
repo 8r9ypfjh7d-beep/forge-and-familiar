@@ -5,7 +5,7 @@ import type { Character } from '../model/character'
 import { forShare } from '../share/link'
 import { takeSnapshot } from '../portability/snapshots'
 import {
-  addPieces, artPath, droppedArt, fitWithin, MAX_GALLERY, removePiece, setArt, setCaption, sharedTokenArt, squareCrop, stillUsed, tokenArt,
+  addPieces, CENTRED, dragFraming, framedSquare, artPath, droppedArt, fitWithin, MAX_GALLERY, removePiece, setArt, setCaption, sharedTokenArt, squareCrop, stillUsed, tokenArt,
 } from './logic'
 
 const LINK = 'https://x.supabase.co/storage/v1/object/public/art/acct-ziv/c1/a.jpg'
@@ -69,5 +69,18 @@ describe('character art', () => {
     const snap = takeSnapshot({ ...c, classes: [], state: {} } as unknown as Character)
     expect(snap.character).not.toHaveProperty('gallery')
     expect(snap.character).not.toHaveProperty('token')
+  })
+})
+
+describe('framing a square', () => {
+  it('centres by default and pans to the edges', () => {
+    expect(framedSquare(400, 200, CENTRED)).toEqual({ sx: 100, sy: 0, side: 200 })
+    expect(framedSquare(400, 200, { x: 0, y: 0.5, zoom: 1 })).toEqual({ sx: 0, sy: 0, side: 200 })
+    expect(framedSquare(400, 200, { x: 1, y: 0.5, zoom: 2 })).toEqual({ sx: 300, sy: 50, side: 100 })
+  })
+  it('drags the picture under the view', () => {
+    // 400x200 shown in a 100px view: 200 spare pixels of picture are 100 view pixels; dragging right shows more of the left.
+    expect(dragFraming(400, 200, CENTRED, 50, 0, 100)).toEqual({ x: 0, y: 0.5, zoom: 1 })
+    expect(dragFraming(400, 200, CENTRED, -500, 30, 100)).toEqual({ x: 1, y: 0.5, zoom: 1 })
   })
 })

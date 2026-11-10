@@ -1,6 +1,6 @@
 # Sheet modes (story and combat)
 
-The live sheet has two modes, switched with the Story / Combat buttons under the header. Same data; the shared widgets are identical in both modes and sit in the same place. Combat mode never shows the same thing twice.
+The live sheet has two modes, switched with the Story / Combat buttons under the header (Back, Ask the Familiar and a ⋯ menu with Edit, Print and Export). Same data; the shared widgets are identical in both modes and sit in the same place. Combat mode never shows the same thing twice.
 
 ## Files Covered
 
@@ -23,7 +23,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 
 ## Layout
 
-- **Shared, identical in both modes**: the character card (`CharacterCard` in `combat/CombatPage.tsx`: portrait and level, class, race and background, XP, AC, speed, proficiency, passive perception, Level Up, Initiative, and the HP and Rest cards), the abilities (`AbilitiesPanel`), and on the side the skills rail (`SkillsPanel`).
+- **Shared, identical in both modes**: the character card (`CharacterCard` in `combat/CombatPage.tsx`: portrait and level, class, race and background, XP, AC, speed, proficiency, passive perception, Level Up (a small link by the XP line, a full button only once XP is enough), Initiative, and the HP and Rest cards), the abilities (`AbilitiesPanel`), and on the side the skills rail (`SkillsPanel`).
 - **Story** (default): the Spells card above the skills (`SpellsCard` in src/spellbook: spell slots plus the pinned spells, i.e. the spell entries of `Character.quickCast`, each with Cast), and a main column of notes, Effects (`EffectsCard` in `components/Effects.tsx`: running spells and spell switches, hidden when there are none), attacks and inventory. No resources, ammo and rations, or session log.
 - **Combat** main column: Roll20-style tabs: Combat (attacks table with weapons and attack or save spells, pinned ones included; weapon mastery (only when the character has Weapon Mastery, so never under 2014 rules), effects, the player's own actions), Spells (spell slots, the spellbook and, for sorcerers, the Metamagic card from `components/Metamagic.tsx`: sorcery point pips (the sorcerer's pool and Metamagic Adept's), a Use button per picked option that spends its cost, with a spell-level picker for 2014 Twinned, and Font of Magic: buy back an expended 1st-5th slot or turn an unused slot into points; logic in `fontOfMagic.ts`), Inventory (inventory, supplies), Features & Traits (the Resources card with every feature's uses, then the Rewards card (`components/Boons.tsx`: the DM's charms and blessings, always shown here with an Add form), such as Channel Divinity, superiority dice, Second Wind and custom subclass uses, plus your own trackers, above the features list; sorcery points stay on the Metamagic card), Notes (notes, history). `sheetLayout` returns these as `tabs`. There is no Spells card or quick-cast bar here, since the Spells and Combat tabs already hold slots, spells and their rolls (user ask, 2026-10-27).
 - **Combat on phones** (under 820px, `useNarrow()` in `mode.ts`): abilities and skills move into a Checks tab (`PHONE_COMBAT_TABS`), so the tabs sit right under HP and Rest instead of ~2000px down. The tab bar sticks to the top with an HP chip (`HpChip`) that jumps to the HP box and focuses the amount field.

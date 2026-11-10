@@ -145,13 +145,14 @@
 .p-rule-text th, .p-rule-text td { border: 0.5pt solid var(--p-rule); padding: 1pt 3pt; }
 .p-attribution { font-size: 6.5pt; color: var(--p-soft); }
 
-@media (max-width: 760px) {
-  .paper { padding: 16px; min-height: 0; }
-  .p-head { flex-wrap: wrap; }
-  .p-facts { grid-template-columns: repeat(2, 1fr); }
-  .p-grid, .p-grid.two { grid-template-columns: 1fr; }
-  .p-rules { columns: 1; }
-  .p-table td:not(:first-child), .p-table th:not(:first-child) { white-space: normal; }
+/* Narrow screens: the real page, scaled to fit (usePaperZoom), so the preview looks like the paper. */
+@media screen {
+  .ff-print.is-scaled .paper { inline-size: 8.27in; max-inline-size: none; zoom: var(--paper-zoom, 1); }
+  /* The print view keeps its own Back and Print, so the app bar and floating buttons step aside. */
+  body:has(.ff-print-view) .nav, body:has(.ff-print-view) .ff-dice-fab, body:has(.ff-print-view) .fam-fab { display: none !important; }
+}
+@media screen and (max-width: 760px) {
+  .print-toolbar { margin-block-end: 12px; }
 }
 
 @media print {

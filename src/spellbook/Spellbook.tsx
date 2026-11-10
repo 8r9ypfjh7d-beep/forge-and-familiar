@@ -14,6 +14,7 @@ import { availableSpells, editionOf, spellAccess, spellSourcesFor, type SpellAcc
 import { grantedSpells, isExtraSpell } from './extra'
 import { addSpell, isPinned, isPrepared, pinnedSpells, removeSpell, setPrepared, spellsOf, toggleSpellPin, unpreparedIds } from './spellbook'
 import { CastButton, CastResult, itemSpellCaster, useCast } from './Cast'
+import { useConfirm } from '../builder/ConfirmDialog'
 import './spellbook.css'
 
 interface Library {
@@ -272,6 +273,7 @@ function groupByLevel(spells: Spell[]) {
 function Mine({ character, apply, access, spells, onBrowse }: { character: Character; apply: Apply; access: SpellAccess; spells: Spell[]; onBrowse: () => void }) {
   const { t, term, spellName } = useI18n()
   const casting = useCast(character, apply)
+  const confirm = useConfirm()
   const levelName = useLevelName()
   // Rows keep only Cast; preparing, pinning and forgetting sit behind Edit list so names get the room on phones.
   const [editing, setEditing] = useState(false)
@@ -333,7 +335,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
                   )}
                   {editing && !always && (
                     <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.removeName', { name: spellName(s.name) })}
-                      onClick={() => confirm(t('sheet.confirmRemove', { name: s.name })) && apply(t('spells.log.remove', { name: s.name }), c => removeSpell(c, access.classId, s.id))}>
+                      onClick={() => confirm.ask(t('sheet.confirmRemove', { name: spellName(s.id, s.name) }), t('common.remove'), () => apply(t('spells.log.remove', { name: s.name }), c => removeSpell(c, access.classId, s.id)))}>
                       ✕
                     </button>
                   )}
@@ -343,6 +345,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
           </ul>
         </section>
       ))}
+      {confirm.dialog}
     </div>
   )
 }

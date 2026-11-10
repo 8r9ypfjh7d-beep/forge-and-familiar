@@ -7,6 +7,7 @@ import type { Apply } from '../sheet/types'
 import { canUpload, removeArt, storeArt } from './cloud'
 import { ArtImageError } from './image'
 import { addPieces, droppedArt, galleryOf, MAX_GALLERY, removePiece, setArt, setCaption, tokenArt, type ArtKind } from './logic'
+import { PositionDialog } from './Position'
 import './art.css'
 
 export function ArtCard({ character, apply, readOnly }: { character: Character; apply: Apply; readOnly?: boolean }) {
@@ -15,6 +16,12 @@ export function ArtCard({ character, apply, readOnly }: { character: Character; 
   const [error, setError] = useState<string | null>(null)
   const [localNote, setLocalNote] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
+  // A new portrait or token waits here while the player positions it.
+  const [framing, setFraming] = useState<{ kind: 'portrait' | 'token'; file: File } | null>(null)
+  const pick = (kind: 'portrait' | 'token', files: File[]) => {
+    if (files[0]?.type.startsWith('image/')) setFraming({ kind, file: files[0] })
+    else void upload(kind, files)
+  }
   const gallery = galleryOf(character)
   const token = tokenArt(character)
 
@@ -49,7 +56,7 @@ export function ArtCard({ character, apply, readOnly }: { character: Character; 
           <figcaption>{t('art.portrait')}</figcaption>
           {!readOnly && (
             <div className="art-actions">
-              <FilePick label={character.portrait ? t('art.change') : t('art.upload')} busy={busy === 'portrait'} onFiles={f => upload('portrait', f)} />
+              <FilePick label={character.portrait ? t('art.change') : t('art.upload')} busy={busy === 'portrait'} onFiles={f => pick('portrait', f)} />
               {character.portrait && <button type="button" className="glass-btn small" onClick={() => change(t('art.portraitRemoved'), c => setArt(c, 'portrait', undefined))}>{t('common.remove')}</button>}
             </div>
           )}
@@ -61,7 +68,7 @@ export function ArtCard({ character, apply, readOnly }: { character: Character; 
           <figcaption>{t('art.token')}{!character.token && character.portrait ? <span className="muted small art-hint">{t('art.tokenFromPortrait')}</span> : null}</figcaption>
           {!readOnly && (
             <div className="art-actions">
-              <FilePick label={character.token ? t('art.change') : t('art.upload')} busy={busy === 'token'} onFiles={f => upload('token', f)} />
+              <FilePick label={character.token ? t('art.change') : t('art.upload')} busy={busy === 'token'} onFiles={f => pick('token', f)} />
               {character.token && <button type="button" className="glass-btn small" onClick={() => change(t('art.tokenRemoved'), c => setArt(c, 'token', undefined))}>{t('common.remove')}</button>}
             </div>
           )}
@@ -89,6 +96,10 @@ export function ArtCard({ character, apply, readOnly }: { character: Character; 
       {error && <p className="cs-warn" role="alert">{error}</p>}
       {localNote && !error && <p className="muted small" role="status">{t(canUpload() ? 'art.uploadFailed' : 'art.keptOnDevice')}</p>}
 
+      {framing && (
+        <PositionDialog key={framing.file.name + framing.file.lastModified} file={framing.file} round={framing.kind === 'token'}
+          onClose={() => setFraming(null)} onDone={file => { const kind = framing.kind; setFraming(null); void upload(kind, [file]) }} />
+      )}
       <ArtViewer
         open={!!open && (open === 'portrait' ? !!character.portrait : !!piece)}
         url={open === 'portrait' ? character.portrait : piece?.url}

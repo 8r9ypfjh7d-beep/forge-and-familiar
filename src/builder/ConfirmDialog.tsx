@@ -46,6 +46,19 @@ export function useConfirm(): [(ask: ConfirmAsk) => void, ReactNode] {
 }
 
 /**
+ * The in-app stand-in for `confirm(text) && run()`: `ask(title, yes, run)` opens a ConfirmDialog and runs
+ * `run` only on yes. Render `dialog` once anywhere in the component.
+ */
+export function useConfirm(): { ask: (title: string, yes: string, run: () => void, body?: string) => void; dialog: ReactNode } {
+  const [q, setQ] = useState<{ title: string; yes: string; body?: string; run: () => void } | null>(null)
+  const ask = useCallback((title: string, yes: string, run: () => void, body?: string) => setQ({ title, yes, run, body }), [])
+  const dialog = (
+    <ConfirmDialog open={!!q} title={q?.title ?? ''} body={q?.body} yes={q?.yes ?? ''} onYes={() => q?.run()} onClose={() => setQ(null)} />
+  )
+  return { ask, dialog }
+}
+
+/**
  * In-app glass dialog with one text field, used instead of the browser's prompt box. `onSubmit` gets the trimmed
  * text; when it returns an error message the dialog stays open and shows it.
  */

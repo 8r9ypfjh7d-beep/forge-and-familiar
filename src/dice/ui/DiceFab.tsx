@@ -2,6 +2,7 @@
 import { useEffect, useId, useRef } from 'react'
 import { useI18n } from '../../i18n'
 import { DiceTray } from './DiceTray'
+import { useTuckOnScroll } from './tuck'
 import './dice.css'
 
 interface Props {
@@ -18,6 +19,7 @@ export function DiceFab({ open, onOpenChange, character, secretTo }: Props) {
   const panelId = useId()
   const button = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
+  useTuckOnScroll(!open)
 
   useEffect(() => {
     if (!open) return
