@@ -13,7 +13,11 @@ const struck = (text: string) => text.split(/~~(.+?)~~/).map((part, i) => (i % 2
  * The last roll a panel made, one labeled line per roll so "to hit" and "damage" can't be mixed up.
  * The dice history keeps them all. With `onDone` it fades away on its own (see FadingResult).
  */
-export function LastRoll({ rolls, note, onDone }: { rolls: Shown[]; note?: string; onDone?: () => void }) {
+export function LastRoll({ rolls, note, onDone, why }: {
+  rolls: Shown[]; note?: string; onDone?: () => void
+  /** What forced a mode, named after it: "(dis: Poisoned)". */
+  why?: Partial<Record<'advantage' | 'disadvantage', string>>
+}) {
   const { t, term, attackName } = useI18n()
   if (!rolls.length && !note) return null
   const body = (
@@ -21,7 +25,10 @@ export function LastRoll({ rolls, note, onDone }: { rolls: Shown[]; note?: strin
       {rolls.map(({ roll: r, what, half }) => {
         const crit = r.d20?.crit
         const fumble = r.d20?.fumble
-        const mode = r.d20 && r.d20.mode !== 'normal' ? t(r.d20.mode === 'advantage' ? 'dice.advShort' : 'dice.disShort') : ''
+        const forced = r.d20 && r.d20.mode !== 'normal' ? why?.[r.d20.mode] : undefined
+        const mode = r.d20 && r.d20.mode !== 'normal'
+          ? forced ? t(r.d20.mode === 'advantage' ? 'dice.advWhy' : 'dice.disWhy', { why: forced }) : t(r.d20.mode === 'advantage' ? 'dice.advShort' : 'dice.disShort')
+          : ''
         return (
           <div key={r.id} className={`cs-rollline type-${r.type}${crit ? ' crit' : ''}${fumble ? ' fumble' : ''}`}>
             <span className="what">{what}{mode && <small>{mode}</small>}</span>

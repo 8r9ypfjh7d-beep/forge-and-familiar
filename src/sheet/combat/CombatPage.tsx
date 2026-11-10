@@ -24,6 +24,7 @@ import { PoolForm, UsePanel, useResourceUse } from '../components/Resources'
 import { turnActions, type TurnRow } from './turn'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
+import { RollModeSwitch, useOwnAttackMode } from '../components/RollModeSwitch'
 import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, derive, entryItem, planUse, getBackground, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, totalLevel, xpForNextLevel, xpReady, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { FadingResult } from '../../dice/ui'
@@ -332,6 +333,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const d = derive(character)
   const rolls = useSheetRolls(character)
   const [mode, setMode] = useState<RollMode>('normal')
+  const ownMode = useOwnAttackMode(character)
   const [on, setOn] = useState<Record<string, boolean>>({})
   const [twoHanded, setTwoHanded] = useState<Record<string, boolean>>({})
   const [out, setOut] = useState<Outcome | null>(null)
@@ -475,7 +477,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   const result = out && (
     <FadingResult key={outKey} ref={outRef} className="cs-out" onDone={() => setOut(null)}>
       <strong>{out.name}</strong>
-      <LastRoll rolls={out.rolls} note={out.note} />
+      <LastRoll rolls={out.rolls} note={out.note} why={ownMode.own !== 'normal' ? { [ownMode.own]: ownMode.why } : undefined} />
       {out.healMe !== undefined && healedKey !== outKey && character.state.currentHp > 0 && (
         <button type="button" className="glass-btn small" onClick={() => {
           setHealedKey(outKey)
@@ -507,13 +509,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     <section className="card cs-fight" aria-labelledby="cs-attacks-title">
       <div className="card-head">
         <h2 id="cs-attacks-title">{t('cs.attacks')}</h2>
-        <div className="segmented" role="group" aria-label={t('sheet.attacks.mode')}>
-          {(['advantage', 'normal', 'disadvantage'] as const).map(m => (
-            <button key={m} type="button" className={mode === m ? 'on' : ''} aria-pressed={mode === m} onClick={() => setMode(m)}>
-              {t(m === 'advantage' ? 'dice.adv' : m === 'disadvantage' ? 'dice.dis' : 'dice.normal')}
-            </button>
-          ))}
-        </div>
+        <RollModeSwitch character={character} mode={mode} onChange={setMode} />
       </div>
 
       <div className="cs-table-head" aria-hidden="true">

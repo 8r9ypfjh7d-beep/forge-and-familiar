@@ -5,11 +5,12 @@ import { FadingResult, RollGroupView, RollView } from '../../dice/ui'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
-import { derive, featureEffectId, getCritRange, getDamageRiders, getRollMode, type DamageRider } from '../../rules'
+import { derive, featureEffectId, getCritRange, getDamageRiders, type DamageRider } from '../../rules'
 import { useSheetRolls } from '../dice'
 import { ammoForAttack, spendAmmo } from '../../supplies/supplies'
 import { spendOnceEffects } from '../effects'
 import type { Apply } from '../types'
+import { RollModeSwitch } from './RollModeSwitch'
 
 /** Every equipped attack. One tap rolls to-hit and damage with all modifiers, conditions and toggled riders. */
 export function Attacks({ character, apply }: { character: Character; apply?: Apply }) {
@@ -24,7 +25,6 @@ export function Attacks({ character, apply }: { character: Character; apply?: Ap
 
   // Rage used from Resources is running: its rider is on without the checkbox.
   const raging = (character.state.effects ?? []).some(e => e.on && e.id === featureEffectId('rage'))
-  const own = getRollMode(character, 'attack')
   const critRange = getCritRange(character)
   const offered = new Map<DamageRider['id'], DamageRider>()
   for (const a of attacks) for (const r of getDamageRiders(character, a)) if (!offered.has(r.id)) offered.set(r.id, r)
@@ -56,16 +56,7 @@ export function Attacks({ character, apply }: { character: Character; apply?: Ap
         <span className="hint">{t('sheet.attacks.hint')}</span>
       </div>
 
-      <div className="segmented" role="group" aria-label={t('sheet.attacks.mode')}>
-        {(['advantage', 'normal', 'disadvantage'] as const).map(m => (
-          <button key={m} type="button" className={mode === m ? 'on' : ''} aria-pressed={mode === m} onClick={() => setMode(m)}>
-            {t(m === 'advantage' ? 'dice.adv' : m === 'disadvantage' ? 'dice.dis' : 'dice.normal')}
-          </button>
-        ))}
-      </div>
-      {own !== 'normal' && (
-        <p className="hint">{t(own === 'advantage' ? 'sheet.attacks.ownAdv' : 'sheet.attacks.ownDis')}</p>
-      )}
+      <RollModeSwitch character={character} mode={mode} onChange={setMode} />
       {critRange < 20 && <p className="hint">{t('sheet.attacks.critRange', { n: critRange })}</p>}
 
       {offered.size > 0 && (
