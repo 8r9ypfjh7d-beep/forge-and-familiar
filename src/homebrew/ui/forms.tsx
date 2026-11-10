@@ -1,6 +1,7 @@
 // Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds, class options, languages and tools (classes are in ClassForm.tsx). Each edits a copy and hands it back on save.
 import { fmtMod } from '../../i18n/signed'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { ConfirmDialog } from '../../builder/ConfirmDialog'
 import { SubclassMechanicsEditor } from '../../builder/CustomSubclassForm'
 import { FeatMechanics } from '../../builder/FeatEditor'
 import { Why } from '../../builder/Why'
@@ -58,6 +59,18 @@ export function FormShell<T>({ kind, name, value, issues, onSave, onCancel, chil
 }) {
   const { t } = useI18n()
   const [tried, setTried] = useState(false)
+  const [asking, setAsking] = useState(false)
+  // The form opens with its entry's value; anything typed since then is unsaved work.
+  const [start] = useState(() => JSON.stringify(value))
+  const dirty = JSON.stringify(value) !== start
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+  const cancel = () => (dirty ? setAsking(true) : onCancel())
+  const shown = tried && issues.length > 0
   return (
     <form
       className="glass thick hb-form"
@@ -67,26 +80,37 @@ export function FormShell<T>({ kind, name, value, issues, onSave, onCancel, chil
         if (issues.length === 0) onSave(value)
       }}
     >
-      <h3>{name ? t('hb.form.edit', { name }) : t(`hb.form.new.${kind}`)}</h3>
+      <div className="row hb-form-head">
+        <button type="button" className="glass-btn icon" onClick={cancel} aria-label={t('hb.back')}>{t('common.backArrow')}</button>
+        <h3>{name ? t('hb.form.edit', { name }) : t(`hb.form.new.${kind}`)}</h3>
+      </div>
       <div className="hb-fields">{children}</div>
-      {tried && issues.length > 0 && <ul className="issues" role="alert">{issues.map(i => <li key={i}>{i}</li>)}</ul>}
-      <div className="row hb-form-actions">
-        <button type="button" className="glass-btn" onClick={onCancel}>{t('hb.form.cancel')}</button>
+      {shown && <ul className="issues" role="alert">{issues.map(i => <li key={i}>{i}</li>)}</ul>}
+      <div className="hb-form-bar glass thick">
+        {shown && <span className="small hb-form-bar-issue">{t('hb.form.fix')}</span>}
+        <button type="button" className="glass-btn" onClick={cancel}>{t('hb.form.cancel')}</button>
         <button className="glass-btn prominent">{t('hb.form.save')}</button>
       </div>
+      <ConfirmDialog open={asking} title={t('hb.form.discardTitle')} body={t('hb.form.discardBody')} yes={t('hb.form.discard')}
+        onYes={onCancel} onClose={() => setAsking(false)} />
     </form>
+  )
+}
+
+/** A closed fold of fields, with a badge counting what is filled in inside it. */
+export function FormFold({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
+  return (
+    <details className="hb-field wide hb-more">
+      <summary><span>{title}</span>{!!count && <span className="hb-count">{count}</span>}</summary>
+      <div className="hb-fields">{children}</div>
+    </details>
   )
 }
 
 /** Fields most entries don't need, folded away so a new form starts short. */
 export function MoreOptions({ children }: { children: ReactNode }) {
   const { t } = useI18n()
-  return (
-    <details className="hb-field wide hb-more">
-      <summary>{t('hb.moreOptions')}</summary>
-      <div className="hb-fields">{children}</div>
-    </details>
-  )
+  return <FormFold title={t('hb.moreOptions')}>{children}</FormFold>
 }
 
 export function SpellForm({ initial, onSave, onCancel }: { initial: HomebrewSpell; onSave: (s: HomebrewSpell) => void; onCancel: () => void }) {
@@ -315,11 +339,12 @@ export function FeatForm({ initial, onSave, onCancel }: { initial: HomebrewFeat;
       <Field label={t('hb.f.name')} wide><input value={f.name} onChange={e => set({ name: e.target.value })} autoFocus /></Field>
       <Field label={t('hb.f.prereq')} wide><input value={f.prerequisite ?? ''} onChange={e => set({ prerequisite: opt(e.target.value) })} placeholder={t('hb.f.prereqPlaceholder')} /></Field>
       <Field label={t('hb.f.description')} wide><textarea rows={5} value={f.description} onChange={e => set({ description: e.target.value })} /></Field>
-      <div className="hb-field wide">
-        <span>{t('hb.f.effects')}</span>
-        <p className="muted small">{t('hb.f.effectsHint')}</p>
-        <FeatMechanics value={f} onChange={set} idPrefix={`hb-feat-${f.id || 'new'}`} />
-      </div>
+      <FormFold title={t('hb.f.effects')} count={f.effects.length + (f.stats?.length ?? 0) + (f.uses ? 1 : 0) + (f.armor?.length ?? 0) + (f.weapons?.length ?? 0)}>
+        <div className="hb-field wide">
+          <p className="muted small">{t('hb.f.effectsHint')}</p>
+          <FeatMechanics value={f} onChange={set} idPrefix={`hb-feat-${f.id || 'new'}`} />
+        </div>
+      </FormFold>
     </FormShell>
   )
 }
@@ -771,6 +796,7 @@ export function ClassOptionForm({ initial, onSave, onCancel }: { initial: Homebr
         <label className="hb-check hb-plain"><input type="checkbox" checked={!!o.repeatable} onChange={e => set({ repeatable: e.target.checked || undefined })} />{t('hb.opt.repeatable')}</label>
       </div>
       <Field label={t('hb.f.description')} wide><textarea rows={4} value={o.text} onChange={e => set({ text: e.target.value })} placeholder={t('hb.opt.textPlaceholder')} /></Field>
+      <FormFold title={t('hb.opt.usesAndEffects')} count={(o.uses ? 1 : 0) + (infusion ? (o.item?.effects?.length ?? 0) + (o.item?.magicBonus ? 1 : 0) : (o.effects?.length ?? 0))}>
       <div className="hb-field wide">
         <WhyLabel label={t('hb.opt.uses')} why={t('hb.opt.why.uses')} />
         <div className="row">
@@ -812,6 +838,7 @@ export function ClassOptionForm({ initial, onSave, onCancel }: { initial: Homebr
       ) : (
         <EffectsEditor legend={t('hb.opt.effects')} effects={o.effects ?? []} onChange={fx => set({ effects: fx })} />
       )}
+      </FormFold>
     </FormShell>
   )
 }

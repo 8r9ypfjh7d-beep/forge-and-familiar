@@ -3,6 +3,12 @@
 .mf { display: grid; gap: var(--sp-3); }
 .mf-section { margin: 0; padding: var(--sp-3); border: 0; border-radius: var(--r-md); background: var(--glass-thin); box-shadow: inset 0 0 0 1px var(--glass-hairline); display: grid; gap: var(--sp-2); }
 .mf-section > legend { float: inline-start; inline-size: 100%; margin: 0 0 var(--sp-2); padding: 0; font-family: var(--font-display); font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
+.mf-fold { display: block; }
+.mf-fold[open] { display: grid; }
+.mf-fold > summary { cursor: pointer; display: flex; align-items: center; gap: var(--sp-2); min-height: 32px; font-family: var(--font-display); font-weight: 600; }
+.mf-fold[open] > summary { margin-block-end: var(--sp-1); }
+.mf-count { font-family: var(--font-body, inherit); font-size: 0.75rem; font-weight: 600; min-inline-size: 1.4em; padding: 0 var(--sp-2); border-radius: 999px; background: var(--glass-tint); color: var(--accent); text-align: center; }
+.mf-fold-why { margin: 0; }
 .mf-section-actions { justify-content: flex-start; }
 .mf-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--sp-3); }
 .mf-field { display: grid; gap: var(--sp-1); align-content: start; font-size: 0.85rem; }
