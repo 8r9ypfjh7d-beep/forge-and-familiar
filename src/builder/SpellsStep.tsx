@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { loadKind, searchEntries, type CharacterClass, type Edition, type Spell, type Subclass } from '../content'
 import { SpellName, useI18n, type MessageKey } from '../i18n'
 import type { KnownSpell } from '../model/character'
-import { MENTAL_ABILITIES, RACE_SPELL_KEY, chosenSpellAbility, classById, featById, featChoosesSpellAbility, getAbilityScores, raceById, raceChoosesSpellAbility, type Ability } from '../rules'
+import { MENTAL_ABILITIES, RACE_SPELL_KEY, chosenSpellAbility, classById, featById, featChoosesSpellAbility, getAbilityScores, getSpellcastingByClass, raceById, raceChoosesSpellAbility, raceProfile, type Ability, type CharacterDraft } from '../rules'
 import { SearchField } from '../rulesqa/SearchField'
 import {
   SpellRow, availableSpells, canPickExtra, isSecret, editionOf, extraKey, extraList, extraSources, grantedSpells, keepValidSpells, spellAccess,
@@ -130,6 +130,16 @@ function SpellPicker({ pool, chosen, onToggle, label, startLevel }: { pool: Spel
   )
 }
 
+/**
+ * Whether the Spells step has anything to show, without loading the spell library. Leans to yes: no class yet,
+ * a subclass (it may cast), a casting class, an unknown class, race spells, a spell feat or spells already picked.
+ */
+export function mayHaveSpells(draft: CharacterDraft): boolean {
+  if (!draft.classes.length || draft.spells?.length) return true
+  if (draft.classes.some(cl => cl.subclassId || !classById(cl.classId, draft.rulesEdition))) return true
+  return getSpellcastingByClass(draft).length > 0 || raceProfile(draft).spells.length > 0 || extraSources(draft).length > 0
+}
+
 export function SpellsStep({ draft, update }: StepProps) {
   const { t, term, spellName } = useI18n()
   const lib = useSpellLibrary(editionOf(draft))
@@ -160,7 +170,7 @@ export function SpellsStep({ draft, update }: StepProps) {
   if (!access.length && !granted.length && !extras.length) {
     return (
       <div className="builder-spells">
-        <p className="hint">{t('builder.spells.none')}</p>
+        <p className="hint">{t(editionOf(draft) === '2024' ? 'builder.spells.none2024' : 'builder.spells.none')}</p>
       </div>
     )
   }
@@ -170,14 +180,14 @@ export function SpellsStep({ draft, update }: StepProps) {
 
   return (
     <div className="spellbook builder-spells">
+      {/* One line: Suggest (its hint as the tooltip) and the tap/C/R help behind why?. */}
       <div className="bs-help">
-        {suggestion.length > saved.length && (
-          <p className="row">
-            <button type="button" className="glass-btn small" onClick={() => setSpells(suggestion)}>{t('builder.spells.suggest')}</button>
-            <span className="hint small">{t('builder.spells.suggestHint')}</span>
-          </p>
-        )}
-        <p className="hint small">{t('builder.spells.tapHint')}</p>
+        <p className="row">
+          {suggestion.length > saved.length && (
+            <button type="button" className="glass-btn small prominent" title={t('builder.spells.suggestHint')} onClick={() => setSpells(suggestion)}>{t('builder.spells.suggest')}</button>
+          )}
+          <span className="hint small">{t('builder.spells.tapShort')} <Why title={t('builder.spells.tapShort')} text={t('builder.spells.tapHint')} /></span>
+        </p>
       </div>
       {access.length > 1 && (
         <div className="sb-classes" role="group" aria-label={t('spells.class')}>

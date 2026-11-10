@@ -9,7 +9,7 @@ import './random.css'
  * "Random character" strip at the top of a new character's builder. With `ask`, it first asks in an in-app
  * glass dialog whether to replace the player's picks.
  */
-export function RandomCharacter({ onRoll, ask, busy }: { onRoll: () => void; ask: boolean; busy?: boolean }) {
+export function RandomCharacter({ onRoll, ask, busy, compact }: { onRoll: () => void; ask: boolean; busy?: boolean; compact?: boolean }) {
   const { t } = useI18n()
   const [asking, setAsking] = useState(false)
   const ref = useRef<HTMLDialogElement>(null)
@@ -21,11 +21,11 @@ export function RandomCharacter({ onRoll, ask, busy }: { onRoll: () => void; ask
   }, [asking])
   const roll = () => { setAsking(false); onRoll() }
   return (
-    <div className="random-bar">
-      <button className="glass-btn" disabled={busy} aria-busy={busy} onClick={() => (ask ? setAsking(true) : onRoll())}>
+    <div className={compact ? 'random-bar compact' : 'random-bar'}>
+      <button className={compact ? 'glass-btn small' : 'glass-btn'} disabled={busy} aria-busy={busy} title={t('random.characterHint')} onClick={() => (ask ? setAsking(true) : onRoll())}>
         🎲 {t(busy ? 'random.rolling' : 'random.character')}
       </button>
-      <span className="muted small">{t('random.characterHint')}</span>
+      {!compact && <span className="muted small">{t('random.characterHint')}</span>}
       <dialog ref={ref} className="random-dialog glass-sheet glass-dialog" aria-labelledby="random-dialog-title" onCancel={e => { e.preventDefault(); setAsking(false) }}>
         {asking && (
           <>

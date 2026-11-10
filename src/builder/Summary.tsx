@@ -1,16 +1,13 @@
 import { fmtMod } from '../i18n/signed'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import {
   ABILITIES, classById, createCharacter, derive, getSpellcastingByClass, raceById, type CharacterDraft,
 } from '../rules'
 
-/**
- * Live preview of derived stats while building. Unassigned scores count as 10.
- * When editing, `preview` is the edited character, so AC and attacks use its real gear.
- */
-export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: Character }) {
+/** Derived stats for the preview. Unassigned scores count as 10 for the math (and show as "—"). */
+function useDerivedDraft(draft: CharacterDraft, preview?: Character) {
   const race = raceById(draft.raceId, draft.rulesEdition)
   const cls = classById(draft.classes[0]?.classId ?? '', draft.rulesEdition)
   const d = useMemo(() => {
@@ -20,6 +17,36 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
     for (const a of ABILITIES) if (!base[a]) base[a] = 10
     return derive(createCharacter({ ...draft, baseAbilities: base }))
   }, [draft, race, cls, preview])
+  return { race, cls, d }
+}
+
+/**
+ * Phones: one line (name, race and class, HP, AC) above the sticky Back/Next bar; a tap opens the full preview.
+ */
+export function SummaryPeek({ draft, preview }: { draft: CharacterDraft; preview?: Character }) {
+  const { race, cls, d } = useDerivedDraft(draft, preview)
+  const [open, setOpen] = useState(false)
+  const { t, raceName, classLine } = useI18n()
+  const who = [race && raceName(race.id, draft.subraceId, draft.rulesEdition), cls && classLine(draft.classes)].filter(Boolean).join(' · ')
+  return (
+    <div className={`summary-peek ${open ? 'open' : ''}`}>
+      {open && <div className="summary-peek-body"><Summary draft={draft} preview={preview} /></div>}
+      <button type="button" className="summary-peek-line" aria-expanded={open} aria-label={t(open ? 'summary.hide' : 'summary.show')} onClick={() => setOpen(o => !o)}>
+        <strong>{draft.name || t('summary.unnamed')}</strong>
+        <span className="muted">{who || t(draft.rulesEdition === '2024' ? 'summary.chooseShort2024' : 'summary.chooseShort')}</span>
+        {d && <span className="summary-peek-stats">{t('stat.hp')} {d.maxHp} · {t('stat.ac')} {d.armorClass.value}</span>}
+        <span className="summary-peek-chev" aria-hidden="true">{open ? '▾' : '▴'}</span>
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Live preview of derived stats while building. Scores not set yet show "—".
+ * When editing, `preview` is the edited character, so AC and attacks use its real gear.
+ */
+export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: Character }) {
+  const { race, cls, d } = useDerivedDraft(draft, preview)
   const scoresSet = ABILITIES.every(a => draft.baseAbilities[a] > 0)
   // Prerequisite warnings are noise until scores are assigned.
   const warnings = d?.warnings.filter(w => scoresSet || !w.startsWith('Multiclass prerequisite')) ?? []
@@ -49,8 +76,12 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
             {ABILITIES.map(a => (
               <div key={a} className={d.saves[a].proficient ? 'save-prof' : ''} title={d.saves[a].proficient ? t('summary.saveProf') : undefined}>
                 <span className="muted small">{abilityShort(a)}</span>
-                <strong>{d.abilities[a]}</strong>
-                <span className="small">{fmtMod(d.mods[a])}</span>
+                {preview || draft.baseAbilities[a] > 0 ? (
+                  <>
+                    <strong>{d.abilities[a]}</strong>
+                    <span className="small">{fmtMod(d.mods[a])}</span>
+                  </>
+                ) : <><strong>—</strong><span className="small">&nbsp;</span></>}
               </div>
             ))}
           </div>
@@ -80,7 +111,6 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
           {d.languages.length > 0 && <p className="small"><strong>{t('summary.languages')}</strong> {d.languages.map(l => term('language', l, l)).join(', ')}</p>}
           {d.tools.length > 0 && <p className="small"><strong>{t('summary.tools')}</strong> {d.tools.map(x => term('tool', x, x)).join(', ')}</p>}
           {d.feats.length > 0 && <p className="small"><strong>{t('summary.feats')}</strong> {d.feats.map(sourceName).join(', ')}</p>}
-          <p className="small muted">{t('summary.carrying', { weight: d.carriedWeight, capacity: d.carryingCapacity })}</p>
           {warnings.map(w => <p key={w} className="small bad">{w}</p>)}
         </>
       )}

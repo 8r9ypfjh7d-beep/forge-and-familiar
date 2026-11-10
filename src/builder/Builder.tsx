@@ -11,8 +11,9 @@ import { applyEdit, draftFrom, startingGearChanged } from './edit'
 import { ConfirmDialog } from './ConfirmDialog'
 import { clearDraft, loadDraft, saveDraft } from './draftStore'
 import { STEPS } from './steps'
+import { mayHaveSpells } from './SpellsStep'
 import { stepIssues, stepWarnings, type StepId } from './validate'
-import { Summary } from './Summary'
+import { Summary, SummaryPeek } from './Summary'
 import { Why } from './Why'
 import { draftCard } from '../familiar/context'
 import type { FamiliarScreen } from '../familiar/screen'
@@ -85,8 +86,9 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
     return editing && patch.classes ? followPlan(editing, d, next) : next
   }), [editing])
   const { t, term } = useI18n()
-  // 2024 calls the first step Species.
-  const stepName = (id: StepId) => t(id === 'race' && draft.rulesEdition === '2024' ? 'builder.step.race2024' : `builder.step.${id}`)
+  // 2024 calls the first step Species, picks the background with the abilities and leaves skills and languages for step 4.
+  const is2024 = draft.rulesEdition === '2024'
+  const stepName = (id: StepId) => t(is2024 && (id === 'race' || id === 'abilities' || id === 'skills') ? `builder.step.${id}2024` : `builder.step.${id}`)
   const stepsRef = useRef<HTMLElement>(null)
   // On phones the step bar is one swipeable row: keep the current step in view.
   useEffect(() => {
@@ -95,6 +97,11 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
   }, [step])
 
   const issues = useMemo(() => STEPS.map(s => stepIssues(s.id, draft, t, term)), [draft, t, term])
+  // A character with no spells from class, race or feat skips the Spells step; it comes back when a pick adds some.
+  const hasSpells = mayHaveSpells(draft)
+  const shown = (i: number) => STEPS[i].id !== 'spells' || hasSpells || i === step
+  const nextStep = (from: number) => { let i = from + 1; while (i < STEPS.length - 1 && !shown(i)) i++; return i }
+  const prevStep = (from: number) => { let i = from - 1; while (i > 0 && !shown(i)) i--; return i }
   // Next on a step with missing picks first points at them; a second tap moves on (steps stay open in any order).
   const [nudged, setNudged] = useState<number | null>(null)
   const issuesRef = useRef<HTMLUListElement>(null)
@@ -104,7 +111,7 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
       issuesRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
       return
     }
-    setStep(step + 1)
+    setStep(nextStep(step))
   }
   const firstBlocked = issues.findIndex(i => i.length > 0)
   const warnings = useMemo(() => stepWarnings(STEPS[step].id, draft, t, term), [step, draft, t, term])
@@ -176,10 +183,10 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
           <button className="glass-btn small" onClick={() => setAsking('startOver')}>{t('builder.draft.startOver')}</button>
         </p>
       )}
-      {!editing && <RandomCharacter onRoll={rollRandom} ask={hasPicks(draft) && draft !== rolled} busy={rolling} />}
       <nav className="steps" ref={stepsRef} aria-label={t('builder.steps')}>
         {STEPS.map((s, i) => {
           // Every step is open in any order; only creating or saving needs them all done.
+          if (!shown(i)) return null
           return (
             <button
               key={s.id}
@@ -187,23 +194,30 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
               aria-current={i === step ? 'step' : undefined}
               onClick={() => setStep(i)}
             >
-              <span className="step-num">{i + 1}</span> {stepName(s.id)}
+              <span className="step-num">{STEPS.slice(0, i + 1).filter((_, j) => shown(j)).length}</span> {stepName(s.id)}
             </button>
           )
         })}
       </nav>
 
       <div className="builder-body">
+        <div className="builder-main">
         <section className="glass builder-step">
-          <h2>{stepName(STEPS[step].id)}</h2>
-          <p className="muted">{t(draft.rulesEdition === '2024' && (STEPS[step].id === 'race' || STEPS[step].id === 'abilities') ? `builder.step.${STEPS[step].id as 'race' | 'abilities'}.blurb2024` : `builder.step.${STEPS[step].id}.blurb`)} <Why id={`step.${STEPS[step].id}`} /> <AskFamiliar compact label={t('familiar.askStep')} prompt={t('familiar.prompt.step', { step: stepName(STEPS[step].id) })} /></p>
+          {/* One Familiar entry in the builder (the floating buttons are hidden here); Random sits beside it on the first step. */}
+          <div className="step-head">
+            <h2>{stepName(STEPS[step].id)}</h2>
+            <div className="step-head-actions">
+              {!editing && step === 0 && <RandomCharacter compact onRoll={rollRandom} ask={hasPicks(draft) && draft !== rolled} busy={rolling} />}
+              <AskFamiliar label={t('familiar.askStep')} prompt={t('familiar.prompt.step', { step: stepName(STEPS[step].id) })} />
+            </div>
+          </div>
+          <p className="muted">{t(is2024 && (STEPS[step].id === 'race' || STEPS[step].id === 'abilities' || STEPS[step].id === 'skills') ? `builder.step.${STEPS[step].id as 'race' | 'abilities' | 'skills'}.blurb2024` : `builder.step.${STEPS[step].id}.blurb`)}{' '}
+            {/* Equipment: the kit sentence lives in the tip, so the step opens with one line. */}
+            {STEPS[step].id === 'equipment'
+              ? <Why title={t('why.kit.title')} text={`${t('builder.kitIntro')} ${t('why.kit.text')}`} />
+              : <Why id={`step.${STEPS[step].id}`} />}</p>
           <Current draft={draft} update={update} editing={!!editing} />
           {!editing && STEPS[step].id === 'details' && <BackstoryHook hookKey={hookKey} setHookKey={setHookKey} />}
-          {issues[step].length > 0 && (
-            <ul className={`issues ${nudged === step ? 'nudged' : ''}`} ref={issuesRef} role={nudged === step ? 'alert' : undefined}>
-              {issues[step].map((m, i) => <li key={`${i}-${m}`}>{m}</li>)}
-            </ul>
-          )}
           {warnings.length > 0 && (
             <ul className="step-warnings small" role="note">
               {warnings.map(m => <li key={m}>{m}</li>)}
@@ -221,14 +235,23 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
               <button className="glass-btn small" onClick={() => setStep(firstBlocked)}>{t('builder.edit.goFix')}</button>
             </p>
           )}
+        </section>
+        {/* Sticky at the bottom of the screen: missing picks, the phone summary line, Back and Next. */}
+        <div className="builder-foot">
+          {issues[step].length > 0 && (
+            <ul className={`issues ${nudged === step ? 'nudged' : ''}`} ref={issuesRef} role={nudged === step ? 'alert' : undefined}>
+              {issues[step].map((m, i) => <li key={`${i}-${m}`}>{m}</li>)}
+            </ul>
+          )}
+          <SummaryPeek draft={draft} preview={preview} />
           <div className="builder-nav">
             {editing ? (
               <div className="row">
-                {step > 0 && <button className="glass-btn" onClick={() => setStep(step - 1)}>{t('builder.back')}</button>}
+                {step > 0 && <button className="glass-btn" onClick={() => setStep(prevStep(step))}>{t('builder.back')}</button>}
                 <button className="glass-btn" onClick={cancel}>{t('common.cancel')}</button>
               </div>
             ) : (
-              <button className="glass-btn" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
+              <button className="glass-btn" onClick={step === 0 ? onCancel : () => setStep(prevStep(step))}>
                 {step === 0 ? t('common.cancel') : t('builder.back')}
               </button>
             )}
@@ -245,8 +268,9 @@ export function Builder({ ownerId, playerName = '', editing, onCreate, onCancel 
               )}
             </div>
           </div>
-        </section>
-        <Summary draft={draft} preview={preview} />
+        </div>
+        </div>
+        <div className="summary-side"><Summary draft={draft} preview={preview} /></div>
       </div>
     </div>
   )

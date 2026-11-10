@@ -206,7 +206,8 @@ export default function App() {
     <LevelUpPrompt characters={characters} parties={playing.parties} userId={active.id} paused={['build', 'edit', 'levelup', 'starters'].includes(view.kind)}
       onLevelUp={id => setView({ kind: 'levelup', id })} />
     <EditRequestDialog key={askEdit?.character.id} character={askEdit?.character ?? null} note={askEdit?.note} levelUp={askEdit?.levelUp} userId={active.id} userName={active.displayName} onClose={() => setAskEdit(null)} />
-    <div className="app">
+    {/* Builder, Edit and Level Up are focus screens: no tab bar on phones, no floating buttons; Cancel is the way out. */}
+    <div className={['build', 'edit', 'levelup'].includes(view.kind) ? 'app app-focus' : 'app'}>
       <SkipLink />
       <AppNav
         viewKind={view.kind}

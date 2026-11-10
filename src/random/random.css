@@ -10,3 +10,9 @@
 .random-dialog h2 { margin: 0 0 var(--sp-2); font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.015em; text-transform: none; }
 .random-dialog p { margin-block: 0 var(--sp-4); line-height: 1.45; }
 .random-dialog-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }
+/* In the builder's step header: just the button. */
+.random-bar.compact { margin: 0; }
+.random-bar.compact .glass-btn.small {
+  min-block-size: 32px; padding-inline: var(--sp-1); border: 0; background: none; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--accent); font-weight: 600;
+}

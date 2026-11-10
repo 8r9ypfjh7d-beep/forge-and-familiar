@@ -96,7 +96,13 @@
   :root:has(.app > .nav) .ff-rollfx { inset-block-end: calc(142px + env(safe-area-inset-bottom)); }
   .app:has(.nav-panel:not([hidden])) .ff-dice-fab { display: none; }
   body:has(.nav) .ff-pwa { bottom: calc(76px + env(safe-area-inset-bottom)); }
+
+  /* Builder, Edit and Level Up: no tab bar; the builder's own sticky Back/Next bar takes the bottom. */
+  .app.app-focus > .nav { display: none; }
+  .app.app-focus:has(> .nav) { padding-block-end: var(--sp-4); }
 }
+/* Focus screens keep one Familiar entry (the step header's) and no floating dice; rolls show in place. */
+.app.app-focus .fam-fab, .app.app-focus .ff-dice-fab__button { display: none; }
 
 /* Solid fallbacks keep the shape; high contrast also draws the edges. */
 :root[data-contrast="high"] .nav.glass-chrome { border: 2px solid var(--line); }

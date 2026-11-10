@@ -7,6 +7,7 @@ import {
   type CharacterDraft, type Feat, type FeatCategory, type FeatPrereq,
 } from '../rules'
 import { featExplainKey } from './why'
+import { bookRank } from './Compact'
 
 type Group = FeatCategory | 'homebrew'
 const GROUPS: Group[] = ['origin', 'general', 'fighting-style', 'epic-boon', 'racial', 'homebrew']
@@ -19,13 +20,15 @@ export function FeatSelect({ feats, value, onChange, id, label, level }: { feats
   return (
     <select id={id} aria-label={label} value={value} onChange={e => onChange(e.target.value)}>
       <option value="">{t('builder.asi.pickFeat')}</option>
-      {GROUPS.map(g => {
+      {GROUPS.flatMap(g => {
+        // Each kind splits by book: core (SRD) first, then the Player's Handbook and the rest in book order.
         const list = feats.filter(f => groupOf(f) === g).sort((a, b) => name(a).localeCompare(name(b)))
-        return list.length > 0 && (
-          <optgroup key={g} label={t(`feats.group.${g}`)}>
-            {list.map(f => <option key={f.id} value={f.id}>{level !== undefined && (f.minLevel ?? 0) > level ? t('builder.asi.featLevel', { feat: name(f), level: f.minLevel! }) : name(f)}</option>)}
+        const books = [...new Set(list.map(f => (g === 'homebrew' ? '' : f.source ?? '')))].sort((a, b) => bookRank(a) - bookRank(b))
+        return books.map(book => (
+          <optgroup key={`${g}-${book}`} label={book ? `${t(`feats.group.${g}`)} · ${book}` : t(`feats.group.${g}`)}>
+            {list.filter(f => (g === 'homebrew' ? '' : f.source ?? '') === book).map(f => <option key={f.id} value={f.id}>{level !== undefined && (f.minLevel ?? 0) > level ? t('builder.asi.featLevel', { feat: name(f), level: f.minLevel! }) : name(f)}</option>)}
           </optgroup>
-        )
+        ))
       })}
       <optgroup label={t('feats.group.custom')}>
         <option value={CUSTOM_FEAT}>{t('feats.custom.option')}</option>
