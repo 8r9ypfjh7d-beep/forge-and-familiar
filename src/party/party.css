@@ -107,6 +107,7 @@
 .ff-party .stash input.amount { width: 6.5em; }
 .ff-party .stash input.grow { min-width: 8em; }
 .ff-party .purse > .glass-btn { justify-self: start; }
+.ff-party .from-purse { gap: var(--sp-1); align-items: center; justify-self: start; }
 .ff-party .stash-items { list-style: none; margin: 0 0 var(--sp-2); padding: 0; }
 .ff-party .stash-items li { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; padding-block: var(--sp-2); border-block-end: 1px solid var(--glass-hairline); }
 .ff-party .stash-items li:last-child { border-block-end: 0; }

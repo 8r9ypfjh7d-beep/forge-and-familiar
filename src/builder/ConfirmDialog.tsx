@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useI18n } from '../i18n'
 import { typedMatches } from './typedMatches'
+import './ConfirmDialog.css'
 
 /** In-app glass yes/no dialog, used instead of the browser's confirm box. Shown while `open`. */
 export function ConfirmDialog({ open, title, body, yes, onYes, onClose }: { open: boolean; title: string; body?: string; yes: string; onYes: () => void; onClose: () => void }) {

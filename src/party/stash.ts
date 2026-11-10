@@ -1,5 +1,5 @@
 // Shared party inventory and gold. Pure updates like code.ts, so a backend can run the same rules.
-import type { Coin, Coins, GiftBoon, Party, PartyStash, StashItem } from './types'
+import type { Coin, Coins, Gift, GiftBoon, Party, PartyStash, StashItem } from './types'
 import { AWARD_LIMIT } from './xp'
 import { cleanGiftBoon, GIFT_LIMIT } from './gifts'
 
@@ -45,9 +45,13 @@ export type StashAction =
   | { type: 'remove'; id: string }
   /** Actor carries the item, or puts it back in the party bag. */
   | { type: 'hold'; id: string; carry: boolean }
-  | { type: 'coins'; delta: Partial<Coins>; reason?: string }
-  /** Hands out equal shares to `ways` members; the uneven copper stays behind. */
-  | { type: 'split'; ways: number }
+  /**
+   * Coins in or out of the stash. With `purse`, the actor's own character pays for what goes in
+   * and gets what comes out (through a gift, like XP awards).
+   */
+  | { type: 'coins'; delta: Partial<Coins>; reason?: string; purse?: boolean }
+  /** Pays an equal share into the purse of every member who brings a character; the uneven copper stays behind. */
+  | { type: 'split' }
   /** The DM gives XP (or a milestone level) to these players' characters; `names` is for the log. */
   | { type: 'award'; xp?: number; milestone?: boolean; level?: number; to: { userId: string; characterId: string }[]; names: string[] }
   /**
@@ -65,6 +69,21 @@ function commit(p: Party, userId: string, stash: Omit<PartyStash, 'log'>, text: 
   const log = [{ at: now, userId, text }, ...getStash(p).log].slice(0, STASH_LOG_LIMIT)
   return { ok: true, party: { ...p, stash: { ...getStash(p), ...stash, log }, updatedAt: now } }
 }
+
+/** The character `userId` brings to the party, as a gift recipient. */
+function broughtBy(p: Party, userId: string | undefined) {
+  const m = userId ? p.members.find(x => x.userId === userId && x.characterId) : undefined
+  return m ? [{ userId: m.userId, characterId: m.characterId! }] : []
+}
+
+/** Gifts that move coins or stash items onto characters' sheets, newest first like the rest. */
+function withGifts(s: PartyStash, userId: string, fresh: Omit<Gift, 'id' | 'at' | 'by'>[]): Gift[] | undefined {
+  const at = new Date().toISOString()
+  const made = fresh.filter(g => g.to.length).map(g => ({ id: crypto.randomUUID(), at, by: userId, ...g }))
+  return made.length ? [...made, ...(s.gifts ?? [])].slice(0, GIFT_LIMIT) : s.gifts
+}
+
+const stashGiftItem = (it: StashItem) => ({ stashId: it.id, name: it.name, qty: it.qty, ...(it.itemId ? { itemId: it.itemId } : {}), ...(it.note ? { note: it.note } : {}) })
 
 const label = (it: Pick<StashItem, 'name' | 'qty'>, qty = it.qty) => (qty === 1 ? it.name : `${qty} × ${it.name}`)
 
@@ -109,7 +128,12 @@ export function applyStash(p: Party, userId: string, action: StashAction): Stash
       const heldBy = action.carry ? userId : undefined
       if (it.heldBy === heldBy) return { ok: true, party: p }
       const items = s.items.map(i => (i === it ? { ...i, heldBy } : i))
-      return commit(p, userId, withItems(items), action.carry ? `is carrying ${label(it)}` : `put ${label(it)} back in the bag`)
+      // The item moves onto the carrier's sheet, and off the sheet of whoever had it.
+      const gifts = withGifts(s, userId, [
+        { to: broughtBy(p, it.heldBy), dropItem: it.id },
+        ...(heldBy ? [{ to: broughtBy(p, heldBy), item: stashGiftItem(it) }] : []),
+      ])
+      return commit(p, userId, { ...withItems(items), gifts }, action.carry ? `is carrying ${label(it)}` : `put ${label(it)} back in the bag`)
     }
     case 'coins': {
       const coins = { ...s.coins }
@@ -123,14 +147,19 @@ export function applyStash(p: Party, userId: string, action: StashAction): Stash
       ].filter(Boolean).join(', ')
       if (!words) return { ok: true, party: p }
       const reason = action.reason?.trim()
-      return commit(p, userId, { items: s.items, coins }, reason ? `${words} (${reason})` : words)
+      // Coins taken go into the actor's purse; coins added come out of it.
+      const paid = Object.fromEntries(COINS.filter(k => action.delta[k]).map(k => [k, -Math.trunc(action.delta[k]!)]))
+      const gifts = action.purse ? withGifts(s, userId, [{ to: broughtBy(p, userId), coins: paid }]) : s.gifts
+      return commit(p, userId, { items: s.items, coins, gifts }, reason ? `${words} (${reason})` : words)
     }
     case 'split': {
-      const ways = Math.floor(action.ways)
+      const to = p.members.filter(m => m.characterId).map(m => ({ userId: m.userId, characterId: m.characterId! }))
+      const ways = to.length
       if (!(ways >= 1)) return fail('Nobody to split with.')
       const { share, leftoverCp } = splitCoins(s.coins, ways)
       if (toCp(share) === 0) return fail('Not enough coin to split.')
-      return commit(p, userId, { items: s.items, coins: { ...noCoins(), cp: leftoverCp } },
+      const gifts = withGifts(s, userId, [{ to, coins: Object.fromEntries(COINS.filter(k => share[k]).map(k => [k, share[k]])) }])
+      return commit(p, userId, { items: s.items, coins: { ...noCoins(), cp: leftoverCp }, gifts },
         `split the coin ${ways} ways: ${formatCoins(share)} each`)
     }
     case 'award': {
