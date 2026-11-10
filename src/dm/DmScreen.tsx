@@ -21,7 +21,7 @@ import { totalLevel } from '../rules'
 import { getCharacter } from '../storage'
 import {
   activePlan, addMonster, npcPlanEntry, fitCrRange, tooStrongAlone, trimAdvice, addPlan, changeCount, crLabel, crSteps, difficulty, findMonsters, monsterGroups, monsterTypes,
-  groupsFromLevels, NPC_TABLES, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
+  groupsFromLevels, partyBudget, partySize, sameGroups, planCombatants, planEntry, planXp, randomNpc, removePlan, updatePlan,
   type Budget, type Difficulty, type MonsterQuery, type NpcIdea,
 } from './logic'
 import { RollsTab } from './RollsTab'
@@ -33,7 +33,8 @@ import type { Translate } from '../i18n/translate'
 import { type DmState, type EncounterPlan, type Npc, type PartyGroup, type PlanMonster } from './types'
 import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
-import { NpcSheetList } from '../npc/ui/NpcSheetList'
+import '../npc/ui/npc.css'
+import { maxHp as npcMaxHp } from '../npc/engine'
 import './dm.css'
 import { ConfirmDialog } from '../builder/ConfirmDialog'
 import { stashNpcPrefill, type NpcPrefill } from '../npc/ui/prefill'
@@ -269,8 +270,8 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
           {tab === 'maps' && <MapsTab key={drawFrom?.mapId ?? 'list'} ownerId={userId} initialOpenId={drawFrom?.mapId}
             back={drawFrom ? { label: t('maps.backToPlan', { name: drawFrom.planName }), go: () => setTab('encounters') } : undefined} />}
           {tab === 'reference' && <ReferenceTab />}
-          {tab === 'npcs' && onOpenNpc && <NpcSheetList ownerId={userId} partyId={party?.id} onOpen={onOpenNpc} onNew={makeNpc && (() => makeNpc())} />}
-          {tab === 'npcs' && <NpcsTab state={state} update={update} onGiveStats={makeNpc && (n => makeNpc({ text: n }))} />}
+          {tab === 'npcs' && <NpcsTab state={state} update={update} sheets={npcs} onOpen={onOpenNpc} onNew={makeNpc && (() => makeNpc())}
+            onGiveStats={makeNpc && (n => makeNpc({ text: n }))} />}
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} userId={userId} />}
           {group === 'story' && requests && <StoryReminders list={requests} onOpen={() => setTab('requests')} />}
           {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <LoreNoCampaign runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
@@ -818,54 +819,79 @@ function ideaText(idea: NpcIdea, t: (k: MessageKey) => string) {
   }
 }
 
-function NpcsTab({ state, update, onGiveStats }: { state: DmState; update: Update; onGiveStats?: (n: Npc) => void }) {
-  const { t } = useI18n()
+/** One list of the DM's NPCs: full sheets (with HP, tap to open) and quick text NPCs (tap to edit, "Give stats" to make a sheet). */
+function NpcsTab({ state, update, sheets, onOpen, onNew, onGiveStats }: {
+  state: DmState
+  update: Update
+  /** NPC sheets for the campaign in play (src/npc). */
+  sheets: NpcSheet[]
+  onOpen?: (npcId: string) => void
+  onNew?: () => void
+  onGiveStats?: (n: Npc) => void
+}) {
+  const { t, monsterName } = useI18n()
   const [idea, setIdea] = useState<NpcIdea>(() => randomNpc())
   const text = ideaText(idea, t)
-  const save = (npc: Npc) => update(s => ({ ...s, npcs: [npc, ...s.npcs] }))
   const edit = (id: string, patch: Partial<Npc>) => update(s => ({ ...s, npcs: s.npcs.map(n => (n.id === id ? { ...n, ...patch } : n)) }))
-
+  const [openId, setOpenId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<Npc | null>(null)
+  const keep = () => {
+    const id = newId()
+    update(s => ({ ...s, npcs: [{ id, name: idea.name, ...text }, ...s.npcs] }))
+    setIdea(randomNpc())
+  }
+  const count = sheets.length + state.npcs.length
 
   return (
-    <>
+    <section className="card dm-npcs-card" aria-labelledby="dm-npcs-title">
       <ConfirmDialog open={!!deleting} title={t('dm.npcDelete', { name: deleting?.name || t('dm.npcName') })} yes={t('common.delete')}
         onYes={() => { const id = deleting?.id; setDeleting(null); if (id) update(s => ({ ...s, npcs: s.npcs.filter(x => x.id !== id) })) }} onClose={() => setDeleting(null)} />
-      <section className="card dm-idea" aria-labelledby="dm-idea-title">
-        <div className="card-head">
-          <h2 id="dm-idea-title">{t('dm.npcIdea')}</h2>
-          <button className="btn small" onClick={() => setIdea(randomNpc())}>{t('dm.npcReroll')}</button>
-        </div>
-        <p className="dm-idea-name">{idea.name}</p>
-        <p><b>{text.role}.</b> {text.notes}</p>
-        <div className="row">
-          <button className="btn primary small" onClick={() => { save({ id: newId(), name: idea.name, ...text }); setIdea(randomNpc()) }}>{t('dm.npcKeep')}</button>
-          <button className="btn small" onClick={() => save({ id: newId(), name: '', role: '', notes: '' })}>{t('dm.npcBlank')}</button>
-        </div>
-        <p className="hint">{t('dm.npcHelp', { roles: NPC_TABLES.role, quirks: NPC_TABLES.quirk })}</p>
-      </section>
-      <section className="card" aria-labelledby="dm-npcs-title">
-        <h2 id="dm-npcs-title">{t('dm.npcs', { count: state.npcs.length })}</h2>
-        {state.npcs.length === 0 ? <p className="hint">{t('dm.npcsEmpty')}</p> : (
-          <ul className="plain dm-npcs">
-            {state.npcs.map(n => (
-              <li key={n.id}>
-                <div className="dm-npc-head">
-                  <input value={n.name} onChange={e => edit(n.id, { name: e.target.value })} placeholder={t('dm.npcName')} aria-label={t('dm.npcName')} />
-                  <input value={n.role} onChange={e => edit(n.id, { role: e.target.value })} placeholder={t('dm.npcRole')} aria-label={t('dm.npcRole')} />
-                  <div className="row dm-npc-btns">
-                    {onGiveStats && <button className="btn small" onClick={() => onGiveStats(n)}>{t('npc.build.giveStats')}</button>}
-                    <button className="btn ghost small" onClick={() => setDeleting(n)}>
-                      {t('common.delete')}
-                    </button>
+      <div className="card-head">
+        <h2 id="dm-npcs-title">{t('dm.npcs', { count })}</h2>
+        {onNew && <button type="button" className="btn primary small" onClick={onNew}>{t('npc.build.newNpc')}</button>}
+      </div>
+      {/* A made-up NPC to improvise with, one line: keep it or roll another. */}
+      <p className="dm-idea-line">
+        <span className="dm-idea-text" title={`${idea.name}, ${text.role}. ${text.notes}`}>{t('dm.npcIdeaLine', { name: idea.name, role: text.role, notes: text.notes })}</span>
+        <button type="button" className="link-btn" onClick={keep}>{t('dm.npcKeepShort')}</button>
+        <button type="button" className="link-btn" onClick={() => setIdea(randomNpc())}>{t('dm.npcReroll')}</button>
+      </p>
+      {count === 0 ? <p className="hint">{t('dm.npcsEmpty')}</p> : (
+        <ul className="plain npc-list">
+          {sheets.map(n => (
+            <li key={n.id}>
+              <button type="button" className="npc-list-row" onClick={() => onOpen?.(n.id)} disabled={!onOpen}>
+                <b>{n.name}</b>
+                <span>{[n.role, monsterName(n.block), t('npc.cr', { cr: crLabel(n.block.challengeRating), xp: n.block.xp.toLocaleString() })].filter(Boolean).join(' · ')}</span>
+                <small>{t('dm.npcHp', { hp: n.state.currentHp, max: npcMaxHp(n) })}</small>
+              </button>
+            </li>
+          ))}
+          {state.npcs.map(n => (
+            <li key={n.id} className="dm-npc-text">
+              <div className="dm-npc-row">
+                <button type="button" className="npc-list-row" aria-expanded={openId === n.id} onClick={() => setOpenId(openId === n.id ? null : n.id)}>
+                  <b>{n.name || t('dm.npcUnnamed')}</b>
+                  <span>{n.role || n.notes}</span>
+                </button>
+                {onGiveStats && <button type="button" className="btn small" onClick={() => onGiveStats(n)}>{t('npc.build.giveStats')}</button>}
+              </div>
+              {openId === n.id && (
+                <div className="dm-npc-edit">
+                  <div className="dm-npc-head">
+                    <input value={n.name} onChange={e => edit(n.id, { name: e.target.value })} placeholder={t('dm.npcName')} aria-label={t('dm.npcName')} />
+                    <input value={n.role} onChange={e => edit(n.id, { role: e.target.value })} placeholder={t('dm.npcRole')} aria-label={t('dm.npcRole')} />
+                  </div>
+                  <textarea value={n.notes} rows={2} onChange={e => edit(n.id, { notes: e.target.value })} placeholder={t('dm.npcNotes')} aria-label={t('dm.npcNotes')} />
+                  <div className="row">
+                    <button className="btn ghost small" onClick={() => setDeleting(n)}>{t('common.delete')}</button>
                   </div>
                 </div>
-                <textarea value={n.notes} rows={2} onChange={e => edit(n.id, { notes: e.target.value })} placeholder={t('dm.npcNotes')} aria-label={t('dm.npcNotes')} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

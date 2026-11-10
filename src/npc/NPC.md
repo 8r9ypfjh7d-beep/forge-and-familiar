@@ -18,7 +18,6 @@ A named creature the DM runs, built on a monster stat block the way a hero is bu
 | `fixtures.ts` | `makeBlock()`: a test stat block with limited, recharge and legendary actions and spellcasting |
 | `npc.test.ts` | Engine rules, against the fixture and SRD 5.1 blocks |
 | `ui/NpcSheet.tsx` | The DM's live sheet at `#/npc/<id>` (App renders it only for a DM): hero card (portrait, role, creature line, AC, speed, PB, passive Perception, Initiative roll, Add to fight), HP with damage types through the block's defenses, New turn (legendary back, recharge d6s), legendary pips, conditions (immunities refused), rests, spell slot and per-day pips, the shared `StatBlock` with use pips, DM notes (autosave), session log with Undo, Delete with `ConfirmDialog`. Edit is in place (name, role, max HP) until the creator's edit mode passes `onEdit` |
-| `ui/NpcSheetList.tsx` | "NPC sheets" card on the DM screen's NPCs tab (`#/dm/npcs`), for the campaign in play |
 | `ui/npc.css`, `ui/style.test.ts` | Sheet styles on the Liquid Glass standard over `.ff-sheet`; logical properties and glass tokens only. Labels in `i18n/locales/npc.en.ts` / `npc.he.ts` |
 
 ## Rules
@@ -33,7 +32,7 @@ A named creature the DM runs, built on a monster stat block the way a hero is bu
 
 ## The creator
 
-- **Entry points** (DM screen): the NPC sheets card's "+ New NPC" (`NpcSheetList` `onNew`) and "Give stats" on a text NPC (the text entry leaves the plain list once its sheet is saved); Monsters tab "Make an NPC" on an open stat block. Each stashes a prefill and opens `#/npc/new`.
+- **Entry points** (DM screen): the NPCs tab's "+ New NPC" (`NpcsTab` in src/dm/DmScreen.tsx, one list of sheets and text NPCs) and "Give stats" on a text NPC (the text entry leaves the plain list once its sheet is saved); Monsters tab "Make an NPC" on an open stat block. Each stashes a prefill and opens `#/npc/new`.
 - **Stat block step** lists `loadMonsters(edition)` (SRD, books grouped by `BOOK_TITLES`, legacy, homebrew packs) in a `ChoicePicker`, with an edition switch shared with the Monsters tab (`src/dm/edition.ts`), a CR cap, "Start from scratch" and "Copy another NPC".
 - **Picking a library block** copies it and fills `spellcasting` from its trait, so slots and per-day uses count at once. Saving rewrites the Spellcasting trait text only when the DM changed the spells.
 - **HP**: Average (the book's), Roll (`hitPointsRoll` through the dice, lands in the DM's history), or Type. "Reset to book" copies the library block back.
