@@ -7,7 +7,7 @@ Seven-step wizard that turns choices into a `CharacterDraft`, then `createCharac
 | File | Purpose |
 |------|---------|
 | `Builder.tsx` | Wizard shell, step navigation, `emptyDraft(ownerId, playerName)` (no background, player name prefilled), `UnfinishedDraft` (Continue/Discard banner on Home and the character list; lives in `UnfinishedDraft.tsx` so Home doesn't load the wizard); `EditCharacter` loads a saved character into it; in Edit, levels gained take the build plan's subclass and ASI picks (`followPlan`, src/planner) |
-| `LevelUp.tsx` | Level Up screen (`view: 'levelup'`): the class that gains the level (the plan's by default, or another class), HP average or rolled, what the level brings, then only that class's picks, the new ASI slot, skill/mastery picks when newly due, and spells for casters. One Save, snapshot first |
+| `LevelUp.tsx` | Level Up screen (`view: 'levelup'`): the class that gains the level (one class shows "Wizard 1 → 2" with a "Level a different class" link; the plan's class by default), HP average or rolled, what the level brings, then only that class's picks, the new ASI slot, skill/mastery picks when newly due, and spells for casters (the spell list opens on the level that still has picks, with "Pick N more spells"). One Save, snapshot first |
 | `levelup.ts` | Pure: `nextClass`, `levelUpDraft` (one level, plan picks via `followPlan`), `gainedLevel`, `withHpRoll`, `newImprovementSlots`, `levelGain` (HP, features, proficiency), `newIssues` (only problems the level brings block; old gaps don't) |
 | `levelup.test.ts` | Level Up tests |
 | `edit.ts` | `draftFrom()`, `applyEdit()`, `startingGearChanged()`: editing a saved character |

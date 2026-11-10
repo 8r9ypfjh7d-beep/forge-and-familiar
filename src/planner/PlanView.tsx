@@ -125,21 +125,38 @@ function StepRow({ character, step, library, onChange }: {
   const set = (patch: Partial<PlannedLevel>) => onChange(setEntry(character, { ...step.entry, ...patch }))
   const top = topSlotLevel(step.stats)
   const customName = character.customSubclasses?.find(s => s.classId === step.entry.classId)?.name
+  const needsDecision = step.issues.length > 0 || step.needs.length > 0
+  // A row is one line until opened; rows that still need a choice start open and marked.
+  const [open, setOpen] = useState(needsDecision)
+  const [changing, setChanging] = useState(false)
   return (
-    <li className={`glass plan-step${step.issues.length ? ' blocked' : ''}`}>
-      <div className="plan-head">
+    <li className={`glass plan-step${step.issues.length ? ' blocked' : ''}${needsDecision ? ' todo-step' : ''}`}>
+      <details open={open} onToggle={e => setOpen(e.currentTarget.open)}>
+      <summary className="plan-head">
         <span className="plan-level" aria-label={t('plan.levelLabel', { level: step.level })}>{step.level}</span>
+        <strong className="plan-classlevel">{className(step.entry.classId)} {step.classLevel}</strong>
+        <span className="plan-line small muted">
+          <span className="plan-num">{t('plan.hpShort', { gain: step.hpGain })}</span>
+          {step.newSlotLevel && <span>{t('plan.slot', { level: top })}</span>}
+        </span>
+        {step.newClass && <span className="glass-chip small">{t('plan.newClass', { prereq: prereqLabel(step.entry.classId) })}</span>}
+        {step.needs.length > 0 && <span className="plan-needs small">{step.needs.map(n => t(NEED_LABEL[n])).join(' · ')}</span>}
+      </summary>
+      <div className="plan-body">
+      {changing ? (
         <select
           className="glass-field"
           aria-label={t('plan.classFor', { level: step.level })}
           value={step.entry.classId}
-          onChange={e => onChange(setClass(character, step.level, e.target.value))}
+          autoFocus
+          onBlur={() => setChanging(false)}
+          onChange={e => { onChange(setClass(character, step.level, e.target.value)); setChanging(false) }}
         >
           {classesFor(edition).map(c => <option key={c.id} value={c.id}>{className(c.id)}</option>)}
         </select>
-        <strong className="plan-classlevel">{className(step.entry.classId)} {step.classLevel}</strong>
-        {step.newClass && <span className="glass-chip small">{t('plan.newClass', { prereq: prereqLabel(step.entry.classId) })}</span>}
-      </div>
+      ) : (
+        <button type="button" className="link-btn small plan-change" onClick={() => setChanging(true)}>{t('plan.changeClass')}</button>
+      )}
 
       {step.issues.length > 0 && <p className="plan-issue small" role="alert">{step.issues.join(' ')}</p>}
 
@@ -172,9 +189,8 @@ function StepRow({ character, step, library, onChange }: {
           : step.features.map(f => <li key={`${f.className}-${f.name}`} className="plan-feature">{term('feature', f.name, f.name)}</li>)}
       </ul>
 
-      {step.needs.length > 0 && (
-        <p className="plan-needs small">{step.needs.map(n => t(NEED_LABEL[n])).join(' · ')}</p>
-      )}
+      </div>
+      </details>
     </li>
   )
 }

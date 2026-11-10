@@ -46,21 +46,19 @@
 .glass-btn.hb-ghost.glass-lens { background: var(--glass-tint); color: var(--accent); }
 .glass-btn.hb-danger { color: var(--bad); }
 
-.hb-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--sp-5); align-items: start; }
-@media (min-width: 861px) { .hb-share { position: sticky; inset-block-start: 84px; } }
-@media (max-width: 860px) { .hb-body { grid-template-columns: minmax(0, 1fr); } }
+.hb-body { display: grid; gap: var(--sp-4); }
 
-/* Kind tabs: a segmented control that scrolls sideways on phones instead of wrapping. */
-.hb-toolbar { margin-block-end: var(--sp-3); flex-wrap: nowrap; }
-.hb-tabs { min-inline-size: 0; max-inline-size: 100%; overflow-x: auto; scrollbar-width: none; }
-.hb-tabs::-webkit-scrollbar { display: none; }
-.hb-tabs > button { flex: none; white-space: nowrap; padding-inline: var(--sp-3); font-variant-numeric: tabular-nums; }
-.hb-add { margin-inline-start: auto; flex: none; }
-@media (max-width: 640px) {
-  .hb-toolbar { flex-wrap: wrap; }
-  .hb-tabs { flex: 1 1 100%; }
-  .hb-add { min-height: 40px; }
-}
+/* One + Add button that asks what to add; entries grouped by kind; Delete inside the ⋯ menu. */
+.hb-toolbar { display: grid; gap: var(--sp-2); margin-block-end: var(--sp-3); justify-items: start; }
+.hb-add { min-height: 40px; }
+.hb-add-pick { display: grid; gap: var(--sp-2); }
+.hb-add-pick p { margin: 0; }
+.hb-group { display: grid; gap: var(--sp-2); margin-block-end: var(--sp-4); }
+.hb-group-title { margin: 0; font-family: var(--font-display); text-transform: none; }
+.hb-menu { position: relative; }
+.hb-menu > summary { list-style: none; }
+.hb-menu > summary::-webkit-details-marker { display: none; }
+.hb-menu-pop { position: absolute; inset-inline-end: 0; inset-block-start: calc(100% + var(--sp-1)); z-index: 20; padding: var(--sp-2); min-inline-size: 10rem; display: grid; }
 
 .hb-entries { display: grid; gap: var(--sp-3); }
 .hb-entries .hb-entry { padding: var(--sp-4); }
@@ -85,7 +83,9 @@
 .hb-field.wide { grid-column: 1 / -1; }
 .hb-field input, .hb-field select, .hb-field textarea { inline-size: 100%; }
 .hb-field textarea { resize: vertical; }
-.hb-check { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 32px; font-size: 0.9rem; text-transform: capitalize; }
+.hb-check { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 32px; font-size: 0.9rem; }
+/* Weapon property names are lowercase words in the data; skill names already carry their own case. */
+.hb-props .hb-check { text-transform: capitalize; }
 .hb-check.hb-plain { text-transform: none; }
 .hb-check input { accent-color: var(--accent); inline-size: 18px; block-size: 18px; margin: 0; }
 .hb-effect { margin-block-end: var(--sp-2); flex-wrap: nowrap; }
@@ -107,3 +107,7 @@
 :root[data-contrast="high"] .hb .glass, :root[data-contrast="high"] .hb .glass-sheet { border-width: 2px; }
 :root[data-contrast="high"] .hb-class-feature { box-shadow: inset 0 0 0 1px var(--line); }
 :root[data-contrast="high"] .glass-btn.hb-ghost { border-color: var(--line); }
+
+/* "More options" fold in homebrew forms: rarely needed fields stay closed. */
+.hb-more > summary { cursor: pointer; font-weight: 600; color: var(--accent); padding-block: var(--sp-1); }
+.hb-more[open] > summary { margin-block-end: var(--sp-2); }

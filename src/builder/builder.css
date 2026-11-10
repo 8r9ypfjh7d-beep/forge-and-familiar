@@ -294,3 +294,7 @@
 .prompt-dialog-field { inline-size: 100%; margin-block-end: var(--sp-3); }
 .prompt-dialog-error { color: var(--bad); margin-block: 0 var(--sp-3); }
 .confirm-dialog-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }
+
+/* Level-up: "Wizard 1 → 2" with a quiet link to pick another class. */
+.levelup-class { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; }
+.levelup .link-btn { font: inherit; padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

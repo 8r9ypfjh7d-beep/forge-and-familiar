@@ -78,6 +78,17 @@ export function FormShell<T>({ kind, name, value, issues, onSave, onCancel, chil
   )
 }
 
+/** Fields most entries don't need, folded away so a new form starts short. */
+export function MoreOptions({ children }: { children: ReactNode }) {
+  const { t } = useI18n()
+  return (
+    <details className="hb-field wide hb-more">
+      <summary>{t('hb.moreOptions')}</summary>
+      <div className="hb-fields">{children}</div>
+    </details>
+  )
+}
+
 export function SpellForm({ initial, onSave, onCancel }: { initial: HomebrewSpell; onSave: (s: HomebrewSpell) => void; onCancel: () => void }) {
   const { t, ability, className } = useI18n()
   const [s, setS] = useState(initial)
@@ -115,16 +126,6 @@ export function SpellForm({ initial, onSave, onCancel }: { initial: HomebrewSpel
           <input value={s.components.material ?? ''} onChange={e => comp({ material: e.target.value })} placeholder={t('hb.f.materialPlaceholder')} />
         </Field>
       )}
-      <Field label={t('hb.f.roll')}>
-        <input value={s.damage ?? ''} onChange={e => set({ damage: opt(e.target.value) })} placeholder="3d6" />
-      </Field>
-      <Field label={t('hb.f.damageType')}><input value={s.damageType ?? ''} onChange={e => set({ damageType: opt(e.target.value) })} placeholder={t('hb.f.damageTypePlaceholder')} /></Field>
-      <Field label={t('hb.f.save')}>
-        <select value={s.save ?? ''} onChange={e => set({ save: (e.target.value || undefined) as Ability | undefined })}>
-          <option value="">{t('hb.f.none')}</option>
-          {ABILITIES.map(a => <option key={a} value={a}>{ability(a)}</option>)}
-        </select>
-      </Field>
       <div className="hb-field wide">
         <span>{t('hb.f.classes')}</span>
         <div className="row">
@@ -139,7 +140,19 @@ export function SpellForm({ initial, onSave, onCancel }: { initial: HomebrewSpel
         </div>
       </div>
       <Field label={t('hb.f.description')} wide><textarea rows={5} value={s.description} onChange={e => set({ description: e.target.value })} /></Field>
-      <Field label={t('hb.f.higherLevels')} wide><textarea rows={2} value={s.higherLevels ?? ''} onChange={e => set({ higherLevels: opt(e.target.value) })} /></Field>
+      <MoreOptions>
+        <Field label={t('hb.f.roll')}>
+          <input value={s.damage ?? ''} onChange={e => set({ damage: opt(e.target.value) })} placeholder="3d6" />
+        </Field>
+        <Field label={t('hb.f.damageType')}><input value={s.damageType ?? ''} onChange={e => set({ damageType: opt(e.target.value) })} placeholder={t('hb.f.damageTypePlaceholder')} /></Field>
+        <Field label={t('hb.f.save')}>
+          <select value={s.save ?? ''} onChange={e => set({ save: (e.target.value || undefined) as Ability | undefined })}>
+            <option value="">{t('hb.f.none')}</option>
+            {ABILITIES.map(a => <option key={a} value={a}>{ability(a)}</option>)}
+          </select>
+        </Field>
+        <Field label={t('hb.f.higherLevels')} wide><textarea rows={2} value={s.higherLevels ?? ''} onChange={e => set({ higherLevels: opt(e.target.value) })} /></Field>
+      </MoreOptions>
     </FormShell>
   )
 }
@@ -191,7 +204,7 @@ export function ItemForm({ initial, onSave, onCancel }: { initial: HomebrewItem;
           )}
           <div className="hb-field wide">
             <span>{t('hb.f.properties')}</span>
-            <div className="row">
+            <div className="row hb-props">
               {WEAPON_PROPS.map(p => (
                 <Check
                   key={p}
@@ -371,14 +384,6 @@ export function RaceForm({ initial, pack, onSave, onCancel }: { initial: Homebre
       </Field>
       {own && (
         <>
-          <label className="hb-field wide">
-            <WhyKey label={t('hb.f.edition')} why="hb.why.edition" />
-            <select value={r.edition ?? ''} onChange={e => set({ edition: (e.target.value || undefined) as HomebrewRace['edition'] })}>
-              <option value="">{t('hb.f.editionBoth')}</option>
-              <option value="2024">{t('hb.f.edition2024')}</option>
-              <option value="2014">{t('hb.f.edition2014')}</option>
-            </select>
-          </label>
           <label className="hb-field">
             <WhyKey label={t('hb.f.size')} why="hb.why.size" />
             <select value={r.size} onChange={e => set({ size: e.target.value as Size, sizeOptions: r.sizeOptions?.filter(x => x !== e.target.value) })}>
@@ -386,14 +391,6 @@ export function RaceForm({ initial, pack, onSave, onCancel }: { initial: Homebre
             </select>
           </label>
           <Field label={t('hb.f.speed')}><input type="number" min={0} max={120} step={5} value={r.speed} onChange={e => set({ speed: numOr(e.target.value, 30) })} /></Field>
-          <div className="hb-field wide">
-            <WhyKey label={t('hb.f.sizeOptions')} why="hb.why.sizeOptions" />
-            <div className="row">
-              {SIZES.filter(x => x !== r.size).map(x => (
-                <Check key={x} label={t(`hb.size.${x}`)} checked={!!r.sizeOptions?.includes(x)} onChange={on => set({ sizeOptions: toggle(r.sizeOptions, x, on) })} />
-              ))}
-            </div>
-          </div>
         </>
       )}
       {only2024 ? (
@@ -415,80 +412,102 @@ export function RaceForm({ initial, pack, onSave, onCancel }: { initial: Homebre
           </div>
         </div>
       )}
-      <div className="hb-field wide">
-        <span>{t('hb.f.skills')}</span>
-        <div className="row">
-          {ALL_SKILLS.map(sk => (
-            <Check
-              key={sk}
-              label={skill(sk)}
-              checked={r.skillProficiencies.includes(sk)}
-              onChange={on => set({ skillProficiencies: on ? [...r.skillProficiencies, sk] : r.skillProficiencies.filter(x => x !== sk) })}
-            />
-          ))}
-        </div>
-      </div>
-      <Field label={t('hb.f.skillChoices')}><input type="number" min={0} max={6} value={r.freeSkillChoices} onChange={e => set({ freeSkillChoices: numOr(e.target.value, 0) })} /></Field>
-      <label className="hb-field">
-        <WhyKey label={t('hb.f.languageChoices')} why="hb.why.languages" />
-        <input type="number" min={0} max={6} value={r.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} />
-      </label>
-      <Field label={t('hb.f.hp')}><input type="number" min={0} max={5} value={r.hpPerLevel} onChange={e => set({ hpPerLevel: numOr(e.target.value, 0) })} /></Field>
-      {own && <LinesField label={t('hb.f.languages')} value={r.languages} onChange={languages => set({ languages })} placeholder={t('hb.f.languagesPlaceholder')} />}
-      {own && (
-        <>
-          <LinesField label={t('hb.f.tools')} value={r.tools ?? []} onChange={tools => set({ tools: tools.length ? tools : undefined })} placeholder={t('hb.f.toolsPlaceholder')} />
-          <label className="hb-field">
-            <WhyKey label={t('hb.f.toolChoices')} why="hb.why.toolChoices" />
-            <input type="number" min={0} max={6} value={r.toolChoices ?? 0} onChange={e => set({ toolChoices: numOr(e.target.value, 0) || undefined })} />
-          </label>
-          <label className="hb-field">
-            <WhyKey label={t('hb.f.naturalArmor')} why="hb.why.naturalArmor" />
-            <input type="number" min={0} max={20} placeholder={t('hb.f.naturalArmorNone')} value={r.naturalArmor || ''} onChange={e => set({ naturalArmor: numOr(e.target.value, 0) || undefined })} />
-          </label>
-          <div className="hb-field wide">
-            <WhyKey label={t('hb.f.training')} why="hb.why.training" />
-            <div className="row">
-              {ARMOR_TYPES.map(a => <Check key={a} label={t(`hb.cat.${a}`)} checked={!!r.armor?.includes(a)} onChange={on => set({ armor: toggle(r.armor, a, on) })} />)}
-              {WEAPON_TYPES.map(w => <Check key={w} label={t('hb.f.weaponsOf', { category: t(`hb.cat.${w}`) })} checked={!!r.weapons?.includes(w)} onChange={on => set({ weapons: toggle(r.weapons, w, on) })} />)}
-            </div>
-          </div>
-        </>
-      )}
-      <EffectsEditor legend={t('hb.f.raceEffects')} effects={r.effects ?? []} onChange={fx => set({ effects: fx.length ? fx : undefined })} />
-      {own && (
-        <fieldset className="hb-field wide hb-choice">
-          <legend><WhyKey label={t('hb.f.choice')} why="hb.why.choice" /></legend>
-          {!choice && (
-            <div>
-              <button type="button" className="glass-btn small" onClick={() => set({ choice: { name: t('hb.f.choiceDefault'), options: [{ name: '', detail: '' }, { name: '', detail: '' }] } })}>{t('hb.f.addChoice')}</button>
-            </div>
-          )}
-          {choice && (
-            <>
-              <div className="row">
-                <input aria-label={t('hb.f.choiceName')} value={choice.name} placeholder={t('hb.f.choiceDefault')} onChange={e => set({ choice: { ...choice, name: e.target.value } })} />
-                <button type="button" className="glass-btn small hb-ghost hb-danger" onClick={() => set({ choice: undefined })}>{t('hb.f.removeChoice')}</button>
-              </div>
-              {choice.options.map((o, i) => (
-                <div key={i} className="glass thin hb-option">
-                  <div className="row">
-                    <input aria-label={t('hb.f.optionName')} placeholder={t('hb.f.optionPlaceholder')} value={o.name} onChange={e => setOption(i, { name: e.target.value })} />
-                    <button type="button" className="glass-btn small icon hb-ghost" aria-label={t('hb.f.removeOption')} onClick={() => set({ choice: { ...choice, options: choice.options.filter((_, j) => j !== i) } })}>✕</button>
-                  </div>
-                  <textarea rows={2} aria-label={t('hb.f.optionDetail')} placeholder={t('hb.f.optionDetail')} value={o.detail} onChange={e => setOption(i, { detail: e.target.value })} />
-                  <EffectsEditor legend={t('hb.f.optionEffects')} effects={o.effects ?? []} onChange={fx => setOption(i, { effects: fx.length ? fx : undefined })} />
-                </div>
-              ))}
-              <div>
-                <button type="button" className="glass-btn small" onClick={() => set({ choice: { ...choice, options: [...choice.options, { name: '', detail: '' }] } })}>{t('hb.f.addOption')}</button>
-              </div>
-            </>
-          )}
-        </fieldset>
-      )}
       <LinesField label={t('hb.f.traits')} value={r.traits} onChange={traits => set({ traits })} placeholder={t('hb.f.traitsPlaceholder')} />
       <Field label={t('hb.f.description')} wide><textarea rows={4} value={r.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+      <MoreOptions>
+        {own && (
+          <>
+            <label className="hb-field wide">
+              <WhyKey label={t('hb.f.edition')} why="hb.why.edition" />
+              <select value={r.edition ?? ''} onChange={e => set({ edition: (e.target.value || undefined) as HomebrewRace['edition'] })}>
+                <option value="">{t('hb.f.editionBoth')}</option>
+                <option value="2024">{t('hb.f.edition2024')}</option>
+                <option value="2014">{t('hb.f.edition2014')}</option>
+              </select>
+            </label>
+            <div className="hb-field wide">
+              <WhyKey label={t('hb.f.sizeOptions')} why="hb.why.sizeOptions" />
+              <div className="row">
+                {SIZES.filter(x => x !== r.size).map(x => (
+                  <Check key={x} label={t(`hb.size.${x}`)} checked={!!r.sizeOptions?.includes(x)} onChange={on => set({ sizeOptions: toggle(r.sizeOptions, x, on) })} />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+        <div className="hb-field wide">
+          <span>{t('hb.f.skills')}</span>
+          <div className="row">
+            {ALL_SKILLS.map(sk => (
+              <Check
+                key={sk}
+                label={skill(sk)}
+                checked={r.skillProficiencies.includes(sk)}
+                onChange={on => set({ skillProficiencies: on ? [...r.skillProficiencies, sk] : r.skillProficiencies.filter(x => x !== sk) })}
+              />
+            ))}
+          </div>
+        </div>
+        <Field label={t('hb.f.skillChoices')}><input type="number" min={0} max={6} value={r.freeSkillChoices} onChange={e => set({ freeSkillChoices: numOr(e.target.value, 0) })} /></Field>
+        <label className="hb-field">
+          <WhyKey label={t('hb.f.languageChoices')} why="hb.why.languages" />
+          <input type="number" min={0} max={6} value={r.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} />
+        </label>
+        <Field label={t('hb.f.hp')}><input type="number" min={0} max={5} value={r.hpPerLevel} onChange={e => set({ hpPerLevel: numOr(e.target.value, 0) })} /></Field>
+        {own && <LinesField label={t('hb.f.languages')} value={r.languages} onChange={languages => set({ languages })} placeholder={t('hb.f.languagesPlaceholder')} />}
+        {own && (
+          <>
+            <LinesField label={t('hb.f.tools')} value={r.tools ?? []} onChange={tools => set({ tools: tools.length ? tools : undefined })} placeholder={t('hb.f.toolsPlaceholder')} />
+            <label className="hb-field">
+              <WhyKey label={t('hb.f.toolChoices')} why="hb.why.toolChoices" />
+              <input type="number" min={0} max={6} value={r.toolChoices ?? 0} onChange={e => set({ toolChoices: numOr(e.target.value, 0) || undefined })} />
+            </label>
+            <label className="hb-field">
+              <WhyKey label={t('hb.f.naturalArmor')} why="hb.why.naturalArmor" />
+              <input type="number" min={0} max={20} placeholder={t('hb.f.naturalArmorNone')} value={r.naturalArmor || ''} onChange={e => set({ naturalArmor: numOr(e.target.value, 0) || undefined })} />
+            </label>
+            <div className="hb-field wide">
+              <WhyKey label={t('hb.f.training')} why="hb.why.training" />
+              <div className="row">
+                {ARMOR_TYPES.map(a => <Check key={a} label={t(`hb.cat.${a}`)} checked={!!r.armor?.includes(a)} onChange={on => set({ armor: toggle(r.armor, a, on) })} />)}
+                {WEAPON_TYPES.map(w => <Check key={w} label={t('hb.f.weaponsOf', { category: t(`hb.cat.${w}`) })} checked={!!r.weapons?.includes(w)} onChange={on => set({ weapons: toggle(r.weapons, w, on) })} />)}
+              </div>
+            </div>
+          </>
+        )}
+        <EffectsEditor legend={t('hb.f.raceEffects')} effects={r.effects ?? []} onChange={fx => set({ effects: fx.length ? fx : undefined })} />
+        {own && (
+          <fieldset className="hb-field wide hb-choice">
+            <legend><WhyKey label={t('hb.f.choice')} why="hb.why.choice" /></legend>
+            {!choice && (
+              <div>
+                <button type="button" className="glass-btn small" onClick={() => set({ choice: { name: t('hb.f.choiceDefault'), options: [{ name: '', detail: '' }, { name: '', detail: '' }] } })}>{t('hb.f.addChoice')}</button>
+              </div>
+            )}
+            {choice && (
+              <>
+                <div className="row">
+                  <input aria-label={t('hb.f.choiceName')} value={choice.name} placeholder={t('hb.f.choiceDefault')} onChange={e => set({ choice: { ...choice, name: e.target.value } })} />
+                  <button type="button" className="glass-btn small hb-ghost hb-danger" onClick={() => set({ choice: undefined })}>{t('hb.f.removeChoice')}</button>
+                </div>
+                {choice.options.map((o, i) => (
+                  <div key={i} className="glass thin hb-option">
+                    <div className="row">
+                      <input aria-label={t('hb.f.optionName')} placeholder={t('hb.f.optionPlaceholder')} value={o.name} onChange={e => setOption(i, { name: e.target.value })} />
+                      <button type="button" className="glass-btn small icon hb-ghost" aria-label={t('hb.f.removeOption')} onClick={() => set({ choice: { ...choice, options: choice.options.filter((_, j) => j !== i) } })}>✕</button>
+                    </div>
+                    <textarea rows={2} aria-label={t('hb.f.optionDetail')} placeholder={t('hb.f.optionDetail')} value={o.detail} onChange={e => setOption(i, { detail: e.target.value })} />
+                    <EffectsEditor legend={t('hb.f.optionEffects')} effects={o.effects ?? []} onChange={fx => setOption(i, { effects: fx.length ? fx : undefined })} />
+                  </div>
+                ))}
+                <div>
+                  <button type="button" className="glass-btn small" onClick={() => set({ choice: { ...choice, options: [...choice.options, { name: '', detail: '' }] } })}>{t('hb.f.addOption')}</button>
+                </div>
+              </>
+            )}
+          </fieldset>
+        )}
+      </MoreOptions>
     </FormShell>
   )
 }
@@ -618,28 +637,6 @@ export function BackgroundForm({ initial, pack, onSave, onCancel }: { initial: H
           ))}
         </div>
       </div>
-      <LinesField label={t('hb.f.tools')} value={b.tools} onChange={tools => set({ tools })} placeholder={t('hb.f.toolsPlaceholder')} />
-      <Field label={t('hb.f.toolChoices')}><input type="number" min={0} max={6} value={b.toolChoices} onChange={e => set({ toolChoices: numOr(e.target.value, 0) })} /></Field>
-      {b.toolChoices > 0 && <LinesField label={t('hb.f.toolChoiceFrom')} value={b.toolChoiceFrom} onChange={toolChoiceFrom => set({ toolChoiceFrom })} />}
-      <LinesField label={t('hb.f.bgLanguages')} value={b.languages} onChange={languages => set({ languages })} />
-      <Field label={t('hb.f.languageChoices')}><input type="number" min={0} max={6} value={b.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} /></Field>
-      <div className="hb-field wide">
-        <span>{t('hb.f.equipment')} {whyOf('hbBgGear')}</span>
-        {b.equipment.length > 0 && (
-          <div className="row">
-            {b.equipment.map((id, i) => (
-              <button key={`${id}-${i}`} type="button" className="glass-chip on" aria-label={t('hb.f.removeItem', { item: itemName(id) })} onClick={() => set({ equipment: b.equipment.filter((_, j) => j !== i) })}>
-                {term('item', id, itemName(id))} ✕
-              </button>
-            ))}
-          </div>
-        )}
-        <select value="" aria-label={t('hb.f.addItem')} onChange={e => e.target.value && set({ equipment: [...b.equipment, e.target.value] })}>
-          <option value="">{t('hb.f.addItem')}</option>
-          {items.map(i => <option key={i.id} value={i.id}>{term('item', i.id, i.name)}</option>)}
-        </select>
-      </div>
-      <Field label={t('hb.f.gold')}><input type="number" min={0} value={b.gold} onChange={e => set({ gold: numOr(e.target.value, 0) })} /></Field>
       {uses2024 && (
         <>
           <div className="hb-field wide">
@@ -659,8 +656,32 @@ export function BackgroundForm({ initial, pack, onSave, onCancel }: { initial: H
           {b.originFeatId && <Field label={t('hb.f.originFeatNote')}><input value={b.originFeatNote ?? ''} onChange={e => set({ originFeatNote: opt(e.target.value) })} placeholder={t('hb.f.originFeatNotePlaceholder')} /></Field>}
         </>
       )}
-      <EffectsField effects={b.effects} onChange={effects => set({ effects })} hint={t('hb.f.bgEffectsHint')} kinds={BG_EFFECT_KINDS} why={whyOf('hbBgEffects')} />
       <Field label={t('hb.f.description')} wide><textarea rows={4} value={b.description ?? ''} onChange={e => set({ description: opt(e.target.value) })} /></Field>
+      <MoreOptions>
+        <LinesField label={t('hb.f.tools')} value={b.tools} onChange={tools => set({ tools })} placeholder={t('hb.f.toolsPlaceholder')} />
+        <Field label={t('hb.f.toolChoices')}><input type="number" min={0} max={6} value={b.toolChoices} onChange={e => set({ toolChoices: numOr(e.target.value, 0) })} /></Field>
+        {b.toolChoices > 0 && <LinesField label={t('hb.f.toolChoiceFrom')} value={b.toolChoiceFrom} onChange={toolChoiceFrom => set({ toolChoiceFrom })} />}
+        <LinesField label={t('hb.f.bgLanguages')} value={b.languages} onChange={languages => set({ languages })} />
+        <Field label={t('hb.f.languageChoices')}><input type="number" min={0} max={6} value={b.languageChoices} onChange={e => set({ languageChoices: numOr(e.target.value, 0) })} /></Field>
+        <div className="hb-field wide">
+          <span>{t('hb.f.equipment')} {whyOf('hbBgGear')}</span>
+          {b.equipment.length > 0 && (
+            <div className="row">
+              {b.equipment.map((id, i) => (
+                <button key={`${id}-${i}`} type="button" className="glass-chip on" aria-label={t('hb.f.removeItem', { item: itemName(id) })} onClick={() => set({ equipment: b.equipment.filter((_, j) => j !== i) })}>
+                  {term('item', id, itemName(id))} ✕
+                </button>
+              ))}
+            </div>
+          )}
+          <select value="" aria-label={t('hb.f.addItem')} onChange={e => e.target.value && set({ equipment: [...b.equipment, e.target.value] })}>
+            <option value="">{t('hb.f.addItem')}</option>
+            {items.map(i => <option key={i.id} value={i.id}>{term('item', i.id, i.name)}</option>)}
+          </select>
+        </div>
+        <Field label={t('hb.f.gold')}><input type="number" min={0} value={b.gold} onChange={e => set({ gold: numOr(e.target.value, 0) })} /></Field>
+        <EffectsField effects={b.effects} onChange={effects => set({ effects })} hint={t('hb.f.bgEffectsHint')} kinds={BG_EFFECT_KINDS} why={whyOf('hbBgEffects')} />
+      </MoreOptions>
     </FormShell>
   )
 }
