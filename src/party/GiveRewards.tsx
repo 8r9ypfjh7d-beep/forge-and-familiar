@@ -74,6 +74,8 @@ export function GiveRewards({ party, userId, nameOf, myName }: { party: Party; u
   const [open, setOpen] = useState(false)
   const [preset, setPreset] = useState<string | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
+  // A ready-made reward goes straight to "who gets it"; its fields wait behind Customize.
+  const [custom, setCustom] = useState(false)
   const [off, setOff] = useState<Set<string>>(new Set())
   if (userId !== party.dmId || players.length === 0) return null
 
@@ -98,6 +100,7 @@ export function GiveRewards({ party, userId, nameOf, myName }: { party: Party; u
 
   const pick = (p: Preset) => {
     setPreset(p.id)
+    setCustom(!p.text)
     const r = p.boon.roll
     setDraft({
       kind: p.boon.kind, name: p.text ? t(p.name) : '', text: p.text ? t(p.text) : '', uses: String(p.boon.uses ?? 1),
@@ -154,7 +157,7 @@ export function GiveRewards({ party, userId, nameOf, myName }: { party: Party; u
 
       <div className="ff-rewards-boon">
         <button type="button" className="glass-btn small" aria-expanded={open} onClick={() => setOpen(o => !o)}>
-          {open ? '▾' : '▸'} {t('rewards.reward')}
+          <span className="ff-rewards-chev" aria-hidden="true" /> {t('rewards.reward')}
         </button>
         {open && (
           <>
@@ -168,6 +171,14 @@ export function GiveRewards({ party, userId, nameOf, myName }: { party: Party; u
             </div>
             {draft && (
               <form className="ff-rewards-form" onSubmit={e => { e.preventDefault(); if (ready) giveBoon() }}>
+                {!custom && (
+                  <div className="ff-rewards-summary">
+                    <p><b>{draft.name}</b> {draft.text}</p>
+                    {draft.kind === 'charm' && roll && <p className="muted small">{boonRollText(t, { roll })}</p>}
+                    <button type="button" className="glass-btn small" aria-expanded={false} onClick={() => setCustom(true)}>{t('rewards.customize')}</button>
+                  </div>
+                )}
+                {custom && <>
                 <label>{t('rewards.name')}
                   <input className="glass-field" value={draft.name} onChange={e => set({ name: e.target.value })} required maxLength={80} />
                 </label>
@@ -200,6 +211,7 @@ export function GiveRewards({ party, userId, nameOf, myName }: { party: Party; u
                   )
                   : <EffectsEditor effects={draft.stats} onChange={stats => set({ stats })} legend={t('rewards.stats')} />}
                 {draft.kind === 'charm' && roll && <p className="muted small">{boonRollText(t, { roll })}</p>}
+                </>}
                 <div className="row" role="group" aria-label={t('rewards.who')}>
                   {players.map(m => (
                     <button key={m.userId} type="button" className={`glass-chip ${off.has(m.userId) ? '' : 'on'}`} aria-pressed={!off.has(m.userId)} onClick={() => toggle(m.userId)}>
