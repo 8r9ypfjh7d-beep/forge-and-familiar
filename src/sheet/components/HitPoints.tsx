@@ -15,6 +15,8 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
   const [critical, setCritical] = useState(false)
   // Blank means untyped. It goes back to blank after each hit, so one hit's Fire never lands on the next character's.
   const [type, setType] = useState('')
+  // Most hits are untyped: the type picker shows by itself only when this character resists, ignores or is vulnerable to something.
+  const [typeOpen, setTypeOpen] = useState(false)
   const [hit, setHit] = useState<Hit | null>(null)
   const [said, setSaid] = useState<{ key: number; text: string } | null>(null)
   const { currentHp, tempHp } = character.state
@@ -51,9 +53,11 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
       after: { currentHp: after.currentHp, tempHp: after.tempHp, failures: after.deathSaves.failures },
     })
     setType('')
+    setTypeOpen(false)
   }
   const defended = (x: string) => damageDefense(d, x, character)
   const types = [...DAMAGE_TYPES].sort((a, b) => Number(!defended(a)) - Number(!defended(b)))
+  const showType = typeOpen || !!type || types.some(defended)
 
   return (
     <section className="card hp" aria-labelledby="hp-title">
@@ -85,12 +89,15 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
           onClick={() => act(() => apply(t('sheet.log.heal', { n }), c => heal(c, n)))}>
           {t('sheet.heal')}
         </button>
-        <button type="button" className="btn" disabled={!n}
+        <button type="button" className="btn temp" disabled={!n}
           onClick={() => act(() => apply(t('sheet.log.temp', { n }), c => grantTempHp(c, n)))}>
           {t('sheet.tempHp')}
         </button>
       </form>
-      <label className="hp-type">
+      {!showType && (
+        <button type="button" className="glass-chip small hp-type-chip" aria-expanded={false} onClick={() => setTypeOpen(true)}>{t('hurt.type')}</button>
+      )}
+      {showType && <label className="hp-type">
         <span>{t('hurt.type')}</span>
         <select value={type} onChange={e => setType(e.target.value)}>
           <option value="">{t('hurt.anyType')}</option>
@@ -99,7 +106,7 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
             return <option key={x} value={x}>{def ? t(def === 'immune' ? 'hurt.immuneMark' : 'hurt.resistantMark', { type: typeLabel(x) }) : typeLabel(x)}</option>
           })}
         </select>
-      </label>
+      </label>}
       {said && said.key === hit?.key && <p className="hp-said" aria-live="polite">{said.text}</p>}
       {hit && <AfterDamage key={hit.key} hit={hit} character={character} apply={apply} onClose={() => { setHit(null); setSaid(null) }} />}
       <OwedConcentration character={character} apply={apply} />
