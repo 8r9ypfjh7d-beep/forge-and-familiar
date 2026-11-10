@@ -109,7 +109,7 @@ function useDelivered(id: string): boolean {
 }
 
 /** For links that opened in a different browser: paste them here. */
-function PasteLink({ label }: { label: string }) {
+function PasteLink({ label, toggle }: { label: string; toggle: string }) {
   const { t } = useI18n()
   const id = useId()
   const [text, setText] = useState('')
@@ -122,6 +122,8 @@ function PasteLink({ label }: { label: string }) {
     setText('')
   }
   return (
+    <details className="req-paste-toggle">
+    <summary>{toggle}</summary>
     <form className="req-paste" onSubmit={e => { e.preventDefault(); open() }}>
       <label htmlFor={id} className="hint">{label}</label>
       <div className="req-row">
@@ -130,6 +132,7 @@ function PasteLink({ label }: { label: string }) {
       </div>
       {msg && <p className="hint" role="status">{msg}</p>}
     </form>
+    </details>
   )
 }
 
@@ -214,7 +217,7 @@ export function RequestsView({ userId, userName }: { userId: string; userName: s
             ))}
           </ul>
         )}
-        <PasteLink label={t('req.pasteAnswer')} />
+        <PasteLink label={t('req.pasteAnswer')} toggle={t('req.haveAnswerLink')} />
       </section>
     </div>
   )
@@ -449,6 +452,13 @@ export function DmRequestsTab({ list, userId }: { list: DmRequest[]; userId: str
   const waiting = inbox(list)
   const later = reminders(list)
   const done = answered(list)
+  useEffect(() => {
+    tabsOpen++
+    notifySeen()
+    return () => { tabsOpen--; notifySeen() }
+  }, [])
+  const waitingIds = waiting.map(r => r.id).join(',')
+  useEffect(() => { if (waitingIds) markSeen(waitingIds.split(',')) }, [waitingIds])
   return (
     <>
       <section className="card" aria-labelledby="req-inbox">
@@ -456,7 +466,7 @@ export function DmRequestsTab({ list, userId }: { list: DmRequest[]; userId: str
         {waiting.length === 0 ? <p className="hint">{t('req.inboxEmpty')}</p> : (
           <ul className="plain req-list">{waiting.map(r => <InboxCard key={r.id} r={r} userId={userId} />)}</ul>
         )}
-        <PasteLink label={t('req.pasteRequest')} />
+        <PasteLink label={t('req.pasteRequest')} toggle={t('req.haveRequestLink')} />
       </section>
       <section className="card" aria-labelledby="req-later">
         <h2 id="req-later">{t('req.later')}</h2>
@@ -673,7 +683,30 @@ const readSeen = (): string[] => {
   }
 }
 const writeSeen = (ids: string[]) => {
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify(ids.slice(-200))) } catch { /* the pop-up just shows again */ }
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(ids.slice(-200))) } catch { /* the toast just shows again */ }
+}
+// Seen ids and whether the Requests tab is on screen, shared by the tab and the toast.
+let seenNow: string[] | null = null
+let tabsOpen = 0
+const seenSubs = new Set<() => void>()
+const notifySeen = () => seenSubs.forEach(f => f())
+const getSeen = () => (seenNow ??= readSeen())
+const markSeen = (ids: string[]) => {
+  const cur = getSeen()
+  const add = ids.filter(id => !cur.includes(id))
+  if (add.length === 0) return
+  seenNow = [...cur, ...add]
+  writeSeen(seenNow)
+  notifySeen()
+}
+function useSeenState() {
+  const [, bump] = useState(0)
+  useEffect(() => {
+    const f = () => bump(n => n + 1)
+    seenSubs.add(f)
+    return () => { seenSubs.delete(f) }
+  }, [])
+  return { seen: getSeen(), tabOpen: tabsOpen > 0 }
 }
 
 /** Opens a <dialog> as a modal while `open` is true. */
@@ -689,57 +722,28 @@ function useModal(open: boolean) {
 }
 
 /**
- * Mounted for the DM. Every new request pops up once, on any page: answer it right there,
- * then send the answer link. "Not now" leaves it in the Requests tab.
+ * Mounted for the DM. A small toast says a new request came in and links to the Requests tab;
+ * answering happens there. Never shown on the Requests tab itself or while `paused` (a fight).
  */
-export function DmRequestPopup({ userId, onOpenAll }: { userId: string; onOpenAll: () => void }) {
+export function DmRequestToast({ onOpenAll, paused }: { onOpenAll: () => void; paused?: boolean }) {
   const { t } = useI18n()
   const list = useRequests()
-  const [seen, setSeen] = useState(readSeen)
-  const [answeredId, setAnsweredId] = useState<string | null>(null)
-  const done = answeredId ? list?.find(r => r.id === answeredId) : undefined
-  const next = list ? inbox(list).find(r => !seen.includes(r.id)) : undefined
-  const shown = done ?? next
-  const ref = useModal(!!shown)
-
-  const dismiss = () => {
-    if (!shown) return
-    const ids = [...seen, shown.id]
-    setSeen(ids)
-    writeSeen(ids)
-    setAnsweredId(null)
-  }
-
+  const { seen, tabOpen } = useSeenState()
+  const fresh = list ? inbox(list).filter(r => !seen.includes(r.id)) : []
+  if (fresh.length === 0 || tabOpen || paused) return null
+  const one = fresh.length === 1 ? fresh[0] : null
+  const dismiss = () => markSeen(fresh.map(r => r.id))
   return (
-    <dialog ref={ref} className="req-dialog glass-sheet glass-dialog" aria-labelledby="req-pop-title" onCancel={e => { e.preventDefault(); dismiss() }}>
-      {shown && (
-        <div className="ff-sheet ff-requests">
-          <h2 id="req-pop-title">
-            {shown.kind === 'edit' ? t('req.pop.edit', { name: shown.fromName, character: shown.characterName })
-              : shown.kind === 'levelup' ? t('req.pop.levelup', { name: shown.fromName, character: shown.characterName })
-              : t('req.pop.new', { name: shown.fromName })}
-          </h2>
-          {done ? (
-            <>
-              <p className={`req-status st-${done.status}`}>{t(dmStatus(done))}</p>
-              <p className="hint">{t('req.pop.sendHint', { name: done.fromName })}</p>
-              <div className="req-actions">
-                <ShareLink type="answer" request={done} primary />
-                <button type="button" className="btn ghost small" onClick={dismiss}>{t('req.pop.done')}</button>
-              </div>
-            </>
-          ) : next && (
-            <>
-              <ul className="plain req-list"><InboxCard key={next.id} r={next} userId={userId} onAnswered={setAnsweredId} /></ul>
-              <div className="req-actions">
-                <button type="button" className="btn ghost small" onClick={dismiss}>{t('req.pop.notNow')}</button>
-                <button type="button" className="btn ghost small" onClick={() => { dismiss(); onOpenAll() }}>{t('req.manage')}</button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </dialog>
+    <div className="req-toast glass-sheet" role="status">
+      <span className="req-toast-text" dir="auto">
+        {!one ? t('req.toast.many', { count: fresh.length })
+          : one.kind === 'edit' ? t('req.pop.edit', { name: one.fromName, character: one.characterName })
+          : one.kind === 'levelup' ? t('req.pop.levelup', { name: one.fromName, character: one.characterName })
+          : t('req.pop.new', { name: one.fromName })}
+      </span>
+      <button type="button" className="btn primary small" onClick={() => { dismiss(); onOpenAll() }}>{t('req.toast.view')}</button>
+      <button type="button" className="req-toast-x" onClick={dismiss} aria-label={t('req.pop.notNow')}>✕</button>
+    </div>
   )
 }
 

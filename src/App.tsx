@@ -7,7 +7,7 @@ import { PromptDialog } from './builder/ConfirmDialog'
 import { useLiveHits } from './combat/ui/useLiveHits'
 import { loadDm, saveDm } from './dm/store'
 import { useDmTools } from './dm/dmTools'
-import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
+import { DmRequestToast, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
 import { FamiliarFab, FamiliarPage, dmPrepare, screenFor } from './familiar/ui'
 import type { Character, UserProfile } from './model/character'
@@ -203,7 +203,7 @@ export default function App() {
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <PartyRollRelay userId={active.id} />
     {playing.party && <RevealMoment party={playing.party} userId={active.id} onOpen={() => setView({ kind: 'party', partyId: playing.party!.id })} />}
-    {(partyDm || admin) && <DmRequestPopup userId={active.id} onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
+    {(partyDm || admin) && <DmRequestToast paused={view.kind === 'combat'} onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
     {/* The DM's level (or enough XP) reached a character: ask once per level to walk through Level Up. */}
     <LevelUpPrompt characters={characters} parties={playing.parties} userId={active.id} paused={['build', 'edit', 'levelup', 'starters'].includes(view.kind)}
       onLevelUp={id => setView({ kind: 'levelup', id })} />
