@@ -97,4 +97,8 @@ describe('NPC creator styles', () => {
   it('paints with glass tokens, not hard-coded colours', () => {
     expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(\s*255/i)
   })
+  it('loads the builder wizard styles itself, so it is styled without visiting the hero builder first', () => {
+    const tsx = readFileSync(new URL('./ui/NpcBuilder.tsx', import.meta.url), 'utf8')
+    expect(tsx).toContain("import '../../builder/builder.css'")
+  })
 })
