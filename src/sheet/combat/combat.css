@@ -289,13 +289,8 @@
 .cs-rollline.crit .meaning { color: var(--s-good); font-weight: 700; }
 .cs-rollline.fumble .meaning { color: var(--s-bad); font-weight: 700; }
 
-/* The player's own actions */
-.ff-sheet .cs-sub .btn.cs-add {
-  margin-inline-start: auto; min-block-size: 32px; padding: 0 var(--sp-3); border-radius: var(--r-pill);
-  border: 1px solid var(--glass-stroke); background: var(--glass-thin); color: var(--s-accent);
-  font-family: var(--font-text); font-size: .85rem; font-weight: 600;
-}
-.ff-sheet .cs-sub .btn.cs-add:hover:not(:disabled) { background: var(--glass-regular); border-color: var(--glass-stroke); }
+/* The player's own actions: one Add button after the groups. */
+.ff-sheet .glass-btn.cs-add-action { margin-block-start: var(--sp-3); color: var(--s-accent); }
 /* On a phone the tools drop below the name instead of squeezing it. */
 .cs-action-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--sp-2); }
 .cs-action-row > details, .cs-action-row > .cs-action-name { flex: 1 1 9rem; min-width: 0; }

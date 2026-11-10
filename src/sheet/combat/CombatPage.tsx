@@ -344,11 +344,14 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
   // Bring the result into view after every roll (it sits under the tapped row, or above the action lists).
   useEffect(() => { if (out) outRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }) }, [out])
   const effects = effectToggles(character, d, lib.spells)
-  // The attacks table holds action spells; bonus action and reaction spells (Hellish Rebuke) sit in their own lists below.
+  // The attacks table holds action spells that roll damage or healing; bonus action and reaction spells (Hellish Rebuke)
+  // and utility spells (Light, Hold Person) sit in the action lists below with their Cast button.
   const spells = spellAttackRows(character, d, lib.spells).filter(r => {
     const s = lib.spells.find(x => x.name.toLowerCase() === r.name.toLowerCase())
-    return !s || castingKind(s.castingTime) === 'action'
+    return !!r.damage && (!s || castingKind(s.castingTime) === 'action')
   })
+  // An unarmed strike that deals 0 (a weak wizard) is not worth a row.
+  const attacks = d.attacks.filter(a => a.damage !== '0' || !!a.extraDamage)
   const alwaysPrepared = spellAccess(character, lib.classes, lib.subclasses, d.abilities, undefined, lib.spells).flatMap(a => a.alwaysPrepared)
   const turn = turnActions(character, d, { spells: lib.spells, alwaysPrepared, inTable: new Set(spells.map(r => r.name.toLowerCase())) })
   const [healedKey, setHealedKey] = useState(-1)
@@ -516,7 +519,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
         <span>{t('cs.col.name')}</span><span>{t('cs.col.range')}</span><span>{t('cs.col.hit')}</span><span>{t('cs.col.damage')}</span>
       </div>
       <ul className="cs-attack-list">
-        {d.attacks.map(a => {
+        {attacks.map(a => {
           const name = attackName(a.name)
           const damage = twoHanded[a.name] && a.versatile ? a.versatile : a.damage
           const range = a.reach && a.range ? `${ft(a.reach)} (${a.range})` : a.reach ? ft(a.reach) : a.range ? t('cs.feetRange', { range: a.range }) : ''
@@ -564,11 +567,11 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
 
       <CunningStrike character={character} d={d} />
 
-      <h3 className="cs-sub">{t('cs.effects')}</h3>
-      {/* The player's own actions keep their switch on their row below, so each shows once. */}
-      {listed.length
-        ? <EffectRows character={character} effects={listed} isOn={isOn} onToggle={toggle} apply={apply} />
-        : <p className="hint">{t('cs.noEffects')}</p>}
+      {/* The player's own actions keep their switch on their row below, so each shows once. Nothing to switch: no block. */}
+      {listed.length > 0 && <>
+        <h3 className="cs-sub">{t('cs.effects')}</h3>
+        <EffectRows character={character} effects={listed} isOn={isOn} onToggle={toggle} apply={apply} />
+      </>}
 
       <CustomActions character={character} apply={apply} onRoll={a => runAction(a)} onUse={spendUse}
         auto={k => <TurnRows rows={turn[k]} character={character} apply={apply} features={lib.features} onOut={show} />} hasAuto={k => turn[k].length > 0} />
@@ -590,7 +593,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
 }) {
   const { t, abilityShort, term } = useI18n()
   const d = derive(character)
-  const [adding, setAdding] = useState<ActionKind | null>(null)
+  const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   /** "+6 · 1d8+3 force" or "DC 14 WIS · 2d6" */
   const summary = (a: CustomAction) => {
@@ -604,20 +607,13 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
   }
   return (
     <>
+      {/* Only groups with something in them; one Add button at the end (its form has a Type picker). */}
       {ACTION_KINDS.map(k => {
         const list = actionsOf(character, k)
+        if (!list.length && !hasAuto(k)) return null
         return (
           <div key={k} className="cs-actions">
-            <h3 className="cs-sub">
-              {t(KIND_TITLE[k])}
-              <button type="button" className="btn ghost small cs-add" aria-expanded={adding === k}
-                aria-label={t('cs.addTo', { group: t(KIND_TITLE[k]) })} onClick={() => setAdding(adding === k ? null : k)}>+ {t('common.add')}</button>
-            </h3>
-            {adding === k && (
-              <ActionForm kind={k} stats={d} onCancel={() => setAdding(null)}
-                onSave={a => { apply(t('cs.log.actionAdded', { name: a.name }), c => addAction(c, { ...a, id: newActionId() })); setAdding(null) }} />
-            )}
-            {list.length === 0 && adding !== k && !hasAuto(k) && <p className="hint">{t('cs.noActions')}</p>}
+            <h3 className="cs-sub">{t(KIND_TITLE[k])}</h3>
             {auto(k)}
             <ul className="cs-rows">
               {list.map(a => {
@@ -670,6 +666,12 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
           </div>
         )
       })}
+      {adding
+        ? (
+          <ActionForm kind="action" stats={d} onCancel={() => setAdding(false)}
+            onSave={a => { apply(t('cs.log.actionAdded', { name: a.name }), c => addAction(c, { ...a, id: newActionId() })); setAdding(false) }} />
+        )
+        : <button type="button" className="glass-btn small cs-add-action" onClick={() => setAdding(true)}>+ {t('cs.addAction')}</button>}
     </>
   )
 }
