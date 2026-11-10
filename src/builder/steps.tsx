@@ -1,3 +1,4 @@
+import { fmtMod } from '../i18n/signed'
 import { storeArt } from '../art/cloud'
 import { useState, type ComponentType } from 'react'
 import { useI18n } from '../i18n'
@@ -6,7 +7,7 @@ import type { CustomBackground, Improvement } from '../model/character'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, CUSTOM_SUBCLASS, POINT_BUY_BUDGET, SKILLS, TOOLS, allLanguages, allTools, homebrewProficiencyText,
   CUSTOM_FEAT, ROLLED_NOTATION, STANDARD_ARRAY, abilityMod, assignRolled, allFeats, featAbilityChoices, improvementFeat, allRaces, anyFilter, anyOptions, backgroundById, backgroundsFor, choiceKey, classById, classChoices, classesFor,
-  featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, formatMod, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
+  featById, featureDetail, fixedLanguages, fixedRacialBonuses, fixedTools, getAbilityScores, getBackground, improvementBonuses, improvementSlots, itemById,
   ITEMS, bookOrigin, canSwapOrigin, languagePickCount, pickedOptions, pointBuyCost, splitTrait, racialLanguages, raceById, raceProfile, racialBonuses, rulesEdition, startingGold, startingItemIds, setSubclass, subclassOf, subclassPickLists, subclassesFor, togglePick, toolPickGroups,
   type Ability, type Background, type CharacterDraft, type ClassChoiceOption, type RulesEdition, type SkillId, type TraitChoice, type Subrace,
   averageWealth, BACKGROUND_GOLD_2024, takesBackgroundGold, takesClassGold, wealthDice,
@@ -43,7 +44,7 @@ export interface StepProps {
 }
 
 const bonusText = (b: Partial<Record<Ability, number>>, short: (a: Ability) => string) =>
-  Object.entries(b).map(([a, v]) => `${short(a as Ability)} ${formatMod(v!)}`).join(', ')
+  Object.entries(b).map(([a, v]) => `${short(a as Ability)} ${fmtMod(v!)}`).join(', ')
 
 // ---------- Race ----------
 
@@ -655,11 +656,11 @@ function AbilitiesStep({ draft, update }: StepProps) {
               <td className="muted">
                 {edition === '2024' || flexible
                   ? <BackgroundBonusPick draft={draft} update={update} a={a} />
-                  : bonus[a] ? formatMod(bonus[a]) : ''}
+                  : bonus[a] ? fmtMod(bonus[a]) : ''}
               </td>
-              {hasAsi && <td className="muted">{asi[a] ? formatMod(asi[a]) : ''}</td>}
+              {hasAsi && <td className="muted">{asi[a] ? fmtMod(asi[a]) : ''}</td>}
               <td className="num strong">{draft.baseAbilities[a] ? final[a] : '—'}</td>
-              <td className="num">{draft.baseAbilities[a] ? formatMod(abilityMod(final[a])) : ''}</td>
+              <td className="num">{draft.baseAbilities[a] ? fmtMod(abilityMod(final[a])) : ''}</td>
               {free && (
                 <td>
                   <input
@@ -714,7 +715,7 @@ function RolledScores({ draft, update }: StepProps) {
               </li>
             ))}
           </ul>
-          <p className="muted small">{t('builder.rolledTotal', { sum, mods: formatMod(pool.reduce((n, v) => n + abilityMod(v), 0)) })}</p>
+          <p className="muted small">{t('builder.rolledTotal', { sum, mods: fmtMod(pool.reduce((n, v) => n + abilityMod(v), 0)) })}</p>
         </>
       )}
     </div>
@@ -770,7 +771,7 @@ function BackgroundBonusPick({ draft, update, a }: StepProps & { a: Ability }) {
   }
   return (
     <select className={`bg-bonus-pick ${listed.includes(a) ? 'listed' : ''}`} value={count} aria-label={t('builder.bgBonus.of', { ability: ability(a) })} onChange={e => set(Number(e.target.value))}>
-      {[0, 1, 2].map(n => <option key={n} value={n} disabled={n > 0 && total - count + n > 3}>{n ? `+${n}` : '—'}</option>)}
+      {[0, 1, 2].map(n => <option key={n} value={n} disabled={n > 0 && total - count + n > 3}>{n ? fmtMod(n) : '—'}</option>)}
     </select>
   )
 }

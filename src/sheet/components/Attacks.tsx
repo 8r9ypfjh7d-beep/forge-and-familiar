@@ -1,10 +1,11 @@
+import { fmtMod } from '../../i18n/signed'
 import { useState } from 'react'
 import type { AttackOutcome, RollMode } from '../../dice'
 import { FadingResult, RollGroupView, RollView } from '../../dice/ui'
 import { ShowMath } from '../../explain/ShowMath'
 import { useI18n } from '../../i18n'
 import type { Character } from '../../model/character'
-import { derive, featureEffectId, formatMod, getCritRange, getDamageRiders, getRollMode, type DamageRider } from '../../rules'
+import { derive, featureEffectId, getCritRange, getDamageRiders, getRollMode, type DamageRider } from '../../rules'
 import { useSheetRolls } from '../dice'
 import { ammoForAttack, spendAmmo } from '../../supplies/supplies'
 import { spendOnceEffects } from '../effects'
@@ -85,9 +86,9 @@ export function Attacks({ character, apply }: { character: Character; apply?: Ap
           return (
             <li key={a.name}>
               <button type="button" className="attack-roll" onClick={() => attack(a)}
-                aria-label={t('sheet.attacks.rollLabel', { name, bonus: formatMod(a.bonus), damage })}>
+                aria-label={t('sheet.attacks.rollLabel', { name, bonus: fmtMod(a.bonus), damage })}>
                 <span className="name">{name}</span>
-                <span className="hit">{t('sheet.attacks.toHit', { bonus: formatMod(a.bonus) })}</span>
+                <span className="hit">{t('sheet.attacks.toHit', { bonus: fmtMod(a.bonus) })}</span>
                 <span className="dmg">{damage} {term('damage', a.damageType, a.damageType)}{a.extraDamage ? ` + ${a.extraDamage}` : ''}</span>
               </button>
               <ShowMath character={character} stat={`attack:${i}`} className="attack-math">{t('sheet.attacks.math')}</ShowMath>

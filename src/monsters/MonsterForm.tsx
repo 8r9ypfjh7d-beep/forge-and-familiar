@@ -2,6 +2,7 @@
 // `onChange`; the screen around it (homebrew pack, NPC creator) decides when to save. Numbers the book
 // derives (XP and proficiency from CR, hit points from hit dice, saves and skills from proficiency,
 // passive Perception, spell DC) fill themselves in and can still be typed over.
+import { fmtMod } from '../i18n/signed'
 import { useId, useState, type ReactNode } from 'react'
 import { Why } from '../builder/Why'
 import type { Ability, MonsterAction, Size } from '../content/types'
@@ -25,7 +26,7 @@ export interface MonsterFormProps {
 
 const feet = (s: string | boolean | undefined) => (typeof s === 'string' ? Number(s.replace(/[^0-9]/g, '')) || 0 : 0)
 const ft = (n: number) => `${n} ft.`
-const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`)
+const sign = fmtMod
 const numOr = (s: string, fallback: number) => (s === '' || Number.isNaN(Number(s)) ? fallback : Number(s))
 
 function Field({ label, children, wide, why }: { label: string; children: ReactNode; wide?: boolean; why?: MessageKey }) {

@@ -1,10 +1,11 @@
 // Combat's Spells tab: spell slots, the character's spells by level, and every spell their class can take from the library.
+import { fmtMod } from '../i18n/signed'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { BOOK_SOURCES, BOOK_TITLES, loadKind, searchEntries, type CharacterClass, type Edition, type SourceInfo, type Spell, type Subclass, BUNDLED } from '../content'
 import { SpellName, useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
-import { derive, formatMod, spellEffectId } from '../rules'
+import { derive, spellEffectId } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import { SearchField } from '../rulesqa/SearchField'
 import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlots'
@@ -238,7 +239,7 @@ function Summary({ character, access, prof, mod, spells }: { character: Characte
   return (
     <dl className="sb-summary">
       <div><dt>{t('spells.dc')}</dt><dd>{8 + prof + mod}</dd></div>
-      <div><dt>{t('spells.attack')}</dt><dd dir="ltr">{formatMod(prof + mod)}</dd></div>
+      <div><dt>{t('spells.attack')}</dt><dd dir="ltr">{fmtMod(prof + mod)}</dd></div>
       {access.cantrips > 0 && (
         <div className={cantrips > access.cantrips ? 'over' : ''}><dt>{t('spells.cantrips')}</dt><dd>{cantrips}/{access.cantrips}</dd></div>
       )}

@@ -1,7 +1,8 @@
+import { fmtMod } from '../i18n/signed'
 import { useMemo, useState } from 'react'
 import type { Character } from '../model/character'
 import { useI18n } from '../i18n'
-import { derive, formatMod } from '../rules'
+import { derive } from '../rules'
 import { STARTER_HEROES, createStarter, starterText, type StarterHero } from './heroes'
 import { withStarterSpells } from './spells'
 import './starters.css'
@@ -57,7 +58,7 @@ function HeroCard({ hero, expanded, onToggle, onPick }: {
   const stats: [string, string | number][] = [
     [t('stat.ac'), d.armorClass.value],
     [t('stat.hp'), d.maxHp],
-    [t('stat.init'), formatMod(d.initiative)],
+    [t('stat.init'), fmtMod(d.initiative)],
     [t('stat.speed'), d.speed],
   ]
 
@@ -83,7 +84,7 @@ function HeroCard({ hero, expanded, onToggle, onPick }: {
       </dl>
       {attack && (
         <p className="small">
-          <strong>{attackName(attack.name)}</strong> {t('starters.attack', { bonus: ltr(formatMod(attack.bonus)), damage: ltr(attack.damage), type: term('damage', attack.damageType, attack.damageType) })}
+          <strong>{attackName(attack.name)}</strong> {t('starters.attack', { bonus: ltr(fmtMod(attack.bonus)), damage: ltr(attack.damage), type: term('damage', attack.damageType, attack.damageType) })}
         </p>
       )}
       {expanded && (

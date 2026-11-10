@@ -6,6 +6,8 @@ import { en } from './locales/en'
 import { he } from './locales/he'
 import { LOCALES, spellTermId, term, translate } from './translate'
 import { rollLabel } from './rollLabel'
+import { LRM, fmtMod } from './signed'
+import { readFileSync, readdirSync } from 'node:fs'
 import { spellMeasureHe } from './locales/spells.he'
 import { spellNoteHe } from './locales/notes.he'
 import { loadKind } from '../content'
@@ -183,5 +185,20 @@ describe('roll labels', () => {
     expect(rollLabel('Stealth', 'skill', words)).toBe(term('he', 'skill', 'stealth', 'Stealth'))
     expect(rollLabel('Longsword slashing + Bless (crit)', 'damage', words)).toBe(`${translate('he', 'roll.damage', { name: term('he', 'item', 'longsword', 'Longsword'), type: term('he', 'damage', 'slashing', 'slashing') })} + ${term('he', 'spell', 'bless', 'Bless')} (קריטי)`)
     expect(rollLabel('Sneaky trick', 'custom', words)).toBe('Sneaky trick')
+  })
+})
+
+describe('signed numbers in right-to-left text', () => {
+  it('fmtMod keeps the sign in front with a left-to-right mark', () => {
+    expect(fmtMod(2)).toBe(`${LRM}+2`)
+    expect(fmtMod(-1)).toBe(`${LRM}-1`)
+    expect(fmtMod(0)).toBe(`${LRM}+0`)
+  })
+  it('Hebrew strings mark a sign that comes before a number', () => {
+    const dir = new URL('./locales/', import.meta.url)
+    for (const f of readdirSync(dir).filter(f => f.includes('.he') || f === 'he.ts')) {
+      const bad = readFileSync(new URL(f, dir), 'utf8').match(/(?<!\u200E)[+−]\{/g)
+      expect(bad, f).toBeNull()
+    }
   })
 })

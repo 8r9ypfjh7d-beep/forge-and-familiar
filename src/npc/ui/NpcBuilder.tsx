@@ -1,6 +1,7 @@
 // The NPC creator: the hero builder's shell (step bar, Back/Next, why? tips, Random button) over a monster stat
 // block. Who → Stat block → Tweak → Spells → Review. Saving writes an NpcSheet through src/npc/store; the sheet
 // screen reuses this wizard as its Edit mode (`editing`). Only the DM reaches it (#/npc/new, canOpen('npc')).
+import { fmtMod } from '../../i18n/signed'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChoicePicker, Fold, matches, type PickItem } from '../../builder/Compact'
 import { Why } from '../../builder/Why'
@@ -15,7 +16,7 @@ import { useI18n } from '../../i18n'
 import type { MessageKey } from '../../i18n/locales/en'
 import { crLabel, MonsterForm, sanitizeMonsterBlock, StatBlock, type Block } from '../../monsters'
 import { SearchField } from '../../rulesqa/SearchField'
-import { formatMod, type Ability } from '../../rules'
+import { type Ability } from '../../rules'
 import { newNpc, normalize } from '../engine'
 import { randomNpcPick } from '../random'
 import { GROUP_PRESETS, parseSpellcasting, spellAttackBonus, spellSaveDc, spellcastingText, spellcastingTrait } from '../spellcasting'
@@ -285,7 +286,7 @@ export function NpcBuilder({ ownerId, partyId, editing, onSaved, onCancel }: {
             <dl className="npc-summary-stats">
               <div><dt>{t('stat.ac')}</dt><dd>{draft.block.armorClass[0]?.value ?? 10}</dd></div>
               <div><dt>{t('stat.hp')}</dt><dd>{draft.block.hitPoints}</dd></div>
-              <div><dt>{t('npc.build.pb')}</dt><dd>{formatMod(draft.block.proficiencyBonus)}</dd></div>
+              <div><dt>{t('npc.build.pb')}</dt><dd>{fmtMod(draft.block.proficiencyBonus)}</dd></div>
             </dl>
           )}
         </aside>

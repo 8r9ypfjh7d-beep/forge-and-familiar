@@ -1,4 +1,5 @@
 // Entry editors for homebrew spells, items, feats, races, subclasses, backgrounds, class options, languages and tools (classes are in ClassForm.tsx). Each edits a copy and hands it back on save.
+import { fmtMod } from '../../i18n/signed'
 import { useState, type ReactNode } from 'react'
 import { SubclassMechanicsEditor } from '../../builder/CustomSubclassForm'
 import { FeatMechanics } from '../../builder/FeatEditor'
@@ -218,7 +219,7 @@ export function ItemForm({ initial, onSave, onCancel }: { initial: HomebrewItem;
             <Field label={t('hb.f.maxDex')}>
               <select value={item.dexCap ?? ''} onChange={e => set({ dexCap: e.target.value === '' ? undefined : Number(e.target.value) })}>
                 <option value="">{t('hb.f.noLimit')}</option>
-                {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n === 0 ? t('hb.f.none') : `+${n}`}</option>)}
+                {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n === 0 ? t('hb.f.none') : fmtMod(n)}</option>)}
               </select>
             </Field>
           )}
@@ -782,7 +783,7 @@ export function ClassOptionForm({ initial, onSave, onCancel }: { initial: Homebr
           <label className="hb-field">
             <WhyLabel label={t('hb.opt.magicBonus')} why={t('hb.opt.why.magicBonus')} />
             <select value={o.item?.magicBonus ?? 0} onChange={e => { const n = Number(e.target.value); set({ item: { ...o.item, magicBonus: n || undefined } }) }}>
-              {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n ? `+${n}` : t('hb.opt.magicBonus.none')}</option>)}
+              {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n ? fmtMod(n) : t('hb.opt.magicBonus.none')}</option>)}
             </select>
           </label>
           <EffectsEditor legend={t('hb.opt.itemEffects')} effects={o.item?.effects ?? []} onChange={fx => set({ item: { ...o.item, effects: fx } })} />
