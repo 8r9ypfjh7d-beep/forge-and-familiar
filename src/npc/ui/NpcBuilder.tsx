@@ -24,6 +24,9 @@ import { getNpc, listNpcs, saveNpc } from '../store'
 import type { NpcSheet } from '../types'
 import { NpcSheet as NpcSheetScreen } from './NpcSheet'
 import { takeNpcPrefill, type NpcPrefill } from './prefill'
+// The wizard shell (.steps, .portrait-pick, .details) is styled in the hero builder's sheet, which only loads with
+// that chunk, so the NPC creator brings it in itself.
+import '../../builder/builder.css'
 import './npc-builder.css'
 
 const STEPS = ['who', 'block', 'tweak', 'spells', 'review'] as const
