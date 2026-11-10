@@ -28,3 +28,7 @@ Pick a code like `NAME-XXXX-XXXX` (letters from `CODE_ALPHABET` in `party/code.t
 ## Limits
 
 Activating needs a connection once, because the server checks the code and signs the device in to Supabase as that account (`src/cloud/CLOUD.md`); after that the session works offline. The local admin flag only unlocks this device's own data; what the cloud shows is decided by the database. Signing in on a second device starts with an empty list (use Export/Import from `portability`).
+
+## Activation code dialog from anywhere
+
+`openActivationPrompt()` (`activationPrompt.ts`) opens the one shared "Your activation code" dialog, rendered by `ActivationPromptHost` (mounted once in App). Screens that need a code (player menu, Admin notice) call it instead of telling the player where to find it.

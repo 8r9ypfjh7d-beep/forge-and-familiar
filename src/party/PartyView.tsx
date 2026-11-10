@@ -1,10 +1,11 @@
+import { fmtMod } from '../i18n/signed'
 import { useCallback, useEffect, useState } from 'react'
 import { CodeForm } from '../accounts'
 import { getCloudAccountId } from '../cloud'
 import { SecretRolls } from '../dice/ui'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character, UserProfile } from '../model/character'
-import { derive, formatMod } from '../rules'
+import { derive } from '../rules'
 import { Codex, HandoutBadge } from '../lore'
 import { SessionBadge, SessionNotes } from '../sessions'
 import { SessionScheduler } from '../schedule'
@@ -347,7 +348,7 @@ function MemberCard({ member, playerName, isDm, character, mine, onOpen }: {
 
       <dl className="stats">
         <div><dt>{t('stat.ac')}</dt><dd>{s.armorClass.value}</dd></div>
-        <div><dt>{t('stat.init')}</dt><dd>{formatMod(s.initiative)}</dd></div>
+        <div><dt>{t('stat.init')}</dt><dd>{fmtMod(s.initiative)}</dd></div>
         <div><dt>{t('stat.speed')}</dt><dd>{s.speed}</dd></div>
         <div><dt>{t('stat.passivePerception')}</dt><dd>{s.passivePerception}</dd></div>
         {s.spellcasting && <div><dt>{t('stat.spellDc')}</dt><dd>{s.spellcasting.saveDc}</dd></div>}

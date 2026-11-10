@@ -26,7 +26,7 @@ The campaign's lore book. The DM writes chapters of typed entries in advance (le
 - **Drafts and reveals.** An unrevealed entry is a draft only the DM sees. Reveal sends it to everyone (`to: 'all'`, later joiners included) or chosen players. "Take back" makes it a draft again and clears read receipts.
 - **Hidden parts.** `||text||` inside a line hides a word or name; a `||` block on its own lines hides a paragraph. Players see a redacted bar until the DM taps the eye (or "Reveal this part") in the viewer. Revealed indexes live in `revealed`. Search and previews never include closed parts.
 - **Chapters.** Ordered groups. Players see a chapter only when something in it is revealed or teased. A teaser draft shows as "? N more to find"; the DM's device keeps each chapter's `teasers` count, since players can't read drafts.
-- **Tonight.** The DM stars drafts for the session; the Tonight strip lists them in order with a Reveal button each. Revealing drops the star.
+- **Tonight.** The DM pins drafts for the session ("Pin for tonight" in the card's ⋯ menu); the Tonight strip lists them in order with a Reveal button each. Revealing drops the star.
 - **Links.** `[[Title]]` opens that entry only when the reader can see it; otherwise it reads as plain text, so nothing leaks.
 - **Reveal moment.** Entries revealed while the player is in the app (`newArrivals`) pop a card; "Open it" goes to the campaign page and opens the entry. Reduce motion shows it still.
 - **Paste a document.** Headings become chapters and entries, all as drafts.
@@ -35,6 +35,8 @@ The campaign's lore book. The DM writes chapters of typed entries in advance (le
 
 - Plain words in the UI: "Show players" / "Hide from players" (code: reveal / take back), "Only you" for drafts, "Players see it" once shown.
 - The composer saves privately by default: the main button and Enter save a draft; "Save and show players" is its own button. Greyed buttons say what is missing (`lore.missing.*`).
+- Composer order: Title, Text, then type as one scrolling chip row (Note by default). Chapter, an optional picture and who sees it sit under "More options" (open when editing an entry that uses them); pictures and maps keep their picture up front.
+- Entry cards show only Show players (or Take back) and Edit; Pin for tonight, Move up/down and Delete live in the ⋯ menu. Tapping the title opens the entry.
 - Type picker is a grid of icons (`TYPE_ICONS`) with a one-line hint per type (`lore.typeHint.*`). Every type but the online table can carry a picture, with Add / Change / Remove buttons.
 - A Secret / Bold / Italic bar wraps the selected words in `||`, `**`, `*`. The teaser toggle shows only when a chapter is chosen.
 - On the campaign page the lore sits right under the members. `#/dm/lore` opens the tab.

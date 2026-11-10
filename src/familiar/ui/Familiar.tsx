@@ -1,6 +1,7 @@
 // The Familiar on screen: a sparkle button above the dice that opens a glass sheet (side sheet on wide screens,
 // bottom sheet on phones), and the full-screen #/familiar page. Both continue the same conversation.
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { getCloudStatus, onCloudChanged } from '../../cloud/auth'
 import { isCloudEnabled } from '../../cloud/config'
 import { useI18n } from '../../i18n'
 import { onFamiliarOpen, type OpenRequest } from '../screen'
@@ -20,6 +21,9 @@ export interface FamiliarSetup extends Omit<ChatSetup, 'locale'> {
   subject?: string
 }
 
+/** Whether this device holds a server sign-in (an activation code typed here), which the Familiar's server needs. */
+const useCloudLinked = () => useSyncExternalStore(onCloudChanged, () => getCloudStatus() === 'linked', () => false)
+
 /** App's guess from the route, overridden by what a screen publishes (the sheet's character, the builder's draft). */
 function useSetup(base: FamiliarSetup) {
   const { locale } = useI18n()
@@ -30,7 +34,10 @@ function useSetup(base: FamiliarSetup) {
     ? { ...base, context: screen.context, card: screen.card ?? base.card, edition: screen.edition ?? base.edition, role: screen.role ?? base.role, data: screen.data ?? base.data, chips: screen.chips ?? base.chips, prepare: screen.context.kind === 'dm' ? base.prepare : undefined }
     : base
   const chat = useFamiliarChat({ ...setup, locale })
-  const blocked = blockedReason({ cloud: isCloudEnabled() || !!setup.transport, signedIn: setup.signedIn, online })
+  const linked = useCloudLinked()
+  // A profile from a code typed before the server existed is not linked yet: ask for the code before the first question.
+  const signedIn = setup.signedIn && (linked || !!setup.transport)
+  const blocked = blockedReason({ cloud: isCloudEnabled() || !!setup.transport, signedIn, online })
   const chips = setup.chips ?? chipKeys(setup.context, setup.role)
   return { chat, blocked, chips }
 }

@@ -35,6 +35,8 @@ export interface FreeCast { level?: number; spend?: { id: string; n: number }; m
 export function useCast(character: Character, apply: Apply) {
   const { t, term, abilityShort } = useI18n()
   const rolls = useSheetRolls(character)
+  /** What untyped dice count: hit points affected (Sleep, Color Spray), otherwise just the roll. */
+  const rollLabel = (spell: Spell) => t(/total is how many hit points/i.test(spell.description) ? 'cast.roll.hpAffected' : 'cs.roll.result')
   const [out, setOut] = useState<{ key: number; value: CastOut } | null>(null)
 
   /**
@@ -81,7 +83,9 @@ export function useCast(character: Character, apply: Apply) {
         if ('attack' in res && res.attack) shown.push({ roll: res.attack, what: what(t('cs.roll.toHit')) })
         if (res.damage) {
           const type = entry.damageType && !healing ? term('damage', entry.damageType, entry.damageType) : ''
-          shown.push({ roll: res.damage, what: what(healing ? t('cs.roll.healing') : t(type ? 'cs.roll.damage' : 'cs.roll.damagePlain', { type })), half: entry.roll === 'save' && spell.save?.onSuccess === 'half' })
+          // Untyped dice aren't damage: Sleep and Color Spray roll the hit points they affect.
+          const label = healing ? t('cs.roll.healing') : type ? t('cs.roll.damage', { type }) : rollLabel(spell)
+          shown.push({ roll: res.damage, what: what(label), half: entry.roll === 'save' && spell.save?.onSuccess === 'half' })
           if (healing) healMe = res.damage.total
         }
       }
@@ -165,17 +169,17 @@ export function useCastWarning(character: Character) {
   const { t } = useI18n()
   return (spell: Spell, slot?: SlotChoice, free?: boolean) => {
     const w = castWarnings(character, spell, slot, free)
-    return [w.noSlot ? t('cast.warn.noSlot') : '', w.ends ? t('cast.warn.ends', { name: w.ends }) : ''].filter(Boolean).join(' · ')
+    return [w.noSlot ? t('cast.warn.noSlotLevel', { level: t(`sheet.slot.${spell.level}` as MessageKey) }) : '', w.ends ? t('cast.warn.ends', { name: w.ends }) : ''].filter(Boolean).join(' · ')
   }
 }
 
-/** Asks once before a cast that warns: the warning, then Cast anyway or Cancel. */
-export function ConfirmCast({ text, onYes, onNo }: { text: string; onYes: () => void; onNo: () => void }) {
+/** Asks once before a cast that warns: the warning, then Cast anyway (or `yes`) or Cancel. */
+export function ConfirmCast({ text, yes, onYes, onNo }: { text: string; yes?: string; onYes: () => void; onNo: () => void }) {
   const { t } = useI18n()
   return (
     <span className="sb-cast-confirm" role="alert">
       <span>{text}</span>
-      <button type="button" className="glass-btn small prominent" onClick={onYes}>{t('cast.anyway')}</button>
+      <button type="button" className="glass-btn small prominent" onClick={onYes}>{yes ?? t('cast.anyway')}</button>
       <button type="button" className="glass-btn small" onClick={onNo}>{t('common.cancel')}</button>
     </span>
   )

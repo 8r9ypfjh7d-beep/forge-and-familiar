@@ -1,5 +1,6 @@
+import { fmtMod } from '../i18n/signed'
 import type { Character } from '../model/character'
-import { ABILITIES, ALL_SKILLS, SKILLS, derive, formatMod } from '../rules'
+import { ABILITIES, ALL_SKILLS, SKILLS, derive } from '../rules'
 import { ShowMath } from './ShowMath'
 
 /** Abilities, saves, skills and spellcasting (attacks have their own card). Every number opens its breakdown. */
@@ -20,9 +21,9 @@ export function StatsCard({ character }: { character: Character }) {
           <div key={a} className="ability">
             <span className="abbr">{a.toUpperCase()}</span>
             <span className="score">{m(`ability:${a}`, d.abilities[a])}</span>
-            <span className="mod">{m(`mod:${a}`, formatMod(d.mods[a]))}</span>
+            <span className="mod">{m(`mod:${a}`, fmtMod(d.mods[a]))}</span>
             <span className={d.saves[a].proficient ? 'save prof' : 'save'}>
-              save {m(`save:${a}`, formatMod(d.saves[a].bonus))}
+              save {m(`save:${a}`, fmtMod(d.saves[a].bonus))}
             </span>
           </div>
         ))}
@@ -32,7 +33,7 @@ export function StatsCard({ character }: { character: Character }) {
         <div><dt>Passive Perception</dt><dd>{m('passivePerception', d.passivePerception)}</dd></div>
         {d.spellcasting && <>
           <div><dt>Spell save DC</dt><dd>{m('spellDc', d.spellcasting.saveDc)}</dd></div>
-          <div><dt>Spell attack</dt><dd>{m('spellAttack', formatMod(d.spellcasting.attackBonus))}</dd></div>
+          <div><dt>Spell attack</dt><dd>{m('spellAttack', fmtMod(d.spellcasting.attackBonus))}</dd></div>
         </>}
         <div><dt>Carrying</dt><dd>{d.carriedWeight} / {m('carryingCapacity', d.carryingCapacity)} lb</dd></div>
       </dl>
@@ -43,7 +44,7 @@ export function StatsCard({ character }: { character: Character }) {
           {ALL_SKILLS.map(s => (
             <li key={s} className={d.skills[s].proficient ? 'prof' : ''}>
               <span>{SKILLS[s].name} <span className="hint">{SKILLS[s].ability.toUpperCase()}</span></span>
-              {m(`skill:${s}`, formatMod(d.skills[s].bonus))}
+              {m(`skill:${s}`, fmtMod(d.skills[s].bonus))}
             </li>
           ))}
         </ul>

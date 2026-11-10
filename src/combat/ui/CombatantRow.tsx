@@ -188,10 +188,16 @@ export function CombatantRow({ enc, combatant: c, party, remote, npcs = {}, mons
         )}
         <button className="glass-btn small danger" disabled={!n || life === 'dead'} onClick={() => { damage(); setAmount('') }}>{t('combat.dmg')}</button>
         <button className="glass-btn small heal" disabled={!n || (c.kind === 'pc' && life === 'dead')} onClick={() => { healUp(); setAmount('') }}>{t('combat.heal')}</button>
-        <select className="add-cond" aria-label={t('combat.addConditionTo', { name })} value="" onChange={ev => setConditions([...own, ev.target.value as ConditionId])}>
-          <option value="">{t('combat.addCondition')}</option>
-          {CONDITIONS.filter(x => !own.includes(x) && (!sheet || setCondition(sheet, x, true) !== sheet)).map(x => <option key={x} value={x}>{cond(x)}</option>)}
-        </select>
+        {/* An icon button: the native picker sits invisibly on top, so phones get their own condition list. */}
+        <span className="add-cond glass-btn small" title={t('combat.addConditionTo', { name })}>
+          <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9.5V3h6.5l7.5 7.5-6.5 6.5z" /><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />
+          </svg>
+          <select aria-label={t('combat.addConditionTo', { name })} value="" onChange={ev => setConditions([...own, ev.target.value as ConditionId])}>
+            <option value="" disabled>{t('combat.addCondition')}</option>
+            {CONDITIONS.filter(x => !own.includes(x) && (!sheet || setCondition(sheet, x, true) !== sheet)).map(x => <option key={x} value={x}>{cond(x)}</option>)}
+          </select>
+        </span>
         {active && life === 'dying' && <button className="glass-btn small prominent" onClick={deathSave}>{t('combat.deathSave')}</button>}
         <button className="icon" onClick={() => setRemoving(true)} aria-label={t('combat.removeName', { name })}>✕</button>
       </div>

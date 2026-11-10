@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { loadKind, type Spell } from '../../content'
 import { effectText } from '../../inventory'
 import { useI18n, type MessageKey } from '../../i18n'
-import type { Character } from '../../model/character'
+import type { Character, LiveEffect } from '../../model/character'
 import { derive, RECKLESS_ID } from '../../rules'
 import { editionOf, spellSourcesFor } from '../../spellbook/access'
 import { effectToggles, setActionActive, type EffectToggle } from '../combat/combat'
@@ -34,6 +34,10 @@ export function toggleEffect(e: EffectToggle, value: boolean, apply: Apply, t: T
   if (e.start && value) return apply(log, c => startEffect(e.slot ? spendSlot(c, e.slot) : c, e.start!).character)
   local()
 }
+
+/** True when a running effect changes the sheet's numbers, so whether it is on this character matters. */
+const affectsStats = (fx: LiveEffect) =>
+  !!(fx.damage || fx.stats?.length || fx.rollDice || fx.acBase || fx.acMin || fx.reflect || fx.whileTempHp || fx.form)
 
 /** What a switch does, in short: its dice, stat changes and the running effect's extras. */
 function useDescribe() {
@@ -89,10 +93,11 @@ export function EffectRows({ character, effects, isOn, onToggle, apply }: {
             <span className="fx-live">
               {live?.concentration && <abbr className="sb-tag" title={t('spells.concentration')}>C</abbr>}
               {level ? <span className="sb-badge">{t(`sheet.slot.${level}` as MessageKey)}{!live && e.slot?.source === 'pact' ? ` ${t('cast.pact')}` : ''}</span> : null}
-              {noSlot && <small>{t('cast.warn.noSlot')}</small>}
+              {noSlot && pending?.id !== e.id && <small>{t('cast.warn.noSlot')}</small>}
               {!live && e.spell && <SlotPicker character={character} spell={e.spell} onPick={s => flip(e, true, s)} />}
               {live?.duration && <small>{spellMeasure(live.duration)}</small>}
-              {live && !(live.self && live.on) && (
+              {/* "On me" matters only when its numbers could count for this character: not for Sleep or Fog Cloud. */}
+              {live && !(live.self && live.on) && affectsStats(live) && (
                 <button type="button" className={`glass-chip small${live.on ? ' on' : ''}`} aria-pressed={live.on} aria-label={t('fx.onMeName', { name: e.name })}
                   onClick={() => apply(t(live.on ? 'cs.log.effectOff' : 'cs.log.effectOn', { name: e.name }), c => setEffectOn(c, e.id, !live.on))}>
                   {t(live.on ? 'fx.onMe' : 'fx.notOnMe')}
@@ -105,7 +110,7 @@ export function EffectRows({ character, effects, isOn, onToggle, apply }: {
             </span>
             {live?.form && <FormCard character={character} form={live.form} />}
             {pending?.id === e.id && (
-              <ConfirmCast text={pending.text} onYes={() => { setPending(null); onToggle(e, true, pending.slot) }} onNo={() => setPending(null)} />
+              <ConfirmCast text={pending.text} yes={t('fx.switchAnyway')} onYes={() => { setPending(null); onToggle(e, true, pending.slot) }} onNo={() => setPending(null)} />
             )}
           </li>
         )

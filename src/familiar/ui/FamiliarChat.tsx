@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type Keyb
 import { CodeForm } from '../../accounts'
 import { ConfirmDialog } from '../../builder/ConfirmDialog'
 import { listSources } from '../../content'
+import { searchRulesFor } from '../../rulesqa/handoff'
 import { useI18n, type MessageKey } from '../../i18n'
 import type { FamiliarErrorKind } from '../types'
 import { ChatMarkdown } from './ChatMarkdown'
@@ -83,11 +84,13 @@ export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, 
           {subject && <p className="fam-subject" dir="auto">{subject}</p>}
         </div>
         <div className="fam-head-actions">
-          <button type="button" className={`glass-btn small fam-tool ${showHistory ? 'on' : ''}`} aria-pressed={showHistory} onClick={() => setShowHistory(h => !h)}>
-            {t('familiar.history')}
+          <button type="button" className={`glass-btn small icon fam-tool ${showHistory ? 'on' : ''}`} aria-pressed={showHistory} onClick={() => setShowHistory(h => !h)}
+            aria-label={t('familiar.history')} title={t('familiar.history')}>
+            <HistoryIcon />
           </button>
-          <button type="button" className="glass-btn small fam-tool" onClick={() => { chat.startNew(); setShowHistory(false); setDraft(''); input.current?.focus() }} disabled={empty && !chat.error}>
-            {t('familiar.newChat')}
+          <button type="button" className="glass-btn small icon fam-tool" onClick={() => { chat.startNew(); setShowHistory(false); setDraft(''); input.current?.focus() }} disabled={empty && !chat.error}
+            aria-label={t('familiar.newChat')} title={t('familiar.newChat')}>
+            <NewChatIcon />
           </button>
           {onClose && (
             <button type="button" className="glass-btn small icon fam-close" onClick={onClose} aria-label={t('familiar.close')} title={t('familiar.close')}>✕</button>
@@ -127,8 +130,9 @@ export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, 
                     <button type="button" className="glass-btn small prominent" onClick={() => { const q = chat.error!.question; setDraft(''); send(q) }}>{t('familiar.retry')}</button>
                   )}
                   {chat.error.kind === 'tooLarge' && <button type="button" className="glass-btn small prominent" onClick={() => chat.startNew()}>{t('familiar.newChat')}</button>}
-                  <button type="button" className="glass-btn small" onClick={chat.dismissError}>{t('familiar.dismiss')}</button>
+                  {chat.error.kind !== 'signIn' && <button type="button" className="glass-btn small" onClick={chat.dismissError}>{t('familiar.dismiss')}</button>}
                 </div>
+                {chat.error.kind === 'signIn' && <CodeForm autoFocus={false} onDone={chat.dismissError} />}
               </div>
             )}
             {empty && !blocked && chips.length > 0 && (
@@ -147,6 +151,11 @@ export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, 
         <div className={`fam-blocked ${blocked}`} role="status">
           <p>{t(errorMessageKey(blocked))}{blocked === 'notConfigured' && <> {t('familiar.notConfiguredHint')}</>}</p>
           {blocked === 'signIn' && <CodeForm autoFocus={false} />}
+          {blocked === 'offline' && (
+            <div className="fam-error-actions">
+              <button type="button" className="glass-btn small prominent" onClick={() => { searchRulesFor(draft); onClose?.() }}>{t('familiar.searchRules')}</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -162,7 +171,8 @@ export function FamiliarChat({ chat, chips, blocked, subject, variant, onClose, 
           placeholder={t('familiar.placeholder')}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={onKey}
-          disabled={!!blocked}
+          // Offline the box stays open: what is typed can go to the rules search, which works offline.
+          disabled={!!blocked && blocked !== 'offline'}
           maxLength={4000}
         />
         {chat.busy ? (
@@ -262,6 +272,22 @@ function Attribution() {
         <p>{t('familiar.creditsGemini')}</p>
       </details>
     </footer>
+  )
+}
+
+function HistoryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" />
+    </svg>
+  )
+}
+
+function NewChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
   )
 }
 

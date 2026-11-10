@@ -1,12 +1,13 @@
 // A monster stat block with roll buttons: ability checks, saves, skills, attacks and damage go through
 // src/dice under the creature's name. Shared by the DM screen's Monsters tab and the NPC sheet.
+import { fmtMod } from '../i18n/signed'
 import { useState, type ReactNode } from 'react'
 import { monsterSourceNote, type MonsterAction } from '../content'
 import { rollD20 } from '../dice'
 import { RollView, useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
-import { formatMod, type Ability } from '../rules'
+import { type Ability } from '../rules'
 import { legendaryCount, legendaryResistance, monsterMod, type Block } from './block'
 import { crLabel, sensesText, speedText, typeLine, usageText } from './format'
 import './monsters.css'
@@ -67,7 +68,7 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
         <div><dt>{t('stat.ac')}</dt><dd>{m.armorClass.map(a => `${a.value}${a.type ? ` (${a.type})` : ''}`).join(', ')}</dd></div>
         {!hideHp && <div><dt>{t('stat.hp')}</dt><dd>{m.hitPoints} <button className="chip-roll" onClick={() => dmg(m.hitPointsRoll, t('stat.hp'))}>{m.hitPointsRoll}</button></dd></div>}
         <div><dt>{t('stat.speed')}</dt><dd>{speedText(m.speed)}</dd></div>
-        <div><dt>{t('dm.crLabel')}</dt><dd>{crLabel(m.challengeRating)} ({m.xp.toLocaleString()} XP) · {t('stat.prof')} {formatMod(m.proficiencyBonus)}</dd></div>
+        <div><dt>{t('dm.crLabel')}</dt><dd>{crLabel(m.challengeRating)} ({m.xp.toLocaleString()} XP) · {t('stat.prof')} {fmtMod(m.proficiencyBonus)}</dd></div>
       </dl>
       {children}
       <div className="mon-sb-abilities" role="group" aria-label={t('dm.abilityChecks')}>
@@ -75,7 +76,7 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
           const mod = monsterMod(m.abilities[a])
           return (
             <button key={a} onClick={() => d20(mod, abilityShort(a), 'check')}>
-              <span>{abilityShort(a)}</span><b>{m.abilities[a]}</b><small>{formatMod(mod)}</small>
+              <span>{abilityShort(a)}</span><b>{m.abilities[a]}</b><small>{fmtMod(mod)}</small>
             </button>
           )
         })}
@@ -83,12 +84,12 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
       <div className="mon-sb-lines">
         {saves.length > 0 && (
           <p><b>{t('dm.saves')}</b> {saves.map(([a, v]) => (
-            <button key={a} className="chip-roll" onClick={() => d20(v, `${abilityShort(a)} save`, 'save')}>{abilityShort(a)} {formatMod(v)}</button>
+            <button key={a} className="chip-roll" onClick={() => d20(v, `${abilityShort(a)} save`, 'save')}>{abilityShort(a)} {fmtMod(v)}</button>
           ))}</p>
         )}
         {skills.length > 0 && (
           <p><b>{t('dm.skills')}</b> {skills.map(([s, v]) => (
-            <button key={s} className="chip-roll" onClick={() => d20(v, s, 'check')}>{s} {formatMod(v)}</button>
+            <button key={s} className="chip-roll" onClick={() => d20(v, s, 'check')}>{s} {fmtMod(v)}</button>
           ))}</p>
         )}
         {list('dm.vulnerable', m.damageVulnerabilities)}
@@ -111,8 +112,8 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
           <p className="mon-spellcasting">
             <b>{abilityShort(sc.ability)}</b>
             {sc.saveDc != null && <> · {t('dm.spellDc', { dc: sc.saveDc })}</>}
-            {sc.attackBonus != null && <> · {t('dm.spellAttack', { bonus: formatMod(sc.attackBonus) })}</>}
-            {sc.attackBonus != null && <button className="chip-roll" onClick={() => d20(sc.attackBonus!, t('dm.spellcasting'), 'attack')}>{formatMod(sc.attackBonus)}</button>}
+            {sc.attackBonus != null && <> · {t('dm.spellAttack', { bonus: fmtMod(sc.attackBonus) })}</>}
+            {sc.attackBonus != null && <button className="chip-roll" onClick={() => d20(sc.attackBonus!, t('dm.spellcasting'), 'attack')}>{fmtMod(sc.attackBonus)}</button>}
           </p>
           <ul className="plain mon-spells">
             {sc.groups.map(g => <li key={g.label}><b>{g.label}:</b> {g.spells.join(', ')}</li>)}
@@ -153,7 +154,7 @@ function Actions({ title, note, list, onD20, onDmg, uses, onUse }: {
             {(a.attackBonus != null || a.damage.length > 0 || a.damageChoice?.length) && (
               <div className="mon-action-rolls">
                 {a.attackBonus != null && (
-                  <button className="btn small" onClick={() => onD20(a.attackBonus!, a.name, 'attack')}>{t('dm.toHit', { bonus: formatMod(a.attackBonus) })}</button>
+                  <button className="btn small" onClick={() => onD20(a.attackBonus!, a.name, 'attack')}>{t('dm.toHit', { bonus: fmtMod(a.attackBonus) })}</button>
                 )}
                 {[...a.damage, ...(a.damageChoice ?? [])].map((d, j) => (
                   <button key={j} className="btn small" onClick={() => onDmg(d.dice, `${a.name} (${d.type})`)}>{d.dice} {d.type}</button>

@@ -14,3 +14,9 @@
 .ff-rewards-form textarea { resize: vertical; }
 .ff-rewards input.amount { inline-size: 6.5em; }
 .ff-rewards-form > .glass-btn { justify-self: start; }
+.ff-rewards-summary { display: grid; gap: var(--sp-1); justify-items: start; }
+/* A chevron that points along the reading direction and turns down when open. */
+.ff-rewards-chev { display: inline-block; inline-size: 0.45em; block-size: 0.45em; margin-inline-end: 0.25em;
+  border-block-start: 2px solid currentColor; border-inline-end: 2px solid currentColor; transform: rotate(45deg); transition: transform var(--dur-fast); }
+.ff-rewards-chev:dir(rtl) { transform: rotate(-45deg); }
+[aria-expanded='true'] > .ff-rewards-chev { transform: rotate(135deg); }

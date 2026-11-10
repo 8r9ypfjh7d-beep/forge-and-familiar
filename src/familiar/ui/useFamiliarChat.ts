@@ -36,20 +36,31 @@ export interface ChatError {
   question: string
 }
 
-/** The conversation open per user, so the floating sheet and the #/familiar page continue the same one. */
+/** The conversation open per user, so the floating sheet and the #/familiar page continue the same one ('' after New chat). */
 const lastOpen = new Map<string, string>()
+
+/** How long a chat counts as "still going" when the Familiar is opened again after a reload. */
+export const RECENT_MS = 60 * 60 * 1000
+
+/** The chat to show on opening: the one left open, else the latest one if it was used in the last hour. */
+export function recentThread(threads: Thread[], now = Date.now()): Thread | null {
+  const latest = threads[0]
+  return latest && now - Date.parse(latest.updatedAt) < RECENT_MS ? latest : null
+}
+
+function initialThread(userId: string): Thread | null {
+  const id = lastOpen.get(userId)
+  if (id !== undefined) return (id && getThread(userId, id)) || null
+  return recentThread(listThreads(userId))
+}
 
 export function useFamiliarChat(setup: ChatSetup) {
   const { userId } = setup
-  const [thread, setThreadState] = useState<Thread | null>(() => {
-    const id = lastOpen.get(userId)
-    return (id && getThread(userId, id)) || null
-  })
+  const [thread, setThreadState] = useState<Thread | null>(() => initialThread(userId))
   const setThread = useCallback((next: Thread | null | ((t: Thread | null) => Thread | null)) => {
     setThreadState(prev => {
       const value = typeof next === 'function' ? next(prev) : next
-      if (value) lastOpen.set(userId, value.id)
-      else lastOpen.delete(userId)
+      lastOpen.set(userId, value ? value.id : '')
       return value
     })
   }, [userId])
@@ -67,8 +78,7 @@ export function useFamiliarChat(setup: ChatSetup) {
     if (seenUser.current === userId) return
     seenUser.current = userId
     abort.current?.abort()
-    const id = lastOpen.get(userId)
-    setThreadState((id && getThread(userId, id)) || null)
+    setThreadState(initialThread(userId))
     setPending(null)
     setError(null)
     setThreads(listThreads(userId))

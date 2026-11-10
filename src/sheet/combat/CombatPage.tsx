@@ -1,6 +1,7 @@
 // The sheet's combat mode, laid out like Roll20's character page: a summary (who, HP, abilities,
 // AC and speed), the skills on the side, and tabs. Tabs reuse the sheet's own cards; only the
 // summary, skills rail, attacks table, effects, action lists and features view live here.
+import { fmtMod } from '../../i18n/signed'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Feature } from '../../content'
 import type { RollMode } from '../../dice'
@@ -23,7 +24,7 @@ import { PoolForm, UsePanel, useResourceUse } from '../components/Resources'
 import { turnActions, type TurnRow } from './turn'
 import { spendOnceEffects, startEffect } from '../effects'
 import { EffectRows, toggleEffect } from '../components/Effects'
-import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, derive, entryItem, planUse, formatMod, getBackground, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, totalLevel, xpForNextLevel, xpReady, type DerivedStats } from '../../rules'
+import { ABILITIES, ALL_SKILLS, ITEMS, SKILLS, castingKind, derive, entryItem, planUse, getBackground, getCritRange, getDamageRiders, itemById, missingSubclasses, rulesEdition, subclassOf, totalLevel, xpForNextLevel, xpReady, type DerivedStats } from '../../rules'
 import { Markdown } from '../../rulesqa/Markdown'
 import { FadingResult } from '../../dice/ui'
 import { RockSenseButton } from '../../rocksense'
@@ -89,7 +90,7 @@ export function CharacterCard({ character, vitals, onLevelUp, apply, party, user
         <dl className="cs-stats">
           <div><dt>{t('stat.ac')}</dt><dd className="cs-shield">{m('ac', d.armorClass.value)}</dd></div>
           <div><dt>{t('stat.speed')}</dt><dd className="cs-hex">{m('speed', d.speed)}</dd></div>
-          <div><dt>{t('stat.prof')}</dt><dd>{m('proficiency', formatMod(d.proficiencyBonus))}</dd></div>
+          <div><dt>{t('stat.prof')}</dt><dd>{m('proficiency', fmtMod(d.proficiencyBonus))}</dd></div>
           <div><dt>{t('stat.passivePerception')}</dt><dd>{m('passivePerception', d.passivePerception)}</dd></div>
         </dl>
         <Perks d={d} />
@@ -101,7 +102,7 @@ export function CharacterCard({ character, vitals, onLevelUp, apply, party, user
             </button>
           )}
           <button type="button" className="btn primary cs-init" onClick={() => setLast({ roll: rolls.initiative(d), what: t('cs.roll.initiative') })}>
-            {t('cs.initiative', { bonus: formatMod(d.initiative) })}
+            {t('cs.initiative', { bonus: fmtMod(d.initiative) })}
           </button>
           <RockSenseButton character={character} />
         </div>
@@ -182,12 +183,12 @@ export function AbilitiesPanel({ character }: { character: Character }) {
             </div>
             <div className="cs-ability-rolls">
               <button type="button" className="cs-roll" onClick={() => setLast({ roll: rolls.check(d, a), what: t('cs.roll.check', { ability: abilityShort(a) }) })}
-                aria-label={t('cs.rollCheck', { ability: abilityShort(a), bonus: formatMod(d.mods[a]) })}>
-                <span dir="ltr">{formatMod(d.mods[a])}</span><small>{t('cs.mod')}</small>
+                aria-label={t('cs.rollCheck', { ability: abilityShort(a), bonus: fmtMod(d.mods[a]) })}>
+                <span dir="ltr">{fmtMod(d.mods[a])}</span><small>{t('cs.mod')}</small>
               </button>
               <button type="button" className={`cs-roll save${d.saves[a].proficient ? ' prof' : ''}`} onClick={() => setLast({ roll: rolls.save(d, a), what: t('cs.roll.save', { ability: abilityShort(a) }) })}
-                aria-label={t(d.saves[a].proficient ? 'cs.rollSaveProf' : 'cs.rollSave', { ability: abilityShort(a), bonus: formatMod(d.saves[a].bonus) })}>
-                <span dir="ltr">{formatMod(d.saves[a].bonus)}</span><i className="dot" aria-hidden="true" /><small>{t('cs.save')}</small>
+                aria-label={t(d.saves[a].proficient ? 'cs.rollSaveProf' : 'cs.rollSave', { ability: abilityShort(a), bonus: fmtMod(d.saves[a].bonus) })}>
+                <span dir="ltr">{fmtMod(d.saves[a].bonus)}</span><i className="dot" aria-hidden="true" /><small>{t('cs.save')}</small>
                 {d.saves[a].advantage && <small className="cs-adv">{t('cs.advBadge')}</small>}
               </button>
             </div>
@@ -213,10 +214,10 @@ export function SkillsPanel({ character }: { character: Character }) {
         {ALL_SKILLS.map(s => (
           <li key={s}>
             <button type="button" className={d.skills[s].proficient ? 'prof' : ''} onClick={() => setLast({ roll: rolls.skill(d, s), what: skill(s) })}
-              aria-label={t(d.skills[s].proficient ? 'cs.rollSkillProf' : 'cs.rollSkill', { skill: skill(s), bonus: formatMod(d.skills[s].bonus) })}>
+              aria-label={t(d.skills[s].proficient ? 'cs.rollSkillProf' : 'cs.rollSkill', { skill: skill(s), bonus: fmtMod(d.skills[s].bonus) })}>
               <span className="name">{skill(s)}{d.skills[s].advantage && <small className="cs-adv">{t('cs.advBadge')}</small>}</span>
               <span className="abbr">{abilityShort(SKILLS[s].ability)}</span>
-              <span className="bonus" dir="ltr">{formatMod(d.skills[s].bonus)}</span>
+              <span className="bonus" dir="ltr">{fmtMod(d.skills[s].bonus)}</span>
               <i className="dot" aria-hidden="true" />
             </button>
           </li>
@@ -228,7 +229,7 @@ export function SkillsPanel({ character }: { character: Character }) {
         ? <ul className="cs-tools">{d.tools.map(x => (
           <li key={x}>
             {term('tool', x, x)}
-            {d.toolExpertise.some(e => e.toLowerCase() === x.toLowerCase()) && <small className="cs-adv">{t('cs.toolExpertise', { bonus: formatMod(2 * d.proficiencyBonus) })}</small>}
+            {d.toolExpertise.some(e => e.toLowerCase() === x.toLowerCase()) && <small className="cs-adv">{t('cs.toolExpertise', { bonus: fmtMod(2 * d.proficiencyBonus) })}</small>}
           </li>
         ))}</ul>
         : <p className="hint">{t('common.none')}</p>}
@@ -526,10 +527,10 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
           return (
             <li key={a.name}>
               <button type="button" className="cs-attack" onClick={() => weapon(a)}
-                aria-label={t('sheet.attacks.rollLabel', { name, bonus: formatMod(a.bonus), damage })}>
+                aria-label={t('sheet.attacks.rollLabel', { name, bonus: fmtMod(a.bonus), damage })}>
                 <span className="name">{name}<small>{t(a.reach ? 'cs.melee' : 'cs.ranged')}{a.attacks ? ` · ${t('cs.attacksN', { n: a.attacks })}` : ''}</small></span>
                 <span className="range" dir="ltr">{range}</span>
-                <span className="hit" dir="ltr">{formatMod(a.bonus)}</span>
+                <span className="hit" dir="ltr">{fmtMod(a.bonus)}</span>
                 <span className="dmg"><span dir="ltr">{damage}{a.extraDamage ? ` + ${a.extraDamage}` : ''}</span> {term('damage', a.damageType, a.damageType)}</span>
               </button>
               {a.versatile && (
@@ -548,7 +549,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
               aria-label={t('cs.castLabel', { name: i18n.spellName(r.name) })}>
               <span className="name"><bdi>{i18n.spellName(r.name)}</bdi><small>{t(r.kind === 'attack' ? 'cs.spellAttack' : r.kind === 'auto' ? 'cs.spellAuto' : 'cs.spellSave')}{r.level === 0 ? ` · ${t('cs.cantrip')}` : ''}</small></span>
               <span className="range">{i18n.spellMeasure(r.range)}</span>
-              <span className="hit" dir="ltr">{r.kind === 'attack' ? formatMod(r.value) : r.kind === 'auto' ? t('cs.autoHit') : `${r.save ? abilityShort(r.save) : ''} ${r.value}`}</span>
+              <span className="hit" dir="ltr">{r.kind === 'attack' ? fmtMod(r.value) : r.kind === 'auto' ? t('cs.autoHit') : `${r.save ? abilityShort(r.save) : ''} ${r.value}`}</span>
               <span className="dmg">{r.damage ? <><span dir="ltr">{r.beams ? `${r.beams}× ` : ''}{r.damage}</span> {r.damageType ? term('damage', r.damageType, r.damageType) : ''}</> : '—'}</span>
             </button>
             {under(`s:${r.name}`)}
@@ -599,7 +600,7 @@ function CustomActions({ character, apply, onRoll, onUse, auto, hasAuto }: {
   const summary = (a: CustomAction) => {
     const r = actionRoll(a, d)
     const bits = [
-      r.attackBonus !== undefined ? formatMod(r.attackBonus) : '',
+      r.attackBonus !== undefined ? fmtMod(r.attackBonus) : '',
       r.dc !== undefined ? t('cs.dcShort', { dc: r.dc, ability: r.save ? abilityShort(r.save) : '' }).trim() : '',
       r.dice ? `${r.dice}${a.roll?.type ? ` ${term('damage', a.roll.type, a.roll.type)}` : ''}` : '',
     ].filter(Boolean)

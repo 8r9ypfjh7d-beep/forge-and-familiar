@@ -1,10 +1,11 @@
 // Combat's Spells tab: spell slots, the character's spells by level, and every spell their class can take from the library.
+import { fmtMod } from '../i18n/signed'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { BOOK_SOURCES, BOOK_TITLES, loadKind, searchEntries, type CharacterClass, type Edition, type SourceInfo, type Spell, type Subclass, BUNDLED } from '../content'
 import { SpellName, useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import { removeEntry, type SpellEntry } from '../quickcast'
-import { derive, formatMod, spellEffectId } from '../rules'
+import { derive, spellEffectId } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import { SearchField } from '../rulesqa/SearchField'
 import { SpellSlots, hasSlots, itemSpellsOf } from '../sheet/components/SpellSlots'
@@ -128,8 +129,9 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
     apply(t(on ? 'spells.story.log.unpin' : 'spells.story.log.pin', { name: s.name }), c => toggleSpellPin(c, s))
   const unpin = (e: SpellEntry) => apply(t('spells.story.log.unpin', { name: e.name }), c => removeEntry(c, e.id))
   const mine = new Set([...spellsOf(character).map(k => k.id), ...access.flatMap(a => a.alwaysPrepared), ...other.map(s => s.id)])
-  const pool = [...new Map([...access.flatMap(a => availableSpells(spells, a)), ...other].map(s => [s.id, s])).values()]
-    .sort((a, b) => Number(mine.has(b.id)) - Number(mine.has(a.id)) || a.level - b.level || a.name.localeCompare(b.name))
+  // Only spells the character has: new ones are added from Combat → Spells.
+  const pool = [...new Map([...access.flatMap(a => availableSpells(spells, a)), ...other].filter(s => mine.has(s.id)).map(s => [s.id, s])).values()]
+    .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
   const shown = searchEntries(pool, query, sp => spellName(sp.id, '')).slice(0, 60)
   const isOn = (s: Spell) => isPinned(character, s.name)
   // Race spells are left out: they cast from "From your items" without a slot.
@@ -195,7 +197,7 @@ export function SpellsCard({ character, apply }: { character: Character; apply: 
                 {shown.map(s => {
                   const on = isOn(s)
                   return (
-                    <SpellRow key={s.id} spell={s} badge={mine.has(s.id) ? t('spells.story.yours') : undefined}>
+                    <SpellRow key={s.id} spell={s} badge={levelBadge(s.level)}>
                       <button type="button" className={`glass-btn small${on ? '' : ' sb-add'}`} aria-pressed={on}
                         aria-label={t(on ? 'spells.story.unpinName' : 'spells.story.pinName', { name: s.name })} onClick={() => toggle(s, on)}>
                         {on ? t('spells.pinned') : t('spells.pin')}
@@ -235,24 +237,24 @@ function Summary({ character, access, prof, mod, spells }: { character: Characte
   const leveled = mine.filter(s => s.level > 0 && !access.alwaysPrepared.includes(s.id)).length
   const off = unpreparedIds(character)
   const prepared = mine.filter(s => s.level > 0 && !access.alwaysPrepared.includes(s.id) && !off.has(s.id)).length
+  const counts: { label: string; n: number; max: number }[] = [
+    ...(access.cantrips > 0 ? [{ label: t('spells.cantrips'), n: cantrips, max: access.cantrips }] : []),
+    ...(access.spellbook != null
+      ? [{ label: t('spells.spellbook'), n: leveled, max: access.spellbook }, { label: t('spells.prepared'), n: prepared, max: access.limit }]
+      : [{ label: t(access.kind === 'known' ? 'spells.known' : 'spells.prepared'), n: leveled, max: access.limit }]),
+  ]
   return (
-    <dl className="sb-summary">
-      <div><dt>{t('spells.dc')}</dt><dd>{8 + prof + mod}</dd></div>
-      <div><dt>{t('spells.attack')}</dt><dd dir="ltr">{formatMod(prof + mod)}</dd></div>
-      {access.cantrips > 0 && (
-        <div className={cantrips > access.cantrips ? 'over' : ''}><dt>{t('spells.cantrips')}</dt><dd>{cantrips}/{access.cantrips}</dd></div>
-      )}
-      {access.spellbook != null ? (
-        <>
-          <div className={leveled > access.spellbook ? 'over' : ''}><dt>{t('spells.spellbook')}</dt><dd>{leveled}/{access.spellbook}</dd></div>
-          <div className={prepared > access.limit ? 'over' : ''}><dt>{t('spells.prepared')}</dt><dd>{prepared}/{access.limit}</dd></div>
-        </>
-      ) : (
-        <div className={leveled > access.limit ? 'over' : ''}>
-          <dt>{t(access.kind === 'known' ? 'spells.known' : 'spells.prepared')}</dt><dd>{leveled}/{access.limit}</dd>
-        </div>
-      )}
-    </dl>
+    <>
+      <dl className="sb-summary">
+        <div><dt>{t('spells.dc')}</dt><dd>{8 + prof + mod}</dd></div>
+        <div><dt>{t('spells.attack')}</dt><dd dir="ltr">{fmtMod(prof + mod)}</dd></div>
+      </dl>
+      <p className="sb-counts">
+        {counts.map((c, i) => (
+          <span key={c.label} className={c.n > c.max ? 'over' : undefined}>{i > 0 && ' · '}{c.label} <bdi>{c.n}/{c.max}</bdi></span>
+        ))}
+      </p>
+    </>
   )
 }
 
@@ -271,7 +273,7 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
   const { t, term, spellName } = useI18n()
   const casting = useCast(character, apply)
   const levelName = useLevelName()
-  // Forgetting a spell sits behind Edit, away from Cast and Pin.
+  // Rows keep only Cast; preparing, pinning and forgetting sit behind Edit list so names get the room on phones.
   const [editing, setEditing] = useState(false)
   const byId = new Map(spells.map(s => [s.id, s]))
   const chosen = new Set(spellsOf(character, access.classId).map(k => k.id))
@@ -316,17 +318,19 @@ function Mine({ character, apply, access, spells, onBrowse }: { character: Chara
               const pinned = isPinned(character, s.name)
               return (
                 <SpellRow key={s.id} spell={s} badge={always ? t('spells.always') : book && s.level > 0 && off.has(s.id) ? t('spells.notPrepared') : undefined} running={isRunning(character, s.id)}>
-                  <PreparedCast character={character} spell={s} cast={casting.cast} />
-                  {book && s.level > 0 && !always && (
+                  {!editing && <PreparedCast character={character} spell={s} cast={casting.cast} />}
+                  {editing && book && s.level > 0 && !always && (
                     <button type="button" className={`glass-btn small${off.has(s.id) ? ' sb-add' : ''}`} aria-pressed={!off.has(s.id)} onClick={() => prepare(s, off.has(s.id))}
                       aria-label={t(off.has(s.id) ? 'spells.prepareName' : 'spells.unprepareName', { name: spellName(s.id, s.name) })}>
                       {t(off.has(s.id) ? 'spells.prepare' : 'spells.preparedOn')}
                     </button>
                   )}
-                  <button type="button" className={`glass-btn small${pinned ? '' : ' sb-add'}`} aria-pressed={pinned} onClick={() => pin(s, pinned)}
-                    aria-label={pinned ? t('spells.story.unpinName', { name: s.name }) : t('spells.pinName', { name: s.name })}>
-                    {pinned ? t('spells.pinned') : t('spells.pin')}
-                  </button>
+                  {editing && (
+                    <button type="button" className={`glass-btn small${pinned ? '' : ' sb-add'}`} aria-pressed={pinned} onClick={() => pin(s, pinned)}
+                      aria-label={pinned ? t('spells.story.unpinName', { name: s.name }) : t('spells.pinName', { name: s.name })}>
+                      {pinned ? t('spells.pinned') : t('spells.pin')}
+                    </button>
+                  )}
                   {editing && !always && (
                     <button type="button" className="glass-btn small icon sb-remove" aria-label={t('spells.removeName', { name: spellName(s.name) })}
                       onClick={() => confirm(t('sheet.confirmRemove', { name: s.name })) && apply(t('spells.log.remove', { name: s.name }), c => removeSpell(c, access.classId, s.id))}>

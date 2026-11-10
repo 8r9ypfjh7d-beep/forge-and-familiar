@@ -5,7 +5,7 @@ import { useA11yActiveCount } from '../a11y/ui'
 import { LanguagePicker, useI18n } from '../i18n'
 import { inbox, useRequests } from '../requests'
 import { NavIcon } from './icons'
-import { navItems, navKeyFor, type NavContext, type NavKey } from './items'
+import { litKey, navItems, navKeyFor, type NavContext, type NavKey } from './items'
 import './nav.css'
 
 export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmTools, dmBadge, onAccessibility, children }: NavContext & {
@@ -20,17 +20,20 @@ export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmToo
 }) {
   const { t } = useI18n()
   const { main, more } = navItems({ isDm, partyDm, admin, dmTools })
-  const current = navKeyFor(viewKind)
+  const view = navKeyFor(viewKind)
+  const current = litKey(viewKind, main)
+  // The tracker open from the DM tab: that tab shows it as "Fight".
+  const fight = view === 'combat' && current === 'dm'
   const requests = useRequests()
   const waiting = isDm && requests ? inbox(requests).length : 0
   const a11yOn = useA11yActiveCount()
   const inMore = more.find(i => i.key === current)
 
-  const tab = (key: NavKey, label: string, short: string, badge = 0) => (
+  const tab = (key: NavKey, label: string, short: string, badge = 0, icon: NavKey = key) => (
     <button key={key} type="button" className={`nav-tab ${current === key ? 'on' : ''}`}
       aria-current={current === key ? 'page' : undefined} onClick={() => onGo(key)}
       aria-label={badge > 0 ? `${label} (${badge})` : label}>
-      <span className="nav-icon"><NavIcon name={key} />{badge > 0 && <span className="nav-badge">{badge}</span>}</span>
+      <span className="nav-icon"><NavIcon name={icon} />{badge > 0 && <span className="nav-badge">{badge}</span>}</span>
       <span className="nav-label">{label}</span>
       {short !== label && <span className="nav-label short" aria-hidden="true">{short}</span>}
     </button>
@@ -39,16 +42,18 @@ export function AppNav({ viewKind, onGo, playerName, isDm, partyDm, admin, dmToo
   return (
     <header className="topbar nav glass-chrome">
       <nav className="nav-tabs" aria-label={t('nav.main')}>
-        {main.map(i => tab(i.key, t(i.label), t(i.short ?? i.label), i.key === 'dm' ? waiting : 0))}
+        {main.map(i => i.key === 'dm' && fight
+          ? tab('dm', t('app.combat'), t('nav.combatShort'), waiting, 'combat')
+          : tab(i.key, t(i.label), t(i.short ?? i.label), i.key === 'dm' ? waiting : 0))}
         <Menu
           className={`nav-tab ${inMore ? 'on' : ''}`}
-          label={<><span className="nav-icon"><NavIcon name={inMore?.key ?? 'more'} /></span><span className="nav-label">{inMore ? t(inMore.label) : t('nav.more')}</span></>}
+          label={<><span className="nav-icon"><NavIcon name="more" /></span><span className="nav-label">{t('nav.more')}</span></>}
           title={t('nav.more')}
           menu
         >
           {close => more.map(i => (
-            <button key={i.key} type="button" role="menuitem" className={`nav-item ${current === i.key ? 'on' : ''}`}
-              aria-current={current === i.key ? 'page' : undefined} onClick={() => { close(); onGo(i.key) }}>
+            <button key={i.key} type="button" role="menuitem" className={`nav-item ${view === i.key ? 'on' : ''}`}
+              aria-current={view === i.key ? 'page' : undefined} onClick={() => { close(); onGo(i.key) }}>
               <NavIcon name={i.key} />{t(i.label)}
             </button>
           ))}

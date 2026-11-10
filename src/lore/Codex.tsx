@@ -317,7 +317,7 @@ function EntryCard({ entry: h, party, userId, nameOf, all, onOpen, onEdit, onDel
           {unread && <span className="new-tag">{t('lore.new')}</span>}
           {secrets > 0 && <span className="kind secret-tag">{t('lore.secretsLeft', { n: secrets })}</span>}
         </div>
-        <h4>{h.title}</h4>
+        <h4><button type="button" className="handout-title" onClick={onOpen}>{h.title}</button></h4>
         {dm ? (
           <p className="muted small">
             {t(h.sentAt ? 'lore.to' : 'lore.toDraft', { who: toLabel })}
@@ -332,17 +332,44 @@ function EntryCard({ entry: h, party, userId, nameOf, all, onOpen, onEdit, onDel
               ? <button className="glass-btn small" onClick={() => saveHandout(unsend(h))}>{t('lore.takeBack')}</button>
               : <>
                 <button className="glass-btn small prominent" disabled={problems(h).length > 0} title={whyNot(t, h)} onClick={() => saveHandout(send(h))}>{t('lore.reveal')}</button>
-                <button className="glass-btn small ghost" aria-pressed={h.tonight !== undefined} title={t('lore.queueTonight')}
-                  onClick={() => saveHandout(toggleTonight(all, h))}>{h.tonight !== undefined ? '★' : '☆'} {t('lore.tonight')}</button>
               </>}
             <button className="glass-btn small" onClick={onEdit}>{t('lore.edit')}</button>
-            <button className="glass-btn small ghost icon" aria-label={t('lore.moveUp')} onClick={() => moveEntry(all, h.id, -1).forEach(e => saveHandout(e))}>↑</button>
-            <button className="glass-btn small ghost icon" aria-label={t('lore.moveDown')} onClick={() => moveEntry(all, h.id, 1).forEach(e => saveHandout(e))}>↓</button>
-            <button className="glass-btn small ghost" onClick={onDelete}>{t('common.delete')}</button>
+            <MoreMenu label={t('lore.moreActions', { name: h.title })} items={[
+              ...(!h.sentAt ? [{ label: h.tonight !== undefined ? t('lore.unpinTonight') : t('lore.pinTonight'), run: () => saveHandout(toggleTonight(all, h)) }] : []),
+              { label: t('lore.moveUp'), run: () => moveEntry(all, h.id, -1).forEach(e => saveHandout(e)) },
+              { label: t('lore.moveDown'), run: () => moveEntry(all, h.id, 1).forEach(e => saveHandout(e)) },
+              { label: t('common.delete'), run: onDelete, danger: true },
+            ]} />
           </div>
         )}
       </div>
     </article>
+  )
+}
+
+/** A small "⋯" menu for the actions a card rarely needs. Closes on pick, outside tap or Escape. */
+function MoreMenu({ label, items }: { label: string; items: { label: string; run: () => void; danger?: boolean }[] }) {
+  const ref = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    const close = (e: Event) => {
+      const d = ref.current
+      if (!d?.open) return
+      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !d.contains(e.target as Node)) d.open = false
+    }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', close)
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', close) }
+  }, [])
+  return (
+    <details ref={ref} className="lore-menu">
+      <summary className="glass-btn small ghost icon" aria-label={label} title={label}>⋯</summary>
+      <div className="lore-menu-list" role="menu">
+        {items.map(it => (
+          <button key={it.label} type="button" role="menuitem" className={it.danger ? 'danger' : ''}
+            onClick={() => { if (ref.current) ref.current.open = false; it.run() }}>{it.label}</button>
+        ))}
+      </div>
+    </details>
   )
 }
 
@@ -393,6 +420,10 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
   const [busy, setBusy] = useState(false)
   const players = party.members.map(m => m.userId).filter(id => id !== party.dmId)
   const hasPicture = PICTURE_TYPES.includes(kind)
+  // Pictures and maps need their picture up front; for other types it is an extra under "More options".
+  const pictureFirst = kind === 'image' || kind === 'map'
+  // Editing an entry with non-default extras opens "More options" so nothing is hidden by surprise.
+  const [optionsOpen] = useState(() => !!initial && (initial.to !== 'all' || !!initial.teaser || (!!(initial.image || initial.imageUrl) && initial.kind !== 'image' && initial.kind !== 'map')))
   const textRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -452,72 +483,28 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
     setTo(to.includes(id) ? to.filter(x => x !== id) : [...to, id])
   }
 
+  const pictureField = hasPicture && (
+      <div className="field">
+        <label htmlFor="handout-file">{kind === 'map' ? t('lore.mapImage') : kind === 'image' ? t('lore.picture') : t('lore.pictureOptional')}</label>
+        <input ref={fileRef} id="handout-file" className="a11y-sr-only" type="file" accept="image/*" onChange={e => { void pick(e.target.files?.[0]); e.target.value = '' }} />
+        {(imageUrl || image) && !busy && <img className="composer-preview" src={imageUrl ?? image} alt="" />}
+        <div className="row wrap">
+          <button type="button" className="glass-btn small" disabled={busy} onClick={() => fileRef.current?.click()}>
+            {imageUrl || image ? t('lore.changePicture') : t('lore.addPicture')}
+          </button>
+          {(imageUrl || image) && !busy && <button type="button" className="glass-btn small ghost" onClick={() => { setImage(undefined); setImageUrl(undefined) }}>{t('lore.removePicture')}</button>}
+          {busy && <span className="muted small">{t('lore.preparingImage')}</span>}
+        </div>
+      </div>
+  )
+
   return (
     // Enter in a field saves a private copy; showing players is always its own tap.
     <form className="glass composer" onSubmit={e => { e.preventDefault(); if (!missing.length && !busy) save(!!initial?.sentAt) }}>
-      <fieldset className="field lore-types">
-        <legend>{t('lore.kind')}</legend>
-        <div className="lore-type-grid" role="radiogroup" aria-label={t('lore.kind')}>
-          {ENTRY_TYPES.map(k => (
-            <button key={k} type="button" role="radio" aria-checked={kind === k} className={`lore-type ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>
-              <span aria-hidden="true">{TYPE_ICONS[k]}</span> {t(typeKey(k))}
-            </button>
-          ))}
-        </div>
-        <p className="small muted">{t(`lore.typeHint.${kind}`)}</p>
-      </fieldset>
-      <div className="row wrap">
-        <div className="field grow">
-          <label htmlFor="lore-chapter">{t('lore.chapter')}</label>
-          <select id="lore-chapter" className="glass-field" value={chapterId} onChange={e => setChapterId(e.target.value)}>
-            <option value="">{t('lore.unsorted')}</option>
-            {chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-          </select>
-        </div>
-      </div>
-
       <div className="field">
         <label htmlFor="handout-title">{t('lore.entryTitle')}</label>
         <input id="handout-title" className="glass-field" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('lore.eg', { x: t(`lore.example.${kind}` as `lore.example.${EntryType}`) })} />
       </div>
-
-      {META_FIELDS[kind].length > 0 && (
-        <div className="row wrap meta-fields">
-          {META_FIELDS[kind].map(f => (
-            <div key={f} className="field grow">
-              <label htmlFor={`lore-meta-${f}`}>{t(metaKey(f))}</label>
-              <input id={`lore-meta-${f}`} className="glass-field" value={meta[f] ?? ''} onChange={e => setMeta({ ...meta, [f]: e.target.value })} />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {kind === 'table' && (
-        <div className="field">
-          <label htmlFor="handout-url">{t('handouts.tableLink')}</label>
-          <input id="handout-url" className="glass-field" type="url" inputMode="url" dir="ltr" value={url}
-            onChange={e => setUrl(e.target.value)} placeholder="https://www.owlbear.rodeo/room/…" aria-describedby="handout-url-hint" />
-          <span id="handout-url-hint" className={`small ${url.trim() && !tableLink(url) ? 'bad' : 'muted'}`}>
-            {url.trim() && !tableLink(url) ? t('handouts.tableBad') : t('handouts.tableHint')}
-          </span>
-        </div>
-      )}
-
-      {hasPicture && (
-        <div className="field">
-          <label htmlFor="handout-file">{kind === 'map' ? t('lore.mapImage') : kind === 'image' ? t('lore.picture') : t('lore.pictureOptional')}</label>
-          <input ref={fileRef} id="handout-file" className="a11y-sr-only" type="file" accept="image/*" onChange={e => { void pick(e.target.files?.[0]); e.target.value = '' }} />
-          {(imageUrl || image) && !busy && <img className="composer-preview" src={imageUrl ?? image} alt="" />}
-          <div className="row wrap">
-            <button type="button" className="glass-btn small" disabled={busy} onClick={() => fileRef.current?.click()}>
-              {imageUrl || image ? t('lore.changePicture') : t('lore.addPicture')}
-            </button>
-            {(imageUrl || image) && !busy && <button type="button" className="glass-btn small ghost" onClick={() => { setImage(undefined); setImageUrl(undefined) }}>{t('lore.removePicture')}</button>}
-            {busy && <span className="muted small">{t('lore.preparingImage')}</span>}
-          </div>
-        </div>
-      )}
-
       {kind !== 'table' && (
         <div className="field">
           <label htmlFor="handout-text">{kind === 'image' || kind === 'map' ? t('lore.caption') : t('lore.text')}</label>
@@ -531,27 +518,70 @@ function Composer({ party, userId, chapters, entries, initial, nameOf, onDone }:
           <span className="small muted">{t('lore.markupHint')}</span>
         </div>
       )}
-
-      <fieldset className="field recipients">
-        <legend>{t('lore.revealTo')}</legend>
-        <div className="row wrap">
-          <button type="button" className={`glass-chip ${to === 'all' ? 'on' : ''}`} aria-pressed={to === 'all'} onClick={() => setTo('all')}>{t('lore.everyone')}</button>
-          {players.map(id => (
-            <button key={id} type="button" className={`glass-chip ${to !== 'all' && to.includes(id) ? 'on' : ''}`}
-              aria-pressed={to !== 'all' && to.includes(id)} onClick={() => togglePlayer(id)}>
-              {nameOf(id)}
+      <fieldset className="field lore-types">
+        <legend>{t('lore.kind')}</legend>
+        <div className="lore-type-row" role="radiogroup" aria-label={t('lore.kind')}>
+          {ENTRY_TYPES.map(k => (
+            <button key={k} type="button" role="radio" aria-checked={kind === k} className={`lore-type ${kind === k ? 'on' : ''}`} onClick={() => setKind(k)}>
+              <span aria-hidden="true">{TYPE_ICONS[k]}</span> {t(typeKey(k))}
             </button>
           ))}
         </div>
-        {players.length === 0 && <p className="muted small">{t('lore.noPlayers')}</p>}
+        <p className="small muted">{t(`lore.typeHint.${kind}`)}</p>
       </fieldset>
-
-      {!initial?.sentAt && chapterId && (
-        <label className="row small teaser-toggle">
-          <input type="checkbox" checked={teaser} onChange={e => setTeaser(e.target.checked)} />
-          <span>{t('lore.teaserToggle')}</span>
-        </label>
+      {META_FIELDS[kind].length > 0 && (
+        <div className="row wrap meta-fields">
+          {META_FIELDS[kind].map(f => (
+            <div key={f} className="field grow">
+              <label htmlFor={`lore-meta-${f}`}>{t(metaKey(f))}</label>
+              <input id={`lore-meta-${f}`} className="glass-field" value={meta[f] ?? ''} onChange={e => setMeta({ ...meta, [f]: e.target.value })} />
+            </div>
+          ))}
+        </div>
       )}
+      {kind === 'table' && (
+        <div className="field">
+          <label htmlFor="handout-url">{t('handouts.tableLink')}</label>
+          <input id="handout-url" className="glass-field" type="url" inputMode="url" dir="ltr" value={url}
+            onChange={e => setUrl(e.target.value)} placeholder="https://www.owlbear.rodeo/room/…" aria-describedby="handout-url-hint" />
+          <span id="handout-url-hint" className={`small ${url.trim() && !tableLink(url) ? 'bad' : 'muted'}`}>
+            {url.trim() && !tableLink(url) ? t('handouts.tableBad') : t('handouts.tableHint')}
+          </span>
+        </div>
+      )}
+      {pictureFirst && pictureField}
+      <details className="lore-options" open={optionsOpen}>
+        <summary>{t('lore.moreOptions')} <span className="muted small">· {chapters.find(c => c.id === chapterId)?.title ?? t('lore.unsorted')} · {to === 'all' ? t('lore.everyone') : to.map(nameOf).join(', ') || t('lore.nobody')}</span></summary>
+        <div className="row wrap">
+          <div className="field grow">
+            <label htmlFor="lore-chapter">{t('lore.chapter')}</label>
+            <select id="lore-chapter" className="glass-field" value={chapterId} onChange={e => setChapterId(e.target.value)}>
+              <option value="">{t('lore.unsorted')}</option>
+              {chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+        </div>
+        {!pictureFirst && pictureField}
+        <fieldset className="field recipients">
+          <legend>{t('lore.revealTo')}</legend>
+          <div className="row wrap">
+            <button type="button" className={`glass-chip ${to === 'all' ? 'on' : ''}`} aria-pressed={to === 'all'} onClick={() => setTo('all')}>{t('lore.everyone')}</button>
+            {players.map(id => (
+              <button key={id} type="button" className={`glass-chip ${to !== 'all' && to.includes(id) ? 'on' : ''}`}
+                aria-pressed={to !== 'all' && to.includes(id)} onClick={() => togglePlayer(id)}>
+                {nameOf(id)}
+              </button>
+            ))}
+          </div>
+          {players.length === 0 && <p className="muted small">{t('lore.noPlayers')}</p>}
+        </fieldset>
+        {!initial?.sentAt && chapterId && (
+          <label className="row small teaser-toggle">
+            <input type="checkbox" checked={teaser} onChange={e => setTeaser(e.target.checked)} />
+            <span>{t('lore.teaserToggle')}</span>
+          </label>
+        )}
+      </details>
 
       {error && <p className="bad small" role="alert">{error}</p>}
       {missing.length > 0 && <p className="small muted" aria-live="polite">{missing.map(x => t(`lore.missing.${x}`)).join(' ')}</p>}

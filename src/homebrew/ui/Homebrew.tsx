@@ -1,4 +1,5 @@
 // Homebrew screen: a library of packs, a pack editor, and sharing with friends by code or file.
+import { fmtMod } from '../../i18n/signed'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChangeHistory, deleteHistory, historyForSharing, importHistory, recordRevision, type RestoreMeta } from '../../history'
 import { useI18n, type Translate } from '../../i18n'
@@ -514,7 +515,7 @@ function EntryBody({ i18n, kind, entry }: { i18n: I18n; kind: ContentKind; entry
   if (kind === 'races') {
     const r = entry as HomebrewRace
     const choice = (count: number) => (count ? [t('hb.race.choice', { count })] : [])
-    const bonuses = Object.entries(r.abilityBonuses).map(([a, n]) => `${abilityShort(a as Ability)} ${n! >= 0 ? '+' : ''}${n}`)
+    const bonuses = Object.entries(r.abilityBonuses).map(([a, n]) => `${abilityShort(a as Ability)} ${fmtMod(n!)}`)
     if (r.freeAbilityBonuses) bonuses.push(t('hb.race.freeBonus', { count: r.freeAbilityBonuses }))
     const lines = [
       bonuses.length > 0 && t('hb.race.scores', { list: list(bonuses) }),

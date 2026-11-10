@@ -1,8 +1,9 @@
+import { fmtMod } from '../i18n/signed'
 import { useMemo } from 'react'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import {
-  ABILITIES, classById, createCharacter, derive, formatMod, getSpellcastingByClass, raceById, type CharacterDraft,
+  ABILITIES, classById, createCharacter, derive, getSpellcastingByClass, raceById, type CharacterDraft,
 } from '../rules'
 
 /**
@@ -39,9 +40,9 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
           <div className="stat-row">
             <Stat label={t('stat.ac')} value={d.armorClass.value} title={acSource(d.armorClass.source)} />
             <Stat label={t('stat.hp')} value={d.maxHp} />
-            <Stat label={t('stat.init')} value={formatMod(d.initiative)} />
+            <Stat label={t('stat.init')} value={fmtMod(d.initiative)} />
             <Stat label={t('stat.speed')} value={`${d.speed}`} />
-            <Stat label={t('stat.prof')} value={formatMod(d.proficiencyBonus)} />
+            <Stat label={t('stat.prof')} value={fmtMod(d.proficiencyBonus)} />
             <Stat label={t('stat.passivePerception')} value={d.passivePerception} />
           </div>
           <div className="ability-mini">
@@ -49,7 +50,7 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
               <div key={a} className={d.saves[a].proficient ? 'save-prof' : ''} title={d.saves[a].proficient ? t('summary.saveProf') : undefined}>
                 <span className="muted small">{abilityShort(a)}</span>
                 <strong>{d.abilities[a]}</strong>
-                <span className="small">{formatMod(d.mods[a])}</span>
+                <span className="small">{fmtMod(d.mods[a])}</span>
               </div>
             ))}
           </div>
@@ -58,7 +59,7 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
               <h4>{t('summary.attacks')}</h4>
               <ul className="plain small">
                 {d.attacks.map(a => (
-                  <li key={a.name}><strong>{attackName(a.name)}</strong> {t('summary.attack', { bonus: formatMod(a.bonus), damage: a.damage, type: term('damage', a.damageType, a.damageType) })}</li>
+                  <li key={a.name}><strong>{attackName(a.name)}</strong> {t('summary.attack', { bonus: fmtMod(a.bonus), damage: a.damage, type: term('damage', a.damageType, a.damageType) })}</li>
                 ))}
               </ul>
             </>
@@ -67,8 +68,8 @@ export function Summary({ draft, preview }: { draft: CharacterDraft; preview?: C
             <p className="small">
               <strong>{t('summary.spells')}</strong>{' '}
               {casters.length > 1
-                ? casters.map(s => t('summary.multiCaster', { className: term('class', s.className.toLowerCase(), s.className), dc: s.saveDc, bonus: formatMod(s.attackBonus) })).join(', ')
-                : t('summary.spellLine', { dc: d.spellcasting.saveDc, bonus: formatMod(d.spellcasting.attackBonus) })}
+                ? casters.map(s => t('summary.multiCaster', { className: term('class', s.className.toLowerCase(), s.className), dc: s.saveDc, bonus: fmtMod(s.attackBonus) })).join(', ')
+                : t('summary.spellLine', { dc: d.spellcasting.saveDc, bonus: fmtMod(d.spellcasting.attackBonus) })}
               {d.spellSlots.slots.some(Boolean) && <> · {t('summary.slots', { slots: d.spellSlots.slots.filter(Boolean).join('/') })}</>}
               {d.spellSlots.pact && <> · {t('summary.pact', { count: d.spellSlots.pact.count, level: d.spellSlots.pact.level })}</>}
             </p>

@@ -87,3 +87,9 @@ Deploy `supabase/functions/familiar/index.ts` as `familiar` with JWT verificatio
 - **Change limits**: edit `DEFAULT_LIMITS` in the function, or insert into `assistant_limits`.
 - **UI text**: `familiar.*` keys in both locales.
 - **Add a DM tool**: in `tools/dm.ts` with `available: dmAllowed` and `requireDm(env)` at the top of `run`; add a gating case to `dm.test.ts`.
+
+## Sign-in, offline and reopening (2026-11-10)
+
+- The panel counts as signed in only when the profile is the code's account and this device holds the server link (`getCloudStatus() === 'linked'`); otherwise the code form shows before the first question instead of the starter chips. A 401 error card shows the code form, not Dismiss.
+- Offline the box stays open and "Search the rules instead" hands the typed text to the rules page (`searchRulesFor` in `src/rulesqa/handoff.ts`), which works offline.
+- Opening the Familiar reopens the latest chat when it was used in the last hour (`recentThread`); after "New chat" it stays blank. History and New chat are icon buttons. The dice button is hidden on the Familiar page.

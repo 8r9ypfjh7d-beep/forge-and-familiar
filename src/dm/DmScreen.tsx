@@ -29,7 +29,7 @@ import { RollsTab } from './RollsTab'
 import { useDmRolls, useUnseenRolls } from './useDmRolls'
 import { loadDm, onDmChanged, saveDm, syncDm } from './store'
 import type { Translate } from '../i18n/translate'
-import { emptyDmState, type DmState, type EncounterPlan, type Npc, type PartyGroup, type PlanMonster } from './types'
+import { type DmState, type EncounterPlan, type Npc, type PartyGroup, type PlanMonster } from './types'
 import '../sheet/sheet.css'
 import '../sheet/combat/combat.css'
 import { NpcSheetList } from '../npc/ui/NpcSheetList'
@@ -140,7 +140,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
   const fromParty = heroes && groupsFromLevels(heroes.map(h => h.level))
   // A budget never edited (the stock "4 players, level 1") follows the campaign's characters by itself.
   useEffect(() => {
-    if (fromParty?.length && state && sameGroups(state.party, emptyDmState().party) && !sameGroups(fromParty, state.party)) update(s => ({ ...s, party: fromParty }))
+    if (fromParty?.length && state && !sameGroups(fromParty, state.party)) update(s => ({ ...s, party: fromParty }))
   }, [fromParty, state, update])
 
   if (!state) return null
@@ -222,8 +222,11 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
           {tab === 'sessions' && (party ? <SessionNotes party={party} userId={userId} onOpenLore={() => setTab('lore')} /> : <LoreNoCampaign what="sessions" runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
         </div>
       </div>
-      <p className="hint dm-credit">{t('dm.credit')}</p>
-      {credits.map(c => <p key={c} className="hint dm-credit" dir="ltr" lang="en">{c}</p>)}
+      <details className="dm-credits">
+        <summary className="hint dm-credit">{t('dm.creditLine')} · <u>{t('dm.creditMore')}</u></summary>
+        <p className="hint dm-credit">{t('dm.credit')}</p>
+        {credits.map(c => <p key={c} className="hint dm-credit" dir="ltr" lang="en">{c}</p>)}
+      </details>
     </div>
   )
 }
@@ -311,6 +314,8 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
       <div>
         <p className="hint">{t('dm.intro')}</p>
         <h2 className="sub-title">{t('dm.party', { count: partySize(state.party) })}</h2>
+        {/* A campaign supplies the party (kept in step above), so the manual counts are only for a DM screen without one. */}
+        {fromParty ? <p className="hint">{t('dm.partyLinked', { name: fromParty.name, groups: state.party.map(g => t('dm.groupLine', { count: g.count, level: g.level })).join(', ') })}</p> : <>
         <ul className="plain dm-groups">
           {state.party.map((g, i) => (
             <li key={i}>
@@ -336,11 +341,7 @@ function PartyCard({ state, update, plan, fromParty, sheets }: {
         <button className="btn small" onClick={() => update(s => ({ ...s, party: [...s.party, { count: 1, level: s.party.at(-1)?.level ?? 1 }] }))}>
           {t('dm.addGroup')}
         </button>
-        {fromParty && !sameGroups(fromParty.groups, state.party) && (
-          <button className="btn small" onClick={() => update(s => ({ ...s, party: fromParty.groups }))}>
-            {t('dm.fromParty', { name: fromParty.name, count: partySize(fromParty.groups) })}
-          </button>
-        )}
+        </>}
         {sheets && (
           <div className="dm-sheets">
             <h2 className="sub-title">{t('dm.sheets')}</h2>

@@ -2,12 +2,13 @@
 // damage, or every attack of a Multiattack) against the picked target, and a hit lands on it right away
 // (the DM's applyHits switch; otherwise one more tap). The target opens on the first conscious enemy.
 // Recharge and X/Day actions are tracked on the row (spent), legendary actions on a 3-pip counter.
+import { fmtMod } from '../../i18n/signed'
 import { useState } from 'react'
 import type { Monster, MonsterAction } from '../../content'
 import { roll, rollD20, rollSave, type RollResult } from '../../dice'
 import { RollView, useDice } from '../../dice/ui'
 import { useI18n } from '../../i18n'
-import { derive, formatMod } from '../../rules'
+import { derive } from '../../rules'
 import { crLabel } from '../../monsters/format'
 import type { Ability } from '../../rules'
 import { addLog, critDice, legendaryCost, spendAction, rechargeAction, spendLegendary, statusOf, targetGroups, type Party } from '../engine'
@@ -254,7 +255,7 @@ export function MonsterActions({ enc, combatant: c, monster: m, monsterOf, party
             <div className="sb-line">
               {(rollable(a) || group === 'legendary' || a.usage) ? (
                 <button type="button" className="glass-btn small act" disabled={!canUse(a, group)} onClick={() => perform(a, group)}>
-                  <b>{a.name}</b>{a.attackBonus != null && <span className="muted"> {formatMod(a.attackBonus)}</span>}
+                  <b>{a.name}</b>{a.attackBonus != null && <span className="muted"> {fmtMod(a.attackBonus)}</span>}
                 </button>
               ) : <b className="sb-name">{a.name}.</b>}
               {usage(a)}

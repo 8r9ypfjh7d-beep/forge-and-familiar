@@ -202,3 +202,25 @@
 :root[data-contrast="high"] .ff-requests .req-status { box-shadow: inset 0 0 0 2px var(--req-st); color: var(--ink); }
 :root[data-contrast="high"] .ff-requests .req-card { border-color: var(--line); }
 @media print { .ff-requests > .card { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+
+/* DM toast for new requests: small, never blocks the page. */
+.req-toast {
+  position: fixed; z-index: 46; inset-block-start: max(12px, env(safe-area-inset-top));
+  inset-inline: 12px; margin-inline: auto; max-inline-size: 420px;
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-lg);
+  animation: req-toast-in var(--dur-med) var(--ease-glass);
+}
+.req-toast-text { flex: 1; min-inline-size: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req-toast .btn.small { flex: none; }
+.req-toast-x { flex: none; background: none; border: 0; color: var(--muted); font: inherit; min-inline-size: 36px; min-block-size: 36px; cursor: pointer; border-radius: var(--r-md); }
+@keyframes req-toast-in { from { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .req-toast { animation: none; } }
+
+/* "Have a request link?" folds the paste box away. */
+.req-paste-toggle > summary { cursor: pointer; color: var(--muted); font-size: .9rem; list-style: none; }
+.req-paste-toggle > summary::-webkit-details-marker { display: none; }
+.req-paste-toggle > summary::before { content: '🔗 '; }
+.req-paste-toggle[open] > summary { margin-block-end: var(--sp-2); }
+.ff-requests .req-paste-toggle { padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
+.ff-requests .req-paste-toggle .req-paste { border: 0; padding-block-start: 0; }

@@ -183,6 +183,9 @@
   .dm-filters select:last-child { grid-column: 1 / -1; }
 }
 .dm-credit { font-size: 0.75rem; overflow-wrap: anywhere; }
+.dm-credits > summary { cursor: pointer; list-style: none; }
+.dm-credits > summary::-webkit-details-marker { display: none; }
+.dm-credits > summary u { text-underline-offset: 2px; }
 
 /* ---- Player requests (src/requests) as they appear on the DM screen ---- */
 .dm-badge {

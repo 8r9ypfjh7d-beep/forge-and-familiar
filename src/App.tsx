@@ -1,13 +1,13 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ComponentType } from 'react'
 import './a11y'
 import { AccessibilityDialog, SkipLink, useFocusOnChange, useShortcuts } from './a11y/ui'
-import { AccountBadge, ActivateScreen, CloudLinkNotice, activate, activateErrorKey, getSession, isAdmin, onSessionChanged, type Session } from './accounts'
+import { AccountBadge, ActivateScreen, ActivationPromptHost, CloudLinkNotice, getSession, openActivationPrompt, isAdmin, onSessionChanged, type Session } from './accounts'
 import { UnfinishedDraft } from './builder/UnfinishedDraft'
 import { PromptDialog } from './builder/ConfirmDialog'
 import { useLiveHits } from './combat/ui/useLiveHits'
 import { loadDm, saveDm } from './dm/store'
 import { useDmTools } from './dm/dmTools'
-import { DmRequestPopup, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
+import { DmRequestToast, EditRequestDialog, editState, RequestsAgent, RequestsView, spendEditPass, updateRequests, useRequests, type EditState, type Shared } from './requests'
 import { DiceFab, DiceProvider } from './dice/ui'
 import { FamiliarFab, FamiliarPage, dmPrepare, screenFor } from './familiar/ui'
 import type { Character, UserProfile } from './model/character'
@@ -203,7 +203,7 @@ export default function App() {
     <RequestsAgent userId={active.id} onOpen={openRequestLink} />
     <PartyRollRelay userId={active.id} />
     {playing.party && <RevealMoment party={playing.party} userId={active.id} onOpen={() => setView({ kind: 'party', partyId: playing.party!.id })} />}
-    {(partyDm || admin) && <DmRequestPopup userId={active.id} onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
+    {(partyDm || admin) && <DmRequestToast paused={view.kind === 'combat'} onOpenAll={() => setView({ kind: 'dm', tab: 'requests' })} />}
     {/* The DM's level (or enough XP) reached a character: ask once per level to walk through Level Up. */}
     <LevelUpPrompt characters={characters} parties={playing.parties} userId={active.id} paused={['build', 'edit', 'levelup', 'starters'].includes(view.kind)}
       onLevelUp={id => setView({ kind: 'levelup', id })} />
@@ -375,8 +375,9 @@ export default function App() {
         </Suspense>
       </main>
       {familiar && view.kind !== 'familiar' && <FamiliarFab {...familiar} open={familiarOpen} onOpenChange={o => { setFamiliarOpen(o); if (o) setDiceOpen(false) }} />}
-      <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}
-        secretTo={playing.party && !playing.isDm ? { partyId: playing.party.id, userId: active.id } : undefined} />
+      <ActivationPromptHost />
+      {view.kind !== 'familiar' && <DiceFab open={diceOpen} onOpenChange={setDiceOpen} character={onScreen}
+        secretTo={playing.party && !playing.isDm ? { partyId: playing.party.id, userId: active.id } : undefined} />}
     </div>
     </DiceProvider>
   )
@@ -389,7 +390,7 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
   onAdd: (name: string) => void
 }) {
   const { t } = useI18n()
-  const [asking, setAsking] = useState<'player' | 'code' | null>(null)
+  const [asking, setAsking] = useState<'player' | null>(null)
   return (
     <div className="row profile">
       <label className="muted small" htmlFor="profile">{t('app.player')}</label>
@@ -398,7 +399,7 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
         value={active.id}
         onChange={e => {
           if (e.target.value === '__new') setAsking('player')
-          else if (e.target.value === '__code') setAsking('code')
+          else if (e.target.value === '__code') openActivationPrompt()
           else onSwitch(e.target.value)
         }}
       >
@@ -407,8 +408,6 @@ function ProfileSwitcher({ profiles, active, onSwitch, onAdd }: {
         <option value="__code">{t('account.enterCode')}</option>
       </select>
       <PromptDialog open={asking === 'player'} title={t('app.newPlayerPrompt')} yes={t('app.addPlayerYes')} onClose={() => setAsking(null)} onSubmit={onAdd} />
-      <PromptDialog open={asking === 'code'} title={t('account.codePrompt')} yes={t('account.codeYes')} onClose={() => setAsking(null)}
-        onSubmit={async code => { const s = await activate(code); if (typeof s === 'string') return t(activateErrorKey(s)) }} />
     </div>
   )
 }

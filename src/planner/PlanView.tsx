@@ -1,10 +1,11 @@
+import { fmtMod } from '../i18n/signed'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BUNDLED, loadKind, type Feature } from '../content'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import type { Character, PlannedLevel } from '../model/character'
 import {
-  ABILITIES, CUSTOM_SUBCLASS, MAX_CHARACTER_LEVEL, allFeats, classById, classesFor, formatMod, prereqLabel, rulesEdition, subclassesFor, totalLevel,
+  ABILITIES, CUSTOM_SUBCLASS, MAX_CHARACTER_LEVEL, allFeats, classById, classesFor, prereqLabel, rulesEdition, subclassesFor, totalLevel,
   type Ability,
 } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
@@ -157,7 +158,7 @@ function StepRow({ character, step, library, onChange }: {
 
       <ul className="plan-gains small">
         <li className="plan-num">{t('plan.hp', { gain: step.hpGain, total: step.stats.maxHp })}</li>
-        {step.profUp && <li className="plan-num">{t('plan.prof', { bonus: formatMod(step.stats.proficiencyBonus) })}</li>}
+        {step.profUp && <li className="plan-num">{t('plan.prof', { bonus: fmtMod(step.stats.proficiencyBonus) })}</li>}
         {step.newSlotLevel && <li>{t('plan.slot', { level: top })}</li>}
         {library
           ? stepLibraryFeatures(library, step).map(f => (
@@ -233,7 +234,7 @@ function Summary({ character, step }: { character: Character; step: PlanStep }) 
       <dl className="plan-stats">
         <div><dt>{t('stat.hp')}</dt><dd>{s.maxHp}</dd></div>
         <div><dt>{t('stat.ac')}</dt><dd>{s.armorClass.value}</dd></div>
-        <div><dt>{t('stat.prof')}</dt><dd dir="ltr">{formatMod(s.proficiencyBonus)}</dd></div>
+        <div><dt>{t('stat.prof')}</dt><dd dir="ltr">{fmtMod(s.proficiencyBonus)}</dd></div>
         {s.spellcasting && <div><dt>{t('stat.spellDc')}</dt><dd>{s.spellcasting.saveDc}</dd></div>}
         {top > 0 && <div><dt>{t('plan.topSlot')}</dt><dd>{top}</dd></div>}
         {ABILITIES.map(a => <div key={a}><dt>{abilityShort(a)}</dt><dd>{s.abilities[a]}</dd></div>)}
