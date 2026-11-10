@@ -21,6 +21,9 @@
 .ff-admin .admin-tabs > button { flex: none; white-space: nowrap; }
 .ff-admin .admin-tabs > button.on { color: var(--accent); }
 
+.ff-admin .admin-advanced { margin-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); padding-block-start: var(--sp-2); }
+.ff-admin .admin-advanced > summary { cursor: pointer; font-weight: 600; min-block-size: 36px; display: flex; align-items: center; gap: var(--sp-2); }
+
 .ff-admin .admin-sub { margin-block: var(--sp-2) 0; padding-inline: var(--sp-2); font-size: 0.8rem; }
 
 .ff-admin .admin-table { inline-size: 100%; border-collapse: collapse; margin-block: var(--sp-1); font-variant-numeric: tabular-nums; }
@@ -41,7 +44,8 @@
   .ff-admin .admin-head .row { inline-size: 100%; }
   .ff-admin .admin-head .glass-btn { flex: 1 1 0; }
   .ff-admin .admin-card { padding: var(--sp-3); }
-  .ff-admin .admin-tabs { justify-self: stretch; flex-wrap: wrap; overflow: visible; border-radius: var(--r-lg); }
+  /* One row that scrolls sideways, never a stray tab on a second line. */
+  .ff-admin .admin-tabs { justify-self: stretch; border-radius: var(--r-lg); }
   .ff-admin .admin-tabs > button { flex: 1 1 auto; min-height: 40px; border-radius: calc(var(--r-lg) - 3px); }
   .ff-admin .glass-btn.small { min-height: 44px; padding: 0 var(--sp-4); }
 

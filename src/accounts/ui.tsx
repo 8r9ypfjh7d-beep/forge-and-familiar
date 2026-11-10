@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { AccessibilityButton } from '../a11y/ui'
 import { getCloudStatus, onCloudChanged } from '../cloud'
 import { LanguagePicker, useI18n } from '../i18n'
+import { PromptDialog } from '../builder/ConfirmDialog'
+import { onActivationPrompt } from './activationPrompt'
 import { activate, activateErrorKey } from './session'
 import type { ActivateError } from './types'
 import './accounts.css'
@@ -131,5 +133,16 @@ export function CloudLinkNotice() {
         <button className="glass-btn small cloud-link-later" onClick={() => setLater(true)}>{t('account.cloudLinkLater')}</button>
       </div>
     </section>
+  )
+}
+
+/** The shared activation code dialog; `openActivationPrompt()` shows it from anywhere. Mounted once in App. */
+export function ActivationPromptHost() {
+  const { t } = useI18n()
+  const [open, setOpen] = useState(false)
+  useEffect(() => onActivationPrompt(() => setOpen(true)), [])
+  return (
+    <PromptDialog open={open} title={t('account.codePrompt')} yes={t('account.codeYes')} onClose={() => setOpen(false)}
+      onSubmit={async code => { const s = await activate(code); if (typeof s === 'string') return t(activateErrorKey(s)) }} />
   )
 }

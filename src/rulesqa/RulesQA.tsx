@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { clearRulesQuestion, onRulesQuestion, pendingRulesQuestion } from './handoff'
 import { useI18n } from '../i18n'
 import { Markdown } from './Markdown'
 import { SearchField } from './SearchField'
@@ -27,6 +28,15 @@ export function RulesQA() {
   const [full, setFull] = useState(false)
 
   useEffect(() => { loadRules().then(setRules) }, [])
+  // A question handed over from the Familiar (offline): asked as soon as the rules are loaded.
+  const [handed, setHanded] = useState(pendingRulesQuestion)
+  useEffect(() => onRulesQuestion(() => setHanded(pendingRulesQuestion())), [])
+  useEffect(() => {
+    if (!rules || !handed) return
+    clearRulesQuestion()
+    setHanded('')
+    ask(handed)
+  }, [rules, handed]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const ask = (q: string) => {
     const question = q.trim()

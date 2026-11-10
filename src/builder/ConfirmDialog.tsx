@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useI18n } from '../i18n'
 import { typedMatches } from './typedMatches'
 
@@ -26,6 +26,22 @@ export function ConfirmDialog({ open, title, body, yes, onYes, onClose }: { open
       )}
     </dialog>
   )
+}
+
+export interface ConfirmAsk { title: string; body?: string; yes: string; onYes: () => void }
+
+/**
+ * `confirm()` for lists of things to delete: `ask({ title, yes, onYes })` opens one shared ConfirmDialog, rendered
+ * by the returned element (put it anywhere in the component).
+ */
+export function useConfirm(): [(ask: ConfirmAsk) => void, ReactNode] {
+  const [asking, setAsking] = useState<ConfirmAsk | null>(null)
+  const ask = useCallback((a: ConfirmAsk) => setAsking(a), [])
+  const dialog = (
+    <ConfirmDialog open={!!asking} title={asking?.title ?? ''} body={asking?.body} yes={asking?.yes ?? ''}
+      onYes={() => asking?.onYes()} onClose={() => setAsking(null)} />
+  )
+  return [ask, dialog]
 }
 
 /**

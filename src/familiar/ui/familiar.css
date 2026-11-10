@@ -171,7 +171,6 @@
     inline-size: auto; block-size: min(86dvh, 720px); transform-origin: bottom;
   }
   .fam-head { padding-inline: var(--sp-3) var(--sp-2); }
-  .fam-head-actions .fam-tool { padding-inline: var(--sp-2); }
   /* Clear of the tab bar and the dice button below it. */
   .fam-page-wrap { block-size: calc(100dvh - 200px); min-block-size: 360px; border-radius: var(--r-lg); }
 }

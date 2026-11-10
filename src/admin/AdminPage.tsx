@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { openActivationPrompt } from '../accounts/activationPrompt'
 import { ROSTER } from '../accounts/roster'
+import { useConfirm } from '../builder/ConfirmDialog'
 import { getCloudStatus, onCloudChanged, type CharacterRow } from '../cloud'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character, UserProfile } from '../model/character'
@@ -79,6 +81,7 @@ export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm, onOpenComba
       <p className="glass admin-card admin-note small">
         {t(note)}
         {cloud === null && <> <button className="glass-btn small" onClick={reloadCloud}>{t('admin.retry')}</button></>}
+        {status === 'unlinked' && <> <button className="glass-btn small prominent" onClick={openActivationPrompt}>{t('admin.enterCode')}</button></>}
       </p>
       <div className="glass-segmented admin-tabs" role="tablist">
         {tabs.map(k => (
@@ -95,12 +98,12 @@ export function AdminPage({ onOpenAs, onOpenSheet, onEdit, onOpenDm, onOpenComba
             <tbody>
               {everyone.map(p => (
                 <tr key={p.id}>
-                  <td>{p.name}<div className="muted small" dir="ltr">{p.id}</div></td>
+                  <td title={p.id}>{p.name}</td>
                   <td data-label={t('admin.role')}>
                     {p.account ? t(p.role === 'dm' ? 'admin.role.dm' : 'admin.role.player') : t(p.local ? 'admin.role.local' : 'admin.role.missing')}
                     {p.admin && <> · {t('admin.role.admin')}</>}
                   </td>
-                  <td data-label={t('admin.characters')}>{p.characters}</td>
+                  <td data-label={t('admin.characters')}>{t('admin.characterCount', { count: p.characters })}</td>
                   <td className="admin-actions">{(p.account || p.local) && <button className="glass-btn small" onClick={() => openAs(p.id)}>{t('admin.openAs')}</button>}</td>
                 </tr>
               ))}
@@ -131,14 +134,16 @@ function CloudPeopleTab({ cloud, onOpenAs, onChanged }: {
 }) {
   const { t, date } = useI18n()
   const list = cloudPeople(cloud.accounts, cloud.devices, cloud.characters, cloud.dm)
+  const [ask, dialog] = useConfirm()
   return (
     <div className="glass admin-card">
+      {dialog}
       <table className="admin-table">
         <thead><tr><th>{t('admin.name')}</th><th>{t('admin.role')}</th><th>{t('admin.onServer')}</th><th>{t('admin.devices')}</th><th /></tr></thead>
         <tbody>
           {list.map(p => (
             <tr key={p.id}>
-              <td>{p.name}<div className="muted small" dir="ltr">{p.id}</div></td>
+              <td title={p.id}>{p.name}</td>
               <td data-label={t('admin.role')}>{t(p.role === 'dm' ? 'admin.role.dm' : 'admin.role.player')}{p.admin && <> · {t('admin.role.admin')}</>}</td>
               <td data-label={t('admin.onServer')} className="small">
                 {t('admin.characterCount', { count: p.characters })}
@@ -152,7 +157,7 @@ function CloudPeopleTab({ cloud, onOpenAs, onChanged }: {
                     <span>{date(d.linkedAt)}</span>
                     <button
                       className="glass-btn small danger"
-                      onClick={async () => { if (confirm(t('admin.confirmUnlink', { name: p.name }))) { await unlinkCloudDevice(d.userId); onChanged() } }}
+                      onClick={() => ask({ title: t('admin.confirmUnlink', { name: p.name }), yes: t('admin.unlink'), onYes: async () => { await unlinkCloudDevice(d.userId); onChanged() } })}
                     >{t('admin.unlink')}</button>
                   </div>
                 ))}
@@ -180,6 +185,7 @@ function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChang
   const [busy, setBusy] = useState(false)
   const sorted = [...cloud.characters].sort((a, b) => nameOf(a.owner_id).localeCompare(nameOf(b.owner_id)) || a.data.name.localeCompare(b.data.name))
   const onDevice = (id: string) => local.find(c => c.id === id)
+  const [ask, dialog] = useConfirm()
 
   // The sheet and builder read this device's store, so bring the server's copy here first if it is newer.
   const bringHere = async (row: CharacterRow) => {
@@ -196,6 +202,7 @@ function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChang
 
   return (
     <>
+      {dialog}
       <div className="glass admin-card">
         {sorted.length === 0 && <p className="muted">{t('admin.noServerCharacters')}</p>}
         {sorted.length > 0 && (
@@ -240,17 +247,17 @@ function CloudCharactersTab({ cloud, local, nameOf, onOpenSheet, onEdit, onChang
                       <button
                         className="glass-btn small danger"
                         disabled={busy}
-                        onClick={() => {
-                          if (!confirm(t('admin.confirmDeleteEverywhere', { name: row.data.name }))) return
-                          void act(async () => {
+                        onClick={() => ask({
+                          title: t('admin.confirmDeleteEverywhere', { name: row.data.name }), yes: t('common.delete'),
+                          onYes: () => void act(async () => {
                             const ok = await deleteCloudCharacter(row)
                             if (ok && onDevice(row.id)) {
                               await deleteCharacter(row.id)
                               await deleteSnapshotsFor(row.id)
                             }
                             return ok
-                          })
-                        }}
+                          }),
+                        })}
                       >{t('common.delete')}</button>
                     </div>
                   </td>
@@ -277,9 +284,11 @@ function CloudDmTab({ cloud, nameOf, onOpenAs, onChanged }: {
   onChanged: () => void
 }) {
   const { t, date } = useI18n()
+  const [ask, dialog] = useConfirm()
   if (cloud.dm.length === 0) return <p className="glass admin-card muted">{t('admin.noDmScreens')}</p>
   return (
     <div className="glass admin-card">
+      {dialog}
       <p className="muted small">{t('admin.dmScreensHint')}</p>
       <table className="admin-table">
         <thead><tr><th>{t('admin.name')}</th><th>{t('admin.dmContents')}</th><th>{t('admin.updated')}</th><th /></tr></thead>
@@ -294,11 +303,13 @@ function CloudDmTab({ cloud, nameOf, onOpenAs, onChanged }: {
                   <button className="glass-btn small" onClick={() => onOpenAs(d.account_id)}>{t('admin.openAs')}</button>
                   <button
                     className="glass-btn small danger"
-                    onClick={async () => {
-                      if (!confirm(t('admin.confirmDeleteDm', { name: nameOf(d.account_id) }))) return
-                      if (!(await deleteCloudDm(d.account_id))) alert(t('admin.serverFailed'))
-                      onChanged()
-                    }}
+                    onClick={() => ask({
+                      title: t('admin.confirmDeleteDm', { name: nameOf(d.account_id) }), yes: t('common.delete'),
+                      onYes: async () => {
+                        if (!(await deleteCloudDm(d.account_id))) alert(t('admin.serverFailed'))
+                        onChanged()
+                      },
+                    })}
                   >{t('common.delete')}</button>
                 </div>
               </td>
@@ -318,10 +329,12 @@ function CharactersTab({ characters, owners, nameOf, onOpenSheet, onEdit }: {
   onEdit: (id: string) => void
 }) {
   const { t, classLine, date } = useI18n()
+  const [ask, dialog] = useConfirm()
   if (characters.length === 0) return <p className="glass admin-card muted">{t('admin.noCharacters')}</p>
   const sorted = [...characters].sort((a, b) => nameOf(a.ownerId).localeCompare(nameOf(b.ownerId)) || a.name.localeCompare(b.name))
   return (
     <div className="glass admin-card">
+      {dialog}
       <table className="admin-table">
         <thead><tr><th>{t('admin.character')}</th><th>{t('admin.owner')}</th><th>{t('admin.updated')}</th><th /></tr></thead>
         <tbody>
@@ -345,11 +358,10 @@ function CharactersTab({ characters, owners, nameOf, onOpenSheet, onEdit }: {
                   <button className="glass-btn small" onClick={() => onEdit(c.id)}>{t('list.edit')}</button>
                   <button
                     className="glass-btn small danger"
-                    onClick={async () => {
-                      if (!confirm(t('list.confirmDelete', { name: c.name }))) return
-                      await deleteCharacter(c.id)
-                      await deleteSnapshotsFor(c.id)
-                    }}
+                    onClick={() => ask({
+                      title: t('list.confirmDelete', { name: c.name }), yes: t('common.delete'),
+                      onYes: async () => { await deleteCharacter(c.id); await deleteSnapshotsFor(c.id) },
+                    })}
                   >{t('common.delete')}</button>
                 </div>
               </td>
@@ -364,11 +376,13 @@ function CharactersTab({ characters, owners, nameOf, onOpenSheet, onEdit }: {
 function RequestsTab() {
   const { t, date } = useI18n()
   const list = useRequests()
+  const [ask, dialog] = useConfirm()
   if (list === null) return null
   if (list.length === 0) return <p className="glass admin-card muted">{t('admin.noRequests')}</p>
   const sorted = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   return (
     <div className="glass admin-card">
+      {dialog}
       <p className="muted small">{t('admin.requestsHint')}</p>
       <table className="admin-table">
         <thead><tr><th>{t('admin.request')}</th><th>{t('admin.from')}</th><th>{t('admin.status')}</th><th /></tr></thead>
@@ -393,7 +407,7 @@ function RequestsTab() {
               <td className="admin-actions">
                 <button
                   className="glass-btn small danger"
-                  onClick={() => confirm(t('admin.confirmDeleteRequest', { title: r.title })) && updateRequests(l => removeRequest(l, r.id))}
+                  onClick={() => ask({ title: t('admin.confirmDeleteRequest', { title: r.title }), yes: t('common.delete'), onYes: () => updateRequests(l => removeRequest(l, r.id)) })}
                 >{t('common.delete')}</button>
               </td>
             </tr>
@@ -411,9 +425,11 @@ function DeviceTab({ nameOf }: { nameOf: (id: string) => string }) {
   const file = useRef<HTMLInputElement>(null)
   const reload = () => setRows(keyRows(readDevice()))
   const total = rows.reduce((n, r) => n + r.bytes, 0)
+  const [ask, dialog] = useConfirm()
 
   return (
     <div className="glass admin-card">
+      {dialog}
       <p className="muted small">{t('admin.backupHint')}</p>
       <div className="row">
         <button
@@ -429,14 +445,14 @@ function DeviceTab({ nameOf }: { nameOf: (id: string) => string }) {
             if (!f) return
             const backup = parseBackup(await f.text())
             setError(!backup)
-            if (backup && confirm(t('admin.confirmRestore'))) {
-              restoreDevice(backup)
-              location.reload()
-            }
+            if (backup) ask({ title: t('admin.confirmRestore'), yes: t('admin.restore'), onYes: () => { restoreDevice(backup); location.reload() } })
           }}
         />
         {error && <p className="bad small" role="alert">{t('admin.badBackup')}</p>}
       </div>
+      <details className="admin-advanced">
+      <summary>{t('admin.advanced')} <span className="muted small">{t('admin.total', { size: kb(total) })}</span></summary>
+      <p className="muted small">{t('admin.advancedHint')}</p>
       <table className="admin-table">
         <thead><tr><th>{t('admin.what')}</th><th>{t('admin.size')}</th><th /></tr></thead>
         <tbody>
@@ -452,14 +468,18 @@ function DeviceTab({ nameOf }: { nameOf: (id: string) => string }) {
               <td className="admin-actions">
                 <button
                   className="glass-btn small danger"
-                  onClick={() => { if (confirm(t('admin.confirmDeleteKey', { key: r.key }))) { removeKey(r.key); reload() } }}
+                  aria-label={`${t('common.delete')}: ${t(`admin.key.${r.kind}` as MessageKey)}`}
+                  onClick={() => ask({
+                    title: t('admin.confirmDeleteKey', { key: t(`admin.key.${r.kind}` as MessageKey) }), body: r.key, yes: t('common.delete'),
+                    onYes: () => { removeKey(r.key); reload() },
+                  })}
                 >{t('common.delete')}</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="muted small">{t('admin.total', { size: kb(total) })}</p>
+      </details>
     </div>
   )
 }
