@@ -26,7 +26,7 @@ Join a party with an invite code and see everyone's character at a glance. First
 | `PartySwitcher.tsx` | The Campaign switch in the player menu |
 | `feed.ts` | Party roll feed: merges members' dice histories (`mergePartyRolls`), live via `onMemberRollsChanged` |
 | `RollFeed.tsx` | "Party rolls" panel under the party table; `PartyRollRelay` (in App) sends each sheet roll to the cloud at once |
-| `PartyStash.tsx` | Stash panel under the party table: coins, items, change log. The Codex (src/lore, LORE.md) sits under it, then session notes (src/sessions, SESSIONS.md) |
+| `PartyStash.tsx` | Stash panel under the party table: coins, items, change log. The Codex (src/lore, LORE.md) sits under it, then session notes (src/sessions, SESSIONS.md). On phones a chip row jumps to Party, Notes (Codex, session notes), Rolls (last 3, Show all) and Stash; with no poll running, `SessionScheduler quiet` is a small Plan the next session button once anyone brings a character or the stash was used |
 | `party.css` | Styles scoped to `.ff-party`, Liquid Glass (`src/design/DESIGN.md`): `.glass` cards, `.glass-btn`, `.glass-field`; secret rolls, polls and hand-outs on the page use the same utilities |
 | `visibility.ts` | Pure: `canViewCharacter(character, { userId, parties })` (owner, admin, or brought to a shared party; mirrors the server's rules), `broughtToSharedParty`, `isDmOf` |
 | `useCharacterAccess.ts` | App hook: a character screen for a character this profile may not see bounces home |

@@ -173,3 +173,11 @@
   .ff-party .campaigns-actions { flex-direction: column; inline-size: 100%; }
   .ff-party .campaigns-actions .glass-btn { inline-size: 100%; min-height: 44px; }
 }
+
+/* Campaign page: jump chips (phones only), grouped parts, quiet "Plan the next session". */
+.ff-party .party-group { display: grid; gap: var(--sp-4); scroll-margin-block-start: var(--sp-4); }
+.ff-party .member-grid { scroll-margin-block-start: var(--sp-4); }
+.ff-party .party-jump { display: none; gap: var(--sp-2); flex-wrap: wrap; }
+@media (max-width: 700px) { .ff-party .party-jump { display: flex; } }
+.ff-party .roll-feed > .glass-btn { justify-self: start; margin-block-start: var(--sp-2); }
+.ff-schedule-quiet { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0; }
