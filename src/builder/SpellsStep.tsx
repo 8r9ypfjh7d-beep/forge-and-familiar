@@ -74,11 +74,12 @@ function Count({ label, picked, target, why }: { label: string; picked: number; 
 }
 
 /** The picks as removable chips, then search, level chips and a list of spells with an add/remove button each. */
-function SpellPicker({ pool, chosen, onToggle, label }: { pool: Spell[]; chosen: Set<string>; onToggle: (s: Spell) => void; label: string }) {
+function SpellPicker({ pool, chosen, onToggle, label, startLevel }: { pool: Spell[]; chosen: Set<string>; onToggle: (s: Spell) => void; label: string; startLevel?: number }) {
   const { t, spellName } = useI18n()
   const [query, setQuery] = useState('')
-  const [level, setLevel] = useState<number | 'all'>('all')
   const levels = [...new Set(pool.map(s => s.level))].sort((a, b) => a - b)
+  // Open on the level that still has picks (set by the caller), so full cantrips don't fill the screen.
+  const [level, setLevel] = useState<number | 'all'>(() => startLevel !== undefined && levels.includes(startLevel) ? startLevel : 'all')
   // A steady order (level, then name), so a row never jumps away from the finger that tapped it.
   const sorted = useMemo(() => [...pool].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)), [pool])
   const picked = sorted.filter(s => chosen.has(s.id))
@@ -248,6 +249,9 @@ function ClassSpells({ access: a, spells, saved, toggle, name }: {
   const leveled = mine.filter(s => s.level > 0 && !a.alwaysPrepared.includes(s.id)).length
   const always = a.alwaysPrepared.map(id => byId.get(id)).filter((s): s is Spell => !!s)
   const hasLeveled = a.maxLevel > 0
+  const cantripsLeft = Math.max(0, a.cantrips - cantrips)
+  const leveledLeft = hasLeveled ? Math.max(0, (a.spellbook ?? a.limit) - leveled) : 0
+  const startLevel = cantripsLeft === 0 && leveledLeft > 0 ? a.maxLevel : cantripsLeft > 0 && leveledLeft === 0 && cantrips > 0 ? 0 : undefined
   return (
     <section className="bs-section">
       <h3 className="small">{t('builder.spells.classTitle', { className: name, level: a.level })}</h3>
@@ -275,7 +279,12 @@ function ClassSpells({ access: a, spells, saved, toggle, name }: {
           <bdi>{always.map(s => spellName(s.id, s.name)).join(', ')}</bdi>
         </p>
       )}
-      <SpellPicker pool={pool} chosen={chosen} onToggle={s => toggle(a.classId, s.id)} label={t('builder.spells.pickFor', { name })} />
+      {(cantripsLeft > 0 || leveledLeft > 0) && (
+        <p className="small strong todo">
+          {[cantripsLeft > 0 && t('builder.spells.moreCantrips', { count: cantripsLeft }), leveledLeft > 0 && t('builder.spells.moreSpells', { count: leveledLeft })].filter(Boolean).join(' · ')}
+        </p>
+      )}
+      <SpellPicker pool={pool} chosen={chosen} onToggle={s => toggle(a.classId, s.id)} label={t('builder.spells.pickFor', { name })} startLevel={startLevel} />
     </section>
   )
 }

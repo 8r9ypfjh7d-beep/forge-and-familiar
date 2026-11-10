@@ -287,3 +287,6 @@
 /* Unfinished new character: picked-up note in the builder, Continue/Discard banner on Home and the list. */
 .draft-resumed { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-block: 0 var(--sp-3); color: var(--muted); }
 
+/* Level-up: "Wizard 1 → 2" with a quiet link to pick another class. */
+.levelup-class { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; }
+.levelup .link-btn { font: inherit; padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

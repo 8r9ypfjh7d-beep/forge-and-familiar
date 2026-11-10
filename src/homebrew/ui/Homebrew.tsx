@@ -228,8 +228,10 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
 }) {
   const { t } = useI18n()
   const mine = pack.authorId === profile.id
-  const [tab, setTab] = useState<ContentKind>('spells')
   const [editing, setEditing] = useState<Editing | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const filled = KINDS.filter(k => pack[k].length > 0)
 
   const saveEntry = async (e: Editing, meta?: RestoreMeta) => {
     const withId = <T extends { id: string; name: string }>(x: T): T => (x.id ? x : { ...x, id: entryId(pack, x.name) })
@@ -304,18 +306,27 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
           <p className="muted small">{mine ? t('hb.yourPack') : t('hb.readOnly', { name: pack.authorName })} · {packCounts(t, pack)}</p>
         </div>
         {!mine && <button className="glass-btn" onClick={duplicate}>{t('hb.copy')}</button>}
-        <button
-          className="glass-btn hb-danger"
-          onClick={async () => {
-            if (confirm(t('hb.removeConfirm', { name: pack.name }))) {
-              await deletePack(pack.id)
-              await deleteHistory(`hb:${pack.id}:`)
-              onBack()
-            }
-          }}
-        >
-          {mine ? t('hb.deletePack') : t('hb.removePack')}
-        </button>
+        {filled.length > 0 && (
+          <button className={`glass-btn${sharing ? ' glass-lens' : ''}`} aria-expanded={sharing} onClick={() => setSharing(v => !v)}>{t('hb.share.button')}</button>
+        )}
+        <details className="hb-menu">
+          <summary className="glass-btn icon" aria-label={t('hb.more')}>⋯</summary>
+          <div className="glass thick hb-menu-pop" role="menu">
+            <button
+              role="menuitem"
+              className="glass-btn small hb-danger"
+              onClick={async () => {
+                if (confirm(t('hb.removeConfirm', { name: pack.name }))) {
+                  await deletePack(pack.id)
+                  await deleteHistory(`hb:${pack.id}:`)
+                  onBack()
+                }
+              }}
+            >
+              {mine ? t('hb.deletePack') : t('hb.removePack')}
+            </button>
+          </div>
+        </details>
       </div>
 
       {mine ? (
@@ -329,18 +340,25 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
         />
       ) : pack.description && <p>{pack.description}</p>}
 
+      {sharing && filled.length > 0 && <SharePanel pack={pack} />}
+
       <div className="hb-body">
         <div>
-          <div className="row hb-toolbar">
-            <div className="glass-segmented hb-tabs" role="tablist" aria-label={t('hb.kinds')}>
-              {KINDS.map(k => (
-                <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setEditing(null) }}>
-                  {t(`hb.tab.${k}`)} ({pack[k].length})
-                </button>
-              ))}
+          {mine && !editing && (
+            <div className="hb-toolbar">
+              <button className="glass-btn prominent hb-add" aria-expanded={adding} onClick={() => setAdding(v => !v)}>{t('hb.add')}</button>
+              {adding && (
+                <div className="hb-add-pick" role="group" aria-label={t('hb.addWhat')}>
+                  <p className="small muted">{t('hb.addWhat')}</p>
+                  <div className="row">
+                    {KINDS.map(k => (
+                      <button key={k} type="button" className="glass-chip" onClick={() => { setAdding(false); setEditing(blank(k)) }}>{t(`hb.kind.${k}`)}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            {mine && !editing && <button className="glass-btn prominent small hb-add" onClick={() => setEditing(blank(tab))}>{t(`hb.new.${tab}`)}</button>}
-          </div>
+          )}
 
           {editing?.kind === 'spells' && <SpellForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'spells', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'items' && <ItemForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'items', entry })} onCancel={() => setEditing(null)} />}
@@ -354,19 +372,23 @@ function PackEditor({ pack, profile, onBack, onOpen }: {
           {editing?.kind === 'tools' && <ToolForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'tools', entry })} onCancel={() => setEditing(null)} />}
           {editing?.kind === 'monsters' && <MonsterEntryForm key={editing.entry.id || 'new'} initial={editing.entry} onSave={entry => saveEntry({ kind: 'monsters', entry })} onCancel={() => setEditing(null)} />}
 
-          {!editing && (
-            <EntryList
-              kind={tab}
-              pack={pack}
-              mine={mine}
-              profile={profile}
-              onEdit={(kind, entry) => setEditing({ kind, entry } as Editing)}
-              onDelete={removeEntry}
-              onRestore={mine ? restore : undefined}
-            />
-          )}
+          {!editing && (filled.length === 0
+            ? <div className="glass thin empty"><p className="muted">{t(mine ? 'hb.emptyPack' : 'hb.emptyPackFriend')}</p></div>
+            : filled.map(k => (
+              <section key={k} className="hb-group" aria-labelledby={`hb-group-${k}`}>
+                <h3 id={`hb-group-${k}`} className="hb-group-title small">{t(`hb.tab.${k}`)} <span className="muted">({pack[k].length})</span></h3>
+                <EntryList
+                  kind={k}
+                  pack={pack}
+                  mine={mine}
+                  profile={profile}
+                  onEdit={(kind, entry) => setEditing({ kind, entry } as Editing)}
+                  onDelete={removeEntry}
+                  onRestore={mine ? restore : undefined}
+                />
+              </section>
+            )))}
         </div>
-        <SharePanel pack={pack} />
       </div>
     </section>
   )

@@ -7,7 +7,7 @@ Plan a character's levels from now to 20: which class takes each level, the subc
 | File | Purpose |
 |------|---------|
 | `plan.ts` | Pure: `routeFor` (one entry per level up to 20), `applyLevel`, `planAt` (the "what if" character at a level), `planSteps` (per-level HP gain, proficiency, new slot level, features, prerequisite issues, missing picks), `setEntry` / `setClass` / `fillWith` (plan edits), `stepLibraryFeatures`, `plannedPicks` / `followPlan` (Edit level-ups take the plan's picks) |
-| `PlanView.tsx` | The screen: fill tools, one glass card per level, level 20 summary, CC-BY source line |
+| `PlanView.tsx` | The screen: fill tools, one collapsible row per level ("5 · Wizard 5 · +6 HP · Level 3 spells"; rows still needing a subclass or ASI start open and marked; the class select shows after "Change class for this level"), level 20 summary, CC-BY source line |
 | `planner.css` | Liquid Glass styles (`src/design/DESIGN.md`), logical properties only |
 | `planner.test.ts` | Route, picks, prerequisites, plan edits, library feature filter, CSS check |
 
