@@ -66,3 +66,18 @@
 :root[data-contrast="high"] .ff-rulesqa .glass { border-width: 2px; border-color: var(--line); }
 :root[data-contrast="high"] .ff-rulesqa .glass-chip { border-width: 2px; }
 @media print { .ff-rulesqa .ask, .ff-rulesqa .examples { display: none; } }
+
+/* Library: kind chips and the edition switch under the search, results as an inset list that opens in place. */
+.ff-rulesqa .lib-modes { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); margin-block-end: var(--sp-4); }
+.ff-rulesqa .lib-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.ff-rulesqa .lib-chips .glass-chip { min-height: 36px; }
+.ff-rulesqa .lib-edition > button { min-height: 32px; padding-inline: var(--sp-3); font-size: 0.85rem; }
+.ff-rulesqa .lib-list { margin: 0 0 var(--sp-4); padding: var(--sp-1); }
+.ff-rulesqa .lib-matches { margin-block-start: 0; }
+.ff-rulesqa .lib-row { text-align: start; }
+.ff-rulesqa .lib-row .lib-name { display: flex; flex-direction: column; }
+.ff-rulesqa .lib-row .lib-en { color: var(--muted); font-size: 0.75rem; }
+.ff-rulesqa .lib-row .lib-meta { flex-shrink: 0; color: var(--muted); font-size: 0.8rem; }
+.ff-rulesqa .lib-detail { padding: var(--sp-1) var(--sp-3) var(--sp-3); }
+.ff-rulesqa .lib-detail .mon-statblock { margin: 0; }
+.ff-rulesqa .lib-more { margin-block-start: calc(-1 * var(--sp-2)); }

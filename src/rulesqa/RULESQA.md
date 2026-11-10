@@ -1,4 +1,6 @@
-# Rules Q&A
+# Library (Rules Q&A)
+
+The page at `#/rules` (nav label "Library") is one search box with chips: **All** searches spells, items, conditions, feats and (DM only) monsters by name and also answers rules questions on Ask; **Rules** is the Q&A alone; each kind chip lists that kind (A–Z, narrowed as you type). An exact name match opens above the rules answer. A 2014/2024 switch picks the edition (remembered as `ff.library.edition.v1`). Hebrew names match too. The edition's SRD attribution stays visible.
 
 Ask a rules question in plain words and get the answer quoted from the SRD 5.1, with the section it comes from. No AI service and no network: it is keyword search over the SRD text bundled with the app, so it works offline and never invents a rule.
 
@@ -7,7 +9,9 @@ Ask a rules question in plain words and get the answer quoted from the SRD 5.1, 
 | File | Purpose |
 |------|---------|
 | `index.ts` | Public API: `RulesQA`, `SearchField`, `loadRules`, `answer`, `search`, `breadcrumb` |
-| `RulesQA.tsx` | The Rules screen: question box, quoted answer, full section, related sections |
+| `RulesQA.tsx` | The Library screen: search, kind chips, library results, quoted answer, related sections |
+| `library.ts` | Pure: `searchAll` (names across kinds), `searchKind`, `exactHit`, `isHebrew` |
+| `LibraryView.tsx` | Loads one edition's library, result rows that open a spell (`SpellDetail`), item, monster (`StatBlock`), condition or feat |
 | `rulesqa.css` | Liquid Glass styles (`src/design/DESIGN.md`): answer on thick glass, related sections as a `.glass-list`, one prominent Ask |
 | `SearchField.tsx`, `search-field.css` | Capsule glass search field with a magnifier; also used by the spell search |
 | `Markdown.tsx` | Renders the SRD's markdown subset (paragraphs, lists, tables, bold/italic) |
@@ -34,6 +38,6 @@ Ask a rules question in plain words and get the answer quoted from the SRD 5.1, 
 
 ## Translations
 
-UI strings are `rulesqa.*` keys in `src/i18n/locales`. The SRD text, example questions and breadcrumbs stay English and are marked `lang="en" dir="ltr"`; the Hebrew screen tells people to ask in English because the search only matches English words.
+UI strings are `rulesqa.*` keys in `src/i18n/locales`. The SRD text, example questions and breadcrumbs stay English and are marked `lang="en" dir="ltr"`; a Hebrew rules question gets a card offering the Familiar (it answers in Hebrew); library names match in both languages.
 
 `searchRulesFor(question)` (`handoff.ts`) opens `#/rules` and asks the question there once the rules load; the Familiar uses it while offline.
