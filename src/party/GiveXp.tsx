@@ -5,8 +5,10 @@ import { updateStash } from './store'
 import type { Party } from './types'
 
 /** The DM's "Give XP" card on the party page: an amount or a milestone level for the players they tick (all by default). */
-export function GiveXp({ party, userId, characters, nameOf }: {
+export function GiveXp({ party, userId, characters, nameOf, milestone = true }: {
   party: Party
+  /** False where the Party level card already gives milestone levels (the DM screen). */
+  milestone?: boolean
   userId: string
   characters: Record<string, Character | undefined>
   nameOf: (id: string) => string
@@ -55,7 +57,7 @@ export function GiveXp({ party, userId, characters, nameOf }: {
         <input className="glass-field amount" type="number" min={1} inputMode="numeric" value={amount} onChange={e => setAmount(e.target.value)}
           aria-label={t('xp.give.amount')} placeholder="XP" />
         <button className="glass-btn small prominent" disabled={!(xp > 0) || !picked.length}>{t('xp.give.xp')}</button>
-        <button type="button" className="glass-btn small" disabled={!picked.length} onClick={() => give(true)}>{t('xp.give.milestone')}</button>
+        {milestone && <button type="button" className="glass-btn small" disabled={!picked.length} onClick={() => give(true)}>{t('xp.give.milestone')}</button>}
       </form>
       {note && <p className="muted small" role="status">{note}</p>}
     </section>

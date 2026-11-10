@@ -75,19 +75,26 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--glass-highlight);
 }
 
-/* ---- Top card: folded to one line (title, party, budget, current fight) so the tabs sit on the first screen.
-   Open: party on one side, budget tiles on the other (same split as the character card) ---- */
-.ff-sheet.ff-dm .dm-top { padding-block: var(--sp-3); }
+/* ---- Header: one line (title, party, budget, Requests) so the tabs sit on the first screen ---- */
+.ff-sheet.ff-dm .dm-top { padding-block: var(--sp-2); }
 .dm-top-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-3); }
-.ff-sheet.ff-dm .dm-top-head h1 { font-size: 1.35rem; margin: 0; flex: 1 1 auto; }
-.dm-top-line { flex-basis: 100%; margin: 0; display: flex; flex-wrap: wrap; gap: 2px var(--sp-3); font-size: 0.85rem; color: var(--muted); }
-.dm-top-fight b { color: var(--d); }
-.dm-top-body { display: grid; gap: var(--sp-4) var(--sp-6); grid-template-columns: minmax(0, 1fr); margin-block-start: var(--sp-2); }
-@media (min-width: 1000px) {
-  .dm-top-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
-  .dm-top .dm-budget { border-inline-start: 1px solid var(--glass-hairline); padding-inline-start: var(--sp-6); }
+.ff-sheet.ff-dm .dm-top-head h1 { font-size: 1.2rem; margin: 0; flex: 1 1 auto; }
+.dm-top-line { order: 1; flex-basis: 100%; min-inline-size: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 2px var(--sp-3); font-size: 0.85rem; color: var(--muted); }
+.ff-sheet.ff-dm .dm-req-btn { flex: none; }
+/* Six tabs share the bar on a phone instead of scrolling. */
+@media (max-width: 520px) {
+  .ff-dm .cs-tablist button { flex: 1 1 auto; padding-inline: var(--sp-2); font-size: 0.82rem; }
 }
-@media (max-width: 999px) { .dm-top .dm-budget { border-block-start: 1px solid var(--glass-hairline); padding-block-start: var(--sp-3); } }
+.ff-sheet.ff-dm .dm-req-btn.on { color: var(--accent); background: var(--glass-tint); }
+/* The second-level switch inside Party, Story and Library. */
+.ff-dm .dm-sub { margin-block-end: var(--sp-3); max-inline-size: 100%; overflow-x: auto; scrollbar-width: none; }
+.ff-dm .dm-sub > button { white-space: nowrap; }
+.ff-dm .dm-party { gap: var(--sp-3); }
+/* Fights tab: party size and budget tiles, folded under the plan meter. */
+.dm-budget-fold { margin-block: var(--sp-2); }
+.ff-dm .dm-budget-toggle { font-size: 0.85rem; color: var(--muted); }
+.dm-top-body { display: grid; gap: var(--sp-3) var(--sp-4); grid-template-columns: minmax(0, 1fr); margin-block-start: var(--sp-2); }
+.dm-budget-fold .dm-budget { border-block-start: 1px solid var(--glass-hairline); padding-block-start: var(--sp-3); }
 .dm-groups { display: grid; gap: var(--sp-2); margin-block-end: var(--sp-2) !important; }
 .dm-groups li { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 .dm-groups input { inline-size: 4.5em; text-align: center; }
@@ -219,11 +226,6 @@
 @media print {
   .ff-sheet.ff-dm .card, .ff-dm .cs-tablist { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
-.dm-sheets { margin-block-start: var(--sp-4); padding-block-start: var(--sp-3); border-block-start: 1px solid var(--glass-hairline); }
-.dm-sheet-list { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); }
-.dm-sheet-list li { display: flex; align-items: center; gap: var(--sp-2); }
-.dm-sheet-list .dm-sheet-portrait { inline-size: 32px; block-size: 32px; border-radius: 50%; object-fit: cover; font-size: 0.85rem; flex: none; }
-
 
 /* Rolls tab: player chips, kind filter and the live log */
 .ff-dm .dm-rolls { display: grid; gap: var(--sp-3); }

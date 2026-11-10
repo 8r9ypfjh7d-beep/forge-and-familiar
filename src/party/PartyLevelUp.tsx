@@ -14,7 +14,7 @@ const STATUS: Record<LevelUpStatus, MessageKey> = {
 }
 
 /** The campaign's characters, the server's copy first (it has the players' latest level-ups), kept live. */
-function usePartyCharacters(party: Party) {
+export function usePartyCharacters(party: Party) {
   const ids = party.members.filter(m => m.userId !== party.dmId).flatMap(m => (m.characterId ? [m.characterId] : []))
   const key = ids.join(',')
   const [chars, setChars] = useState<Record<string, Character | undefined> | null>(null)

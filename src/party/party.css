@@ -203,3 +203,8 @@
 @media (max-width: 700px) { .ff-party .party-jump { display: flex; } }
 .ff-party .roll-feed > .glass-btn { justify-self: start; margin-block-start: var(--sp-2); }
 .ff-schedule-quiet { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0; }
+
+/* The DM's campaign page points to the DM screen for lore, notes, XP, rewards and rolls. */
+.ff-party .party-dm-link { padding: var(--sp-3) var(--sp-4); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); }
+.ff-party .party-dm-link p { margin: 0; flex: 1 1 14em; }
+.ff-party .party-dm-link a { text-decoration: none; }
