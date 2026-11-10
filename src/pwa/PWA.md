@@ -8,7 +8,7 @@ Makes Forge & Familiar installable and usable offline. No extra dependencies.
 |------|---------|
 | `register.ts` | Registers `sw.js` (production only), tracks "update waiting" and the install prompt, asks the worker to `WARM` 3 s after load |
 | `chunks.ts` | `recoverFromStaleChunks()`: reloads once (at most once a minute) when a lazy chunk from an older build is gone |
-| `PwaPrompt.tsx` | Bottom strip: offline notice, "new version ready, Reload", "Install" (Chromium only) |
+| `PwaPrompt.tsx` | `PwaPrompt`: bottom strip for the offline notice and "new version ready, Reload". `InstallCard`: install offer as a card on Home once the player has a character ("Not now" hides it for good). `InstallMenuItem`: "Install app" row in the player menu. Install is never offered on the sign-in screen (Chromium only) |
 | `pwa.css` | Styles scoped to `.ff-pwa` |
 | `../../pwa/sw.js` | Service worker template: shell + first-screen chunks on install, the rest on `WARM`, cache-first, SPA navigations get `index.html` |
 | `../../pwa/vite-plugin.ts` | After `vite build`, lists `dist/`, splits it into SHELL / CORE / LAZY (`startupFiles()` follows static imports from `index.html`), fills the template, writes `dist/sw.js` |

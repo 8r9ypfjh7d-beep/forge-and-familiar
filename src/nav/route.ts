@@ -16,8 +16,8 @@ export type View =
 
 const HOME: View = { kind: 'campaigns' }
 
-/** Path names: the Characters screen reads as "heroes" in links. */
-const NAME: Partial<Record<View['kind'], string>> = { campaigns: '', list: 'heroes' }
+/** Path names: the Characters screen is "characters" in links; old "heroes" links still open it. */
+const NAME: Partial<Record<View['kind'], string>> = { campaigns: '', list: 'characters' }
 const PLAIN = ['build', 'starters', 'requests', 'rules', 'homebrew', 'admin', 'familiar'] as const
 const WITH_ID = ['edit', 'levelup', 'sheet', 'levels', 'plan', 'print', 'watch', 'npc'] as const
 
@@ -39,7 +39,7 @@ export function hashToView(hash: string): View {
   let arg: string | undefined
   try { arg = raw ? decodeURIComponent(raw) : undefined } catch { return HOME }
   if (name === '') return HOME
-  if (name === 'heroes') return { kind: 'list' }
+  if (name === 'characters' || name === 'heroes') return { kind: 'list' }
   if ((PLAIN as readonly string[]).includes(name)) return { kind: name as typeof PLAIN[number] }
   // An NPC sheet is a DM page: without an id it opens the DM screen, which lists them.
   if (name === 'npc') return arg ? { kind: 'npc', id: arg } : { kind: 'dm' }

@@ -10,6 +10,15 @@ describe('navItems', () => {
     expect(keys(main)).toEqual(['campaigns', 'list', 'party', 'requests'])
     expect(keys(more)).toContain('rules')
     expect(keys(more)).not.toContain('admin')
+    expect(keys(more)).not.toContain('combat')
+  })
+
+  it("offers a player \"I'm a DM\" last under More, and no one else", () => {
+    const { more } = navItems({ isDm: false, partyDm: false })
+    expect(more[more.length - 1]).toMatchObject({ key: 'dm', label: 'nav.iAmDm' })
+    for (const ctx of [{ isDm: true, partyDm: true }, { isDm: true, partyDm: false, dmTools: true }, { isDm: true, partyDm: false, admin: true }]) {
+      expect(navItems(ctx).more.some(i => i.label === 'nav.iAmDm')).toBe(false)
+    }
   })
 
   it('keeps Characters for the DM of the party in play, with the initiative tracker under More', () => {
@@ -99,7 +108,7 @@ describe('hash routes', () => {
 
   it('reads readable links and falls back to Home for anything unknown', () => {
     expect(viewToHash({ kind: 'sheet', id: 'abc' })).toBe('#/sheet/abc')
-    expect(viewToHash({ kind: 'list' })).toBe('#/heroes')
+    expect(viewToHash({ kind: 'list' })).toBe('#/characters')
     expect(hashToView('')).toEqual({ kind: 'campaigns' })
     expect(hashToView('#/nope')).toEqual({ kind: 'campaigns' })
     expect(hashToView('#/sheet')).toEqual({ kind: 'list' })
