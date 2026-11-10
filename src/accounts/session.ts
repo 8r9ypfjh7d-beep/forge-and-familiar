@@ -1,6 +1,6 @@
 // The activated account on this device (ff.account.v1). Codes are checked by the server, so
 // activating needs a connection once; after that the session works offline.
-import { linkCloudAccount } from '../cloud'
+import { linkCloudAccount, unlinkCloud } from '../cloud'
 import { setActiveProfileId, saveProfile } from '../storage'
 import { normalizeActivationCode } from './codes'
 import type { ActivateError, Session } from './types'
@@ -43,6 +43,12 @@ export async function activate(input: string): Promise<Session | ActivateError> 
   setActiveProfileId(session.id)
   setSession(session)
   return session
+}
+
+/** Signs this device out: unlinks it from the cloud and forgets the account. Characters on this device stay. */
+export async function signOut(): Promise<void> {
+  await unlinkCloud()
+  setSession(null)
 }
 
 /** The message key for a failed activation. */

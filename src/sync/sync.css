@@ -3,6 +3,7 @@
 .sync-syncing .sync-dot { background: var(--accent); animation: sync-pulse 1s ease-in-out infinite; }
 .sync-offline .sync-dot { background: var(--warn); }
 .sync-error .sync-dot { background: var(--bad); }
+.sync-off .sync-dot { background: var(--muted); }
 @keyframes sync-pulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .sync-syncing .sync-dot { animation: none; } }
 .nav-player .sync-badge { margin-inline-start: 4px; }

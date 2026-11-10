@@ -22,7 +22,9 @@ describe('settings', () => {
 
   it('maps each switch to its attribute', () => {
     const a = toAttributes({ ...DEFAULT_SETTINGS, highContrast: true, easyRead: true, reduceMotion: true, reduceTransparency: true, strongFocus: true, largeTargets: true })
-    expect(a).toEqual({ 'data-contrast': 'high', 'data-easy-read': '', 'data-motion': 'reduce', 'data-transparency': 'reduce', 'data-focus': 'strong', 'data-targets': 'large' })
+    expect(a).toEqual({ 'data-contrast': 'high', 'data-easy-read': '', 'data-motion': 'reduce', 'data-transparency': 'reduce', 'data-focus': 'strong', 'data-targets': 'large', 'data-text': null })
+    expect(toAttributes({ ...DEFAULT_SETTINGS, textSize: 130 })['data-text']).toBe('large')
+    expect(toAttributes({ ...DEFAULT_SETTINGS, textSize: 115 })['data-text']).toBeNull()
   })
 })
 

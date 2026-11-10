@@ -31,4 +31,4 @@ Activating needs a connection once, because the server checks the code and signs
 
 ## Activation code dialog from anywhere
 
-`openActivationPrompt()` (`activationPrompt.ts`) opens the one shared "Your activation code" dialog, rendered by `ActivationPromptHost` (mounted once in App). Screens that need a code (player menu, Admin notice) call it instead of telling the player where to find it.
+`signOut()` (`session.ts`) unlinks the device from the cloud and forgets the session; local characters stay (player menu, behind a confirm). `openActivationPrompt()` (`activationPrompt.ts`) opens the one shared "Your activation code" dialog, rendered by `ActivationPromptHost` (mounted once in App). Screens that need a code (player menu, Admin notice) call it instead of telling the player where to find it.
