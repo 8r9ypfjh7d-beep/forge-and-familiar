@@ -1,6 +1,7 @@
+import { fmtMod } from '../../i18n/signed'
 import { useI18n } from '../../i18n'
 import type { Character, HitDie } from '../../model/character'
-import { abilityMod, formatMod, getAbilityScores } from '../../rules'
+import { abilityMod, getAbilityScores } from '../../rules'
 import { canLongRest, effectiveMaxHp, hitDiceRemaining, hitDieAverage, hitDicePreview, longRest, shortRest, spendHitDie, vitals } from '../engine'
 import type { Apply } from '../types'
 import { useSheetRolls } from '../dice'
@@ -22,7 +23,7 @@ export function Rests({ character, apply }: { character: Character; apply: Apply
   const spend = (die: HitDie) => {
     const roll = rolls.hitDie(die, con)
     const gained = Math.max(0, roll + con)
-    apply(t('sheet.log.hitDie', { die, roll, con: formatMod(con), gained }), c => spendHitDie(c, die, roll))
+    apply(t('sheet.log.hitDie', { die, roll, con: fmtMod(con), gained }), c => spendHitDie(c, die, roll))
   }
   const long = () => {
     const meal = defaultMeal(character)

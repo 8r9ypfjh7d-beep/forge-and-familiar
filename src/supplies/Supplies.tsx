@@ -1,10 +1,11 @@
 // Supplies card on the live sheet: ammunition per ranged weapon and the ration countdown.
+import { fmtMod } from '../i18n/signed'
 import { useState } from 'react'
 import type { Character } from '../model/character'
 import { rollAttack } from '../dice'
 import { useDice } from '../dice/ui'
 import { useI18n } from '../i18n'
-import { derive, formatMod } from '../rules'
+import { derive } from '../rules'
 import type { Apply } from '../sheet/types'
 import { ammoSpent, daysWithoutFood, foodLimit, rangedWeapons, rationsLeft, recoverAmmo, spendAmmo, type Meal } from './supplies'
 import './supplies.css'
@@ -47,7 +48,7 @@ export function Supplies({ character, apply }: { character: Character; apply: Ap
             <span className="track-label">{label}<small>{ammoName}</small></span>
             <span className={`supply-count${left <= LOW ? ' low' : ''}`}>{left === 0 ? t('supplies.out', { ammo: ammoName }) : t('supplies.left', { n: left })}</span>
             <button type="button" className="btn primary" disabled={left === 0} onClick={() => shoot(weapon.name, label, ammoId)}>
-              {t('supplies.shoot')} <small>{formatMod(derive(character).attacks.find(a => a.name === weapon.name)?.bonus ?? 0)}</small>
+              {t('supplies.shoot')} <small>{fmtMod(derive(character).attacks.find(a => a.name === weapon.name)?.bonus ?? 0)}</small>
             </button>
             <button type="button" className="btn ghost small" disabled={left === 0} aria-label={t('supplies.spendOne', { ammo: ammoName })}
               onClick={() => apply(t('supplies.log.spent', { ammo: ammoName }), c => spendAmmo(c, ammoId))}>−1</button>

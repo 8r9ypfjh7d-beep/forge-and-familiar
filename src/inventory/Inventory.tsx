@@ -1,5 +1,6 @@
 // The sheet's Inventory card: coins, carried weight, every item with equip, quantity and edit,
 // adding from the SRD library (gear and magic items) or a custom item, and the warlock's pact weapon.
+import { LRM, fmtMod } from '../i18n/signed'
 import { useEffect, useState } from 'react'
 import { BUNDLED, loadKind, searchEntries, type Edition, type Equipment, type MagicItem } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
@@ -115,7 +116,7 @@ type T = ReturnType<typeof useI18n>
 /** "+1 AC", "STR becomes 19", "Resistant to fire"… Also used by custom actions on the combat page and DM requests. */
 export function effectText({ t, term, skill }: T, f: ItemEffect): string {
   const n = 'value' in f ? f.value : 0
-  const signed = `${n >= 0 ? '+' : '−'}${Math.abs(n)}`
+  const signed = `${LRM}${n >= 0 ? '+' : '−'}${Math.abs(n)}`
   const ability = (a: Ability) => term('ability', a, ABILITY_NAMES[a])
   switch (f.kind) {
     case 'abilitySet': return t('inv.fx.text.abilitySet', { ability: ability(f.ability), n })
@@ -344,7 +345,7 @@ function ItemEditor({ character, entry: e, apply, onDone }: { character: Charact
       {item.kind !== 'gear' && (
         <label><span className="inv-label">{t('inv.f.magic')} <Why title={t('inv.why.magic.title')} text={t('inv.why.magic.text')} /></span>
           <select value={magic} onChange={ev => setMagic(Number(ev.target.value))}>
-            {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n ? `+${n}` : t('inv.none')}</option>)}
+            {[0, 1, 2, 3].map(n => <option key={n} value={n}>{n ? fmtMod(n) : t('inv.none')}</option>)}
           </select>
         </label>
       )}

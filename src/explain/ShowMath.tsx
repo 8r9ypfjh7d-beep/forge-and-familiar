@@ -1,7 +1,7 @@
+import { fmtMod } from '../i18n/signed'
 import { useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Character } from '../model/character'
-import { formatMod } from '../rules'
 import { useI18n } from '../i18n'
 import { explain, type MathWords, type StatKey, type StatMath } from './math'
 import './explain.css'
@@ -53,7 +53,7 @@ export function ShowMath({ character, stat, children, className }: {
   )
 }
 
-const fmt = (n: number, signed: boolean) => (signed ? formatMod(n) : `${n}`)
+const fmt = (n: number, signed: boolean) => (signed ? fmtMod(n) : `${n}`)
 
 /** The math labels in the current language. */
 export function useMathWords(): MathWords {
@@ -71,7 +71,7 @@ export function MathTable({ math }: { math: StatMath }) {
           {math.lines.map((l, i) => (
             <tr key={i}>
               <td>{l.label}</td>
-              <td>{i === 0 ? fmt(l.value, math.signed) : formatMod(l.value)}</td>
+              <td>{i === 0 ? fmt(l.value, math.signed) : fmtMod(l.value)}</td>
             </tr>
           ))}
         </tbody>

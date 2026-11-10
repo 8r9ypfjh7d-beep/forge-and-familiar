@@ -1,8 +1,9 @@
+import { fmtMod } from '../i18n/signed'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import type { Spell } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
-import { derive, formatMod } from '../rules'
+import { derive } from '../rules'
 import { Markdown } from '../rulesqa/Markdown'
 import { useFeatureTexts, type DescribedLine } from '../sheet/combat/featureTexts'
 import { EMPTY, useLibrary } from '../sheet/combat/library'
@@ -208,7 +209,7 @@ function PageOne({ s, i, texts, spellRows }: { s: Sheet; i: T; texts: ReturnType
                 {spellRows.map(r => (
                   <tr key={`spell-${r.name}`}>
                     <td><bdi>{i.spellName(r.name)}</bdi>{r.range && <small>{i.spellMeasure(r.range)}</small>}</td>
-                    <td>{r.kind === 'attack' ? <span dir="ltr">{formatMod(r.value)}</span> : r.kind === 'save' && r.save ? t('print.saveDcShort', { dc: r.value, ability: i.abilityShort(r.save) }) : t('print.autoHit')}</td>
+                    <td>{r.kind === 'attack' ? <span dir="ltr">{fmtMod(r.value)}</span> : r.kind === 'save' && r.save ? t('print.saveDcShort', { dc: r.value, ability: i.abilityShort(r.save) }) : t('print.autoHit')}</td>
                     <td>
                       {r.damage && <span dir="ltr">{r.beams ? t('print.beams', { n: r.beams, damage: r.damage }) : r.damage}</span>}
                       {r.damageType && <> {i.term('damage', r.damageType, r.damageType)}</>}
@@ -337,7 +338,7 @@ function PageSpells({ s, i, spells }: { s: Sheet; i: T; spells: PrintSpells }) {
             <div className="p-trio">
               <Stat label={t('print.spellAbility')} value={i.abilityShort(c.ability)} />
               <Stat label={t('print.saveDc')} value={String(c.saveDc)} />
-              <Stat label={t('print.spellAttack')} value={formatMod(c.attack)} />
+              <Stat label={t('print.spellAttack')} value={fmtMod(c.attack)} />
             </div>
             <p className="p-muted">
               {c.spellbook != null

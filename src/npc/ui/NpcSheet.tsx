@@ -2,6 +2,7 @@
 // rests, legendary and spell pips, the shared stat block with roll buttons, and DM-only notes. Every change
 // goes through the pure engine and is saved at once; the session log undoes the last change. DM only:
 // App renders this for view kind 'npc' when the signed-in account is a DM, and the route is DM-only (src/nav).
+import { fmtMod } from '../../i18n/signed'
 import { useEffect, useRef, useState } from 'react'
 import { announce } from '../../a11y'
 import { ConfirmDialog } from '../../builder/ConfirmDialog'
@@ -13,7 +14,7 @@ import type { DmState, EncounterPlan } from '../../dm/types'
 import { rollD20 } from '../../dice'
 import { useDice } from '../../dice/ui'
 import { useI18n, type MessageKey } from '../../i18n'
-import { CONDITIONS, DAMAGE_TYPES, formatMod, type ConditionId } from '../../rules'
+import { CONDITIONS, DAMAGE_TYPES, type ConditionId } from '../../rules'
 import { StatBlock, crLabel, initBonus, legendaryCount, legendaryResistance, limitedActions, passivePerception, perDayGroups, speedText, spellSlots, typeLine } from '../../monsters'
 import {
   heal, isDown, longRest, maxHp, npcDefense, rechargeRoll, setCondition, setHp, setMaxHp, setTempHp, setUses, shortRest,
@@ -191,12 +192,12 @@ function HeroCard({ npc, editing, apply, ownerId, onOpenFight }: { npc: Npc; edi
         <dl className="npc-stats">
           <div><dt>{t('stat.ac')}</dt><dd>{m.armorClass[0]?.value ?? 10}</dd></div>
           <div><dt>{t('stat.speed')}</dt><dd className="npc-speed" lang="en" dir="ltr">{speedText(m.speed)}</dd></div>
-          <div><dt>{t('stat.prof')}</dt><dd>{formatMod(m.proficiencyBonus)}</dd></div>
+          <div><dt>{t('stat.prof')}</dt><dd>{fmtMod(m.proficiencyBonus)}</dd></div>
           <div><dt>{t('stat.passivePerception')}</dt><dd>{passivePerception(m)}</dd></div>
         </dl>
         <div className="npc-hero-actions">
           <button type="button" className="btn primary" onClick={() => record(rollD20(initBonus(m), { label: `${npc.name}: ${t('npc.initiativeLabel')}` }, 'check'), { quiet: true })}>
-            {t('npc.initiative', { bonus: formatMod(initBonus(m)) })}
+            {t('npc.initiative', { bonus: fmtMod(initBonus(m)) })}
           </button>
           <button type="button" className="btn" aria-expanded={picking} onClick={() => setPicking(p => !p)}>⚔ {t('npc.addToFight')}</button>
         </div>
