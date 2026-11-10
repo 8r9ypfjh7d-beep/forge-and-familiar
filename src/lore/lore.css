@@ -170,3 +170,23 @@
 .ff-lore .composer .lore-format { gap: 6px; margin-block-end: 4px; }
 .ff-handouts .kind.shown-tag { color: var(--good); }
 @media (max-width: 420px) { .ff-lore .lore-type-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Composer: types in one scrolling chip row; chapter, picture and audience under "More options". */
+.ff-lore .lore-type-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block-end: 2px; scroll-snap-type: x proximity; }
+.ff-lore .lore-type-row::-webkit-scrollbar { display: none; }
+.ff-lore .lore-type-row .lore-type { flex: none; white-space: nowrap; min-height: 36px; border-radius: var(--r-pill); scroll-snap-align: start; }
+.ff-lore .lore-options { display: grid; gap: var(--sp-3); }
+.ff-lore .lore-options > summary { cursor: pointer; font-weight: 600; padding-block: 6px; }
+.ff-lore .lore-options[open] > summary { margin-block-end: var(--sp-2); }
+
+/* Entry cards: the title opens the entry; rare actions live in a "⋯" menu. */
+.ff-handouts .handout-title { all: unset; cursor: pointer; }
+.ff-handouts .handout-title:hover { text-decoration: underline; }
+.ff-handouts .handout-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.lore-menu { position: relative; }
+.lore-menu > summary { list-style: none; }
+.lore-menu > summary::-webkit-details-marker { display: none; }
+.lore-menu-list { background: var(--panel); border: 1px solid var(--glass-stroke); box-shadow: var(--glass-shadow); position: absolute; z-index: 20; inset-inline-end: 0; inset-block-end: calc(100% + 4px); min-inline-size: 180px; display: grid; padding: 6px; border-radius: var(--r-md); }
+.lore-menu-list button { all: unset; cursor: pointer; padding: 10px 12px; border-radius: var(--r-sm); color: var(--ink); }
+.lore-menu-list button:hover, .lore-menu-list button:focus-visible { background: var(--glass-tint); }
+.lore-menu-list button.danger { color: var(--bad); }

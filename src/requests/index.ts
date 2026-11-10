@@ -1,4 +1,4 @@
-export { DmRequestPopup, DmRequestsTab, EditRequestDialog, RequestsAgent, RequestsView, StoryReminders } from './Requests'
+export { DmRequestToast, DmRequestsTab, EditRequestDialog, RequestsAgent, RequestsView, StoryReminders } from './Requests'
 export { useRequests } from './hooks'
 export * from './grants'
 export * from './logic'
