@@ -12,25 +12,34 @@ export type RollMode = 'normal' | 'advantage' | 'disadvantage'
  * Situational sources (cover, the target's conditions) are up to the caller.
  */
 export function getRollMode(c: Pick<Character, 'state'>, kind: RollKind, ability?: Ability): RollMode {
+  return rollModeCauses(c, kind, ability).mode
+}
+
+/** Where a forced advantage or disadvantage comes from: a condition id ("poisoned") or a running effect's name ("Foresight"). */
+export type RollModeCause = { condition: string } | { effect: string }
+
+/** getRollMode with its reasons, so the sheet can say "Disadvantage: Poisoned" instead of a bare "(dis)". */
+export function rollModeCauses(c: Pick<Character, 'state'>, kind: RollKind, ability?: Ability): { mode: RollMode; adv: RollModeCause[]; dis: RollModeCause[] } {
   const { conditions } = c.state
-  const has = (id: string) => conditions.includes(id as never)
-  let adv = false
-  let dis = false
-  if (kind === 'check') {
-    if (has('poisoned') || has('frightened')) dis = true
-  }
+  const adv: RollModeCause[] = []
+  const dis: RollModeCause[] = []
+  const conds = (ids: string[], into: RollModeCause[]) => { for (const id of ids) if (conditions.includes(id as never)) into.push({ condition: id }) }
+  if (kind === 'check') conds(['poisoned', 'frightened'], dis)
   if (kind === 'attack') {
-    if (['poisoned', 'frightened', 'blinded', 'prone', 'restrained'].some(has)) dis = true
-    if (has('invisible')) adv = true
+    conds(['poisoned', 'frightened', 'blinded', 'prone', 'restrained'], dis)
+    conds(['invisible'], adv)
   }
-  if (kind === 'save') {
-    if (ability === 'dex' && has('restrained')) dis = true
-  }
+  if (kind === 'save' && ability === 'dex') conds(['restrained'], dis)
+  const running = (c.state.effects ?? []).filter(e => e.on)
   // Running spells that always give advantage on attacks (Foresight, Greater Invisibility).
-  if (kind === 'attack' && (c.state.effects ?? []).some(e => e.on && e.stats?.some(f => f.kind === 'advantage' && f.on === 'attacks' && !f.when))) adv = true
   // Reckless Attack: melee attacks using Strength (attack rolls pass 'str' only for those).
-  if (kind === 'attack' && ability === 'str' && (c.state.effects ?? []).some(e => e.on && e.stats?.some(f => f.kind === 'advantage' && f.on === 'attacks' && f.when === STRENGTH_MELEE))) adv = true
-  return adv === dis ? 'normal' : adv ? 'advantage' : 'disadvantage'
+  if (kind === 'attack') {
+    for (const e of running) {
+      if (e.stats?.some(f => f.kind === 'advantage' && f.on === 'attacks' && (!f.when || (ability === 'str' && f.when === STRENGTH_MELEE)))) adv.push({ effect: e.name })
+    }
+  }
+  const mode: RollMode = !adv.length === !dis.length ? 'normal' : adv.length ? 'advantage' : 'disadvantage'
+  return { mode, adv, dis }
 }
 
 /** Saves the character fails automatically (paralyzed, stunned, unconscious, petrified: STR and DEX). */

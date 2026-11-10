@@ -98,7 +98,7 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
           <input type="number" value={modifier} onChange={e => setModifier(Number(e.target.value) || 0)} />
         </label>
         <div className="ff-dice__modes" role="radiogroup" aria-label={t('dice.advantageGroup')}>
-          {(['disadvantage', 'normal', 'advantage'] as const).map(m => (
+          {(['advantage', 'normal', 'disadvantage'] as const).map(m => (
             <button
               key={m}
               type="button"

@@ -106,7 +106,7 @@ function SecretRoller({ partyId, userId, character, sent }: {
           </optgroup>
         </select>
         <div className="glass-segmented" role="radiogroup" aria-label={t('dice.advantageGroup')}>
-          {(['disadvantage', 'normal', 'advantage'] as const).map(m => (
+          {(['advantage', 'normal', 'disadvantage'] as const).map(m => (
             <button key={m} type="button" role="radio" aria-checked={mode === m}
               onClick={() => setMode(m)}>
               {m === 'normal' ? t('dice.normal') : m === 'advantage' ? t('dice.adv') : t('dice.dis')}
