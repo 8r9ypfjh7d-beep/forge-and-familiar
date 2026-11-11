@@ -15,6 +15,7 @@ import type { Party } from '../party'
 import { Codex } from '../lore'
 import { usePartyNames } from '../lore/useNames'
 import { SessionNotes } from '../sessions'
+import { PartyNotes } from '../notes'
 import { fetchPartyCharacters } from '../party/cloud'
 import { StatBlock } from '../monsters'
 import { totalLevel } from '../rules'
@@ -50,14 +51,14 @@ type Tab = DmTab
 type Group = 'party' | 'encounters' | 'story' | 'maps' | 'npcs' | 'library'
 const GROUPS: Group[] = ['party', 'encounters', 'story', 'maps', 'npcs', 'library']
 const GROUP_OF: Record<Tab, Group | null> = {
-  party: 'party', rolls: 'party', encounters: 'encounters', lore: 'story', sessions: 'story', maps: 'maps', npcs: 'npcs', monsters: 'library', reference: 'library', requests: null,
+  party: 'party', rolls: 'party', encounters: 'encounters', lore: 'story', notes: 'story', sessions: 'story', maps: 'maps', npcs: 'npcs', monsters: 'library', reference: 'library', requests: null,
 }
-const SUBS: Partial<Record<Group, Tab[]>> = { party: ['party', 'rolls'], story: ['lore', 'sessions'], library: ['monsters', 'reference'] }
+const SUBS: Partial<Record<Group, Tab[]>> = { party: ['party', 'rolls'], story: ['lore', 'notes', 'sessions'], library: ['monsters', 'reference'] }
 const GROUP_KEYS: Record<Group, MessageKey> = {
   party: 'dm.tab.party', encounters: 'dm.tab.encounters', story: 'dm.tab.story', maps: 'dm.tab.maps', npcs: 'dm.tab.npcs', library: 'dm.tab.library',
 }
 const SUB_KEYS: Partial<Record<Tab, MessageKey>> = {
-  party: 'dm.tab.players', rolls: 'dm.tab.rolls', lore: 'dm.tab.lore', sessions: 'sessions.tab', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference',
+  party: 'dm.tab.players', rolls: 'dm.tab.rolls', lore: 'dm.tab.lore', notes: 'notes.tab', sessions: 'sessions.tab', monsters: 'dm.tab.monsters', reference: 'dm.tab.reference',
 }
 const DIFFICULTY_KEYS: Record<Difficulty, MessageKey> = {
   none: 'dm.diff.none', trivial: 'dm.diff.trivial', low: 'dm.diff.low', moderate: 'dm.diff.moderate', high: 'dm.diff.high', beyond: 'dm.diff.beyond',
@@ -275,7 +276,8 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
           {tab === 'requests' && <DmRequestsTab list={requests ?? []} userId={userId} />}
           {group === 'story' && requests && <StoryReminders list={requests} onOpen={() => setTab('requests')} />}
           {tab === 'lore' && (party ? <Codex party={party} userId={userId} nameOf={nameOf} /> : <LoreNoCampaign runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
-          {tab === 'sessions' && (party ? <SessionNotes party={party} userId={userId} onOpenLore={() => setTab('lore')} /> : <LoreNoCampaign what="sessions" runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
+          {tab === 'notes' && (party ? <PartyNotes party={party} userId={userId} onOpenLore={() => setTab('lore')} /> : <LoreNoCampaign what="notes" runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
+          {tab === 'sessions' && (party ? <SessionNotes party={party} userId={userId} /> : <LoreNoCampaign what="sessions" runs={runs ?? []} onPick={onPickCampaign} onStart={onStartCampaign} />)}
         </div>
       </div>
       <details className="dm-credits">
@@ -290,7 +292,7 @@ export function DmScreen({ userId, onRunEncounter, onOpenSheet, onNewNpc, onOpen
 // ---------- Lore tab without a campaign in play ----------
 
 /** Lore and session notes belong to a campaign: open one the DM runs, or start one, right here. */
-function LoreNoCampaign({ what = 'lore', runs, onPick, onStart }: { what?: 'lore' | 'sessions' | 'dmParty'; runs: Party[]; onPick?: (id: string) => void; onStart?: () => void }) {
+function LoreNoCampaign({ what = 'lore', runs, onPick, onStart }: { what?: 'lore' | 'notes' | 'sessions' | 'dmParty'; runs: Party[]; onPick?: (id: string) => void; onStart?: () => void }) {
   const { t } = useI18n()
   return (
     <div className="glass thin dm-lore-start">

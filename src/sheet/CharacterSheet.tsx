@@ -130,7 +130,7 @@ export function Sheet({ character, party, userId, apply, undo, undoTo, redo, log
     switch (s) {
       case 'abilities': return <AbilitiesPanel key={s} character={character} />
       case 'spellCard': return <SpellsCard key={s} {...p} />
-      case 'notes': return <Notes key={s} {...p} />
+      case 'notes': return brings && !viewOnly ? <Notes key={s} {...p} party={party} userId={userId} /> : null
       case 'hp': return <HitPoints key={s} {...p} />
       case 'death': return <DeathSaves key={s} {...p} />
       case 'rests': return <Rests key={s} {...p} />

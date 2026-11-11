@@ -21,6 +21,7 @@ import { useHe } from './use.he'
 import { hurtHe } from './hurt.he'
 import { npcHe } from './npc.he'
 import { sessionsHe } from './sessions.he'
+import { partyNotesHe } from './partynotes.he'
 import { npcBuildHe } from './npcbuild.he'
 import { sheetTermsHe } from './sheetnames.he'
 import { suppliesHe } from './supplies.he'
@@ -53,6 +54,7 @@ const messages: Messages = {
   ...hurtHe,
   ...npcHe,
   ...sessionsHe,
+  ...partyNotesHe,
   ...npcBuildHe,
   ...suppliesHe,
   ...picks2014He,

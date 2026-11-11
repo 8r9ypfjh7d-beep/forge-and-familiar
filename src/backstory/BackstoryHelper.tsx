@@ -10,8 +10,9 @@ import './backstory.css'
 
 const newSeed = () => Math.floor(Math.random() * 2 ** 31)
 
-/** "Draft a backstory" inside the Notes card: shows a draft, rerolls it, and adds it below the notes. */
-export function BackstoryHelper({ character, apply }: { character: Character; apply: Apply }) {
+/** "Draft a backstory" inside the notes card: shows a draft, rerolls it, and adds it below the notes
+ *  (or hands it to onAdd, which "My notes" turns into a private note). */
+export function BackstoryHelper({ character, apply, onAdd }: { character: Character; apply: Apply; onAdd?: (text: string) => void }) {
   const { t, locale, raceName, className, term } = useI18n()
   const [seed, setSeed] = useState<number | null>(null)
   if (seed === null) {
@@ -30,7 +31,8 @@ export function BackstoryHelper({ character, apply }: { character: Character; ap
   const text = backstoryText(draft, locale)
   const l = PHRASES[locale].labels
   const add = () => {
-    apply(t('backstory.added'), c => setNotes(c, withBackstory(c.notes, text)))
+    if (onAdd) onAdd(text)
+    else apply(t('backstory.added'), c => setNotes(c, withBackstory(c.notes, text)))
     setSeed(null)
   }
   return (

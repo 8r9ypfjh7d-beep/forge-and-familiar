@@ -35,6 +35,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261030220000_lore.sql
 \ir ../migrations/20261031100000_assistant_usage.sql
 \ir ../migrations/20261101130000_session_notes.sql
+\ir ../migrations/20261111060000_party_notes.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
@@ -407,6 +408,38 @@ exception when insufficient_privilege then raise notice 'ok: a private half stay
 end $$;
 delete from session_notes where id = 'sn-1';
 select pg_temp.check((select count(*) from session_note_secrets) = 0, 'deleting a note deletes its private half');
+
+-- Party notes (src/notes): the writer picks readers, the DM reads everything, only the writer edits.
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+insert into party_notes (id, party_id, author_id, to_all, to_ids, data) values
+  ('pn-all', 'p-2', 'acct-tamir', true, '{}', '{"title":"The loop"}'),
+  ('pn-me', 'p-2', 'acct-tamir', false, '{}', '{"title":"My secret"}'),
+  ('pn-noa', 'p-2', 'acct-tamir', false, '{acct-noa}', '{"title":"For Noa"}');
+do $$ begin
+  insert into party_notes (id, party_id, author_id, data) values ('pn-x', 'p-2', 'acct-noa', '{}');
+  raise exception 'FAILED: wrote a note as someone else';
+exception when insufficient_privilege then raise notice 'ok: notes are written only as yourself';
+end $$;
+do $$ begin
+  insert into party_notes (id, party_id, author_id, data) values ('pn-y', 'p-1', 'acct-tamir', '{}');
+  raise exception 'FAILED: wrote a note in a party they are not in';
+exception when insufficient_privilege then raise notice 'ok: notes only in your own party';
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select array_agg(id order by id) from party_notes) = '{pn-all,pn-noa}', 'a player reads whole-party notes and ones shared with them');
+update party_notes set data = '{"title":"hacked"}' where id = 'pn-all';
+delete from party_notes where id = 'pn-all';
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select count(*) from party_notes) = 3, 'the DM reads every note, private ones too');
+update party_notes set data = '{"title":"hacked"}' where id = 'pn-all';
+select pg_temp.check((select data->>'title' from party_notes where id = 'pn-all') = 'The loop', 'nobody but the writer changes or deletes a note');
+insert into party_notes (id, party_id, author_id, to_all, data) values ('pn-dm', 'p-2', 'acct-roy', true, '{"title":"From the DM"}');
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select count(*) from party_notes where id = 'pn-dm') = 1, 'the DM writes notes too');
+delete from party_notes where author_id = 'acct-tamir';
+set test.uid = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select array_agg(id) from party_notes) = '{pn-dm}', 'the writer deletes their own notes');
+delete from party_notes;
 
 -- Session polls.
 set test.uid = '00000000-0000-0000-0000-00000000000b';

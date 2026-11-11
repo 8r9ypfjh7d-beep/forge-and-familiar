@@ -35,7 +35,7 @@ The live sheet has two modes, switched with the Story / Combat buttons under the
 ## Rules
 
 - The mode is a device preference in localStorage `ff.sheetMode.v1.<characterId>`, never on `Character`.
-- Notes edit `Character.notes` through `setNotes` in `engine.ts`, saved on blur so the history gets one entry per edit.
+- The notes section is "My notes" (src/notes/NOTES.md): the player's party notes, shown only when the character is in the campaign in play. Old `Character.notes` text moves in once as a private note and the field is cleared.
 - A widget meant for both modes goes in `SHARED_TOP` or `SHARED_SIDE` in `mode.ts`. Before adding a card to combat mode, check that no tab already shows it.
 - Removing something the player made (a custom action, a tracker, a spell, an item, or the last of a stack) asks first with `sheet.confirmRemove`; switching a running effect off asks with `fx.confirmEnd`, since turning it back on costs a cast. End of fight doesn't ask.
 - Adding a sheet section: add its id to `SheetSection`, render it in `CharacterSheet.tsx`'s `section()` switch, and place it in one or both layouts.
