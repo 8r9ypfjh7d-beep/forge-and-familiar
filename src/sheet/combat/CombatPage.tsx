@@ -480,7 +480,7 @@ export function Fight({ character, apply }: { character: Character; apply: Apply
     .map(m => ({ weapon: i18n.item(m.itemId, itemById(m.itemId)?.name ?? m.itemId), mastery: m.mastery }))
 
   const result = out && (
-    <FadingResult key={outKey} ref={outRef} className="cs-out" onDone={() => setOut(null)}>
+    <FadingResult key={outKey} ref={outRef} inline className="cs-out" onDone={() => setOut(null)}>
       <strong>{out.name}</strong>
       <LastRoll rolls={out.rolls} note={out.note} why={ownMode.own !== 'normal' ? { [ownMode.own]: ownMode.why } : undefined} />
       {out.healMe !== undefined && healedKey !== outKey && character.state.currentHp > 0 && (
