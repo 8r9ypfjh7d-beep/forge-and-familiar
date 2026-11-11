@@ -7,7 +7,7 @@
   --ink: #2a2118;
   --muted: #7a6b5a;
   --line: #e2d7c4;
-  --accent: #8c2f1b;
+  --accent: #9e2b25;
   --accent-ink: #fff;
   --accent-soft: #f3e1d8;
   --good: #2f6b3a;
@@ -46,8 +46,9 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); min-height: 100vh; }
+body { margin: 0; background: transparent; min-height: 100vh; } /* :root paints --bg; body stays clear so the map layer shows */
 h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.015em; margin: 0 0 0.4em; line-height: 1.2; }
+h1 { font-family: var(--font-title); letter-spacing: 0.01em; }
 h2 { font-size: 1.4rem; }
 h3 { font-size: 1.1rem; }
 h4 { font-size: 0.95rem; margin-top: 1em; }

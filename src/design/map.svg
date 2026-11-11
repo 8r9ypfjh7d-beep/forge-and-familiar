@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" preserveAspectRatio="xMidYMid slice">
+  <!-- Campaign map backdrop for the Map room look: sea, two coasts, hills, a travel route, grid and compass. -->
+  <defs>
+    <pattern id="g" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M36 0H0V36" fill="none" stroke="#8c7a5e" stroke-opacity=".16"/></pattern>
+    <filter id="r"><feTurbulence baseFrequency=".02" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="26"/></filter>
+    <radialGradient id="v" cx=".5" cy=".45" r=".75"><stop offset=".6" stop-color="#3b2a14" stop-opacity="0"/><stop offset="1" stop-color="#3b2a14" stop-opacity=".22"/></radialGradient>
+  </defs>
+  <rect width="900" height="900" fill="#b4c8c6"/>
+  <g filter="url(#r)" fill="#e6dcc3" stroke="#7a6648" stroke-width="2.5">
+    <path d="M-40 140 C120 90 240 190 380 150 C520 110 640 200 760 170 C840 150 900 190 960 180 L960 600 C860 650 760 560 640 610 C520 660 420 580 300 630 C180 680 60 600 -40 640Z"/>
+    <path d="M60 760 C140 700 260 730 300 790 C330 850 180 890 100 860 C40 840 20 790 60 760Z"/>
+    <path d="M640 720 C700 690 800 710 860 760 C900 800 880 900 800 920 L620 920 C600 840 600 750 640 720Z"/>
+  </g>
+  <g fill="none" stroke="#7a6648" stroke-opacity=".45" stroke-width="2">
+    <path d="M90 330 q24 -22 48 0 q24 -22 48 0 q24 -22 48 0"/><path d="M500 300 q20 -18 40 0 q20 -18 40 0"/>
+    <path d="M330 470 q16 -14 32 0 q16 -14 32 0 q16 -14 32 0 q16 -14 32 0"/><path d="M700 440 q14 -12 28 0"/>
+  </g>
+  <g fill="#7a6648" fill-opacity=".35"><circle cx="210" cy="250" r="5"/><circle cx="610" cy="380" r="5"/><circle cx="430" cy="540" r="4"/></g>
+  <path d="M210 250 C300 300 360 330 430 400 S560 370 610 380" fill="none" stroke="#9e2b25" stroke-opacity=".55" stroke-width="3" stroke-dasharray="9 9"/>
+  <rect width="900" height="900" fill="url(#g)"/>
+  <g transform="translate(790 820)" stroke="#5e4c34" fill="none" stroke-width="2" opacity=".55">
+    <circle r="40"/><path d="M0 -52 L9 0 L0 52 L-9 0Z" fill="#5e4c34"/><path d="M-52 0 L0 9 L52 0 L0 -9Z"/>
+  </g>
+  <rect width="900" height="900" fill="url(#v)"/>
+</svg>

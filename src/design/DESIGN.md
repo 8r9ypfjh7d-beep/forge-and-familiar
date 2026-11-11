@@ -87,6 +87,12 @@ Never set text colour from the backdrop; text uses `--ink`/`--muted`/`--accent` 
 - Phones (≤640px): floating tab bar 10px from the sides, at most 68px tall, lifted off the home indicator. Page bottom padding 104px. The dice button stays at `76px + safe-area` above the bottom, the PWA banner too. Menus open as sheets 80px above the bottom.
 - Wide screens: the bar floats sticky 8px from the top, content width up to 1200px.
 
+## Map room look (D&D x Apple)
+
+- The page backdrop is a campaign map (`map.svg`) under a light veil (`--map-veil`). Dark mode dims it to a night map; Reduce transparency and high contrast set the veil to `--bg`, so the map disappears behind solid panels. `body` stays transparent: `:root` paints `--bg` and `body::before` paints the map.
+- Tint is wax-seal red (`--accent`). Hero names and page titles (`h1`, `.glass-title`, `.cs-who h1`, `.heroes-name strong`) use `--font-title`: Cinzel engraved capitals for Latin, Frank Ruhl Libre for Hebrew, both self-hosted in `fonts/` (OFL) so they work offline.
+- Everything else (glass tokens, controls, fallbacks) is unchanged Liquid Glass.
+
 ## Do / don't
 
 - Do use `--glass-thick` for anything with paragraphs; `--glass-regular` for short labels and numbers.

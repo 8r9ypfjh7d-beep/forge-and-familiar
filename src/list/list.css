@@ -30,7 +30,7 @@
 }
 .heroes-open .portrait-empty { background: var(--glass-tint); }
 .heroes-name { display: grid; gap: 2px; min-width: 0; }
-.heroes-name strong { font-family: var(--font-lore); font-size: 1.2rem; font-weight: 600; overflow-wrap: anywhere; }
+.heroes-name strong { font-family: var(--font-title); font-size: 1.2rem; font-weight: 600; overflow-wrap: anywhere; }
 
 .heroes-main { position: relative; z-index: 1; display: flex; gap: var(--sp-2); align-items: center; flex: none; }
 .heroes-main .glass-btn { min-height: 40px; }

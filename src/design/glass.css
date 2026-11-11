@@ -6,6 +6,8 @@
   --font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Helvetica Neue', Arial, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Helvetica Neue', Arial, sans-serif;
   --font-lore: 'New York', 'Iowan Old Style', Georgia, 'Noto Serif Hebrew', serif;
+  /* Engraved title face for hero names and page titles (Map room look). Hebrew falls through to Frank Ruhl Libre. */
+  --font-title: 'FF Title', 'FF Title Hebrew', var(--font-lore);
 
   /* Shape and spacing (4px grid). Concentric: an inner radius is its outer radius minus the padding. */
   --r-xs: 8px; --r-sm: 12px; --r-md: 18px; --r-lg: 24px; --r-xl: 30px; --r-pill: 999px;
@@ -70,15 +72,18 @@
   }
 }
 
-/* Ambient wash behind everything, so glass has colour to refract. Fixed layer (iOS ignores background-attachment). */
+/* Map room backdrop: a campaign map under the glass. Fixed layer (iOS ignores background-attachment).
+   Dark mode dims it to a night map; Reduce transparency and high contrast fade it so solid panels stay calm. */
+@font-face { font-family: 'FF Title'; font-weight: 700; font-display: swap; src: url('./fonts/cinzel-700-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'FF Title Hebrew'; font-weight: 700 900; font-display: swap; src: url('./fonts/frank-ruhl-libre-900-hebrew.woff2') format('woff2'); unicode-range: U+0590-05FF, U+FB1D-FB4F; }
 body::before {
   content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(60% 45% at 12% 8%, var(--glass-wash-1), transparent 70%),
-    radial-gradient(55% 40% at 92% 30%, var(--glass-wash-2), transparent 70%),
-    radial-gradient(70% 50% at 40% 100%, var(--glass-wash-3), transparent 70%),
-    var(--bg);
+  background: linear-gradient(var(--map-veil), var(--map-veil)), url('./map.svg') center / cover no-repeat, var(--bg);
 }
+:root { --map-veil: rgb(246 241 231 / 0.3); }
+@media (prefers-color-scheme: dark) { :root { --map-veil: rgb(14 16 22 / 0.72); } }
+:root[data-transparency="reduce"], :root[data-contrast="high"] { --map-veil: var(--bg); }
+@media (prefers-reduced-transparency: reduce) { :root { --map-veil: var(--bg); } }
 
 /* ---- Surfaces ---- */
 
@@ -170,7 +175,7 @@ body::before {
 .glass-list { list-style: none; margin: 0; padding: var(--sp-1); display: grid; }
 .glass-list > * + * { border-block-start: 1px solid var(--glass-hairline); }
 
-.glass-title { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+.glass-title { font-family: var(--font-title); font-weight: 700; letter-spacing: 0.01em; }
 .glass-eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
 
 /* ---- Fallbacks: solid surfaces, same layout ---- */
