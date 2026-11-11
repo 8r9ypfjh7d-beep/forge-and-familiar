@@ -10,7 +10,7 @@ Every SRD spell, item, magic item, class, class feature, subclass, race, subrace
 | `types.ts` | The data model: one interface per kind, `Choice` for "pick N", `ContentFile`, `ContentManifest`, `ContentPack` |
 | `library.ts` | `loadKind`, `getEntry`, `listSources`, `BUNDLED`, `bookMonsterPaths`; `registerContentPack` / `unregisterContentPack` / `onContentChanged` for packs |
 | `monsters.ts` | `loadMonsters(edition)`: every monster a campaign can use (SRD, books, legacy older books, packs); `monsterKey`, `monsterName`, `monsterSourceNote` |
-| `query.ts` | `foldText` (search form: case, accents, Hebrew niqqud, quote marks and final letters folded), `searchEntries`, `filterSpells`, `filterMonsters`, `filterEquipment`, `filterMagicItems`, `entryKey` |
+| `query.ts` | `foldText` (search form: case, accents, Hebrew niqqud, quote marks and final letters folded), `searchEntries`, `filterSpells`, `filterMonsters` |
 | `validate.ts` | `checkContent` (duplicate ids, broken links), `sanitizePack` (packs from files or other devices) |
 | `bridge.ts` | `toRulesItem` (library equipment → rules `Item`), `fromHomebrewPack`, `LIBRARY_ID_FOR_RULES_ITEM` |
 | `ingest/sources.ts` | SRD 5.1 / 5.2 source info with the CC-BY attribution, upstream file list per kind |
@@ -62,7 +62,7 @@ Every screen that lists monsters (DM screen, combat tracker, NPC sheets, custom 
 
 ## Data model
 
-- Every entry has `id` (upstream slug), `name`, `source` (`srd-5.1`, `srd-5.2`, `hb:<packId>`, or a pack id) and `edition` (`2014` | `2024`). The same id can exist in both editions (`fireball`), so a saved reference needs the source too: `entryKey(kind, entry)` gives `${source}:${kind}:${id}`.
+- Every entry has `id` (upstream slug), `name`, `source` (`srd-5.1`, `srd-5.2`, `hb:<packId>`, or a pack id) and `edition` (`2014` | `2024`). The same id can exist in both editions (`fireball`), so a saved reference needs the source too, as `${source}:${kind}:${id}`.
 - Links between entries are `Ref` (`{ id, name }`) or plain id arrays, always within the same source. `checkContent` must report nothing for bundled data (tested).
 - Descriptions are markdown strings. 2014 paragraph arrays are joined; list items and table rows stay on adjacent lines. `src/rulesqa/Markdown.tsx` can render them.
 - "Choose N" structures (skills, starting gear, languages, ability bonuses) are `Choice` with tagged `ChoiceOption`s. Options the model does not know keep the upstream JSON in `{ kind: 'other', raw }`.

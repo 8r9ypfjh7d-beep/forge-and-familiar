@@ -218,7 +218,6 @@ export function Codex({ party, userId, nameOf }: { party: Party; userId: string;
 }
 
 /** Kept for older imports: the section used to be called Hand-outs. */
-export const Handouts = Codex
 
 function ChapterSection({ chapter, title, entries, party, userId, nameOf, chapters, all, onOpen, onEdit, onDelete, onDeleteChapter }: {
   chapter?: LoreChapter

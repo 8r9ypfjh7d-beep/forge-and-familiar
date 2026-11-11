@@ -100,8 +100,3 @@ export function artPath(url: string): string | null {
   return m ? decodeURIComponent(m[1]) : null
 }
 
-/** Without the pictures: for undo logs and snapshots, which never restore art. */
-export function withoutArt<T extends Partial<Pick<Character, 'portrait' | 'token' | 'gallery'>>>(c: T): Omit<T, 'portrait' | 'token' | 'gallery'> {
-  const { portrait: _p, token: _t, gallery: _g, ...rest } = c
-  return rest
-}

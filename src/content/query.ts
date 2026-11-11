@@ -1,8 +1,5 @@
 // Search and filters over loaded entries. Pure: give it the arrays from loadKind().
-import type { ContentEntry, Equipment, MagicItem, Monster, Rarity, Size, Spell, SpellSchool } from './types.ts'
-
-/** `${source}:${kind}:${id}`, unique across every source. Use it for React keys and saved references. */
-export const entryKey = (kind: string, e: { source: string; id: string }) => `${e.source}:${kind}:${e.id}`
+import type { ContentEntry, Equipment, Monster, Size, Spell, SpellSchool } from './types.ts'
 
 const HE_FINAL: Record<string, string> = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' }
 
@@ -75,12 +72,3 @@ export interface ItemFilter {
   /** Equipment category id, e.g. martial-weapons, heavy-armor. */
   category?: string
 }
-
-export const filterEquipment = (items: Equipment[], f: ItemFilter) =>
-  items.filter(i => (!f.types?.length || f.types.includes(i.type)) && (!f.category || i.categories.includes(f.category)))
-
-export const filterMagicItems = (items: MagicItem[], f: { rarities?: Rarity[]; attunement?: boolean; category?: string }) =>
-  items.filter(i =>
-    (!f.rarities?.length || f.rarities.includes(i.rarity)) &&
-    (f.attunement == null || !!i.attunement === f.attunement) &&
-    (!f.category || i.category === f.category))

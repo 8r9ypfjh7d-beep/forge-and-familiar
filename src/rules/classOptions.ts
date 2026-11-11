@@ -82,10 +82,6 @@ export function classOptions(kind: ClassOptionKind, edition?: '2014' | '2024'): 
   return all.filter(o => o.kind === kind && fits(o, edition))
 }
 
-/** Homebrew options of a kind only. */
-export const homebrewClassOptions = (kind?: ClassOptionKind): ClassOption[] =>
-  (registry.get('homebrew') ?? []).filter(o => !kind || o.kind === kind)
-
 /** Any registered option. With an edition, that edition's entry wins over one for both, then any other. */
 export function classOptionById(id: string, edition?: '2014' | '2024'): ClassOption | undefined {
   const matches = [...registry.values()].flatMap(l => l.filter(o => o.id === id))

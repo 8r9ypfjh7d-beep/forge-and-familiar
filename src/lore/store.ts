@@ -73,7 +73,6 @@ async function withoutOrphans(list: LoreEntry[]): Promise<LoreEntry[]> {
 export async function listHandouts(partyId: string): Promise<LoreEntry[]> {
   return readAll().filter(h => h.partyId === partyId)
 }
-export const listEntries = listHandouts
 
 export async function listChapters(partyId: string): Promise<LoreChapter[]> {
   return readChapters().filter(c => c.partyId === partyId).sort((a, b) => a.order - b.order)
@@ -105,7 +104,6 @@ export async function saveHandout(h: LoreEntry): Promise<LoreEntry> {
   await updateTeasers(h.partyId)
   return next
 }
-export const saveEntry = saveHandout
 
 export async function deleteHandout(id: string): Promise<void> {
   const h = readAll().find(x => x.id === id)
@@ -120,7 +118,6 @@ export async function deleteHandout(id: string): Promise<void> {
   writeAll(readAll().filter(x => x.id !== id))
   if (h) await updateTeasers(h.partyId)
 }
-export const deleteEntry = deleteHandout
 
 export async function saveChapter(c: LoreChapter): Promise<LoreChapter> {
   const next = { ...c, updatedAt: new Date().toISOString() }

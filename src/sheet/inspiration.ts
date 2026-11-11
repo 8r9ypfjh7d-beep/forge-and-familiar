@@ -8,8 +8,6 @@ import { rulesEdition } from '../rules'
 
 const withState = (c: Character, patch: Partial<CharacterState>): Character => ({ ...c, state: { ...c.state, ...patch } })
 
-export const hasInspiration = (c: Character) => !!c.state.inspiration
-
 /** Marks Inspiration gained. Already holding it: a 2024 character keeps the extra to pass on; a 2014 one gains nothing. */
 export function gainInspiration(c: Character): Character {
   if (!c.state.inspiration) return withState(c, { inspiration: true })
