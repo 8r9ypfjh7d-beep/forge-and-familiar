@@ -7,5 +7,3 @@ export const WEAPON_MASTERY: Record<string, string> = {
   trident: 'topple', 'war-pick': 'sap', warhammer: 'push', whip: 'slow', blowgun: 'vex', 'hand-crossbow': 'vex',
   'heavy-crossbow': 'push', longbow: 'slow', musket: 'slow', pistol: 'vex',
 }
-
-export const MASTERY_PROPERTIES = ['cleave', 'graze', 'nick', 'push', 'sap', 'slow', 'topple', 'vex'] as const

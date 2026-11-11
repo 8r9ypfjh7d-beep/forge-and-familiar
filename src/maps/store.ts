@@ -163,11 +163,3 @@ export function onMapsChanged(ownerId: string, fn: (maps: BattleMapDef[]) => voi
   })
   return () => { stop = true; off() }
 }
-
-export async function deleteMapsFor(ownerId: string): Promise<void> {
-  try {
-    localStorage.removeItem(key(ownerId))
-    localStorage.removeItem(pendingKey(ownerId))
-    localStorage.removeItem(knownKey(ownerId))
-  } catch { /* nothing saved */ }
-}

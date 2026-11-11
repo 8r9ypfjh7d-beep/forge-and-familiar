@@ -1,5 +1,5 @@
 // The chosen language: saved per device, mirrored onto <html lang dir>, observable for React.
-import { isLocale, isLocaleLoaded, loadLocale, LOCALES, translate, term, type Locale, type Vars } from './translate'
+import { isLocale, isLocaleLoaded, loadLocale, LOCALES, translate, type Locale, type Vars } from './translate'
 import type { MessageKey } from './locales/en'
 
 const KEY = 'ff.locale.v1'
@@ -66,4 +66,3 @@ export const loadCurrentLocale = () => loadLocale(current)
 
 /** Translate with the current language, for code outside React components. */
 export const t = (key: MessageKey, vars?: Vars) => translate(current, key, vars)
-export const tTerm = (kind: string, id: string, fallback: string) => term(current, kind, id, fallback)

@@ -45,8 +45,6 @@ export function registerTool(def: ToolDef): void {
   tools.set(def.declaration.name, def)
 }
 
-export const getTool = (name: string) => tools.get(name)
-
 export const availableTools = (env: ToolEnv) => [...tools.values()].filter(t => !t.available || t.available(env))
 
 export const declarations = (env: ToolEnv): FunctionDeclaration[] => availableTools(env).map(t => t.declaration)

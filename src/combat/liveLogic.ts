@@ -70,10 +70,6 @@ export const projectPublic = (live: LiveCombat): LiveCombat => ({
 /** The encounter column: `playerView` of the DM's encounter. The board has its own column. */
 export const toLiveEncounter = (enc: Encounter): LiveEncounter => playerView(enc)
 
-export const SIZE_CELLS: Record<string, 1 | 2 | 3 | 4> = {
-  tiny: 1, small: 1, medium: 1, large: 2, huge: 3, gargantuan: 4,
-}
-
 /** Initials for a party member ("Vex Thorn" → "VT"), letter plus number for monsters ("Goblin" → "G1"). */
 export function tokenLabel(c: Combatant, all: Combatant[]): string {
   if (c.kind === 'pc') {
