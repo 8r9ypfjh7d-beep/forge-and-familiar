@@ -119,7 +119,3 @@ export function onDmChanged(userId: string, fn: (state: DmState) => void): () =>
   return () => { stop = true; off() }
 }
 
-export async function deleteDmFor(userId: string): Promise<void> {
-  try { localStorage.removeItem(key(userId)) } catch { /* nothing saved */ }
-  setPending(userId, false)
-}

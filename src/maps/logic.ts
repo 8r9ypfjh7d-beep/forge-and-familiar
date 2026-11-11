@@ -211,9 +211,6 @@ export function publicTokens<T extends MapToken>(map: BattleMapDef, tokens: T[],
   return tokens.filter(tk => !tk.hidden && !tokenCells(tk).some(c => fog.includes(cellKey(c.x, c.y))))
 }
 
-/** The cell a token occupies with its centre, for distances between big creatures. */
-export const tokenCentre = (token: Pick<MapToken, 'x' | 'y' | 'size'>): Cell => ({ x: token.x + (token.size - 1) / 2, y: token.y + (token.size - 1) / 2 })
-
 // ---------- Distance and paths ----------
 
 /** Feet between two cells as the crow flies over squares: every diagonal 5 ft, or 5-10-5 with the variant rule. */

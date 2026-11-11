@@ -1,7 +1,7 @@
 // Canvas painting for the battle map: picture, grid, terrain, labels, fog, a planned path and a measure line.
 // Pure apart from the canvas context it is given. Colours come in as a palette read from the page's CSS tokens,
 // so the canvas follows light, dark and high-contrast modes.
-import { cellKey, terrainAt } from '../../maps/logic'
+import { cellKey } from '../../maps/logic'
 import type { BattleMapDef, Cell, Terrain } from '../../maps/types'
 import type { CellKey } from '../types'
 import { CELL_PX, type Viewport } from './viewport'
@@ -197,5 +197,3 @@ export const footprintInFog = (x: number, y: number, size: number, fog: CellKey[
   return false
 }
 
-/** Whether a cell is a wall or closed door, for the DM's fog brush summary. */
-export const isSolid = (map: BattleMapDef, x: number, y: number) => ['wall', 'door'].includes(terrainAt(map, x, y))

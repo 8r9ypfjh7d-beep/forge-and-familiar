@@ -7,8 +7,6 @@ import type { RestType } from '../rules/types'
 const list = (c: Character) => c.state.effects ?? []
 const withEffects = (c: Character, effects: LiveEffect[]): Character => ({ ...c, state: { ...c.state, effects } })
 
-export const effectsOn = list
-
 /** The effect the character is concentrating on, if any. */
 export const concentration = (c: Character) => list(c).find(e => e.concentration)
 

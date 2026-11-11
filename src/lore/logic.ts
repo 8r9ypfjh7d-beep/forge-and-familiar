@@ -22,7 +22,6 @@ export function visibleHandouts(list: LoreEntry[], party: Party, userId: string)
     .filter(h => canSee(h, party, userId))
     .sort((a, b) => (b.sentAt ?? '9999').localeCompare(a.sentAt ?? '9999') || b.createdAt.localeCompare(a.createdAt))
 }
-export const visibleEntries = visibleHandouts
 
 export const isUnread = (h: LoreEntry, party: Party, userId: string) =>
   !isDm(party, userId) && canSee(h, party, userId) && !h.seenBy[userId]

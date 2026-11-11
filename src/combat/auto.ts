@@ -4,7 +4,7 @@
 import type { Monster, MonsterAction } from '../content'
 import type { Ability, ConditionId } from '../rules/types'
 import { abilityMod } from '../rules'
-import { isDefeated, statusOf, type Party } from './engine'
+import { statusOf, type Party } from './engine'
 import type { Combatant, Encounter } from './types'
 
 /** The DM's switches. Each one has a manual way that stays available. */
@@ -62,9 +62,6 @@ export function fightOutcome(enc: Encounter, hp: HpOf): 'won' | 'lost' | null {
   if (foesUp && !pcsUp) return 'lost'
   return null
 }
-
-/** Monsters left standing, for the "1 enemy left" line. */
-export const foesLeft = (enc: Encounter) => enc.combatants.filter(c => c.kind === 'npc' && !isDefeated(c)).length
 
 /** "Melee Weapon Attack", "Melee Attack Roll", "Melee or Ranged…" all count as melee. */
 export const isMelee = (a: Pick<MonsterAction, 'description'>) => /\bmelee\b/i.test(a.description)
