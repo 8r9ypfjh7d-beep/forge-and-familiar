@@ -1,13 +1,12 @@
-// Pure rules for session notes: who sees what, starting and sharing a session, turning jots into a recap,
-// leads across sessions, unread notes. No storage, no React.
+// Pure rules for the DM's session notes: starting a session, jots, people, loot and leads across sessions.
+// Only the DM sees them; the party's own story lives in Party notes (src/notes). No storage, no React.
 import type { Party } from '../party/types'
-import type { Jot, Lead, SessionNote, SessionSecret } from './types'
+import type { Lead, SessionNote, SessionSecret } from './types'
 
 export const isDm = (party: Party, userId: string) => party.dmId === userId
 
-/** Players see shared notes only; the DM sees every note of the party. */
-export const canSee = (n: SessionNote, party: Party, userId: string) =>
-  n.partyId === party.id && (isDm(party, userId) || !!n.sharedAt)
+/** Session notes are the DM's own. (Recaps once shared with players moved to Party notes.) */
+export const canSee = (n: SessionNote, party: Party, userId: string) => n.partyId === party.id && isDm(party, userId)
 
 /** Notes the reader may see, newest session first. */
 export function visibleNotes(list: SessionNote[], party: Party, userId: string): SessionNote[] {
@@ -38,9 +37,11 @@ export function startSession(party: Party, dmId: string, list: SessionNote[], no
 export const emptySecret = (n: Pick<SessionNote, 'id' | 'partyId'>, at = new Date().toISOString()): SessionSecret =>
   ({ id: n.id, partyId: n.partyId, jots: [], notes: '', nextTime: '', updatedAt: at })
 
-/** The DM's session still being played or written up: the newest one not shared yet. */
-export function currentSession(list: SessionNote[], party: Party): SessionNote | undefined {
-  return list.filter(n => n.partyId === party.id && !n.sharedAt).sort(byNewest)[0]
+/** The session being played: the newest one, while it is dated today or yesterday (a game that ran past midnight). */
+export function currentSession(list: SessionNote[], party: Party, now = new Date()): SessionNote | undefined {
+  const newest = list.filter(n => n.partyId === party.id).sort(byNewest)[0]
+  const yesterday = today(new Date(now.getTime() - 86_400_000))
+  return newest && newest.playedOn >= yesterday ? newest : undefined
 }
 
 /** The session before this one, for "Your plan from last time". */
@@ -48,17 +49,7 @@ export function previousSession(list: SessionNote[], n: SessionNote): SessionNot
   return list.filter(x => x.partyId === n.partyId && x.id !== n.id && byNewest(x, n) > 0).sort(byNewest)[0]
 }
 
-/** The newest shared session: "Last time..." on the campaign page. */
-export const lastShared = (list: SessionNote[], party: Party) =>
-  list.filter(n => n.partyId === party.id && n.sharedAt).sort(byNewest)[0]
-
-export type ShareProblem = 'recap'
-
-/** What is missing before a note can be shared. A recap is the one thing players need. */
-export const problems = (n: Pick<SessionNote, 'recap'>): ShareProblem[] => (n.recap.trim() ? [] : ['recap'])
-
-export const share = (n: SessionNote, at = new Date().toISOString()): SessionNote => ({ ...n, sharedAt: n.sharedAt ?? at, updatedAt: at })
-
+/** Takes an old shared recap back to the DM only (its text now lives in Party notes). */
 export function unshare(n: SessionNote, at = new Date().toISOString()): SessionNote {
   const { sharedAt: _s, ...rest } = n
   return { ...rest, updatedAt: at }
@@ -69,13 +60,6 @@ export const addJot = (s: SessionSecret, text: string, at = new Date().toISOStri
 
 export const removeJot = (s: SessionSecret, id: string, at = new Date().toISOString()): SessionSecret =>
   ({ ...s, jots: s.jots.filter(j => j.id !== id), updatedAt: at })
-
-/** A starting recap from the jots: one list line each, after whatever the recap already says. */
-export function recapFromJots(recap: string, jots: Jot[]): string {
-  const lines = jots.map(j => `- ${j.text}`).filter(l => !recap.includes(l))
-  if (!lines.length) return recap
-  return [recap.trimEnd(), lines.join('\n')].filter(Boolean).join('\n\n')
-}
 
 /** One item per non-empty line, trimmed, without list dashes, duplicates dropped. */
 export function linesToList(text: string): string[] {
@@ -119,12 +103,6 @@ export interface LeadRow { lead: Lead; note: SessionNote }
 export function allLeads(list: SessionNote[], party: Party, userId: string): LeadRow[] {
   const rows = visibleNotes(list, party, userId).flatMap(note => note.leads.map(lead => ({ lead, note })))
   return [...rows.filter(r => !r.lead.doneAt), ...rows.filter(r => r.lead.doneAt)]
-}
-
-/** Players' unread shared notes. The DM has nothing unread. */
-export function unread(list: SessionNote[], party: Party, userId: string, seen: string[]): SessionNote[] {
-  if (isDm(party, userId)) return []
-  return visibleNotes(list, party, userId).filter(n => !seen.includes(n.id))
 }
 
 /** Words to search a note by (recap, people, loot, leads, title). */

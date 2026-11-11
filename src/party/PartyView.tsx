@@ -7,7 +7,7 @@ import { useI18n, type MessageKey } from '../i18n'
 import type { Character, UserProfile } from '../model/character'
 import { derive } from '../rules'
 import { Codex, HandoutBadge } from '../lore'
-import { SessionBadge, SessionNotes } from '../sessions'
+import { PartyNotes } from '../notes'
 import { SessionScheduler } from '../schedule'
 import { vitals } from '../sheet/engine'
 import { getCharacter, listCharacters, listProfiles, onCharactersChanged } from '../storage'
@@ -70,7 +70,6 @@ export function PartyView({ userId, onOpenCharacter, onWatchCharacter, openId: i
                 <h3>{p.name}</h3>
                 <span className="muted small">{t('party.members', { count: p.members.length })} · <bdi>{formatCode(p.code)}</bdi></span>
                 <HandoutBadge party={p} userId={userId} />
-                <SessionBadge party={p} userId={userId} />
               </button>
             ))}
           </div>
@@ -308,7 +307,7 @@ function PartyTable({ party: initial, userId, onBack, onOpenCharacter, onWatchCh
           {/* Lore sits right under the party so players find what the DM revealed without scrolling past the stash. */}
           <div className="party-group" id="party-notes">
             <Codex party={party} userId={userId} nameOf={nameOf} />
-            <SessionNotes party={party} userId={userId} />
+            <PartyNotes party={party} userId={userId} />
           </div>
           <GiveXp party={party} userId={userId} characters={characters} nameOf={nameOf} />
           <GiveRewards party={party} userId={userId} nameOf={nameOf} />

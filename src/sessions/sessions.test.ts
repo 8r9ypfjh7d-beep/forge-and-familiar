@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Party } from '../party/types'
 import {
-  addJot, addLead, allLeads, canSee, currentSession, emptySecret, lastShared, linesToLeads, linesToList, matches, nextNumber,
-  previousSession, problems, recapFromJots, removeJot, share, startSession, toggleLead, today, unread, unshare, visibleNotes,
+  addJot, addLead, allLeads, canSee, currentSession, emptySecret, linesToLeads, linesToList, matches, nextNumber,
+  previousSession, removeJot, startSession, toggleLead, today, unshare, visibleNotes,
 } from './logic'
 import { noteFromRow, noteToRow, secretFromRow, secretToRow } from './cloud'
 import type { SessionNote } from './types'
@@ -20,25 +20,18 @@ const note = (over: Partial<SessionNote> = {}): SessionNote => ({
 })
 
 describe('who sees a session note', () => {
-  it('keeps unshared notes to the DM', () => {
-    const a = note()
+  it('keeps every session note to the DM, even an old shared recap', () => {
+    const a = note(), b = note({ sharedAt: T })
     expect(canSee(a, party, 'dm')).toBe(true)
     expect(canSee(a, party, 'ana')).toBe(false)
-    expect(canSee(share(a, T), party, 'ana')).toBe(true)
-    expect(canSee(unshare(share(a, T)), party, 'ana')).toBe(false)
+    expect(canSee(b, party, 'ana')).toBe(false)
+    expect(unshare(b, T).sharedAt).toBeUndefined()
   })
 
   it('lists newest session first and ignores other parties', () => {
     const list = [note({ number: 1, sharedAt: T }), note({ number: 3, sharedAt: T }), note({ number: 2 }), note({ number: 9, partyId: 'p2', sharedAt: T })]
     expect(visibleNotes(list, party, 'dm').map(x => x.number)).toEqual([3, 2, 1])
-    expect(visibleNotes(list, party, 'ana').map(x => x.number)).toEqual([3, 1])
-  })
-
-  it('needs a recap before sharing and keeps the first share time', () => {
-    expect(problems({ recap: '  ' })).toEqual(['recap'])
-    expect(problems({ recap: 'x' })).toEqual([])
-    const s = share(note(), T)
-    expect(share(s, '2027-01-01T00:00:00.000Z').sharedAt).toBe(T)
+    expect(visibleNotes(list, party, 'ana')).toEqual([])
   })
 })
 
@@ -52,13 +45,13 @@ describe('starting and writing up a session', () => {
     expect(today(new Date(2026, 0, 5))).toBe('2026-01-05')
   })
 
-  it('finds the session in play and the one before it', () => {
-    const one = note({ number: 1, sharedAt: T }), two = note({ number: 2, sharedAt: T }), three = note({ number: 3 })
-    expect(currentSession([one, two, three], party)?.id).toBe(three.id)
-    expect(currentSession([one, two], party)).toBeUndefined()
+  it('finds the session in play (dated today or yesterday) and the one before it', () => {
+    const one = note({ number: 1, playedOn: '2026-10-01' }), two = note({ number: 2, playedOn: '2026-10-20' }), three = note({ number: 3, playedOn: '2026-11-01' })
+    expect(currentSession([one, two, three], party, new Date(2026, 10, 1, 21))?.id).toBe(three.id)
+    expect(currentSession([one, two, three], party, new Date(2026, 10, 2, 1))?.id).toBe(three.id)
+    expect(currentSession([one, two, three], party, new Date(2026, 10, 8))).toBeUndefined()
     expect(previousSession([one, two, three], three)?.id).toBe(two.id)
     expect(previousSession([one, two, three], one)).toBeUndefined()
-    expect(lastShared([one, two, three], party)?.id).toBe(two.id)
   })
 
   it('adds and removes jots, skipping blank ones', () => {
@@ -68,13 +61,6 @@ describe('starting and writing up a session', () => {
     s = addJot(s, ' Bribed the guard ', T, 'j1')
     expect(s.jots).toEqual([{ id: 'j1', at: T, text: 'Bribed the guard' }])
     expect(removeJot(s, 'j1', T).jots).toEqual([])
-  })
-
-  it('turns jots into a recap list without repeating lines', () => {
-    const jots = [{ id: '1', at: T, text: 'Fought goblins' }, { id: '2', at: T, text: 'Found a key' }]
-    expect(recapFromJots('', jots)).toBe('- Fought goblins\n- Found a key')
-    expect(recapFromJots('The party woke up.', jots)).toBe('The party woke up.\n\n- Fought goblins\n- Found a key')
-    expect(recapFromJots('- Fought goblins\n- Found a key', jots)).toBe('- Fought goblins\n- Found a key')
   })
 
   it('reads lists one per line and keeps lead state across edits', () => {
@@ -94,19 +80,13 @@ describe('leads across sessions', () => {
     expect(addLead(a, 'Find the tower', T, 'dupe').leads).toHaveLength(2)
     a = toggleLead(a, 'l1', T)
     const b = addLead(note({ number: 2 }), 'Secret plan', T, 'l3')
-    expect(allLeads([a, b], party, 'ana').map(r => r.lead.id)).toEqual(['l2', 'l1'])
+    expect(allLeads([a, b], party, 'ana')).toEqual([])
     expect(allLeads([a, b], party, 'dm').map(r => r.lead.id)).toEqual(['l3', 'l2', 'l1'])
     expect(toggleLead(a, 'l1', T).leads[0].doneAt).toBeUndefined()
   })
 })
 
-describe('unread and search', () => {
-  it('counts shared notes a player has not opened', () => {
-    const a = note({ sharedAt: T }), b = note({ sharedAt: T }), c = note()
-    expect(unread([a, b, c], party, 'ana', [a.id]).map(x => x.id)).toEqual([b.id])
-    expect(unread([a, b, c], party, 'dm', [])).toEqual([])
-  })
-
+describe('search', () => {
   it('searches recap, people, loot and leads', () => {
     const a = note({ people: ['Mira the smith'], loot: ['+1 dagger'], leads: [{ id: 'l', text: 'The red door' }] })
     expect(matches(a, 'mira')).toBe(true)

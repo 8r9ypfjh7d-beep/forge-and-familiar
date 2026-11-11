@@ -15,7 +15,7 @@ export type View =
   | { kind: 'familiar' }
 
 /** Every DM screen view; each keeps its own address so refresh and Back return to it. */
-export const DM_VIEWS = ['party', 'rolls', 'encounters', 'lore', 'sessions', 'maps', 'npcs', 'monsters', 'reference', 'requests'] as const
+export const DM_VIEWS = ['party', 'rolls', 'encounters', 'lore', 'notes', 'sessions', 'maps', 'npcs', 'monsters', 'reference', 'requests'] as const
 export type DmView = (typeof DM_VIEWS)[number]
 
 const HOME: View = { kind: 'campaigns' }
