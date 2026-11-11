@@ -7,7 +7,7 @@ import { ABILITIES } from '../rules/types'
 import { ALL_SKILLS, SKILLS } from '../rules/data/skills'
 import { DAMAGE_TYPES } from '../rules/damage'
 import { CONDITIONS } from '../rules/itemEffects'
-import { parseNotation } from '../dice/notation'
+import { isDice, parseNotation } from '../dice/notation'
 
 /** A stat block without its library stamp (source, edition). Homebrew monsters and NPC tweaks edit this. */
 export type MonsterBlock = Omit<Monster, 'source' | 'edition'>
@@ -68,14 +68,6 @@ export function averageOf(dice: string): number {
     return Math.max(0, Math.floor(total))
   } catch {
     return 0
-  }
-}
-
-export function isDice(s: string): boolean {
-  try {
-    return parseNotation(s).some(t => t.kind === 'dice')
-  } catch {
-    return false
   }
 }
 

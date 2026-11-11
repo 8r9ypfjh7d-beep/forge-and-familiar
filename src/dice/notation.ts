@@ -56,6 +56,15 @@ export function isValidNotation(input: string): boolean {
   }
 }
 
+/** True when the notation parses and rolls at least one die ("2d6+3" yes, "5" no). */
+export function isDice(s: string): boolean {
+  try {
+    return parseNotation(s).some(t => t.kind === 'dice')
+  } catch {
+    return false
+  }
+}
+
 /** Critical hit: double every die, keep flat modifiers (PHB p.196). */
 export function critNotation(input: string): string {
   return formatNotation(parseNotation(input).map(t => (t.kind === 'dice' ? { ...t, count: t.count * 2 } : t)))
