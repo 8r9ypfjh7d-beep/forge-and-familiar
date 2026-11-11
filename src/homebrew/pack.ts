@@ -1,6 +1,6 @@
 // Pure pack helpers: ids, validation, and share codes. Imported packs come from other people,
 // so everything read from a code or file is rebuilt field by field and never trusted as-is.
-import { parseNotation } from '../dice/notation'
+import { isDice } from '../dice/notation'
 import { HOMEBREW_OPTION_KINDS } from '../rules/classOptions'
 import { sanitizeEffect } from '../rules/itemEffects'
 import { sanitizeMonsterBlock } from '../monsters/model'
@@ -47,14 +47,6 @@ export function newPack(id: string, author: { id: string; displayName: string },
 }
 
 // ---------- Validation for the editor ----------
-
-export function isDice(s: string): boolean {
-  try {
-    return parseNotation(s).some(t => t.kind === 'dice')
-  } catch {
-    return false
-  }
-}
 
 export function spellIssues(s: HomebrewSpell): string[] {
   const out: string[] = []
