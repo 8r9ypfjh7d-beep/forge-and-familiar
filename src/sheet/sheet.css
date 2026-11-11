@@ -123,19 +123,6 @@
 .hp .of { margin-inline-start: 6px; color: var(--s-muted); font-weight: 600; }
 .hp-temp .big { font-size: 1.75rem; color: var(--s-muted); }
 .hp-temp.has .big { color: var(--s-temp); }
-.vitality { display: flex; align-items: center; gap: var(--sp-4); margin-block: var(--sp-2); }
-.vitality-rings { inline-size: 112px; block-size: 112px; flex: none; }
-.vitality-rings circle { fill: none; stroke-width: 11; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
-.vitality-rings .ring-track { stroke-opacity: 0.2; }
-.vitality-rings .ring-fill { transition: stroke-dasharray var(--dur-med) var(--ease-glass); }
-.ring-hp circle { stroke: var(--ring-hp); } .ring-slots circle { stroke: var(--ring-slots); } .ring-hitDice circle { stroke: var(--ring-hd); }
-.vitality-legend { margin: 0; display: grid; gap: var(--sp-1); flex: 1; min-inline-size: 0; }
-.vitality-legend dt { font-size: 0.8rem; color: var(--s-muted); }
-.vitality-legend dd { margin: 0; font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
-.vitality-legend .ring-hp dd { color: var(--ring-hp); } .vitality-legend .ring-slots dd { color: var(--ring-slots); } .vitality-legend .ring-hitDice dd { color: var(--ring-hd); }
-.vitality-legend .hp-current .big { font-size: 2rem; }
-[dir='rtl'] .vitality-legend dd { text-align: end; } /* dd is LTR for signed numbers (i18n.css); keep it on the Hebrew side */
-.vitality-legend .hp-temp { display: block; font-size: 0.85rem; font-weight: 600; }
 .hp-bar {
   position: relative; height: 10px; margin: var(--sp-3) 0 var(--sp-1); border-radius: var(--r-pill); overflow: hidden;
   background: color-mix(in srgb, var(--s-line) 70%, transparent); box-shadow: var(--glass-inset);

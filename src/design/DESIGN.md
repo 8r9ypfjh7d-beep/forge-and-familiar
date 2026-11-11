@@ -91,7 +91,6 @@ Never set text colour from the backdrop; text uses `--ink`/`--muted`/`--accent` 
 
 - The page backdrop is a campaign map (`map.svg`) under a light veil (`--map-veil`). Dark mode dims it to a night map; Reduce transparency and high contrast set the veil to `--bg`, so the map disappears behind solid panels. `body` stays transparent: `:root` paints `--bg` and `body::before` paints the map.
 - Tint is wax-seal red (`--accent`). Hero names and page titles (`h1`, `.glass-title`, `.cs-who h1`, `.heroes-name strong`) use `--font-title`: Cinzel engraved capitals for Latin, Frank Ruhl Libre for Hebrew, both self-hosted in `fonts/` (OFL) so they work offline.
-- Vitality rings (`src/sheet/vitality.ts`, `VitalityRings.tsx`) show hit points, spell slots and hit dice as Activity-style rings with `--ring-hp`, `--ring-slots`, `--ring-hd`.
 - Everything else (glass tokens, controls, fallbacks) is unchanged Liquid Glass.
 
 ## Do / don't

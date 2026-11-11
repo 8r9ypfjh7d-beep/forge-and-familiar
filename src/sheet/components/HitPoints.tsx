@@ -9,8 +9,6 @@ import { effectiveMaxHp, grantTempHp, heal, hpSnapshot, takeDamage, vitals } fro
 import type { Apply } from '../types'
 import { AfterDamage, OwedConcentration, type Hit } from './AfterDamage'
 import { Conditions } from './Conditions'
-import { VitalityRings } from './VitalityRings'
-import { vitalityRings } from '../vitality'
 
 export function HitPoints({ character, apply }: { character: Character; apply: Apply }) {
   const [amount, setAmount] = useState('')
@@ -24,6 +22,7 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
   const { currentHp, tempHp } = character.state
   const max = effectiveMaxHp(character)
   const n = Math.max(0, Math.floor(Number(amount) || 0))
+  const pct = max ? (currentHp / max) * 100 : 0
   const state = vitals(character)
   const { t, term } = useI18n()
   const d = derive(character)
@@ -63,10 +62,18 @@ export function HitPoints({ character, apply }: { character: Character; apply: A
   return (
     <section className="card hp" aria-labelledby="hp-title">
       <h2 id="hp-title">{t('sheet.hp')}</h2>
-      <VitalityRings rings={vitalityRings(character)} hpValue={<>
-        <span className="hp-current" aria-live="polite"><span className="big">{currentHp}</span><span className="of">/ <ShowMath character={character} stat="maxHp">{max}</ShowMath></span></span>
-        {tempHp > 0 && <span className="hp-temp has">+{tempHp} {t('sheet.temp')}</span>}
-      </>} />
+      <div className="hp-numbers">
+        <div className="hp-current" aria-live="polite">
+          <span className="big">{currentHp}</span><span className="of">/ <ShowMath character={character} stat="maxHp">{max}</ShowMath></span>
+        </div>
+        <div className={tempHp ? 'hp-temp has' : 'hp-temp'}>
+          <span className="big">{tempHp}</span><span className="of">{t('sheet.temp')}</span>
+        </div>
+      </div>
+      <div className="hp-bar" aria-hidden="true">
+        <div className={`hp-fill ${pct <= 25 ? 'low' : pct <= 50 ? 'mid' : ''}`} style={{ width: `${pct}%` }} />
+        {tempHp > 0 && <div className="hp-temp-fill" style={{ width: `${Math.min(100, (tempHp / max) * 100)}%` }} />}
+      </div>
       {state !== 'healthy' && <p className={`status status-${state}`}>{t(STATUS[state])}</p>}
 
       <form className="hp-controls" onSubmit={e => e.preventDefault()}>

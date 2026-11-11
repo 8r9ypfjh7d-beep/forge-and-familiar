@@ -906,7 +906,6 @@ export const en = {
   'sheet.tracker.max': 'Max',
   'sheet.tracker.recharge': 'Recharge',
   'sheet.rest': 'Rest',
-  'sheet.hitDiceShort': 'Hit dice',
   'sheet.hitDice': 'Hit dice: {list}',
   'sheet.longRestNeedsHp': 'A long rest needs at least 1 HP when it starts.',
   'sheet.shortRestHelp': 'Spend hit dice to heal (each die + CON {con}), then finish the rest to recover short-rest features.',
