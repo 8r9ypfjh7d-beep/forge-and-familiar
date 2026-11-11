@@ -9,7 +9,6 @@ Tap any number on the live sheet to see how it is built, and a plain-language di
 | `math.ts` | `explain(character, key)`: additive breakdown (`lines` sum to `total`) for AC, initiative, speed, proficiency, max HP, passive Perception, spell DC/attack, carrying capacity, ability scores/modifiers, saves, skills, attacks |
 | `changes.ts` | `describeChange(before, after)`: "HP 31 → 23" style lines for the undo log |
 | `ShowMath.tsx` | `<ShowMath character stat>` button + native popover (portalled to body) |
-| `StatsCard.tsx` | Sheet card with abilities, saves, skills, attacks, spellcasting; every number tappable |
 | `explain.css` | Popover, stats card and undo-log row styles |
 | `explain.test.ts` | Checks every breakdown total against `derive()` for a spread of characters |
 

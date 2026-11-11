@@ -36,6 +36,7 @@ alter default privileges in schema public grant all on tables to anon, authentic
 \ir ../migrations/20261031100000_assistant_usage.sql
 \ir ../migrations/20261101130000_session_notes.sql
 \ir ../migrations/20261111060000_party_notes.sql
+\ir ../migrations/20261111150000_advisor_cleanup.sql
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'),
