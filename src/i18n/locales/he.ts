@@ -911,6 +911,7 @@ const messages: Messages = {
   'sheet.tracker.max': 'מקסימום',
   'sheet.tracker.recharge': 'מתמלא ב־',
   'sheet.rest': 'מנוחה',
+  'sheet.hitDiceShort': 'קוביות פגיעה',
   'sheet.hitDice': 'קוביות פגיעה: {list}',
   'sheet.longRestNeedsHp': 'מנוחה ארוכה דורשת לפחות 1 נק"פ בתחילתה.',
   'sheet.shortRestHelp': 'השקיעו קוביות פגיעה כדי להירפא (כל קובייה + חוסן {con}), ואז סיימו את המנוחה כדי לשחזר יכולות של מנוחה קצרה.',
