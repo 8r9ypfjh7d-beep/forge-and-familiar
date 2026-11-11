@@ -17,6 +17,26 @@ export function headlineDie(r: RollResult): DieFace | null {
   return null
 }
 
+/** Where the tumbling die lands: the final total (dice plus every modifier), with a short note of how it got there. */
+export interface Landing {
+  face: DieFace
+  total: number
+  /** "17 +5" on a d20 roll (the natural die, then everything added), the notation ("2d6+3") otherwise, "d20" when nothing was added. */
+  how: string
+}
+
+export function landing(r: RollResult): Landing | null {
+  const face = headlineDie(r)
+  if (!face) return null
+  const plain = `d${face.sides}`
+  if (r.d20) {
+    const mod = r.total - r.d20.natural
+    return { face, total: r.total, how: mod ? `${r.d20.natural} ${mod > 0 ? '+' : '−'}${Math.abs(mod)}` : plain }
+  }
+  const notation = r.notation.replace(/\s+/g, '')
+  return { face, total: r.total, how: notation && notation.length <= 9 ? notation : plain }
+}
+
 /** The kept dice of a roll that has no d20 metadata (a tray roll). */
 const keptDice = (r: RollResult) => r.terms.flatMap(t => (t.kind === 'dice' ? t.rolls.filter(d => d.kept) : []))
 

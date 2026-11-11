@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { critKind, fxCritKind, CRIT_LINES, headlineDie, isNat1, isNat20, NAT20_LINES, pickLine, pickNat20Line, roll, rollD20, RollFxBus, type RollResult, type Rng } from './index'
+import { critKind, fxCritKind, CRIT_LINES, headlineDie, isNat1, landing, isNat20, NAT20_LINES, pickLine, pickNat20Line, roll, rollD20, RollFxBus, type RollResult, type Rng } from './index'
 
 const always = (v: number): Rng => () => v
 
@@ -37,6 +37,15 @@ describe('roll effects', () => {
   it('animates the first die of other rolls', () => {
     expect(headlineDie(roll('2d6+1', { rng: always(4) }))).toEqual({ sides: 6, value: 4 })
     expect(headlineDie(roll('5'))).toBeNull()
+  })
+
+  it('lands on the final total, not the bare die face', () => {
+    const hit = landing(rollD20(5, { rng: always(12) }))
+    expect(hit).toMatchObject({ total: 17, how: '12 +5', face: { sides: 20, value: 12 } })
+    expect(landing(rollD20(-1, { rng: always(8) }))).toMatchObject({ total: 7, how: '8 −1' })
+    expect(landing(rollD20(0, { rng: always(8) }))).toMatchObject({ total: 8, how: 'd20' })
+    expect(landing(roll('2d6+3', { rng: always(4) }))).toMatchObject({ total: 11, how: '2d6+3' })
+    expect(landing(roll('5'))).toBeNull()
   })
 
   it('never repeats the last nat 20 line and covers every line', () => {

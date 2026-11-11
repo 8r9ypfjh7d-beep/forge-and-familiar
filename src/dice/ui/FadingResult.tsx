@@ -2,8 +2,12 @@
 // swiped sideways, and holds still while the pointer rests on it, a finger presses it or it has focus.
 // Give it a new `key` per roll so a fresh roll replaces the card and restarts the clock.
 // Every roll is still in the dice button's history.
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode, type Ref } from 'react'
+// It opens floating right under the control that was tapped (see anchor.ts), so the player never scrolls to find it;
+// with nothing tapped (or `inline`) it stays where it sits in the page.
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode, type Ref, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 import { useI18n } from '../../i18n'
+import { placeUnder, recentTrigger, type Placement } from './anchor'
 import './dice.css'
 
 export const RESULT_SHOW_MS = 8000
@@ -18,6 +22,8 @@ interface Props {
   /** How long the card stays before fading. */
   ms?: number
   ref?: Ref<HTMLDivElement>
+  /** Stay in place in the page instead of floating under the tapped control (it already sits under it). */
+  inline?: boolean
 }
 
 /** Only keyboard focus holds the card; a tap focuses it too, and that must not keep it forever. */
@@ -25,8 +31,40 @@ function keyboardFocus(el: HTMLElement): boolean {
   try { return el.matches(':focus-visible') } catch { return false }
 }
 
-export function FadingResult({ onDone, className, children, ms = RESULT_SHOW_MS, ref }: Props) {
-  const { t } = useI18n()
+export function FadingResult({ onDone, className, children, ms = RESULT_SHOW_MS, ref, inline }: Props) {
+  const { t, dir } = useI18n()
+  const [anchor] = useState(() => (inline ? null : recentTrigger()))
+  const [place, setPlace] = useState<Placement | null>(null)
+  const self = useRef<HTMLDivElement | null>(null)
+  const setRef = (el: HTMLDivElement | null) => {
+    self.current = el
+    if (typeof ref === 'function') ref(el)
+    else if (ref) (ref as RefObject<HTMLDivElement | null>).current = el
+  }
+
+  // Follow the tapped control while the page scrolls or the card grows.
+  useLayoutEffect(() => {
+    if (!anchor) return
+    let frame = 0
+    const measure = () => {
+      const el = self.current
+      if (!el) return
+      const r = anchor.getBoundingClientRect()
+      setPlace(placeUnder(r, el.offsetHeight, { width: window.innerWidth, height: window.innerHeight }, dir === 'rtl'))
+    }
+    const later = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure) }
+    measure()
+    window.addEventListener('scroll', later, true)
+    window.addEventListener('resize', later)
+    const grow = typeof ResizeObserver === 'function' ? new ResizeObserver(later) : null
+    if (self.current) grow?.observe(self.current)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', later, true)
+      window.removeEventListener('resize', later)
+      grow?.disconnect()
+    }
+  }, [anchor, dir])
   const [fading, setFading] = useState(false)
   const [hover, setHover] = useState(false)
   const [focus, setFocus] = useState(false)
@@ -74,12 +112,17 @@ export function FadingResult({ onDone, className, children, ms = RESULT_SHOW_MS,
 
   const gone = fading || closing
   const slide = closing && Math.abs(dx) > SWIPE_PX ? Math.sign(dx) * 400 : dx
-  return (
+  const swipe: CSSProperties | undefined = slide ? { transform: `translateX(${slide}px)`, opacity: gone ? 0 : Math.max(0.3, 1 - Math.abs(dx) / 200) } : undefined
+  const at: CSSProperties | undefined = anchor
+    ? place ? { top: place.top, left: place.left, width: place.width } : { visibility: 'hidden' }
+    : undefined
+  const card = (
     <div
-      ref={ref}
+      ref={setRef}
       aria-live="polite"
-      className={`fading-result${gone ? ' out' : ''}${press ? ' pressed' : ''}${className ? ` ${className}` : ''}`}
-      style={slide ? { transform: `translateX(${slide}px)`, opacity: gone ? 0 : Math.max(0.3, 1 - Math.abs(dx) / 200) } : undefined}
+      dir={anchor ? dir : undefined}
+      className={`fading-result${anchor ? ` is-anchored${place?.above ? ' is-above' : ''}` : ''}${gone ? ' out' : ''}${press ? ' pressed' : ''}${className ? ` ${className}` : ''}`}
+      style={at || swipe ? { ...at, ...swipe } : undefined}
       title={t('dice.dismissHint')}
       tabIndex={0}
       onPointerEnter={e => { if (e.pointerType === 'mouse') { hold(); setHover(true) } }}
@@ -95,4 +138,5 @@ export function FadingResult({ onDone, className, children, ms = RESULT_SHOW_MS,
       {children}
     </div>
   )
+  return anchor ? createPortal(card, document.body) : card
 }

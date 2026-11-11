@@ -60,6 +60,6 @@ export function LastRoll({ rolls, note, onDone, why }: {
     </>
   )
   return onDone
-    ? <FadingResult className="cs-last" onDone={onDone}>{body}</FadingResult>
+    ? <FadingResult key={rolls[0]?.roll.id} className="cs-last" onDone={onDone}>{body}</FadingResult>
     : <div className="cs-last" aria-live="polite">{body}</div>
 }

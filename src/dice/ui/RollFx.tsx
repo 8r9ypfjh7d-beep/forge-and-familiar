@@ -1,12 +1,12 @@
-// Roll effects overlay: a die tumbles and lands on every recorded roll; a natural 20 or natural 1 takes over the screen (CritFx), except on quiet rolls.
+// Roll effects overlay: a die tumbles and lands on the roll's final total (dice plus modifiers) on every recorded roll; a natural 20 or natural 1 takes over the screen (CritFx), except on quiet rolls.
 // Reduce motion (a11y panel or the OS) skips the tumble and the effects; the result and the joke stay.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CRIT_LINES, fxCritKind, headlineDie, pickLine, type CritKind, type DieFace, type RollFxBus } from '../fx'
+import { CRIT_LINES, fxCritKind, landing, pickLine, type CritKind, type DieFace, type RollFxBus } from '../fx'
 import { CritFx, type Crit } from './CritFx'
 import './dice.css'
 
 const TUMBLE_MS = 500
-const HOLD_MS = 450
+const HOLD_MS = 1250
 
 export function motionReduced(): boolean {
   if (typeof document === 'undefined') return true
@@ -28,7 +28,10 @@ const shapeFor = (sides: number) => SHAPES[sides] ?? SHAPES[sides === 100 ? 10 :
 interface Shown {
   key: number
   face: DieFace
+  /** A random face while tumbling, then the roll's final total. */
   value: number
+  /** Under the die: "d20" while tumbling, then how the total was made ("17 +5"). */
+  how: string
   landed: boolean
 }
 
@@ -42,8 +45,9 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
     const clear = () => { timers.current.forEach(id => clearTimeout(id)); timers.current = [] }
     const later = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn, ms)) }
     const unsub = bus.subscribe((r, opts) => {
-      const face = headlineDie(r)
-      if (!face) return
+      const land_ = landing(r)
+      if (!land_) return
+      const { face } = land_
       clear()
       const kind = fxCritKind(r, opts)
       const key = Date.now()
@@ -55,12 +59,12 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
           setCrit({ key, kind, line })
           return
         }
-        setShown({ key, face, value: face.value, landed: true })
+        setShown({ key, face, value: land_.total, how: land_.how, landed: true })
         later(() => setShown(null), HOLD_MS)
       }
       if (motionReduced()) return land()
       setCrit(null)
-      setShown({ key, face, value: 1 + Math.floor(Math.random() * face.sides), landed: false })
+      setShown({ key, face, value: 1 + Math.floor(Math.random() * face.sides), how: `d${face.sides}`, landed: false })
       const tick = window.setInterval(() => {
         setShown(s => (s && s.key === key && !s.landed ? { ...s, value: 1 + Math.floor(Math.random() * face.sides) } : s))
       }, 70)
@@ -77,9 +81,9 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
         <div key={shown.key} className={`ff-rollfx${shown.landed ? ' is-landed' : ''}`} aria-hidden="true">
           <svg className="ff-rollfx__die" viewBox="0 0 100 100" width="52" height="52">
             <polygon points={shapeFor(shown.face.sides)} />
-            <text x="50" y="52" dominantBaseline="middle" textAnchor="middle">{shown.value}</text>
+            <text x="50" y="52" dominantBaseline="middle" textAnchor="middle" style={String(shown.value).length > 2 ? { fontSize: 27 } : undefined}>{shown.value}</text>
           </svg>
-          <span className="ff-rollfx__sides">d{shown.face.sides}</span>
+          <span className="ff-rollfx__sides" dir="ltr">{shown.how}</span>
         </div>
       )}
       {crit && <CritFx key={crit.key} crit={crit} still={motionReduced()} onDone={done} />}
