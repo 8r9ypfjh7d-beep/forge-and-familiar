@@ -76,6 +76,16 @@ describe('every screen follows the standard', () => {
     for (const { file, text } of sheets.filter(s => !PALETTES.test(s.file))) expect(text, file).not.toMatch(/#[0-9a-f]{3,8}\b/i)
   })
 
+  it('writes small labels in sentence case, not tracked-out capitals', () => {
+    // Capitals stay for full-screen effects, the paper print sheet, the wanted poster and the join code.
+    for (const { file, text } of sheets.filter(s => !PALETTES.test(s.file))) {
+      for (const rule of text.match(/[^{}]*\{[^}]*text-transform: uppercase[^}]*\}/g) ?? []) {
+        if (/poster|code-input/.test(rule)) continue
+        expect(rule, file).not.toMatch(/letter-spacing/)
+      }
+    }
+  })
+
   it('keeps the selected segment visible when glass turns solid', () => {
     const css = sheets.find(s => s.file.endsWith('glass.css'))!.text
     expect(css.match(/--glass-raised: inset 0 0 0 2px var\(--accent\)/g)?.length).toBe(2)
@@ -87,3 +97,16 @@ describe('every screen follows the standard', () => {
   })
 })
 
+describe('button labels', () => {
+  const read = (lang: string) => readFileSync(new URL(`../i18n/locales/${lang}.ts`, import.meta.url), 'utf8')
+
+  it('say what happens without a trailing arrow', () => {
+    for (const lang of ['en', 'he']) {
+      for (const key of ['home.runGame', 'home.pickCharacter', 'builder.next', 'builder.nextAnyway', 'combat.next']) {
+        const line = read(lang).split('\n').find(l => l.includes(`'${key}':`))
+        expect(line, `${lang} ${key}`).toBeDefined()
+        expect(line, `${lang} ${key}`).not.toMatch(/[→←]'/)
+      }
+    }
+  })
+})
