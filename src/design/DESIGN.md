@@ -94,3 +94,6 @@ Never set text colour from the backdrop; text uses `--ink`/`--muted`/`--accent` 
 - Don't stack more than two glass layers; don't put `backdrop-filter` on an element whose children need their own glass (use the `::before` pattern from `.glass-chrome`).
 - Don't hard-code `#fff` or rgba surfaces in screen CSS; add a token here if one is missing. `design.test.ts` fails on hex colours outside `index.css`, `a11y.css`, `glass.css`, `print.css` (paper), `crit.css`, `rock.css` and `*.fx.css` (full-screen effects).
 - Do mark a selected segment with `box-shadow: var(--glass-raised)` (custom segmented controls too, like `.mode-btn`); don't add per-screen high contrast or Reduce transparency rings for it.
+- Don't write small labels in tracked-out capitals (`text-transform: uppercase` plus `letter-spacing`); use sentence case and weight or colour instead. Capitals are fine for full-screen effects, the print sheet and in-world props like the wanted poster. `design.test.ts` checks this.
+- Don't append `→` / `←` to button text; the label says what happens ("Next turn"). Arrows that show a change of value ("Level 3 → 4") are fine.
+- Spend boldness in one place per screen: one memorable element (the roll card, the crit burst), everything around it quiet. Keep `--font-lore` for in-world text only.

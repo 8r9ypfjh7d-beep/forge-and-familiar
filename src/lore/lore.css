@@ -92,7 +92,7 @@
 
 /* Timeline */
 .ff-lore .lore-timeline { list-style: none; margin: var(--sp-2) 0 0; padding: 0; display: grid; gap: 4px; }
-.ff-lore .timeline-day { display: block; margin-block: var(--sp-2) 2px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.ff-lore .timeline-day { display: block; margin-block: var(--sp-2) 2px; font-size: 0.75rem; font-weight: 700; color: var(--muted); }
 .ff-lore .timeline-item { all: unset; box-sizing: border-box; inline-size: 100%; cursor: pointer; display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; border-radius: var(--r-sm); background: var(--glass-thin); border: 1px solid var(--glass-hairline); }
 .ff-lore .timeline-item:hover { background: var(--glass-tint); }
 .ff-lore .timeline-item:focus-visible { outline: 2px solid var(--accent); }
@@ -112,7 +112,7 @@
 .ff-handout-viewer .lore-body blockquote { padding-inline-start: 14px; border-inline-start: 3px solid var(--lore-shade); font-style: italic; }
 .ff-handout-viewer .lore-body hr { border: 0; border-block-start: 1px solid var(--lore-shade); margin: 6px 20%; }
 .ff-handout-viewer .lore-body .meta-line { display: block; font-size: 0.95rem; }
-.ff-handout-viewer .lore-body .meta-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.6; margin-inline-end: 6px; }
+.ff-handout-viewer .lore-body .meta-label { font-size: 0.7rem; font-weight: 700; opacity: 0.6; margin-inline-end: 6px; }
 .ff-handout-viewer .lore-body .meta-line.signature, .ff-handout-viewer .lore-body .meta-line.author { text-align: end; font-style: italic; margin-block-start: 8px; }
 .ff-handout-viewer .lore-body .meta-line.signature .meta-label, .ff-handout-viewer .lore-body .meta-line.author .meta-label { display: none; }
 .ff-handout-viewer .lore-link { all: unset; cursor: pointer; color: var(--accent); text-decoration: underline dotted; font-weight: 600; }
@@ -149,7 +149,7 @@
 /* ---------- Reveal moment ---------- */
 .ff-lore-reveal { position: fixed; inset: 0; z-index: 69; display: grid; place-items: center; padding: var(--sp-4); background: var(--glass-scrim); -webkit-backdrop-filter: var(--glass-scrim-blur); backdrop-filter: var(--glass-scrim-blur); animation: handout-dim var(--dur-med) var(--ease-glass); cursor: pointer; }
 .ff-lore-reveal .reveal-card { cursor: auto; width: min(520px, 100%); padding: var(--sp-5) var(--sp-4); display: grid; justify-items: center; text-align: center; gap: 8px; color: var(--ink); animation: lore-reveal-in 600ms var(--ease-glass); }
-.ff-lore-reveal .reveal-card .kind { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+.ff-lore-reveal .reveal-card .kind { font-size: 0.8rem; font-weight: 600; color: var(--accent); }
 .ff-lore-reveal .reveal-card h2 { margin: 0 0 var(--sp-2); font-family: var(--font-lore); font-size: clamp(1.6rem, 5vw, 2.2rem); animation: lore-title-in 900ms var(--ease-glass) both; }
 @keyframes lore-reveal-in { from { opacity: 0; transform: translateY(24px) scale(0.92); } }
 @keyframes lore-title-in { 0% { opacity: 0; letter-spacing: 0.3em; filter: blur(6px); } 100% { opacity: 1; letter-spacing: 0; filter: blur(0); } }

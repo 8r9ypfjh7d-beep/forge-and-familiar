@@ -198,7 +198,7 @@
   box-shadow: var(--glass-highlight), var(--glass-shadow);
 }
 .fam-change.applied { border-color: color-mix(in srgb, var(--good) 45%, var(--glass-stroke)); }
-.fam-change-kicker { margin: 0; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+.fam-change-kicker { margin: 0; font-size: 0.7rem; font-weight: 600; color: var(--accent); }
 .fam-change-title { margin: 0; font-weight: 600; line-height: 1.35; }
 .fam-change-note { margin: 0; padding-inline-start: var(--sp-2); border-inline-start: 3px solid var(--glass-hairline); color: var(--ink); white-space: pre-wrap; font-size: 0.9rem; }
 .fam-change-reason { margin: 0; font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
