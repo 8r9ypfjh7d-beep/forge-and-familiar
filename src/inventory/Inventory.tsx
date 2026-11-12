@@ -1,8 +1,8 @@
 // The sheet's Inventory card: coins, carried weight, every item with equip, quantity and edit,
-// adding from the SRD library (gear and magic items) or a custom item, and the warlock's pact weapon.
+// adding from the SRD library and the official-book items (gear and magic items) or a custom item, and the warlock's pact weapon.
 import { LRM, fmtMod } from '../i18n/signed'
 import { useEffect, useRef, useState } from 'react'
-import { BUNDLED, loadKind, searchEntries, type Edition, type Equipment, type MagicItem } from '../content'
+import { bookSourceFor, BUNDLED, loadKind, searchEntries, toRulesItem, type Edition, type Equipment, type MagicItem } from '../content'
 import { useI18n, type MessageKey } from '../i18n'
 import type { Character } from '../model/character'
 import {
@@ -32,7 +32,8 @@ function useItemLibrary(edition: Edition, wanted: boolean): Library | 'error' | 
   useEffect(() => {
     if (!wanted) return
     let live = true
-    const sources = [sourceFor(edition)]
+    // The edition's SRD first, then the official book weapons (summaries only).
+    const sources = [sourceFor(edition), bookSourceFor(edition)]
     Promise.all([loadKind('equipment', { sources }), loadKind('magic-items', { sources })])
       .then(([equipment, magic]) => live && setLib({ edition, data: { equipment, magic } }))
       .catch(() => live && setLib({ edition, data: 'error' }))
@@ -585,7 +586,8 @@ function AddPanel({ lib, onAdd, onClose, source }: {
   onClose: () => void
   source?: string
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const he = locale === 'he'
   const [tab, setTab] = useState<'gear' | 'magic'>('gear')
   const [query, setQuery] = useState('')
   const custom = () => onAdd({ itemId: `custom:${Date.now().toString(36)}`, item: { kind: 'gear', id: 'custom', name: t('inv.newItem'), weight: 0 } }, t('inv.newItem'), true)
@@ -610,17 +612,18 @@ function AddPanel({ lib, onAdd, onClose, source }: {
           {tab === 'gear'
             ? searchEntries(lib.equipment.filter(e => e.type !== 'vehicle' && e.type !== 'mount'), query).slice(0, 80).map(e => (
               <li key={e.id}>
-                <span><bdi lang="en">{e.name}</bdi><small>{t(`inv.kind.${e.type === 'tool' ? 'gear' : e.type}` as MessageKey)}{e.cost ? ` · ${e.cost.qty} ${e.cost.unit}` : ''}</small></span>
+                <span>{he && e.nameHe ? <bdi lang="he">{e.nameHe}</bdi> : <bdi lang="en">{e.name}</bdi>}<small>{t(`inv.kind.${e.type === 'tool' ? 'gear' : e.type}` as MessageKey)}{e.cost ? ` · ${e.cost.qty} ${e.cost.unit}` : ''}{e.book ? <> · <bdi lang="en">{e.book}</bdi></> : null}</small></span>
                 <button type="button" className="btn small primary" aria-label={t('inv.addName', { name: e.name })} onClick={() => onAdd(fromLibrary(e), e.name)}>{t('inv.addShort')}</button>
               </li>
             ))
             : searchEntries(lib.magic, query).slice(0, 80).map(m => {
-              const needsBase = m.category === 'weapon' || m.category === 'armor'
+              const needsBase = NEEDS_BASE.test(m.category)
+              const entry = fromMagicItem(m, he)
               return (
                 <li key={m.id}>
-                  <span><bdi lang="en">{m.name}</bdi><small lang="en">{m.rarityText ?? m.rarity}</small></span>
+                  <span><bdi lang="en">{m.name}</bdi><small lang="en">{m.rarityText ?? m.rarity}{m.book ? ` · ${m.book}` : ''}</small></span>
                   <button type="button" className="btn small primary" aria-label={t('inv.addName', { name: m.name })}
-                    onClick={() => onAdd(needsBase ? { ...fromMagicItem(m), item: placeholderBase(m) } : fromMagicItem(m), m.name, needsBase)}>
+                    onClick={() => onAdd(needsBase ? { ...entry, item: placeholderBase(m, lib.equipment) } : entry, m.name, needsBase)}>
                     {t('inv.addShort')}
                   </button>
                 </li>
@@ -629,14 +632,23 @@ function AddPanel({ lib, onAdd, onClose, source }: {
         </ul>
       )}
       <button type="button" className="btn inv-custom" onClick={custom}>{t('inv.custom')}</button>
-      {source && <p className="hint inv-source">{t('inv.source', { title: source })}</p>}
+      {source && <p className="hint inv-source">{t('inv.sourceBooks', { title: source })}</p>}
     </dialog>
   )
 }
 
-/** A magic weapon or armor starts as a longsword or chain shirt; the editor opens so the player picks the real base. */
-function placeholderBase(m: MagicItem): Item {
-  const base = BASES.find(b => b.id === (m.category === 'armor' ? (m.name.match(/shield/i) ? 'shield' : 'chain-shirt') : 'longsword'))!
+/** Magic item categories built on a weapon or armor: SRD 5.1 says "weapon", SRD 5.2 "weapons". */
+const NEEDS_BASE = /^(weapons?|armor)$/
+
+/**
+ * A magic weapon or armor starts on its usual base (book items name one, e.g. Starshot Crossbow → heavy crossbow),
+ * else a longsword or chain shirt; the editor opens so the player can pick the real base.
+ */
+function placeholderBase(m: MagicItem, equipment: Equipment[]): Item {
+  const named = m.base ? BASES.find(b => b.id === m.base) ?? fromEquipment(equipment.find(e => e.id === m.base)) : undefined
+  const base = named ?? BASES.find(b => b.id === (m.category === 'armor' ? (m.name.match(/shield/i) ? 'shield' : 'chain-shirt') : 'longsword'))!
   return withBase(base, m.name, m.id)
 }
+
+const fromEquipment = (e: Equipment | undefined) => (e ? toRulesItem(e) : undefined)
 

@@ -85,6 +85,21 @@ export const itemNamesHe: Record<string, string> = {
   'item.explorers-pack': 'ערכת מגלה ארצות',
   'item.priests-pack': 'ערכת כוהן',
   'item.scholars-pack': 'ערכת מלומד',
+  // Weapons from the official books (src/content/books/equipment-<edition>.json)
+  'item.double-bladed-scimitar': 'סימיטר דו־להבי',
+  'item.hooked-shortspear': 'חנית קצרה מאונקלת',
+  'item.hoopak': 'הופאק',
+  'item.light-repeating-crossbow': 'קשת מוצלבת קלה חוזרת',
+  'item.yklwa': 'יקלווה',
+  'item.automatic-pistol': 'אקדח אוטומטי',
+  'item.revolver': 'אקדח תופי',
+  'item.hunting-rifle': 'רובה ציד',
+  'item.automatic-rifle': 'רובה אוטומטי',
+  'item.shotgun': 'רובה ציד קצר (שוטגאן)',
+  'item.laser-pistol': 'אקדח לייזר',
+  'item.laser-rifle': 'רובה לייזר',
+  'item.antimatter-rifle': 'רובה אנטי־חומר',
+  'item.semiautomatic-pistol': 'אקדח חצי־אוטומטי',
 }
 
 /** Hebrew for the conditions on advantage effects in the rules data ("against poison"), as `when.<English text>`. */

@@ -23,15 +23,15 @@ export const magicBonusOf = (name: string) => Number(/\+([1-3])\b/.exec(name)?.[
 
 /**
  * A magic item as an entry, with its stat effects (MAGIC_ITEM_STATS) copied on so the player can edit them.
- * Its rules text goes in notes. Weapons and armor need a base item: see `withBase`.
+ * Its rules text goes in notes (the Hebrew summary for book items when `he`). Weapons and armor need a base item: see `withBase`.
  */
-export function fromMagicItem(m: MagicItem): Omit<InventoryEntry, 'uid' | 'qty' | 'equipped'> {
+export function fromMagicItem(m: MagicItem, he = false): Omit<InventoryEntry, 'uid' | 'qty' | 'equipped'> {
   const stats = MAGIC_ITEM_STATS[m.id] ?? {}
-  const magicBonus = stats.magicBonus ?? magicBonusOf(m.name)
+  const magicBonus = stats.magicBonus ?? m.bonus ?? magicBonusOf(m.name)
   return {
     itemId: m.id,
     item: { kind: 'gear', id: m.id, name: m.name, weight: 0 },
-    notes: m.description,
+    notes: he && m.descriptionHe ? m.descriptionHe : m.description,
     ...(magicBonus ? { magicBonus } : {}),
     ...(stats.extraDamage ? { extraDamage: stats.extraDamage } : {}),
     ...(stats.effects?.length ? { effects: stats.effects.map(f => ({ ...f })) } : {}),

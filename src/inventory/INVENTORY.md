@@ -13,7 +13,7 @@ The sheet's Inventory card: coins, carried weight, every item the character owns
 
 ## How it works
 
-- Items come from the content library (`src/content`) for the character's edition: equipment and magic items. An item the engine already has (e.g. `greatsword`) is saved by id; anything else is embedded in `entry.item`.
+- Items come from the content library (`src/content`) for the character's edition: the SRD plus the official book weapons (`books-<edition>`), equipment and magic items. A book magic weapon starts on its `base` weapon (Starshot Crossbow → heavy crossbow) with its `bonus`, and its notes are the Hebrew summary when the app is in Hebrew. An item the engine already has (e.g. `greatsword`) is saved by id; anything else is embedded in `entry.item`.
 - Custom items (a prosthetic limb, a story trinket) are embedded gear the player names and describes.
 - Magic weapons and armor need a base item: adding one opens the editor with a placeholder base and the item's rules text in notes.
 - Rows show − and + only for stacks and consumables (`isStackable`: quantity above 1, ammunition, potions, rations…); other items change quantity in Edit. Removing asks with the in-app `useConfirm` dialog, never the browser's `confirm()`.

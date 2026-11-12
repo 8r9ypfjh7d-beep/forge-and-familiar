@@ -19,6 +19,7 @@ Every SRD spell, item, magic item, class, class feature, subclass, race, subrace
 | `data/<source>/manifest.json` | Generated. Upstream repo and commit, counts |
 | `books/sources.ts` | `BOOK_SOURCES` (`books-2014`, `books-2024`), `bookSourceFor`, `BOOK_TITLES` (book code → title) |
 | `books/spells-<edition>.json` | Official non-SRD spells for that edition's rules, one per line |
+| `books/magic-items-<edition>.json`, `books/equipment-<edition>.json` | Official non-SRD magic weapons and mundane weapons for that edition's rules, one per line |
 | `books/monsters/<edition>/<BOOK>.json` | Official non-SRD monsters of one book, one per line; the file name is the book code |
 | `books/books.test.ts` | Book spell completeness, no SRD overlap, subclass spell names resolve; book monster shape, both summaries, no SRD overlap |
 | `monsters.test.ts` | `loadMonsters` per edition, legacy fallback, packs, names and source notes |
@@ -41,11 +42,20 @@ Every SRD spell, item, magic item, class, class feature, subclass, race, subrace
 `books/` holds the official spells that the SRD leaves out: the 2014 and 2024 Player's Handbooks, Xanathar's, Tasha's, Wildemount, Fizban's, Strixhaven, Acquisitions Inc., Ravnica, Kwalish, Icewind Dale, Spelljammer, The Book of Many Things, Sigil, A Verdant Tomb, Heroes of Faerûn, Forge of the Artificer and Arcana Unleashed.
 
 - Names and game numbers only (level, school, casting time, range, components, duration, class lists, attack, save, damage dice). `description` is our own short English summary and `descriptionHe` the Hebrew one; never paste the book's text. Material components keep only a gp cost.
-- Two shipped sources, `books-2014` and `books-2024`, are listed by `listSources` and loaded by `loadKind` like the SRD, but are not in `BUNDLED` (which stays SRD only). They only have spells.
+- Two shipped sources, `books-2014` and `books-2024`, are listed by `listSources` and loaded by `loadKind` like the SRD, but are not in `BUNDLED` (which stays SRD only). They have spells, monsters and weapons.
 - `books-2014`: 2014 PHB spells missing from SRD 5.1, plus every 2014-era book. The PHB's wizard-named copies of SRD spells (Tasha's Hideous Laughter) are left out; the SRD names cover them.
 - `books-2024`: 2024 PHB spells missing from SRD 5.2, the 2024-era books, then older-book spells with no 2024 reprint, so they stay usable with 2024 rules.
 - `Spell.book` is the book code (`XGE`); `BOOK_TITLES` names it. Dunamancy spells (Wildemount) are on the wizard list; Encode Thoughts has no class list in its book.
 - Hand-edited. To add a spell: append a line to the matching file with a new `id` (a slug of the name) and both summaries; `books.test.ts` checks the shape.
+
+## Book weapons
+
+`books/magic-items-<edition>.json` holds the official magic weapons the SRD leaves out (DMG and 2024 DMG, Xanathar's, Tasha's, The Book of Many Things, Wildemount, Fizban's, Theros, Ravnica, adventures and the rest), and `books/equipment-<edition>.json` the mundane ones (yklwa, double-bladed scimitar, hoopak, firearms...).
+
+- Same licence rule: names and game numbers only (rarity, attunement, +N bonus, base weapon, damage, range). `description` is our own one-line English summary and `descriptionHe` the Hebrew one. Book equipment also has `nameHe`, and its ids are named in `i18n/locales/itemnames.he.ts`.
+- `MagicItem.base` is the weapon it usually sits on (a rules `ITEMS` id or a library equipment id): the Inventory starts the item on it and the player can change it. `MagicItem.bonus` is its +N.
+- 2014 file: everything except 2024 DMG items, minus SRD 5.1 names. 2024 file: 2024 DMG items plus older items with no 2024 reprint, minus SRD 5.2 names (like book spells). Sword of Answering's nine blades and the Enspelled Staff/Weapon levels are one entry each.
+- Built from the item list of the public 5etools data as a name index only; every summary was written by hand. `books.test.ts` checks both summaries, the book code, the base and no SRD overlap.
 
 ## Book monsters
 

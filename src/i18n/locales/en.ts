@@ -2146,6 +2146,7 @@ export const en = {
   'inv.search': 'Search items',
   'inv.failed': 'Could not load the item library.',
   'inv.source': 'Items from {title}',
+  'inv.sourceBooks': 'Items from {title}, plus weapons from the official books as short summaries of our own (check the book for the full rules)',
   'inv.prop.finesse': 'Finesse',
   'inv.prop.light': 'Light',
   'inv.prop.heavy': 'Heavy',

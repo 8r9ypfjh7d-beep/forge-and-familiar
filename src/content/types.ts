@@ -152,6 +152,10 @@ export interface Equipment extends EntryBase {
   tool?: { ability?: Ability; crafts: Ref[] }
   speed?: string
   capacity?: string
+  /** Book weapons (`src/content/books`): the book's code, our Hebrew name and Hebrew summary. */
+  book?: string
+  nameHe?: string
+  descriptionHe?: string
 }
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'very rare' | 'legendary' | 'artifact' | 'varies'
@@ -168,6 +172,13 @@ export interface MagicItem extends EntryBase {
   /** Set on "+1 Weapon"-style parents; children carry `variantOf`. */
   variants: Ref[]
   variantOf?: string
+  /** Book magic items (`src/content/books`): the book's code and our Hebrew summary. */
+  book?: string
+  descriptionHe?: string
+  /** Book magic weapons: the rules-engine or library weapon id it is usually built on (the player can change it). */
+  base?: string
+  /** Book magic weapons: the +N to attack and damage. */
+  bonus?: number
 }
 
 export interface ClassLevel {

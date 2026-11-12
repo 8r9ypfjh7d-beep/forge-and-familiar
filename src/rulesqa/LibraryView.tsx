@@ -1,6 +1,6 @@
 // Library results on the Rules page: one row per spell, item, monster, condition or feat; tapping a row opens it.
 import { useEffect, useMemo, useState } from 'react'
-import { BOOK_TITLES, loadKind, loadMonsters, sourceById, type Edition, type Equipment, type MagicItem } from '../content'
+import { BOOK_TITLES, bookSourceFor, loadKind, loadMonsters, sourceById, type Edition, type Equipment, type MagicItem } from '../content'
 import { useI18n } from '../i18n'
 import type { MessageKey } from '../i18n/locales/en'
 import { StatBlock } from '../monsters/StatBlock'
@@ -29,7 +29,8 @@ export function useLibrary(edition: Edition, monsters: boolean): Library | 'erro
     const own = { sources: [srdFor(edition)] }
     Promise.all([
       loadKind('spells', { sources: spellSourcesFor(edition) }),
-      loadKind('equipment', own), loadKind('magic-items', own),
+      // Items: the SRD, then the official book weapons (our own summaries).
+      loadKind('equipment', { sources: [...own.sources, bookSourceFor(edition)] }), loadKind('magic-items', { sources: [...own.sources, bookSourceFor(edition)] }),
       monsters ? loadMonsters(edition) : Promise.resolve([]),
       loadKind('conditions', own), loadKind('feats', { edition }),
     ]).then(([spells, equipment, magic, mons, conditions, feats]) => {
@@ -127,7 +128,9 @@ function Text({ text, book }: { text: string; book: string }) {
 }
 
 function ItemDetail({ item }: { item: Equipment | MagicItem }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const book = item.book ? BOOK_TITLES[item.book] ?? item.book : undefined
+  const he = locale === 'he' && !!item.descriptionHe
   const facts: [MessageKey, string][] = []
   if ('rarity' in item) {
     facts.push(['library.rarity', item.rarityText ?? t(`library.rarity.${item.rarity.replace(' ', '-')}` as MessageKey)])
@@ -148,7 +151,10 @@ function ItemDetail({ item }: { item: Equipment | MagicItem }) {
   return (
     <div className="sb-detail">
       {facts.length > 0 && <dl>{facts.map(([k, v]) => <div key={k}><dt>{t(k)}</dt><dd><bdi lang="en">{v}</bdi></dd></div>)}</dl>}
-      {item.description && <div lang="en" dir="ltr"><Markdown text={item.description} /></div>}
+      {he
+        ? <p lang="he" dir="rtl">{item.descriptionHe}</p>
+        : item.description && <div lang="en" dir="ltr"><Markdown text={item.description} /></div>}
+      {book && <p className="hint">{t('spells.bookNote', { book })}</p>}
     </div>
   )
 }

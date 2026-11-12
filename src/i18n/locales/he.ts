@@ -1090,6 +1090,7 @@ const messages: Messages = {
   'inv.search': 'חיפוש חפצים',
   'inv.failed': 'לא ניתן לטעון את ספריית החפצים.',
   'inv.source': 'חפצים מתוך {title}',
+  'inv.sourceBooks': 'חפצים מתוך {title}, ועוד כלי נשק מהספרים הרשמיים כתקצירים שכתבנו (את הכללים המלאים בודקים בספר)',
   'inv.prop.finesse': 'עדין',
   'inv.prop.light': 'קל',
   'inv.prop.heavy': 'כבד',
