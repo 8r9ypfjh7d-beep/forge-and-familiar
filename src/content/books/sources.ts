@@ -1,7 +1,7 @@
-// Spells and monsters from the official books beyond the SRD. Names and game numbers only; every description is our own short summary.
+// Spells, monsters and items from the official books beyond the SRD. Names and game numbers only; every description is our own short summary.
 import type { Edition, SourceInfo } from '../types.ts'
 
-const NOTE = 'Spells and monsters from official Dungeons & Dragons books beyond the SRD. Names and game numbers only: each description is a short summary written for Forge & Familiar, not the book\'s text, so check the book for the full wording. Dungeons & Dragons and the book titles are trademarks of Wizards of the Coast LLC; this app is not affiliated with or endorsed by them.'
+const NOTE = 'Spells, monsters and items from official Dungeons & Dragons books beyond the SRD. Names and game numbers only: each description is a short summary written for Forge & Familiar, not the book\'s text, so check the book for the full wording. Dungeons & Dragons and the book titles are trademarks of Wizards of the Coast LLC; this app is not affiliated with or endorsed by them.'
 
 export const BOOK_SOURCES: SourceInfo[] = [
   { id: 'books-2014', title: 'Official books (2014 rules)', edition: '2014', license: 'summaries', attribution: NOTE },
@@ -10,7 +10,7 @@ export const BOOK_SOURCES: SourceInfo[] = [
 
 export const bookSourceFor = (edition: Edition) => (edition === '2024' ? 'books-2024' : 'books-2014')
 
-/** Book codes on book spells and monsters (`Spell.book`, `Monster.book`) and their titles. */
+/** Book codes on book spells, monsters and items (`Spell.book`, `Monster.book`, `MagicItem.book`, `Equipment.book`) and their titles. */
 export const BOOK_TITLES: Record<string, string> = {
   PHB: "Player's Handbook (2014)",
   XPHB: "Player's Handbook (2024)",
@@ -75,4 +75,14 @@ export const BOOK_TITLES: Record<string, string> = {
   HftT: 'Hunt for the Thessalhydra',
   DIP: 'Dragon of Icespire Peak',
   DC: 'Divine Contention',
+  // Item books
+  AUD: 'Arcana Unleashed: Deadfall',
+  CoA: 'Chains of Asmodeus',
+  'HAT-LMI': 'Honor Among Thieves: Legendary Magic Items',
+  ICC: 'World of Warcraft: Icecrown Citadel',
+  MCV2DC: 'Monstrous Compendium Vol. 2: Dragonlance Creatures',
+  RHW: 'Ravenloft: The Horrors Within',
+  UtHftLH: 'Uni and the Hunt for the Lost Horn',
+  WoW: 'World of Warcraft',
+  WttHC: 'Stranger Things: Welcome to the Hellfire Club',
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { BOOK_SOURCES, BOOK_TITLES, bookMonsterPaths, loadKind, sanitizePack, type Edition, type Spell } from '..'
+import { BOOK_SOURCES, BOOK_TITLES, bookMonsterPaths, loadKind, sanitizePack, toRulesItem, type Edition, type Spell } from '..'
+import { ITEMS } from '../../rules'
 import { subclassesFor } from '../../rules/data/subclasses'
 import { spellIdByName, spellSourcesFor } from '../../spellbook/access'
 
@@ -124,5 +125,43 @@ describe('book monsters', () => {
     const beholder = list.find(m => m.id === 'beholder')!
     expect(beholder).toMatchObject({ book: 'MM', challengeRating: 13, legendary: { actions: 3 } })
     expect(list.find(m => m.id === 'mind-flayer')?.spellcasting?.groups[0]).toEqual({ label: 'At will', spells: ['detect-thoughts', 'levitate'] })
+  })
+})
+
+describe('book weapons', () => {
+  const srdOf = (edition: Edition) => (edition === '2024' ? 'srd-5.2' : 'srd-5.1')
+
+  it.each(EDITIONS)('%s magic weapons have both summaries, a known book and a base weapon', async edition => {
+    const items = await loadKind('magic-items', { sources: [`books-${edition}`] })
+    expect(items.length).toBeGreaterThan(150)
+    const srdNames = new Set((await loadKind('magic-items', { sources: [srdOf(edition)] })).map(m => norm(m.name)))
+    const weapons = new Set([
+      ...ITEMS.filter(i => i.kind === 'weapon').map(i => i.id),
+      ...(await loadKind('equipment', { sources: [srdOf(edition), `books-${edition}`] })).filter(e => e.weapon).map(e => e.id),
+    ])
+    const ids = new Set<string>()
+    for (const m of items) {
+      expect(ids.has(m.id), m.id).toBe(false)
+      ids.add(m.id)
+      expect(m).toMatchObject({ source: `books-${edition}`, edition, category: 'weapon' })
+      expect(m.description.length, m.id).toBeGreaterThan(20)
+      expect(m.descriptionHe, m.id).toMatch(/[֐-׿]/)
+      expect(BOOK_TITLES[m.book!], m.id).toBeDefined()
+      expect(weapons.has(m.base!), `${m.id} base ${m.base}`).toBe(true)
+      expect(srdNames.has(norm(m.name)), m.id).toBe(false)
+    }
+    expect(items.find(m => m.id === 'starshot-crossbow')).toMatchObject({ book: 'BMT', rarity: 'rare', attunement: true, base: 'heavy-crossbow' })
+  })
+
+  it.each(EDITIONS)('%s mundane weapons convert to rules weapons and skip the SRD', async edition => {
+    const gear = await loadKind('equipment', { sources: [`books-${edition}`] })
+    const srdNames = new Set((await loadKind('equipment', { sources: [srdOf(edition)] })).map(e => norm(e.name)))
+    expect(gear.map(e => e.id)).toEqual(expect.arrayContaining(['yklwa', 'double-bladed-scimitar', 'hoopak', 'revolver']))
+    for (const e of gear) {
+      expect(toRulesItem(e)?.kind, e.id).toBe('weapon')
+      expect(e.nameHe && e.descriptionHe, e.id).toMatch(/[֐-׿]/)
+      expect(BOOK_TITLES[e.book!], e.id).toBeDefined()
+      expect(srdNames.has(norm(e.name)), e.id).toBe(false)
+    }
   })
 })

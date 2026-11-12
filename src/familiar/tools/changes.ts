@@ -1,6 +1,6 @@
 // propose_change: the model suggests one change; the panel shows an Apply card and only the user's tap makes it (changes.ts).
 // This tool resolves names to ids and checks the fit (warn, don't block). It never changes anything itself.
-import { loadKind, type Spell } from '../../content'
+import { bookSourceFor, loadKind, type Spell } from '../../content'
 import { fromLibrary, fromMagicItem, withBase } from '../../inventory/inventory'
 import { canTake, spellAccess, spellSourcesFor, sourceFor, type SpellAccess } from '../../spellbook/access'
 import { skillPicks, subclassSlots } from '../../builder/validate'
@@ -93,7 +93,7 @@ async function buildCharacterChange(kind: ChangeKind, args: Record<string, unkno
       return { change: { kind, spellId: k.id, classId: k.classId, prepared }, names: { spell: name }, warnings: [], summary: `${prepared ? 'Prepare' : 'Unprepare'} ${name}.` }
     }
     case 'add_item': {
-      const sources = [sourceFor(edition)]
+      const sources = [sourceFor(edition), bookSourceFor(edition)]
       const [equipment, magic] = await Promise.all([loadKind('equipment', { sources }).catch(() => []), loadKind('magic-items', { sources }).catch(() => [])])
       const wanted = str(args.item)
       const qty = Math.max(1, Math.min(99, Math.round(num(args.qty) ?? 1)))
@@ -103,10 +103,10 @@ async function buildCharacterChange(kind: ChangeKind, args: Record<string, unkno
       if (!m) throw new Error(`No item "${wanted}" in the library. Use search_content kind "equipment" or "magic-items" and pass its id.`)
       const warnings: ChangeWarning[] = []
       let entry = fromMagicItem(m)
-      if (m.category === 'weapon' || m.category === 'armor') {
+      if (/^(weapons?|armor)$/.test(m.category)) {
         const base = itemById(str(args.base))
-        const fits = base && (m.category === 'weapon' ? base.kind === 'weapon' : base.kind === 'armor')
-        const fallback = itemById(m.category === 'armor' ? (/shield/i.test(m.name) ? 'shield' : 'chain-shirt') : 'longsword')
+        const fits = base && (m.category === 'armor' ? base.kind === 'armor' : base.kind === 'weapon')
+        const fallback = itemById(m.base ?? '') ?? itemById(m.category === 'armor' ? (/shield/i.test(m.name) ? 'shield' : 'chain-shirt') : 'longsword')
         if (!fits) warnings.push('noBase')
         const use = fits ? base : fallback
         if (use) entry = { ...entry, item: withBase(use, m.name, m.id) }
