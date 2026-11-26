@@ -1,5 +1,6 @@
 // Random fantasy names, built from syllables so the same name rarely comes up twice.
 // The syllables are our own, written for this app (no book name lists).
+import { randomFloat } from '../dice/rng'
 
 export type Rng = () => number
 
@@ -65,7 +66,7 @@ const STYLES: Record<string, NameStyle> = {
 STYLES.orc = STYLES['half-orc']
 
 /** A random name for a race or species id. Unknown and homebrew races get a human-style name. */
-export function randomName(raceId: string, rng: Rng = Math.random): string {
+export function randomName(raceId: string, rng: Rng = randomFloat): string {
   const style = STYLES[raceId] ?? HUMAN
   const first = pick(style.starts, rng) + pick(style.ends, rng)
   return style.family.length ? `${first} ${pick(style.family, rng)}` : first

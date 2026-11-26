@@ -1,5 +1,6 @@
 // Rolls a whole random level 1 character: every builder step filled in and valid.
 // Randomness lives here, not in src/rules; pass a seeded rng in tests.
+import { randomFloat } from '../dice/rng'
 import { grantedSkills, skillPicks, subclassSlots, suggestedForPick, suggestedMasteryWeapons } from '../builder/validate'
 import {
   ABILITIES, ALIGNMENTS, ALL_SKILLS, CUSTOM_BACKGROUND, tableLanguages, RACES, SPECIES, STANDARD_ARRAY,
@@ -14,7 +15,7 @@ import { loadSpellLibrary, randomSpells } from './spells'
 /** Number of backstory hooks; their text is `random.hook.<n>` in the locales. */
 export const HOOK_COUNT = 16
 
-export const randomHookKey = (rng: Rng = Math.random) => `random.hook.${Math.floor(rng() * HOOK_COUNT) % HOOK_COUNT}`
+export const randomHookKey = (rng: Rng = randomFloat) => `random.hook.${Math.floor(rng() * HOOK_COUNT) % HOOK_COUNT}`
 
 /** `count` different items from `list`, in random order. */
 function pickSome<T>(list: readonly T[], count: number, rng: Rng): T[] {
@@ -113,7 +114,7 @@ function pickStyle(options: ClassChoiceOption[], gear: Gear, rng: Rng): ClassCho
 }
 
 /** A finished draft at level 1 for `edition`, using SRD content only. */
-export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng: Rng = Math.random): CharacterDraft {
+export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng: Rng = randomFloat): CharacterDraft {
   const is2024 = edition === '2024'
   const race = pick(is2024 ? SPECIES : RACES, rng)
   const cls = pick(classesFor(edition).filter(c => !c.id.startsWith('hb:')), rng)
@@ -209,7 +210,7 @@ export function randomDraft(ownerId: string, edition: RulesEdition = '2014', rng
 }
 
 /** `randomDraft` with spells picked too. The spell lists load from the content library; if they can't, no spells. */
-export async function randomCharacterDraft(ownerId: string, edition: RulesEdition = '2014', rng: Rng = Math.random): Promise<CharacterDraft> {
+export async function randomCharacterDraft(ownerId: string, edition: RulesEdition = '2014', rng: Rng = randomFloat): Promise<CharacterDraft> {
   const d = randomDraft(ownerId, edition, rng)
   try {
     d.spells = randomSpells(d, await loadSpellLibrary(editionOf(d)), rng)

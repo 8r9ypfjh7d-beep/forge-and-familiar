@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { randomInt } from '../dice/rng'
 import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import { getBackground } from '../rules'
@@ -8,7 +9,7 @@ import { PHRASES } from './phrases'
 import { backstoryText, draftBackstory, withBackstory } from './draft'
 import './backstory.css'
 
-const newSeed = () => Math.floor(Math.random() * 2 ** 31)
+const newSeed = () => randomInt(2 ** 31)
 
 /** "Draft a backstory" inside the notes card: shows a draft, rerolls it, and adds it below the notes
  *  (or hands it to onAdd, which "My notes" turns into a private note). */

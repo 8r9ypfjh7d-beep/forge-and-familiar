@@ -1,6 +1,7 @@
 // Pure DM screen logic: encounter budgets, plan edits, combat tracker hand-off, NPC generator.
 // Randomness comes in as an argument, so everything here is testable.
 import type { Combatant } from '../combat/types'
+import { randomInt } from '../dice/rng'
 import { npcCombatant } from '../combat/npcRows'
 import type { NpcSheet } from '../npc/types'
 import type { Monster } from '../content'
@@ -256,7 +257,7 @@ export const monsterTypes = (list: Monster[]) => {
 /** Returns an integer from 0 to n - 1. */
 export type Chooser = (n: number) => number
 
-export const randomPick: Chooser = n => Math.floor(Math.random() * n)
+export const randomPick: Chooser = n => (n < 1 ? 0 : randomInt(n))
 
 // Made-up syllables, not from any book.
 const STARTS = ['Al', 'Bra', 'Cor', 'Da', 'El', 'Fen', 'Gar', 'Hal', 'Is', 'Jor', 'Kae', 'Lir', 'Mor', 'Nym', 'Or', 'Pell', 'Quin', 'Ros', 'Syl', 'Tor', 'Ul', 'Vey', 'Wren', 'Yor', 'Zan']

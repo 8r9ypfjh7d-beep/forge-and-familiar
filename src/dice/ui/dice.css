@@ -111,6 +111,7 @@ form.ff-dice__row .ff-dice__ghost { flex: 0 0 auto; min-width: 72px; min-height:
 .ff-dice__history-head h3 { margin: 0; font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; }
 .ff-dice__history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; overflow-x: hidden; }
 .ff-dice__empty { color: var(--ff-dice-muted); font-size: 0.85rem; }
+.ff-dice__luck { margin: 0; color: var(--ff-dice-muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
 /* One roll: the same card players know (label, big total, dice), moved onto glass tokens. */
 .ff-roll {
