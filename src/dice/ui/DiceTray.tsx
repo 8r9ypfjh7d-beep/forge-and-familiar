@@ -23,7 +23,7 @@ interface Props {
 }
 
 export function DiceTray({ character, showAll = false, secretTo }: Props) {
-  const { record, roll, history } = useDice()
+  const { record, roll, history, streakFree, setStreakFree } = useDice()
   const rolls = useRollHistory(showAll ? undefined : character?.id)
   const luck = d20Stats(rolls)
   const [pool, setPool] = useState<Record<number, number>>({})
@@ -170,6 +170,15 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
           {sent.map(s => <li key={s.id}><span aria-hidden="true">🔒</span> {t('dice.secretSent', { label: s.label })}</li>)}
         </ol>
       )}
+
+      <button type="button" role="switch" aria-checked={streakFree} aria-describedby="ff-dice-streak-hint"
+        className={`ff-dice__streak${streakFree ? ' is-on' : ''}`} onClick={() => setStreakFree(!streakFree)}>
+        <span className="ff-dice__streak-text">
+          <span className="ff-dice__streak-label">{t('dice.streakFree')}</span>
+          <span id="ff-dice-streak-hint" className="ff-dice__streak-hint">{t('dice.streakFreeHint')}</span>
+        </span>
+        <span className="a11y-switch" aria-hidden="true"><span /></span>
+      </button>
 
       <div className="ff-dice__history-head">
         <h3>{t('dice.history')}</h3>

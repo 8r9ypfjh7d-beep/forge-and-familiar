@@ -48,6 +48,8 @@ export interface RollResult {
   action?: { id: string; name: string }
   /** On damage rolls: the weapon's or spell's damage type, e.g. "slashing". */
   damageType?: string
+  /** Rolled from the streak-free shuffle bag (bag.ts) instead of plain random, so the table can tell. */
+  streakFree?: boolean
   timestamp: string
 }
 
