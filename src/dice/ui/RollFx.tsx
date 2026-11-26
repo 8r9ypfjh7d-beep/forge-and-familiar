@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CRIT_LINES, fxCritKind, landing, pickLine, type CritKind, type DieFace, type RollFxBus } from '../fx'
 import { CritFx, type Crit } from './CritFx'
+import { randomFloat, randomInt } from '../rng'
 import './dice.css'
 
 const TUMBLE_MS = 500
@@ -53,7 +54,7 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
       const key = Date.now()
       const land = () => {
         if (kind) {
-          const line = pickLine(Math.random, CRIT_LINES[kind], lastLine.current[kind])
+          const line = pickLine(randomFloat, CRIT_LINES[kind], lastLine.current[kind])
           lastLine.current[kind] = line
           setShown(null)
           setCrit({ key, kind, line })
@@ -64,9 +65,9 @@ export function RollFx({ bus }: { bus: RollFxBus }) {
       }
       if (motionReduced()) return land()
       setCrit(null)
-      setShown({ key, face, value: 1 + Math.floor(Math.random() * face.sides), how: `d${face.sides}`, landed: false })
+      setShown({ key, face, value: 1 + randomInt(face.sides), how: `d${face.sides}`, landed: false })
       const tick = window.setInterval(() => {
-        setShown(s => (s && s.key === key && !s.landed ? { ...s, value: 1 + Math.floor(Math.random() * face.sides) } : s))
+        setShown(s => (s && s.key === key && !s.landed ? { ...s, value: 1 + randomInt(face.sides) } : s))
       }, 70)
       later(() => { clearInterval(tick); land() }, TUMBLE_MS)
       timers.current.push(tick)

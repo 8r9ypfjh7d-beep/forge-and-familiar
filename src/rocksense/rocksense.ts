@@ -1,5 +1,6 @@
 // Roy's Stone Sense: a dwarf presses a button, the rock speaks, and it says nothing useful.
 // Pure picking logic plus a per-device count of rocks sensed; the overlay is RockSense.tsx.
+import { randomFloat } from '../dice/rng'
 import type { Character } from '../model/character'
 
 /** Number of `rock.fact<n>` lines in the locales. */
@@ -14,14 +15,14 @@ export function canSenseRock(c: Pick<Character, 'raceId' | 'subraceId' | 'ownerI
 }
 
 /** A fact number from 1 to `count`, never the same as the last one shown. */
-export function pickFact(last: number | undefined, random: () => number = Math.random, count = ROCK_FACTS): number {
+export function pickFact(last: number | undefined, random: () => number = randomFloat, count = ROCK_FACTS): number {
   const n = 1 + Math.floor(random() * count)
   if (n !== last || count < 2) return n
   return (n % count) + 1
 }
 
 /** A moisture reading from 1 to MOISTURE_LEVELS. The age reading is always "very old". */
-export function pickMoisture(random: () => number = Math.random): number {
+export function pickMoisture(random: () => number = randomFloat): number {
   return 1 + Math.floor(random() * MOISTURE_LEVELS)
 }
 

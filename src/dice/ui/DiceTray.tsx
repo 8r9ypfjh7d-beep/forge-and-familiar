@@ -8,6 +8,7 @@ import type { RollMode, RollOptions, RollResult, Term } from '../types'
 import { useDice, useRollHistory } from './DiceProvider'
 import { RollGroupView } from './RollView'
 import { groupByAction } from '../history'
+import { d20Stats } from '../fairness'
 import './dice.css'
 
 const DICE = [4, 6, 8, 10, 12, 20, 100] as const
@@ -24,6 +25,7 @@ interface Props {
 export function DiceTray({ character, showAll = false, secretTo }: Props) {
   const { record, roll, history } = useDice()
   const rolls = useRollHistory(showAll ? undefined : character?.id)
+  const luck = d20Stats(rolls)
   const [pool, setPool] = useState<Record<number, number>>({})
   const [modifier, setModifier] = useState(0)
   const [mode, setMode] = useState<RollMode>('normal')
@@ -175,6 +177,18 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
           <button type="button" className="ff-dice__ghost" onClick={() => history.clear()}>{t('dice.clearHistory')}</button>
         )}
       </div>
+      {luck.n > 0 && (
+        <p className="ff-dice__luck">
+          {t('dice.d20s', {
+            n: luck.n,
+            average: luck.average.toFixed(1),
+            nat1: luck.nat1,
+            nat20: luck.nat20,
+            expected: Math.round(luck.expected),
+            verdict: t(`dice.d20s.${luck.verdict}`),
+          })}
+        </p>
+      )}
       <ol className="ff-dice__history" aria-live="polite">
         {rolls.length === 0 && <li className="ff-dice__empty">{t('dice.empty')}</li>}
         {groupByAction(rolls, r => r).map((g, i) => (

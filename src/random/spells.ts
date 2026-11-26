@@ -1,5 +1,6 @@
 // Spells for a random character: an attack cantrip first, then a mix (something that hurts, something that heals, the rest at random).
 // SRD spells only. Randomness stays here; pass a seeded rng in tests.
+import { randomFloat } from '../dice/rng'
 import { loadKind, type CharacterClass, type Edition, type Spell, type Subclass } from '../content'
 import type { KnownSpell } from '../model/character'
 import { getAbilityScores, type CharacterDraft } from '../rules'
@@ -37,7 +38,7 @@ function mix(pool: Spell[], count: number, rng: Rng, taken: Set<string>): Spell[
 }
 
 /** Cantrips and known, prepared or spellbook spells for each spellcasting class, plus race and feat spell picks. */
-export function randomSpells(d: CharacterDraft, lib: SpellLibrary, rng: Rng = Math.random): KnownSpell[] {
+export function randomSpells(d: CharacterDraft, lib: SpellLibrary, rng: Rng = randomFloat): KnownSpell[] {
   const out: KnownSpell[] = []
   for (const a of spellAccess(d, lib.classes, lib.subclasses, getAbilityScores(d), undefined, lib.spells)) {
     const pool = availableSpells(lib.spells, a).filter(s => !a.alwaysPrepared.includes(s.id))

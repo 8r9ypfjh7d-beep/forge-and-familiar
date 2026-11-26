@@ -4,6 +4,7 @@ import { useI18n } from '../i18n'
 import type { Character } from '../model/character'
 import type { Apply } from '../sheet/types'
 import { pickLine } from '../dice/fx'
+import { randomFloat } from '../dice/rng'
 import { motionReduced } from '../dice/ui/RollFx'
 import { bumpStripCount, getDressed, isPoweredUp, powerLevel, powerUp, stripCount, STRIP_LINES } from './powerup'
 import { StripFx, type Strip } from './StripFx'
@@ -19,7 +20,7 @@ export function PowerUpCard({ character, apply }: { character: Character; apply:
   const go = () => {
     const n = bumpStripCount(character.id)
     setTimes(n)
-    lastLine.current = pickLine(Math.random, STRIP_LINES, lastLine.current)
+    lastLine.current = pickLine(randomFloat, STRIP_LINES, lastLine.current)
     setStrip({ key: Date.now(), name: character.name, level: powerLevel(n), line: lastLine.current })
     if (!on) apply(t('powerup.log.strip'), c => powerUp(c, t('powerup.effectName'), t('powerup.effectDesc')))
   }

@@ -1,17 +1,10 @@
 // Core rolling. Pure apart from the default RNG.
+import { randomInt } from './rng'
 import { formatNotation, parseNotation, termToString } from './notation'
 import type { DieRoll, RollType, RollMode, RollOptions, RollResult, Rng, Term, TermResult } from './types'
 
-/** Unbiased crypto RNG (rejection sampling). Falls back to Math.random where crypto is missing. */
-export const cryptoRng: Rng = sides => {
-  const c = globalThis.crypto
-  if (!c?.getRandomValues) return 1 + Math.floor(Math.random() * sides)
-  const buf = new Uint32Array(1)
-  const limit = Math.floor(0x1_0000_0000 / sides) * sides
-  do c.getRandomValues(buf)
-  while (buf[0] >= limit)
-  return 1 + (buf[0] % sides)
-}
+/** Unbiased crypto RNG (rejection sampling in rng.ts). Throws where crypto is missing; no Math.random fallback. */
+export const cryptoRng: Rng = sides => 1 + randomInt(sides)
 
 let counter = 0
 const newId = () => `roll-${Date.now().toString(36)}-${(counter++).toString(36)}`
