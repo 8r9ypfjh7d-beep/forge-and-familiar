@@ -466,7 +466,7 @@ function TweakStep({ draft, update, setBlock, monsters }: {
   const setHp = (hp: number, mode: Draft['hpMode']) => update({ hpMode: mode, block: { ...b, hitPoints: Math.max(1, hp) } })
   const rollHp = () => {
     try {
-      const r = roll(b.hitPointsRoll, { label: `${draft.name || b.name}: ${t('stat.hp')}` })
+      const r = roll(b.hitPointsRoll, { label: `${draft.name || b.name}: ${t('stat.hp')}`, lean: false })
       setHp(r.total, 'roll')
     } catch { /* not dice notation: the DM types a number instead */ }
   }

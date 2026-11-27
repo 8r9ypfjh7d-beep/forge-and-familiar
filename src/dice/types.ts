@@ -48,8 +48,6 @@ export interface RollResult {
   action?: { id: string; name: string }
   /** On damage rolls: the weapon's or spell's damage type, e.g. "slashing". */
   damageType?: string
-  /** Rolled from the streak-free shuffle bag (bag.ts) instead of plain random, so the table can tell. */
-  streakFree?: boolean
   timestamp: string
 }
 
@@ -68,6 +66,8 @@ export interface RollOptions {
   label?: string
   roller?: RollResult['roller']
   rng?: Rng
+  /** Lean toward high rolls (player dice). Defaults to true when `character` is set, false otherwise. Ignored with `rng`. */
+  lean?: boolean
   /** Halfling Lucky: a natural 1 on the d20 is rerolled once and the new roll used (the 1 shows struck through). */
   lucky?: boolean
 }

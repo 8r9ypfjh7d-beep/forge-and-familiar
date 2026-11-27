@@ -45,7 +45,7 @@ export function StatBlock({ m, title, actions, rollAs, children, hideHp, uses, o
   const say = (r: ReturnType<typeof record>) => setLast(r)
   const d20 = (bonus: number, label: string, type: 'check' | 'save' | 'attack') => say(record(rollD20(bonus, { label: `${who}: ${label}` }, type), { quiet: true }))
   const dmg = (dice: string, label: string) => {
-    try { say(roll(dice, { label: `${who}: ${label}` })) } catch { /* not dice notation */ }
+    try { say(roll(dice, { label: `${who}: ${label}`, lean: false })) } catch { /* not dice notation */ }
   }
   const list = (k: MessageKey, items: string[]) => items.length ? <p><b>{t(k)}</b> {items.join(', ')}</p> : null
   const saves = Object.entries(m.savingThrows) as [Ability, number][]

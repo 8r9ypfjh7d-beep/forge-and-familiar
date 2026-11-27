@@ -31,7 +31,7 @@ export function LastRoll({ rolls, note, onDone, why }: {
           : ''
         return (
           <div key={r.id} className={`cs-rollline type-${r.type}${crit ? ' crit' : ''}${fumble ? ' fumble' : ''}`}>
-            <span className="what">{what}{mode && <small>{mode}</small>}{r.streakFree && <small>{t('dice.streakFreeChip')}</small>}</span>
+            <span className="what">{what}{mode && <small>{mode}</small>}</span>
             <span className="total">{r.total}</span>
             {hasSources(r)
               ? (

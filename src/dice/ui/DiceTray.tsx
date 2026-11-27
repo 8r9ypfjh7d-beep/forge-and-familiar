@@ -23,9 +23,9 @@ interface Props {
 }
 
 export function DiceTray({ character, showAll = false, secretTo }: Props) {
-  const { record, roll, history, streakFree, setStreakFree } = useDice()
+  const { record, roll, history, lean } = useDice()
   const rolls = useRollHistory(showAll ? undefined : character?.id)
-  const luck = d20Stats(rolls)
+  const luck = d20Stats(rolls, lean)
   const [pool, setPool] = useState<Record<number, number>>({})
   const [modifier, setModifier] = useState(0)
   const [mode, setMode] = useState<RollMode>('normal')
@@ -45,7 +45,7 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
     setSent(list => [{ id: r.id, label: r.label ?? r.notation }, ...list].slice(0, 3))
     return r
   }
-  const rollText = (notation: string, opts: RollOptions) => (secret ? send(rollNotation(notation, opts)) : roll(notation, opts))
+  const rollText = (notation: string, opts: RollOptions) => (secret ? send(rollNotation(notation, lean ? { lean, ...opts } : opts)) : roll(notation, opts))
 
   const roller = character && { characterId: character.id, characterName: character.name }
   const poolTerms: Term[] = [
@@ -69,7 +69,7 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
 
   function rollPool() {
     // A lone d20 honours the advantage toggle; other pools roll as written.
-    if (d20Mode) send(rollD20(modifier, { mode, roller, label: rollLabel }, 'custom'))
+    if (d20Mode) send(rollD20(modifier, { mode, roller, label: rollLabel, lean: lean || undefined }, 'custom'))
     else rollText(poolNotation, { roller })
     reset()
   }
@@ -171,15 +171,6 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
         </ol>
       )}
 
-      <button type="button" role="switch" aria-checked={streakFree} aria-describedby="ff-dice-streak-hint"
-        className={`ff-dice__streak${streakFree ? ' is-on' : ''}`} onClick={() => setStreakFree(!streakFree)}>
-        <span className="ff-dice__streak-text">
-          <span className="ff-dice__streak-label">{t('dice.streakFree')}</span>
-          <span id="ff-dice-streak-hint" className="ff-dice__streak-hint">{t('dice.streakFreeHint')}</span>
-        </span>
-        <span className="a11y-switch" aria-hidden="true"><span /></span>
-      </button>
-
       <div className="ff-dice__history-head">
         <h3>{t('dice.history')}</h3>
         {rolls.length > 0 && (
@@ -191,9 +182,11 @@ export function DiceTray({ character, showAll = false, secretTo }: Props) {
           {t('dice.d20s', {
             n: luck.n,
             average: luck.average.toFixed(1),
+            expectedAverage: luck.expectedAverage.toFixed(1),
             nat1: luck.nat1,
+            expectedNat1: luck.expectedNat1.toFixed(1),
             nat20: luck.nat20,
-            expected: Math.round(luck.expected),
+            expectedNat20: luck.expectedNat20.toFixed(1),
             verdict: t(`dice.d20s.${luck.verdict}`),
           })}
         </p>
