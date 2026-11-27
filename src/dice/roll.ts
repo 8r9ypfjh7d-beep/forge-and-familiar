@@ -1,22 +1,16 @@
-// Core rolling. Pure apart from the default RNG.
-import { randomInt } from './rng'
+// Core rolling. Pure apart from the RNG (crypto, leaned high for player rolls).
+import { leanInt, randomInt } from './rng'
 import { formatNotation, parseNotation, termToString } from './notation'
 import type { DieRoll, RollType, RollMode, RollOptions, RollResult, Rng, Term, TermResult } from './types'
 
 /** Unbiased crypto RNG (rejection sampling in rng.ts). Throws where crypto is missing; no Math.random fallback. */
 export const cryptoRng: Rng = sides => 1 + randomInt(sides)
 
-let defaultRng: Rng = cryptoRng
-let defaultStreakFree = false
+/** Player dice: crypto random with a subtle lean toward high rolls (leanInt in rng.ts). */
+export const leanRng: Rng = leanInt
 
-/**
- * Sets the source for rolls that pass no `opts.rng`; `null` restores fair crypto random.
- * `streakFree` marks results rolled from it with `streakFree: true` (the shuffle bag in bag.ts).
- */
-export function setDefaultRng(rng: Rng | null, streakFree = false): void {
-  defaultRng = rng ?? cryptoRng
-  defaultStreakFree = !!rng && streakFree
-}
+/** An explicit `opts.rng` wins; otherwise player rolls (`lean`, by default whenever a character rolls) lean, the rest stay fair. */
+const sourceFor = (opts: RollOptions): Rng => opts.rng ?? ((opts.lean ?? !!opts.character) ? leanRng : cryptoRng)
 
 let counter = 0
 const newId = () => `roll-${Date.now().toString(36)}-${(counter++).toString(36)}`
@@ -57,7 +51,7 @@ function breakdownOf(terms: TermResult[]): string {
 }
 
 function build(terms: Term[], type: RollType, opts: RollOptions): RollResult {
-  const results = terms.map(t => rollTerm(t, opts.rng ?? defaultRng))
+  const results = terms.map(t => rollTerm(t, sourceFor(opts)))
   const total = results.reduce((s, t) => s + t.sign * (t.kind === 'const' ? t.value : t.subtotal), 0)
   return {
     id: newId(),
@@ -69,7 +63,6 @@ function build(terms: Term[], type: RollType, opts: RollOptions): RollResult {
     breakdown: breakdownOf(results),
     roller: opts.roller ?? (opts.character && { characterId: opts.character.id, characterName: opts.character.name }),
     timestamp: new Date().toISOString(),
-    ...(!opts.rng && defaultStreakFree ? { streakFree: true } : {}),
   }
 }
 
@@ -82,7 +75,7 @@ export function roll(notation: string, opts: RollOptions = {}, type: RollType = 
  * Great Weapon Fighting on one dice term: kept dice of 1 or 2 are rerolled once (2014) or count as 3 (2024).
  * The old die stays in the list struck through, the new value follows it.
  */
-export function lowDiceUp(t: TermResult, how: 'reroll' | 'min3', rng: Rng = defaultRng): TermResult {
+export function lowDiceUp(t: TermResult, how: 'reroll' | 'min3', rng: Rng = cryptoRng): TermResult {
   if (t.kind !== 'dice') return t
   const rolls = t.rolls.flatMap(r => (r.kept && r.value <= 2
     ? [{ ...r, kept: false }, { sides: r.sides, value: how === 'min3' ? 3 : rng(r.sides), kept: true }]
@@ -109,7 +102,7 @@ export function rollParts(
   const result = build(terms, type, opts)
   result.terms = result.terms.map((t, i) => {
     const { source, damageType, lowDice } = meta[i]
-    const done = lowDice ? lowDiceUp(t, lowDice, opts.rng) : t
+    const done = lowDice ? lowDiceUp(t, lowDice, sourceFor(opts)) : t
     return { ...done, ...(source ? { source } : {}), ...(damageType ? { damageType } : {}) }
   })
   if (parts.some(p => p.lowDice)) {
@@ -149,7 +142,7 @@ export function rollD20(bonus: number, opts: RollOptions = {}, type: RollType = 
   // Dice from running spells (Bless's 1d4) come after the bonus.
   for (const extra of opts.bonusDice ?? []) terms.push(...parseNotation(extra))
   const result = build(terms, type, opts)
-  if (opts.lucky) luckyReroll(result, mode, opts.rng ?? defaultRng)
+  if (opts.lucky) luckyReroll(result, mode, sourceFor(opts))
   const first = result.terms[0]
   const natural = first.kind === 'dice' ? first.subtotal : 0
   result.d20 = { mode, natural, crit: natural === 20, fumble: natural === 1 }

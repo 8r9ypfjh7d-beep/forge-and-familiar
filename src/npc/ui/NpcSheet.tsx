@@ -251,7 +251,7 @@ function HitPoints({ npc, apply }: { npc: Npc; apply: Apply }) {
   /** Start of the NPC's turn: legendary actions back, and a d6 for every spent recharge action. */
   const newTurn = () => {
     const spent = limitedActions(npc.block).filter(a => a.usage?.type === 'recharge' && (npc.state.uses[a.name] ?? 0) > 0)
-    const rolls = spent.map(a => ({ a, d6: roll('1d6', { label: `${npc.name}: ${a.name}` }).total }))
+    const rolls = spent.map(a => ({ a, d6: roll('1d6', { label: `${npc.name}: ${a.name}`, lean: false }).total }))
     const back = rolls.filter(r => r.a.usage?.type === 'recharge' && r.d6 >= r.a.usage.minimum)
     const text = rolls.length
       ? back.length ? t('npc.log.recharged', { names: back.map(r => `${r.a.name} (${r.d6})`).join(', ') }) : t('npc.log.noRecharge', { names: rolls.map(r => `${r.a.name} (${r.d6})`).join(', ') })

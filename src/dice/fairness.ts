@@ -1,4 +1,5 @@
-// How the d20s in a roll history compare with a fair die. Pure.
+// How the d20s in a roll history compare with the die they came from (fair, or a player's leaned d20). Pure.
+import { leanProbability } from './rng'
 import type { RollResult } from './types'
 
 export type D20Verdict = 'none' | 'normal' | 'low' | 'high'
@@ -9,18 +10,32 @@ export interface D20Stats {
   average: number
   nat1: number
   nat20: number
-  /** Expected count of each face: n / 20. */
-  expected: number
-  /** How far the average is from 10.5, in standard errors. 0 when n is 0. */
+  /** Expected average: 10.5 fair, 11.4375 leaned. */
+  expectedAverage: number
+  /** Expected natural 1s and 20s for n dice (n / 20 each when fair). */
+  expectedNat1: number
+  expectedNat20: number
+  /** How far the average is from the expected average, in standard errors. 0 when n is 0. */
   z: number
   /** 'none' under 20 dice; otherwise 'normal' inside |z| < 2.58 (99%), else 'low' or 'high'. */
   verdict: D20Verdict
 }
 
-const FAIR_MEAN = 10.5
-const FAIR_SD = Math.sqrt(33.25) // (20^2 - 1) / 12
+const FACES = Array.from({ length: 20 }, (_, i) => i + 1)
 
-export function d20Stats(rolls: readonly RollResult[]): D20Stats {
+function d20Model(lean: boolean) {
+  const p = (v: number) => (lean ? leanProbability(20, v) : 1 / 20)
+  const mean = FACES.reduce((s, v) => s + v * p(v), 0)
+  const variance = FACES.reduce((s, v) => s + (v - mean) ** 2 * p(v), 0)
+  return { mean, sd: Math.sqrt(variance), p1: p(1), p20: p(20) }
+}
+
+const FAIR = d20Model(false) // mean 10.5, variance 33.25
+const LEAN = d20Model(true) // mean 11.4375
+
+/** `lean`: the history's dice came from leanRng (a player's), so compare with that distribution. */
+export function d20Stats(rolls: readonly RollResult[], lean = false): D20Stats {
+  const m = lean ? LEAN : FAIR
   let n = 0, sum = 0, nat1 = 0, nat20 = 0
   for (const r of rolls)
     for (const t of r.terms) {
@@ -34,7 +49,7 @@ export function d20Stats(rolls: readonly RollResult[]): D20Stats {
       }
     }
   const average = n ? sum / n : 0
-  const z = n ? (average - FAIR_MEAN) / (FAIR_SD / Math.sqrt(n)) : 0
+  const z = n ? (average - m.mean) / (m.sd / Math.sqrt(n)) : 0
   const verdict: D20Verdict = n < 20 ? 'none' : Math.abs(z) < 2.58 ? 'normal' : z < 0 ? 'low' : 'high'
-  return { n, average, nat1, nat20, expected: n / 20, z, verdict }
+  return { n, average, nat1, nat20, expectedAverage: m.mean, expectedNat1: n * m.p1, expectedNat20: n * m.p20, z, verdict }
 }

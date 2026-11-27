@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { d20Stats } from './fairness'
-import { randomFloat, randomInt } from './rng'
-import { roll, rollD20 } from './roll'
+import { leanProbability, randomFloat, randomInt } from './rng'
+import { cryptoRng, roll, rollD20 } from './roll'
 import type { RollResult } from './types'
 
 const N = 200_000
@@ -19,8 +19,11 @@ function chiSquare(counts: number[], p: (v: number) => number) {
   return chi
 }
 
+const SIDES = [4, 6, 8, 10, 12, 20, 100]
+const character = { id: 'c1', name: 'Pip', state: {} } as unknown as NonNullable<Parameters<typeof roll>[1]>['character']
+
 describe('dice fairness (chi-square, 200,000 rolls each)', () => {
-  it.each([4, 6, 8, 10, 12, 20, 100])('1d%i is uniform', sides => {
+  it.each(SIDES)('1d%i is uniform without a character', sides => {
     const counts = new Array<number>(sides + 1).fill(0)
     for (let i = 0; i < N; i++) counts[roll(`1d${sides}`).total]++
     expect(counts[0]).toBe(0)
@@ -35,6 +38,62 @@ describe('dice fairness (chi-square, 200,000 rolls each)', () => {
     for (let i = 0; i < N; i++) counts[rollD20(0, { mode }).d20!.natural]++
     expect(counts[0]).toBe(0)
     expect(chiSquare(counts, p)).toBeLessThan(limit(19))
+  })
+
+  it('rollD20 without a character is uniform', () => {
+    const counts = new Array<number>(21).fill(0)
+    for (let i = 0; i < N; i++) counts[rollD20(0).d20!.natural]++
+    expect(chiSquare(counts, () => 1 / 20)).toBeLessThan(limit(19))
+  })
+})
+
+describe('player lean (chi-square, 200,000 rolls each)', () => {
+  const countD = (sides: number, rollOnce: () => number) => {
+    const counts = new Array<number>(sides + 1).fill(0)
+    for (let i = 0; i < N; i++) counts[rollOnce()]++
+    return counts
+  }
+
+  it.each(SIDES)('1d%i with lean matches leanProbability', sides => {
+    const counts = countD(sides, () => roll(`1d${sides}`, { lean: true }).total)
+    expect(counts[0]).toBe(0)
+    expect(chiSquare(counts, v => leanProbability(sides, v))).toBeLessThan(limit(sides - 1))
+  })
+
+  it('a roll with a character leans by default', () => {
+    const counts = countD(20, () => rollD20(0, { character, ignoreConditions: true }).d20!.natural)
+    expect(chiSquare(counts, v => leanProbability(20, v))).toBeLessThan(limit(19))
+  })
+
+  it('lean: false with a character is fair', () => {
+    const counts = countD(20, () => roll('1d20', { character, lean: false }).total)
+    expect(chiSquare(counts, () => 1 / 20)).toBeLessThan(limit(19))
+  })
+
+  it('an explicit rng wins over lean', () => {
+    expect(roll('1d20', { lean: true, rng: () => 1 }).total).toBe(1)
+    const counts = countD(20, () => roll('1d20', { character, lean: true, rng: cryptoRng }).total)
+    expect(chiSquare(counts, () => 1 / 20)).toBeLessThan(limit(19))
+  })
+})
+
+describe('leanProbability', () => {
+  it.each([1, 2, 3, ...SIDES])('sums to 1 on a d%i', sides => {
+    let sum = 0
+    for (let v = 1; v <= sides; v++) sum += leanProbability(sides, v)
+    expect(sum).toBeCloseTo(1, 12)
+  })
+
+  it('gives the planned d20 numbers', () => {
+    let mean = 0
+    for (let v = 1; v <= 20; v++) mean += v * leanProbability(20, v)
+    expect(mean).toBeCloseTo(11.4375, 12)
+    expect(leanProbability(20, 1)).toBeCloseTo(0.03125, 12)
+    expect(leanProbability(20, 5)).toBeCloseTo(0.03125, 12)
+    expect(leanProbability(20, 6)).toBeCloseTo(0.05625, 12)
+    expect(leanProbability(20, 20)).toBeCloseTo(0.05625, 12)
+    expect(leanProbability(20, 0)).toBe(0)
+    expect(leanProbability(20, 21)).toBe(0)
   })
 })
 
@@ -90,7 +149,7 @@ describe('d20Stats', () => {
   }
 
   it('is empty with no rolls', () => {
-    expect(d20Stats([])).toEqual({ n: 0, average: 0, nat1: 0, nat20: 0, expected: 0, z: 0, verdict: 'none' })
+    expect(d20Stats([])).toEqual({ n: 0, average: 0, nat1: 0, nat20: 0, expectedAverage: 10.5, expectedNat1: 0, expectedNat20: 0, z: 0, verdict: 'none' })
   })
 
   it('counts both dice of advantage and ignores other dice', () => {
@@ -104,7 +163,8 @@ describe('d20Stats', () => {
     expect(s.average).toBeCloseTo(56 / 5)
     expect(s.nat1).toBe(1)
     expect(s.nat20).toBe(2)
-    expect(s.expected).toBeCloseTo(0.25)
+    expect(s.expectedNat1).toBeCloseTo(0.25)
+    expect(s.expectedNat20).toBeCloseTo(0.25)
     expect(s.verdict).toBe('none')
   })
 
@@ -122,7 +182,9 @@ describe('d20Stats', () => {
     expect(s.z).toBe(0)
     expect(s.verdict).toBe('normal')
     expect(s.nat1).toBe(2)
-    expect(s.expected).toBe(2)
+    expect(s.expectedNat1).toBeCloseTo(2)
+    expect(s.expectedNat20).toBeCloseTo(2)
+    expect(s.expectedAverage).toBeCloseTo(10.5)
   })
 
   it('flags cold and hot streaks', () => {
@@ -135,5 +197,19 @@ describe('d20Stats', () => {
     const s = d20Stats(fixed(12, 25))
     expect(s.z).toBeCloseTo(1.5 / (Math.sqrt(33.25) / 5))
     expect(s.verdict).toBe('normal')
+  })
+
+  it('compares with the lean distribution when asked', () => {
+    const s = d20Stats(fixed(12, 40), true)
+    expect(s.expectedAverage).toBeCloseTo(11.4375)
+    expect(s.expectedNat1).toBeCloseTo(40 * 0.03125)
+    expect(s.expectedNat20).toBeCloseTo(40 * 0.05625)
+    let variance = 0
+    for (let v = 1; v <= 20; v++) variance += (v - 11.4375) ** 2 * leanProbability(20, v)
+    expect(s.z).toBeCloseTo((12 - 11.4375) / (Math.sqrt(variance) / Math.sqrt(40)))
+    expect(s.verdict).toBe('normal')
+    // A fair-looking history is cold for leaned dice.
+    expect(d20Stats(fixed(10, 150), true).verdict).toBe('low')
+    expect(d20Stats(fixed(10, 150)).verdict).toBe('normal')
   })
 })

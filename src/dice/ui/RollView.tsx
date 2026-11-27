@@ -56,12 +56,6 @@ function Sources({ terms }: { terms: TermResult[] }) {
   )
 }
 
-/** Quiet honesty chip: this roll came from the streak-free shuffle bag, not plain random. */
-function StreakChip() {
-  const { t } = useI18n()
-  return <span className="ff-roll__streak" title={t('dice.streakFreeHint')}>{t('dice.streakFreeChip')}</span>
-}
-
 export function RollView({ roll, compact = false }: { roll: RollResult; compact?: boolean }) {
   const crit = roll.d20?.crit && roll.type !== 'deathSave'
   const fumble = roll.d20?.fumble
@@ -85,7 +79,6 @@ export function RollView({ roll, compact = false }: { roll: RollResult; compact?
         {crit && <span className="ff-roll__badge">{t('dice.crit')}</span>}
         {fumble && <span className="ff-roll__badge">{t('dice.nat1')}</span>}
         {roll.autoFail && <span className="ff-roll__badge">{t('dice.autoFail')}</span>}
-        {roll.streakFree && <StreakChip />}
       </div>
     </div>
   )
@@ -111,7 +104,6 @@ function ActionPart({ roll }: { roll: RollResult }) {
           )}
           {crit && <span className="ff-roll__badge">{t('dice.crit')}</span>}
           {fumble && <span className="ff-roll__badge">{t('dice.nat1')}</span>}
-          {roll.streakFree && <StreakChip />}
         </span>
         <span className="ff-roll__total" aria-label={t('dice.total', { total: roll.total })}>{roll.total}</span>
       </div>
